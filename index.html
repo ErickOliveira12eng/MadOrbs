@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mad Orbs</title>
+    <meta name="description" content="Deathmatch de Orbs no navegador. Chame os amigos e jogue na hora, sem instalar nada." />
+    <meta name="theme-color" content="#0b1020" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Mad Orbs" />
+    <meta property="og:description" content="Deathmatch de Orbs no navegador. Chame os amigos e jogue na hora, sem instalar nada." />
+    <meta property="og:image" content="__ORIGIN__/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Google AdSense: site ownership. No ad units and no review yet (only after the original assets are replaced) -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4734295007084792" crossorigin="anonymous"></script>
+    <style>
+      html, body { margin: 0; height: 100%; background: #0b1020; overflow: hidden; }
+      #game { position: fixed; inset: 0; background: #000; }
+      #game canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+
+    <div id="start" class="screen">
+      <div class="bg" aria-hidden="true">
+        <div id="bgScene" class="bg-scene"></div>
+        <div id="bgOrbs"></div>
+        <canvas id="bgSparks" class="bg-sparks"></canvas>
+      </div>
+
+      <div class="topbar">
+        <div id="serverStatus" class="online-pill"><span class="dot"></span><span data-icon="users"></span><span class="status-text">Procurando o servidor...</span></div>
+        <button id="btnAudio" class="icon-btn" type="button" title="Som" aria-label="Ligar/desligar o som"></button>
+        <button id="btnFullscreen" class="icon-btn" type="button" title="Tela cheia" aria-label="Tela cheia"></button>
+        <button id="btnSettings" class="icon-btn" type="button" title="Volume" aria-label="Volume da música, dos efeitos e do ambiente"><span data-icon="settings"></span></button>
+      </div>
+
+      <main class="menu">
+        <h1 class="logo" aria-label="Mad Orbs">
+          <span class="logo-mad" data-text="MAD">MAD</span><span class="logo-orbs" data-text="ORBS">ORBS</span>
+          <span class="logo-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        </h1>
+        <p class="slogan">ROLE. ATIRE. DESTRUA.</p>
+        <p class="tagline">Deathmatch de Orbs no navegador</p>
+
+        <form id="startForm" class="play-area" autocomplete="off">
+          <div class="orb-row">
+            <button id="orbPrev" class="orb-arrow" type="button" title="Estilo anterior" aria-label="Estilo anterior"><span data-icon="chevron_left"></span></button>
+            <button id="orbButton" class="orb-stage" type="button" title="Personalizar Orb">
+              <span class="pedestal"></span>
+              <span class="orb-shadow"></span>
+              <canvas id="orbPreview" width="360" height="360"></canvas>
+            </button>
+            <button id="orbNext" class="orb-arrow" type="button" title="Próximo estilo" aria-label="Próximo estilo"><span data-icon="chevron_right"></span></button>
+          </div>
+          <input id="name" class="name-input" type="text" maxlength="31" placeholder="Seu nome" spellcheck="false" aria-label="Seu nome" />
+          <button id="orbCustomize" class="pill-btn" type="button"><span data-icon="palette"></span>Personalizar Orb</button>
+
+          <button id="play" class="btn-play hero" type="submit">
+            <span class="play-main"><span data-icon="play"></span>JOGAR AGORA</span>
+            <span id="playSub" class="play-sub">Partida rápida</span>
+          </button>
+          <div id="message" class="message" role="alert" hidden></div>
+
+          <div id="modes" class="modes" role="radiogroup" aria-label="Modo de jogo"></div>
+
+          <div class="shortcuts">
+            <button class="shortcut" type="button" disabled>
+              <span class="shortcut-icon" data-icon="bars"></span><span><b>Ranking</b><small>Em breve</small></span>
+            </button>
+            <button id="training" class="shortcut" type="button">
+              <span class="shortcut-icon" data-icon="gamepad"></span><span><b>Treinar com bots</b><small>Jogue offline</small></span>
+            </button>
+            <button id="btnControls" class="shortcut" type="button">
+              <span class="shortcut-icon" data-icon="help"></span><span><b>Controles</b><small>WASD + Mouse</small></span>
+            </button>
+          </div>
+        </form>
+        <p id="touchNotice" class="touch-notice" hidden>Mad Orbs precisa de teclado e mouse: abra no computador para jogar.</p>
+      </main>
+
+    </div>
+
+    <!-- Controls -->
+    <div id="controlsModal" class="modal" hidden>
+      <div class="modal-card controls-modal" role="dialog" aria-modal="true" aria-labelledby="controlsTitle">
+        <header class="modal-head">
+          <h2 id="controlsTitle">Controles</h2>
+          <button class="icon-btn modal-close" type="button" data-close aria-label="Fechar"><span data-icon="x"></span></button>
+        </header>
+        <section class="controls" aria-label="Controles">
+          <div class="ctrl"><span class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span>mover</div>
+          <div class="ctrl"><span class="keys"><kbd class="mouse" data-icon="mouse_pointer_click"></kbd></span>atirar</div>
+          <div class="ctrl"><span class="keys"><kbd>botão direito</kbd></span>granada</div>
+          <div class="ctrl"><span class="keys"><kbd>botão do meio</kbd></span>molotov</div>
+          <div class="ctrl"><span class="keys"><kbd>espaço</kbd></span>arma secundária</div>
+          <div class="ctrl"><span class="keys"><kbd>F</kbd></span>pegar arma</div>
+          <div class="ctrl"><span class="keys"><kbd>Tab</kbd></span>placar</div>
+          <div class="ctrl"><span class="keys"><kbd>T</kbd></span>chat</div>
+          <div class="ctrl"><span class="keys"><kbd>M</kbd></span>música</div>
+          <div class="ctrl"><span class="keys"><kbd>Esc</kbd></span>armas e opções</div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Orb picker -->
+    <div id="orbModal" class="modal" hidden>
+      <div class="modal-card orb-modal" role="dialog" aria-modal="true" aria-labelledby="orbModalTitle">
+        <header class="modal-head">
+          <h2 id="orbModalTitle">Sua Orb</h2>
+          <button class="icon-btn modal-close" type="button" data-close aria-label="Fechar"><span data-icon="x"></span></button>
+        </header>
+        <div class="orb-picker">
+          <div class="orb-picker-preview">
+            <div class="orb-stage big">
+              <canvas id="orbBig" width="520" height="520"></canvas>
+              <span class="orb-shadow"></span>
+            </div>
+            <button id="orbRandom" class="btn-ghost" type="button"><span data-icon="dices"></span>Aleatória</button>
+          </div>
+          <div class="orb-picker-side">
+            <h3>Estilo</h3>
+            <div id="orbGrid" class="orb-grid" role="listbox" aria-label="Estilos de Orb"></div>
+            <h3>Cores</h3>
+            <div class="orb-colors">
+              <label class="swatch"><input id="red" type="color" /><span>Cor 1</span></label>
+              <label class="swatch"><input id="green" type="color" /><span>Cor 2</span></label>
+              <label class="swatch"><input id="blue" type="color" /><span>Cor 3</span></label>
+            </div>
+            <div id="orbPresets" class="orb-presets" aria-label="Combinações de cores"></div>
+          </div>
+        </div>
+        <footer class="modal-foot">
+          <button class="btn-play small" type="button" data-close><span data-icon="check"></span>Pronto</button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Offline training -->
+    <div id="trainingModal" class="modal" hidden>
+      <form id="trainingForm" class="modal-card training-modal" role="dialog" aria-modal="true" aria-labelledby="trainingTitle">
+        <header class="modal-head">
+          <h2 id="trainingTitle">Treino offline</h2>
+          <button class="icon-btn modal-close" type="button" data-close aria-label="Fechar"><span data-icon="x"></span></button>
+        </header>
+        <p class="modal-sub">Só você e os bots, sem precisar do servidor.</p>
+        <div class="training-body">
+          <canvas id="mapPreview" class="map-preview" width="220" height="220"></canvas>
+          <div class="training-fields">
+            <div class="field">Modo
+              <div id="trainingMode" class="segmented" role="radiogroup"></div>
+            </div>
+            <label class="field">Mapa<select id="map"></select></label>
+            <label class="field"><span>Bots: <b id="botsValue"></b></span><input id="bots" type="range" min="0" max="15" step="1" /></label>
+            <div class="field">Dificuldade
+              <div id="skill" class="segmented" role="radiogroup">
+                <button type="button" data-value="0.2">Fácil</button>
+                <button type="button" data-value="0.5">Médio</button>
+                <button type="button" data-value="0.85">Difícil</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer class="modal-foot">
+          <button class="btn-play small" type="submit"><span data-icon="swords"></span>Começar treino</button>
+        </footer>
+      </form>
+    </div>
+
+    <!-- Sound settings (start screen and in-game menu) -->
+    <div id="audioPanel" class="popover" hidden>
+      <div class="audio-row">
+        <button id="musicMute" class="icon-btn small" type="button" aria-label="Ligar/desligar música"></button>
+        <span class="audio-label">Música</span>
+        <input id="musicVolume" type="range" min="0" max="100" step="1" aria-label="Volume da música" />
+        <span id="musicValue" class="audio-value"></span>
+      </div>
+      <div class="audio-row">
+        <button id="sfxMute" class="icon-btn small" type="button" aria-label="Ligar/desligar efeitos"></button>
+        <span class="audio-label">Efeitos</span>
+        <input id="sfxVolume" type="range" min="0" max="100" step="1" aria-label="Volume dos efeitos" />
+        <span id="sfxValue" class="audio-value"></span>
+      </div>
+      <div class="audio-row" title="Chuva, vento e lava dos mapas">
+        <button id="ambientMute" class="icon-btn small" type="button" aria-label="Ligar/desligar som ambiente"></button>
+        <span class="audio-label">Ambiente</span>
+        <input id="ambientVolume" type="range" min="0" max="100" step="1" aria-label="Volume do som ambiente: chuva, vento e lava" />
+        <span id="ambientValue" class="audio-value"></span>
+      </div>
+    </div>
+    <button id="gameAudioBtn" class="icon-btn game-audio-btn" type="button" title="Som" aria-label="Som" hidden></button>
+    <div id="toast" class="toast" hidden></div>
+
+    <div id="loading" class="loading" hidden>
+      <div class="spinner"></div>
+      <div id="loadingText">Carregando...</div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

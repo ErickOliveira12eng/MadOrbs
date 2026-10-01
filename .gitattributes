@@ -1,0 +1,12 @@
+# Text files keep LF on every system (Windows included); game assets are never converted.
+* text=auto eol=lf
+*.tga binary
+*.bvm binary
+*.dko binary
+*.wav binary
+*.ogg binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

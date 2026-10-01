@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="tile" cx="50%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#3b2f94"/>
+      <stop offset="1" stop-color="#140e36"/>
+    </radialGradient>
+    <radialGradient id="orb" cx="35%" cy="28%" r="80%">
+      <stop offset="0" stop-color="#fff4b0"/>
+      <stop offset=".34" stop-color="#ffc526"/>
+      <stop offset=".72" stop-color="#ff8a00"/>
+      <stop offset="1" stop-color="#b85000"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6a6a7a"/>
+      <stop offset="1" stop-color="#25252e"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#tile)"/>
+  <circle cx="25" cy="35" r="19.5" fill="url(#orb)" stroke="#1a1042" stroke-width="3.2"/>
+  <path d="M9 41c8.5 6.5 25 6.5 33-2.5" fill="none" stroke="#1a1042" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+  <g stroke="#1a1042" stroke-width="2.4" stroke-linejoin="round" fill="url(#metal)">
+    <rect x="45" y="30.5" width="13" height="5.5" rx="1.4"/>
+    <rect x="55" y="29" width="5.5" height="8.5" rx="1.4"/>
+    <rect x="35" y="27.5" width="13" height="11.5" rx="2.4"/>
+  </g>
+  <ellipse cx="18" cy="26" rx="6.8" ry="4" fill="#fff" opacity=".75" transform="rotate(-30 18 26)"/>
+</svg>
