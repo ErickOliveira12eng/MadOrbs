@@ -1,0 +1,104 @@
+/* Plain pages served next to the game (privacidade.html, termos.html): no build step, no fonts to load. */
+:root {
+  color-scheme: dark;
+  --bg: #120d31;
+  --panel: rgba(36, 28, 92, 0.55);
+  --line: rgba(150, 140, 255, 0.18);
+  --text: #e6e4fb;
+  --muted: #a7a3d6;
+  --accent: #ffb52e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(120% 70% at 50% 0%, #2a1f6e 0%, var(--bg) 60%) fixed, var(--bg);
+  color: var(--text);
+  font: 16px/1.65 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+header {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 22px 16px 0;
+}
+
+.home {
+  color: var(--accent);
+  font-weight: 900;
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+.home img {
+  width: 28px;
+  height: 28px;
+  margin-right: 8px;
+  vertical-align: -7px;
+}
+
+main {
+  max-width: 760px;
+  margin: 18px auto 48px;
+  padding: 28px 28px 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+h1 {
+  margin: 0 0 4px;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.updated {
+  margin: 0 0 22px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+h2 {
+  margin: 30px 0 8px;
+  font-size: 19px;
+  color: var(--accent);
+}
+
+p,
+li {
+  overflow-wrap: anywhere;
+}
+
+ul {
+  padding-left: 22px;
+}
+
+li + li {
+  margin-top: 6px;
+}
+
+a {
+  color: #9fc4ff;
+}
+
+footer {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  main {
+    margin: 14px 16px 36px;
+    padding: 20px 18px 10px;
+  }
+  h1 {
+    font-size: 25px;
+  }
+}

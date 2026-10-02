@@ -866,7 +866,7 @@ select:focus-visible {
   opacity: 0.62;
 }
 
-/* ------------------------------------------------------------------ controls window */
+/* ------------------------------------------------------------------ controls window + footer */
 
 .controls {
   display: grid;
@@ -924,6 +924,27 @@ kbd.mouse .icon {
   text-align: center;
 }
 
+.footer {
+  position: fixed;
+  z-index: 2;
+  right: 16px;
+  bottom: 10px;
+  display: flex;
+  gap: 14px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.footer a {
+  color: rgba(160, 166, 220, 0.55);
+  text-decoration: none;
+}
+
+.footer a:hover,
+.footer a:focus-visible {
+  color: rgba(214, 218, 255, 0.95);
+  text-decoration: underline;
+}
 
 /* ------------------------------------------------------------------ modals */
 
@@ -1347,6 +1368,11 @@ input[type='range'] {
   }
   .btn-play.hero {
     width: min(100%, 470px);
+  }
+  .footer {
+    position: static;
+    justify-content: center;
+    padding: 0 16px 14px;
   }
 }
 
