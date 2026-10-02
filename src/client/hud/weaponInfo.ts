@@ -2,7 +2,7 @@
 // original game, and the numbers of the rules this game runs with (sv_*Damage, fireDelay... in
 // gameVar.ts, the "Pro" values the server uses). Damage is shown with a full life = 100.
 import {
-  PRIMARY_WEAPONS, SECONDARY_WEAPONS, WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_COCKTAIL_MOLOTOV,
+  PRIMARY_WEAPONS, SECONDARY_WEAPONS, SERVER_TYPE_PRO, WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_COCKTAIL_MOLOTOV,
   WEAPON_DUAL_MACHINE_GUN, WEAPON_FLAME_THROWER, WEAPON_GRENADE, WEAPON_KNIVES, WEAPON_MINIBOT,
   WEAPON_NUCLEAR, WEAPON_PHOTON_RIFLE, WEAPON_SHIELD, WEAPON_SHOTGUN, WEAPON_SMG, WEAPON_SNIPER,
 } from '../../sim/constants';
@@ -101,7 +101,10 @@ function tip(id: number): string {
     case WEAPON_CHAIN_GUN:
       return 'O maior dano contínuo. Superaquece se não soltar.';
     case WEAPON_BAZOOKA:
-      return `Foguete que explode em área, raio de ${num(sv.sv_zookaRadius)} blocos.`;
+      // Remote detonation (Weapon.shoot / Game.handleProjectileRequest): a new click while it flies
+      return sv.sv_zookaRemoteDet && sv.sv_serverType === SERVER_TYPE_PRO
+        ? `Explode em área, raio de ${num(sv.sv_zookaRadius)}. Clique de novo para detonar no ar.`
+        : `Foguete que explode em área, raio de ${num(sv.sv_zookaRadius)} blocos.`;
     case WEAPON_PHOTON_RIFLE:
       return 'Atravessa Orbs em linha. Mais forte de perto.';
     case WEAPON_FLAME_THROWER:
