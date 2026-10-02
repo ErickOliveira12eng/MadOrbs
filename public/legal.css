@@ -97,6 +97,124 @@ kbd {
   text-align: center;
 }
 
+/* Guide pages: weapon cards (armas.html) and match pictures (modos.html) */
+.weapon {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin: 14px 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(10, 8, 30, 0.35);
+}
+
+.weapon-pic {
+  flex: 0 0 170px;
+  display: grid;
+  place-items: center;
+  min-height: 96px;
+  border-radius: 10px;
+  background: radial-gradient(closest-side, rgba(120, 110, 255, 0.22), transparent);
+}
+
+.weapon-pic img {
+  max-width: 100%;
+  max-height: 110px;
+  width: auto;
+  height: auto;
+}
+
+.weapon-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.weapon h3 {
+  margin: 0 0 8px;
+  font-size: 19px;
+}
+
+.weapon h3 small {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.weapon p {
+  margin: 8px 0 0;
+}
+
+.stats {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 6px;
+  max-width: 380px;
+}
+
+.stats div {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+}
+
+.stats dt {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.stats dd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #8f84ff, #b9b2ff);
+}
+
+.stats b {
+  min-width: 60px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.tip {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+figure {
+  margin: 14px 0 6px;
+}
+
+figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+
+figcaption {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 footer {
   max-width: 760px;
   margin: 0 auto;
@@ -106,6 +224,13 @@ footer {
 }
 
 @media (max-width: 640px) {
+  .weapon {
+    flex-direction: column;
+  }
+  .weapon-pic {
+    flex-basis: auto;
+    width: 100%;
+  }
   main {
     margin: 14px 16px 36px;
     padding: 20px 18px 10px;
