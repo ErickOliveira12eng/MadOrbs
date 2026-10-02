@@ -36,6 +36,7 @@ class AudioSystem {
   private musicLevel = 1;
   private sfxLevel = 1;
   private ambientLevel = 1;
+  private allOff = false;
   private musicOff = false;
   private sfxOff = false;
   private ambientOff = false;
@@ -51,7 +52,7 @@ class AudioSystem {
     if (!Ctor) return;
     this.ctx = new Ctor();
     this.master = this.ctx.createGain();
-    this.master.gain.value = this.masterVolume;
+    this.master.gain.value = this.allOff ? 0 : this.masterVolume;
     this.master.connect(this.ctx.destination);
     this.sfxBus = this.ctx.createGain();
     this.sfxBus.connect(this.master);
@@ -70,11 +71,12 @@ class AudioSystem {
 
   setMasterVolume(v: number): void {
     this.masterVolume = v;
-    if (this.ctx) this.master.gain.value = v;
+    this.applyVolumes();
   }
 
-  /** Music, effects and ambience levels (0..1, applied on top of each sound's own volume) and mute. */
-  setVolumes(v: { music: number; sfx: number; ambient: number; musicMuted: boolean; sfxMuted: boolean; ambientMuted: boolean }): void {
+  /** Every sound off, music, effects and ambience levels (0..1, applied on top of each sound's own volume) and mute. */
+  setVolumes(v: { muted: boolean; music: number; sfx: number; ambient: number; musicMuted: boolean; sfxMuted: boolean; ambientMuted: boolean }): void {
+    this.allOff = v.muted;
     this.musicLevel = Math.max(0, Math.min(1, v.music));
     this.sfxLevel = Math.max(0, Math.min(1, v.sfx));
     this.ambientLevel = Math.max(0, Math.min(1, v.ambient));
@@ -87,6 +89,7 @@ class AudioSystem {
   private applyVolumes(): void {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
+    this.master.gain.setTargetAtTime(this.allOff ? 0 : this.masterVolume, t, 0.03);
     this.musicBus.gain.setTargetAtTime(this.musicOff ? 0 : this.musicLevel, t, 0.03);
     this.sfxBus.gain.setTargetAtTime(this.sfxOff ? 0 : this.sfxLevel, t, 0.03);
     this.ambientBus.gain.setTargetAtTime(this.ambientOff ? 0 : this.ambientLevel, t, 0.03);

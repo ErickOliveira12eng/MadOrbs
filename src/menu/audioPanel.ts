@@ -1,20 +1,20 @@
-// Sound settings: music, effects and ambience (rain, wind, lava) volume with mute buttons, from the
-// start screen's gear button or, in game, from the button shown while the Esc menu is open. The
-// start screen's speaker turns every sound off and on; M toggles the music.
+// Sound settings in one small window: a main switch for every sound, then the music, effects and
+// ambience (rain, wind, lava) volumes with their own mute buttons. It opens from the start screen's
+// speaker or, in game, from the button shown while the Esc menu is open. M toggles the music.
 import { icon, type IconName } from './icons';
 import { applyAudioSettings, type Settings } from './settings';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 type Channel = 'music' | 'sfx' | 'ambient';
+const CHANNELS = ['music', 'sfx', 'ambient'] as const;
 const MUTED = { music: 'musicMuted', sfx: 'sfxMuted', ambient: 'ambientMuted' } as const;
 const ICONS: Record<Channel, IconName> = { music: 'music', sfx: 'volume_2', ambient: 'cloud_rain' };
 
 export class AudioPanel {
   private readonly panel = $('audioPanel');
-  /** Start screen: all sound off / on. */
-  private readonly muteButton = $('btnAudio');
-  private readonly startButton = $('btnSettings');
+  private readonly master = $('masterMute');
+  private readonly startButton = $('btnAudio');
   private readonly gameButton = $('gameAudioBtn');
   private readonly toast = $('toast');
   private toastTimer = 0;
@@ -24,21 +24,33 @@ export class AudioPanel {
     private readonly save: () => void,
   ) {
     const s = settings;
-    for (const kind of ['music', 'sfx', 'ambient'] as const) {
+    for (const kind of CHANNELS) {
       const slider = $<HTMLInputElement>(`${kind}Volume`);
       slider.value = String(s[kind]);
       slider.addEventListener('input', () => {
         s[kind] = +slider.value;
         // Moving the slider means "I want to hear it"
         s[MUTED[kind]] = false;
+        s.muted = false;
         this.changed();
       });
       $(`${kind}Mute`).addEventListener('click', () => {
         s[MUTED[kind]] = !s[MUTED[kind]];
+        if (!s[MUTED[kind]]) s.muted = false;
         this.changed();
       });
     }
-    this.muteButton.addEventListener('click', () => this.toggleAll());
+    this.master.addEventListener('click', () => {
+      s.muted = !s.muted;
+      // Turning the sound on with every channel silent would still be silent
+      if (!s.muted && CHANNELS.every((k) => s[MUTED[k]] || s[k] === 0)) {
+        for (const k of CHANNELS) {
+          s[MUTED[k]] = false;
+          if (s[k] === 0) s[k] = 50;
+        }
+      }
+      this.changed();
+    });
     for (const b of [this.startButton, this.gameButton]) {
       b.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -62,28 +74,13 @@ export class AudioPanel {
     if (!menuOpen) this.panel.hidden = true;
   }
 
-  /** Everything off, or (when everything is off) everything back on. */
-  private toggleAll(): void {
-    const s = this.settings;
-    const off = !this.allOff();
-    for (const kind of ['music', 'sfx', 'ambient'] as const) {
-      s[MUTED[kind]] = off;
-      if (!off && s[kind] === 0) s[kind] = 50;
-    }
-    this.changed();
-    this.showToast(off ? 'Som desligado' : 'Som ligado');
-  }
-
-  private allOff(): boolean {
-    const s = this.settings;
-    return (s.musicMuted || s.music === 0) && (s.sfxMuted || s.sfx === 0) && (s.ambientMuted || s.ambient === 0);
-  }
-
   /** M key: music on/off, with a short notice. */
   toggleMusic(): void {
-    this.settings.musicMuted = !this.settings.musicMuted;
+    const s = this.settings;
+    s.musicMuted = !s.musicMuted;
+    if (!s.musicMuted) s.muted = false;
     this.changed();
-    this.showToast(this.settings.musicMuted ? 'Música desligada (M)' : 'Música ligada (M)');
+    this.showToast(s.musicMuted ? 'Música desligada (M)' : 'Música ligada (M)');
   }
 
   private showToast(text: string): void {
@@ -101,7 +98,7 @@ export class AudioPanel {
 
   private refresh(): void {
     const s = this.settings;
-    for (const kind of ['music', 'sfx', 'ambient'] as const) {
+    for (const kind of CHANNELS) {
       const muted = s[MUTED[kind]];
       $<HTMLInputElement>(`${kind}Volume`).value = String(s[kind]);
       $(`${kind}Value`).textContent = muted ? '—' : `${Math.round(s[kind])}%`;
@@ -109,11 +106,14 @@ export class AudioPanel {
       mute.innerHTML = icon(muted ? 'volume_x' : ICONS[kind], 18);
       mute.classList.toggle('off', muted);
     }
-    const allOff = this.allOff();
-    for (const b of [this.muteButton, this.gameButton]) {
-      b.innerHTML = icon(allOff ? 'volume_x' : 'volume_2', 20);
-      b.classList.toggle('off', allOff);
+    this.master.setAttribute('aria-checked', String(!s.muted));
+    $('masterState').textContent = s.muted ? 'Desligado' : 'Ligado';
+    $('audioChannels').classList.toggle('dimmed', s.muted);
+    const silent = s.muted || CHANNELS.every((k) => s[MUTED[k]] || s[k] === 0);
+    for (const b of [this.startButton, this.gameButton]) {
+      b.innerHTML = icon(silent ? 'volume_x' : 'volume_2', 20);
+      b.classList.toggle('off', silent);
+      b.title = silent ? 'Som desligado' : 'Som';
     }
-    this.muteButton.title = allOff ? 'Ligar o som' : 'Desligar o som';
   }
 }

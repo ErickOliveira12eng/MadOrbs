@@ -22,6 +22,8 @@ export interface Settings {
   ctfMap: string;
   bots: number;
   skill: number;
+  /** Every sound off (the panel's main switch); the channels keep their own volume and mute. */
+  muted: boolean;
   // Sound, 0..100
   music: number;
   sfx: number;
@@ -44,6 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ctfMap: 'CTF-Fort',
   bots: 5,
   skill: 0.5,
+  muted: false,
   music: 70,
   sfx: 90,
   // The rain of the original was loud against everything else
@@ -76,6 +79,12 @@ export function loadSettings(): Settings {
     if (typeof raw.musicMuted === 'boolean') s.musicMuted = raw.musicMuted;
     if (typeof raw.sfxMuted === 'boolean') s.sfxMuted = raw.sfxMuted;
     if (typeof raw.ambientMuted === 'boolean') s.ambientMuted = raw.ambientMuted;
+    if (typeof raw.muted === 'boolean') s.muted = raw.muted;
+    else if (s.musicMuted && s.sfxMuted && s.ambientMuted) {
+      // Saved before the main switch existed, when "all off" muted the three channels
+      s.muted = true;
+      s.musicMuted = s.sfxMuted = s.ambientMuted = false;
+    }
     if (s.name === 'Unnamed Babo') s.name = '';
   } catch {
     /* storage unavailable or corrupt: defaults */
@@ -103,6 +112,7 @@ export function skinInfo(s: Pick<Settings, 'skin' | 'red' | 'green' | 'blue'>): 
 /** Slider positions feel linear when the gain follows their square. */
 export function applyAudioSettings(s: Settings): void {
   audio.setVolumes({
+    muted: s.muted,
     music: (s.music / 100) ** 2,
     sfx: (s.sfx / 100) ** 2,
     ambient: (s.ambient / 100) ** 2,

@@ -65,13 +65,21 @@ async function startGame(mode: PlayMode): Promise<void> {
   }
 }
 
-// Menu music starts on the first interaction (browser autoplay policy); it downloads right away
+// Menu music: browsers only let a page make sound after the visitor clicks or presses a key
+// (autoplay policy), except on sites they already trust. Try right away, then on the first click
+// or key press anywhere; it downloads right away either way.
 audio.prepareMusic(gameSounds().menuMusic);
-window.addEventListener(
-  'pointerdown',
-  () => {
-    audio.unlock();
-    if (screen.visible) void audio.playMusic(gameSounds().menuMusic, 255);
-  },
-  { once: true },
-);
+const startMenuMusic = () => {
+  audio.unlock();
+  if (screen.visible) void audio.playMusic(gameSounds().menuMusic, 255);
+};
+const firstGesture = (e: Event) => {
+  // Escape and modifier keys don't count as a gesture for the browser
+  if (e instanceof KeyboardEvent && (e.key === 'Escape' || e.ctrlKey || e.metaKey || e.altKey)) return;
+  window.removeEventListener('pointerdown', firstGesture);
+  window.removeEventListener('keydown', firstGesture);
+  startMenuMusic();
+};
+window.addEventListener('pointerdown', firstGesture);
+window.addEventListener('keydown', firstGesture);
+startMenuMusic();

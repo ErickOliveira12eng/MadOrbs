@@ -1253,6 +1253,77 @@ input[type='range'] {
   gap: 10px;
 }
 
+.audio-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.audio-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  letter-spacing: 0.02em;
+}
+
+.audio-state {
+  flex: 1;
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+/* The main switch: every sound on / off */
+.switch {
+  position: relative;
+  width: 50px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+  transition: background 0.18s;
+}
+
+.switch[aria-checked='true'] {
+  background: linear-gradient(180deg, var(--play-1), var(--play-2));
+}
+
+.switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: transform 0.18s;
+}
+
+.switch[aria-checked='true'] .switch-knob {
+  transform: translateX(22px);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.audio-channels {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: opacity 0.18s;
+}
+
+/* Still usable while everything is off: touching a channel turns the sound back on */
+.audio-channels.dimmed {
+  opacity: 0.45;
+}
+
 .audio-row {
   display: flex;
   align-items: center;
@@ -1268,6 +1339,10 @@ input[type='range'] {
 .audio-row input {
   flex: 1;
   min-width: 0;
+}
+
+.audio-row:has(.off) input {
+  opacity: 0.45;
 }
 
 .audio-value {

@@ -36,9 +36,8 @@
 
       <div class="topbar">
         <div id="serverStatus" class="online-pill"><span class="dot"></span><span data-icon="users"></span><span class="status-text">Procurando o servidor...</span></div>
-        <button id="btnAudio" class="icon-btn" type="button" title="Som" aria-label="Ligar/desligar o som"></button>
+        <button id="btnAudio" class="icon-btn" type="button" title="Som" aria-label="Som: ligar, desligar e volumes" aria-haspopup="true"></button>
         <button id="btnFullscreen" class="icon-btn" type="button" title="Tela cheia" aria-label="Tela cheia"></button>
-        <button id="btnSettings" class="icon-btn" type="button" title="Volume" aria-label="Volume da música, dos efeitos e do ambiente"><span data-icon="settings"></span></button>
       </div>
 
       <main class="menu">
@@ -180,23 +179,30 @@
 
     <!-- Sound settings (start screen and in-game menu) -->
     <div id="audioPanel" class="popover" hidden>
-      <div class="audio-row">
-        <button id="musicMute" class="icon-btn small" type="button" aria-label="Ligar/desligar música"></button>
-        <span class="audio-label">Música</span>
-        <input id="musicVolume" type="range" min="0" max="100" step="1" aria-label="Volume da música" />
-        <span id="musicValue" class="audio-value"></span>
+      <div class="audio-head">
+        <span class="audio-title">Som</span>
+        <span id="masterState" class="audio-state"></span>
+        <button id="masterMute" class="switch" type="button" role="switch" aria-label="Som do jogo"><span class="switch-knob"></span></button>
       </div>
-      <div class="audio-row">
-        <button id="sfxMute" class="icon-btn small" type="button" aria-label="Ligar/desligar efeitos"></button>
-        <span class="audio-label">Efeitos</span>
-        <input id="sfxVolume" type="range" min="0" max="100" step="1" aria-label="Volume dos efeitos" />
-        <span id="sfxValue" class="audio-value"></span>
-      </div>
-      <div class="audio-row" title="Chuva, vento e lava dos mapas">
-        <button id="ambientMute" class="icon-btn small" type="button" aria-label="Ligar/desligar som ambiente"></button>
-        <span class="audio-label">Ambiente</span>
-        <input id="ambientVolume" type="range" min="0" max="100" step="1" aria-label="Volume do som ambiente: chuva, vento e lava" />
-        <span id="ambientValue" class="audio-value"></span>
+      <div id="audioChannels" class="audio-channels">
+        <div class="audio-row">
+          <button id="musicMute" class="icon-btn small" type="button" aria-label="Ligar/desligar música"></button>
+          <span class="audio-label">Música</span>
+          <input id="musicVolume" type="range" min="0" max="100" step="1" aria-label="Volume da música" />
+          <span id="musicValue" class="audio-value"></span>
+        </div>
+        <div class="audio-row">
+          <button id="sfxMute" class="icon-btn small" type="button" aria-label="Ligar/desligar efeitos"></button>
+          <span class="audio-label">Efeitos</span>
+          <input id="sfxVolume" type="range" min="0" max="100" step="1" aria-label="Volume dos efeitos" />
+          <span id="sfxValue" class="audio-value"></span>
+        </div>
+        <div class="audio-row" title="Chuva, vento e lava dos mapas">
+          <button id="ambientMute" class="icon-btn small" type="button" aria-label="Ligar/desligar som ambiente"></button>
+          <span class="audio-label">Ambiente</span>
+          <input id="ambientVolume" type="range" min="0" max="100" step="1" aria-label="Volume do som ambiente: chuva, vento e lava" />
+          <span id="ambientValue" class="audio-value"></span>
+        </div>
       </div>
     </div>
     <button id="gameAudioBtn" class="icon-btn game-audio-btn" type="button" title="Som" aria-label="Som" hidden></button>
