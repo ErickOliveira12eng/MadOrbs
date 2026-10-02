@@ -19,6 +19,17 @@ export const SVG_WEAPONS = new Set([WEAPON_KNIVES, WEAPON_SHIELD]);
 let weaponArt: Promise<Map<number, string>> | null = null;
 let iconArt: Promise<Map<string, string>> | null = null;
 
+/** How far the box's corners reach on screen: 1 = the edge of the view. */
+function ndcExtent(box: THREE.Box3, camera: THREE.Camera): number {
+  let extent = 0;
+  const p = new THREE.Vector3();
+  for (let i = 0; i < 8; i++) {
+    p.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(camera);
+    extent = Math.max(extent, Math.abs(p.x), Math.abs(p.y));
+  }
+  return extent;
+}
+
 /** Every weapon picture, rendered once per page (the models are already preloaded). */
 function renderWeapons(): Promise<Map<number, string>> {
   weaponArt ??= (async () => {
@@ -47,16 +58,31 @@ function renderWeapons(): Promise<Map<number, string>> {
       const def = weaponDefs[id];
       if (!def) continue;
       const obj = createDkoObject3D(getModel(def.model), 0);
+      // Slings, harness and ammo belt wrap around the orb: without one they hang in the air
+      for (const node of obj.children) if (node.name === 'Strap') node.visible = false;
       const group = new THREE.Group().add(obj);
       scene.add(group);
       group.updateMatrixWorld(true);
       await texturesReady(group);
       // Three-quarter view from the side: the barrel (+y) points right
-      const box = new THREE.Box3().setFromObject(group);
+      const box = new THREE.Box3();
+      group.traverseVisible((o) => {
+        if ((o as THREE.Mesh).isMesh) box.expandByObject(o);
+      });
       const centre = box.getCenter(new THREE.Vector3());
       const radius = box.getSize(new THREE.Vector3()).length() / 2;
       const dir = new THREE.Vector3(1, -0.35, 0.55).normalize();
-      const dist = (radius / Math.sin(THREE.MathUtils.degToRad(18) / 2)) * 0.62;
+      // As close as the whole weapon allows, with a small margin (the picture is cropped anyway)
+      let dist = radius / Math.sin(THREE.MathUtils.degToRad(18) / 2);
+      for (let i = 0; i < 4; i++) {
+        camera.position.copy(centre).addScaledVector(dir, dist);
+        camera.near = dist / 100;
+        camera.far = dist * 10;
+        camera.updateProjectionMatrix();
+        camera.lookAt(centre);
+        camera.updateMatrixWorld();
+        dist *= ndcExtent(box, camera) / 0.92;
+      }
       camera.position.copy(centre).addScaledVector(dir, dist);
       camera.near = dist / 100;
       camera.far = dist * 10;

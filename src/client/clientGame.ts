@@ -166,8 +166,10 @@ export class ClientGame {
     menu.onTeamSelect = (team) => this.selectTeam(team);
     menu.onVisibilityChange = (visible) => {
       if (!visible) {
+        // The mouse is captured again by the first click in the arena, not by the click that closed
+        // the menu: the browser puts the cursor back where the capture started when Escape frees it,
+        // and that was the "back to the game" button.
         this.requireFreshPress = true;
-        this.input.requestPointerLock();
       } else {
         this.closeChat();
         this.input.exitPointerLock();
@@ -179,7 +181,7 @@ export class ClientGame {
     this.input.onPointerLockChange = (locked) => {
       if (!locked && this.running && !menu.visible) menu.show();
     };
-    // Capture the mouse again on a click (closing the menu with Escape can't: no user gesture)
+    // Capture the mouse on a click in the arena (also after the menu closes, see onVisibilityChange)
     this.renderer.domElement.addEventListener('mousedown', () => {
       if (this.running && !menu.visible && !this.input.locked) this.input.requestPointerLock();
     });

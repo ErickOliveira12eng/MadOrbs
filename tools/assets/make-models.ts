@@ -365,6 +365,12 @@ function writeDko(file: string, m: Model): void {
 }
 
 /** A one-frame model: meshes given as [name, material index, triangles]. */
+/**
+ * The mesh of what goes around or behind the orb (slings, harness, ammo belt): the HUD's weapon
+ * pictures leave it out, since it only makes sense with an orb in the middle (hudArt.ts).
+ */
+const STRAP = 'Strap';
+
 const still = (materials: Material[], meshes: [string, number, Tri[]][], dummies: Dummy[] = []): Model => ({
   frames: 1,
   materials,
@@ -410,6 +416,7 @@ function shotgun(): Model {
     ...box(9, 14, 39, 27.5, 46, 59), // receiver
     ...extrudeX([[14, 56], [14, 44], [2, 39], [-9, 35], [-9, 53]], 12, 23), // stock
     ...box(10, 0, 33, 16, 8, 41), // grip
+  ]], [STRAP, 0, [
     ...tube(curve([[12, 2, 58], [8, 4, 86], [-14, 6, 100], [-40, 4, 88], [-52, 0, 62]]), 2.4, 6), // sling over the orb
   ]]], weaponDummyList(1));
 }
@@ -444,6 +451,7 @@ function dualMachineGun(): Model {
   return still([GUN_METAL], [['Body', 0, [
     ...right,
     ...left,
+  ]], [STRAP, 0, [
     ...tube(curve([[42, -6, 60], [34, -4, 92], [0, -2, 110], [-34, -4, 92], [-42, -6, 60]]), 3, 8), // harness over the orb
   ]]], weaponDummyList(3));
 }
@@ -465,6 +473,7 @@ function chainGun(): Model {
     ...box(cx - 3, 4, cz + 13, cx + 3, 8, cz + 19), // carry handle posts
     ...box(cx - 3, 22, cz + 13, cx + 3, 26, cz + 19),
     ...box(cx - 3, 4, cz + 18, cx + 3, 26, cz + 21),
+  ]], [STRAP, 0, [
     ...box(-53, -26, 38, -30, -4, 60), // ammo box
     ...tube(curve([[-40, -14, 60], [-26, -12, 90], [10, -8, 96], [36, -2, 74], [44, 4, 60]]), 3.2, 8), // belt
   ]]], weaponDummyList(4));

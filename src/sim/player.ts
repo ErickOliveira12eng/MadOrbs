@@ -15,6 +15,7 @@ import {
   PROJECTILE_DROPED_WEAPON,
   PROJECTILE_LIFE_PACK,
   SERVER_TYPE_PRO,
+  WEAPON_BAZOOKA,
   WEAPON_CHAIN_GUN,
   WEAPON_COCKTAIL_MOLOTOV,
   WEAPON_DUAL_MACHINE_GUN,
@@ -341,7 +342,10 @@ export class Player {
     // Shooting
     if (!input.shoot && this.weapon) this.weapon.charge = 0;
     if (input.shootPressed) this.initedMouseClic = true;
-    if (input.shoot && this.initedMouseClic) {
+    // Not in the original: with a rocket in the air, the remote detonation needs a new click. Holding
+    // the button blew the rocket up 0.25 s after launch, right in front of the shooter (bots hold it).
+    const holdingOverRocket = this.weapon?.weaponID === WEAPON_BAZOOKA && this.rocketInAir && !input.shootPressed;
+    if (input.shoot && this.initedMouseClic && !holdingOverRocket) {
       if (this.weapon && this.grenadeDelay === 0 && this.meleeDelay === 0) {
         this.firedShowDelay = 2;
         this.weapon.shoot(this);
