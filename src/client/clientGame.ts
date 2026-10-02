@@ -38,7 +38,7 @@ import { BotController, BOT_NAMES } from '../sim/bot';
 import { GameMap, THEME_LAVA, WEATHER_RAIN, loadMap } from '../sim/map';
 import { MiniBot, type Player, type SkinInfo } from '../sim/player';
 import { Projectile } from '../sim/projectile';
-import { Vec3, rotateAboutAxis } from '../sim/vec';
+import { Vec3, distanceSquared, rotateAboutAxis } from '../sim/vec';
 import { WEAPON_MODEL_SCALE } from '../sim/weapon';
 import { weaponDummies } from '../sim/weaponDummies';
 import {
@@ -137,6 +137,13 @@ export class ClientGame {
   private pendingMap: string | null = null;
   /** Hits our shots made on our screen, per victim (time), waiting for the server's 'hit'. */
   private predictedHits = new Map<number, number[]>();
+  /**
+   * Our rockets, grenades and molotovs fly on our screen from the click (Game.predictProjectile);
+   * each is paired with the server's copy when it arrives, which then stays hidden.
+   */
+  private predictedLaunches: { type: number; ghost: Projectile; at: number; serverID: number }[] = [];
+  /** Blasts (radius) and molotov crashes (-1) our predicted projectiles showed: the server's repeat is skipped. */
+  private predictedBlasts: { position: Vec3; radius: number; at: number }[] = [];
 
   private constructor(container: HTMLElement, opts: ClientGameOptions, online: boolean) {
     this.container = container;
@@ -469,7 +476,7 @@ export class ClientGame {
     for (const p of this.game.players) {
       if (p) this.babos.get(p.playerID)?.render(p, alpha);
     }
-    this.projectileRenderer.render(this.game.projectiles, alpha);
+    this.projectileRenderer.render(this.shownProjectiles(), alpha);
     this.flagRenderer.render(this.game, dt, (id) => {
       const carrier = this.game.players[id];
       const v = this.babos.get(id);
@@ -553,7 +560,7 @@ export class ClientGame {
         this.babos.delete(id);
       }
     }
-    this.projectileRenderer.tick(game.projectiles);
+    this.projectileRenderer.tick(this.shownProjectiles());
     this.projectileEffects();
     this.mapEffects();
     this.effects.update(TICK, this.cam.eye, this.cam.camera);
@@ -700,12 +707,58 @@ export class ClientGame {
     }
   }
 
+  /** The projectiles to draw: the server's copies of the ones we predicted stay hidden. */
+  private shownProjectiles(): Projectile[] {
+    const all = this.game.projectiles;
+    return all.some((p) => p.hidden) ? all.filter((p) => !p.hidden) : all;
+  }
+
+  /** The server's copy of a projectile we fired: hidden when ours already flies (or flew). */
+  private pairPredicted(proj: Projectile): void {
+    const now = performance.now();
+    // Launches the server never answered (refused) are forgotten
+    this.predictedLaunches = this.predictedLaunches.filter((l) => l.serverID >= 0 || now - l.at < 2000);
+    const launch = this.predictedLaunches.find((l) => l.serverID < 0 && l.type === proj.projectileType);
+    if (launch) {
+      launch.serverID = proj.uniqueID;
+      proj.hidden = true;
+    } else if (proj.projectileType === PROJECTILE_ROCKET) {
+      this.me.rocketInAir = true; // launched by the server without our prediction
+    }
+  }
+
+  /** The server's copy is gone: if ours still flies, the server's hit something ours missed. */
+  private serverCopyRemoved(uniqueID: number): void {
+    const k = this.predictedLaunches.findIndex((l) => l.serverID === uniqueID);
+    if (k < 0) return;
+    const { ghost } = this.predictedLaunches[k];
+    this.predictedLaunches.splice(k, 1);
+    const i = this.game.projectiles.indexOf(ghost);
+    if (i < 0 || ghost.needToBeDeleted) return;
+    this.game.projectiles.splice(i, 1);
+    if (ghost.projectileType === PROJECTILE_ROCKET) this.me.rocketInAir = false;
+  }
+
+  /** True (and forgotten) when our predicted projectiles already showed this blast or crash. */
+  private takePredictedBlast(position: Vec3, radius: number): boolean {
+    const now = performance.now();
+    this.predictedBlasts = this.predictedBlasts.filter((b) => now - b.at < 2000);
+    const i = this.predictedBlasts.findIndex((b) => b.radius === radius && distanceSquared(b.position, position) < 1.5 * 1.5);
+    if (i < 0) return false;
+    this.predictedBlasts.splice(i, 1);
+    return true;
+  }
+
+  private hasPredicted(type: number): boolean {
+    return this.game.projectiles.some((p) => p.predicted && p.projectileType === type && !p.needToBeDeleted);
+  }
+
   // ---------------------------------------------------------------- effects every tick
 
   /** Client-side particles spawned by projectiles every tick (Projectile::update, remoteEntity). */
   private projectileEffects(): void {
     const game = this.game;
-    for (const p of game.projectiles) {
+    for (const p of this.shownProjectiles()) {
       const pos = p.currentCF.position;
       const owner = game.players[p.fromID];
       switch (p.projectileType) {
@@ -812,6 +865,8 @@ export class ClientGame {
         break;
       }
       case 'grenadeRebound':
+        // Our own grenade's bounces were heard on our predicted one
+        if (fromServer && game.projectiles.some((p) => p.hidden && distanceSquared(p.currentCF.position, e.position) < 1.5 * 1.5)) break;
         audio.play3D(S.grenadeRebond, 1, e.position, 200);
         break;
       case 'projectileSpawn': {
@@ -819,9 +874,11 @@ export class ClientGame {
         if (fromServer && raw?.proj) {
           proj = this.addNetProjectile(raw.proj as NetProjectile);
           if (proj) this.remoteLaunchEffects(proj, e.nuzzleID, e.launchPosition);
-          if (proj && proj.fromID === me.playerID && proj.projectileType === PROJECTILE_ROCKET) me.rocketInAir = true;
+          if (proj && proj.fromID === me.playerID) this.pairPredicted(proj);
+        } else if (proj?.predicted) {
+          this.predictedLaunches.push({ type: proj.projectileType, ghost: proj, at: performance.now(), serverID: -1 });
         }
-        if (proj && proj.projectileType === PROJECTILE_ROCKET) {
+        if (proj && !proj.hidden && proj.projectileType === PROJECTILE_ROCKET) {
           this.effects.rocketLaunchSmoke(proj.currentCF.position, proj.currentCF.vel.mul(1 / 2.5));
         }
         break;
@@ -830,16 +887,23 @@ export class ClientGame {
         if (fromServer) {
           const i = game.projectiles.findIndex((p) => p.uniqueID === e.uniqueID);
           if (i >= 0) game.projectiles.splice(i, 1);
+          this.serverCopyRemoved(e.uniqueID);
         }
         this.flameTimers.delete(e.uniqueID);
         break;
       case 'explosion':
-        this.effects.spawnExplosion(e.position, e.normal, e.radius);
-        if (fromServer && e.playerID === me.playerID) me.rocketInAir = false;
+        // Online, the blasts of our predicted projectiles show at once and the server's repeat is skipped
+        if (!fromServer && this.online) this.predictedBlasts.push({ position: e.position.clone(), radius: e.radius, at: performance.now() });
+        if (!(fromServer && this.takePredictedBlast(e.position, e.radius))) this.effects.spawnExplosion(e.position, e.normal, e.radius);
+        if (fromServer && e.playerID === me.playerID && !this.hasPredicted(PROJECTILE_ROCKET)) me.rocketInAir = false;
         break;
       case 'sound':
         if (e.playerID !== undefined && e.playerID === me.playerID) break; // we already heard it
-        if (e.soundID === SOUND_MOLOTOV) audio.play3D(S.cocktailMolotov, e.range, e.position, e.volume);
+        if (e.soundID === SOUND_MOLOTOV) {
+          // Same as the blasts: our predicted molotov already crashed on our screen
+          if (!fromServer && this.online) this.predictedBlasts.push({ position: e.position.clone(), radius: -1, at: performance.now() });
+          if (!(fromServer && this.takePredictedBlast(e.position, -1))) audio.play3D(S.cocktailMolotov, e.range, e.position, e.volume);
+        }
         else if (e.soundID === SOUND_PHOTON_START) audio.play3D(S.photonStart, e.range, e.position, e.volume);
         else if (e.soundID === SOUND_OVERHEAT) audio.play3D(S.overHeat, e.range, e.position, e.volume);
         break;

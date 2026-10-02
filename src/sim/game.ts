@@ -126,6 +126,8 @@ export class Game {
   changeMapDelay = 0;
   private autoBalanceTimer = 0;
   private uniqueProjectileID = 0;
+  /** Client mode: ids of our predicted projectiles, negative so they never meet the server's. */
+  private predictedProjectileID = 0;
   private opts: GameOptions;
   /** Total simulated ticks. */
   frame = 0;
@@ -466,10 +468,25 @@ export class Game {
         if (p && p.isAlive && p.locallyControlled) this.performPlayerCollisions(p);
       }
     }
-    for (const projectile of this.projectiles) {
-      projectile.rotation += delay * projectile.rotateVel;
-      while (projectile.rotation >= 360) projectile.rotation -= 360;
-      while (projectile.rotation < 0) projectile.rotation += 360;
+    for (let i = 0; i < this.projectiles.length; ++i) {
+      const projectile = this.projectiles[i];
+      if (!projectile.predicted) {
+        projectile.rotation += delay * projectile.rotateVel;
+        while (projectile.rotation >= 360) projectile.rotation -= 360;
+        while (projectile.rotation < 0) projectile.rotation += 360;
+        continue;
+      }
+      // Our predicted ones fly here, as on the server
+      projectile.update(delay, this);
+      if (projectile.needToBeDeleted) {
+        if (!projectile.reallyNeedToBeDeleted) {
+          projectile.reallyNeedToBeDeleted = true;
+          continue;
+        }
+        this.projectiles.splice(i, 1);
+        this.events.push({ type: 'projectileRemoved', uniqueID: projectile.uniqueID });
+        i--;
+      }
     }
   }
 
@@ -608,6 +625,7 @@ export class Game {
     if (this.mode === 'client') {
       if (projectileType === PROJECTILE_DIRECT) this.predictShot(from, position, direction);
       else if (projectileType === PROJECTILE_ROCKET || isThrow) {
+        if (!this.predictProjectile(from, projectileType, position, direction)) return;
         const weaponID = projectileType === PROJECTILE_GRENADE ? WEAPON_GRENADE : projectileType === PROJECTILE_COCKTAIL_MOLOTOV ? WEAPON_COCKTAIL_MOLOTOV : weapon.weaponID;
         this.net?.projectile(projectileType, position, direction, weapon.firingNuzzle, weaponID);
       }
@@ -615,6 +633,29 @@ export class Game {
     }
     if (projectileType === PROJECTILE_DIRECT) this.fireDirect(from, position, direction, weapon.firingNuzzle);
     else if (projectileType === PROJECTILE_ROCKET || isThrow) this.handleProjectileRequest(from, projectileType, position, direction, weapon.firingNuzzle, false);
+  }
+
+  /**
+   * Client mode: our rocket, grenade or molotov starts flying on our screen now, like the server's
+   * will (same launch, see Projectile), instead of a round trip later. With our rocket in the air
+   * the click detonates it here too (Game.handleProjectileRequest). False: don't send it.
+   */
+  private predictProjectile(from: Player, type: number, origin: Vec3, direction: Vec3): boolean {
+    if (type === PROJECTILE_ROCKET && from.rocketInAir) {
+      const rocket = this.projectiles.find((p) => p.predicted && p.projectileType === PROJECTILE_ROCKET && p.fromID === from.playerID && !p.needToBeDeleted);
+      if (!rocket) return true; // the server's, not predicted: it decides
+      // The server detonates only after 0.25 s of flight, and launches a new rocket otherwise
+      if (!(sv.sv_zookaRemoteDet && sv.sv_serverType === SERVER_TYPE_PRO) || rocket.timeSinceThrown < 0.3) return false;
+      from.detonateRocket = true;
+      return true;
+    }
+    if (type === PROJECTILE_COCKTAIL_MOLOTOV && !sv.sv_enableMolotov) return true;
+    const p = new Projectile(origin.clone(), direction.clone(), from.playerID, type, --this.predictedProjectileID);
+    p.predicted = true;
+    this.projectiles.push(p);
+    if (type === PROJECTILE_ROCKET) from.rocketInAir = true;
+    this.events.push({ type: 'projectileSpawn', uniqueID: p.uniqueID, nuzzleID: 0, launchPosition: origin.clone(), launchVel: direction.clone() });
+    return true;
   }
 
   /** A direct shot traced and applied here, against the babos where this game has them. */

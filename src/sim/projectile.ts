@@ -40,6 +40,14 @@ export class Projectile {
   // Visual rotation (kept in the sim so every viewer sees the same spin)
   rotation = 0;
   rotateVel = 0;
+  /**
+   * Client mode: our own rocket, grenade or molotov, flying on our screen from the moment we fire
+   * (Game.predictProjectile). Same flight and blasts as the server's, but no damage and no flames:
+   * the server's copy decides those.
+   */
+  predicted = false;
+  /** Client mode: the server's copy of a projectile we predicted, kept up to date but not drawn. */
+  hidden = false;
 
   constructor(position: Vec3, vel: Vec3, fromID: number, projectileType: number, uniqueID: number, weaponID = 0) {
     this.fromID = fromID;
@@ -215,7 +223,7 @@ export class Projectile {
         if (this.needToBeDeleted) return;
         this.needToBeDeleted = true;
         game.explosion(cf.position.clone(), new Vec3(0, 0, 1), 1.5, -1);
-        game.radiusHit(cf.position, 3, this.fromID, WEAPON_GRENADE);
+        if (!this.predicted) game.radiusHit(cf.position, 3, this.fromID, WEAPON_GRENADE);
         return;
       }
       if (type === PROJECTILE_ROCKET) {
@@ -243,7 +251,7 @@ export class Projectile {
         this.needToBeDeleted = true;
         const pos = hit.currentCF.position.clone();
         game.explosion(pos, new Vec3(0, 0, 1), zookaRadius, this.fromID);
-        game.radiusHit(pos, zookaRadius, this.fromID, WEAPON_BAZOOKA);
+        if (!this.predicted) game.radiusHit(pos, zookaRadius, this.fromID, WEAPON_BAZOOKA);
         return;
       }
       const p2 = cf.position.clone();
@@ -256,7 +264,7 @@ export class Projectile {
         p2.addIn(normal.mul(0.1));
         this.needToBeDeleted = true;
         game.explosion(p2.clone(), normal.clone(), zookaRadius, this.fromID);
-        game.radiusHit(p2, zookaRadius, this.fromID, WEAPON_BAZOOKA);
+        if (!this.predicted) game.radiusHit(p2, zookaRadius, this.fromID, WEAPON_BAZOOKA);
         return;
       }
     }
@@ -269,6 +277,7 @@ export class Projectile {
         // Molotov party on a babo
         this.needToBeDeleted = true;
         game.events.push({ type: 'sound', soundID: SOUND_MOLOTOV, position: cf.position.clone(), volume: 250, range: 5 });
+        if (this.predicted) return;
         game.spawnProjectile(cf.position.clone(), new Vec3(), this.fromID, PROJECTILE_FLAME, 0);
         // (the original computed a random velocity for the second flame but then sent 0)
         game.spawnProjectile(cf.position.clone(), new Vec3(), this.fromID, PROJECTILE_FLAME, 0);
@@ -280,6 +289,7 @@ export class Projectile {
         cf.position.copy(p2.add(normal.mul(0.1)));
         this.needToBeDeleted = true;
         game.events.push({ type: 'sound', soundID: SOUND_MOLOTOV, position: p2.clone(), volume: 250, range: 5 });
+        if (this.predicted) return;
         game.spawnProjectile(cf.position.clone(), new Vec3(), this.fromID, PROJECTILE_FLAME, 0);
         const vel = reflect(cf.vel.mul(0.5), normal).add(randVec(new Vec3(-1, -1, 0), new Vec3(1, 1, 1)));
         game.spawnProjectile(cf.position.clone(), vel, this.fromID, PROJECTILE_FLAME, 0);
