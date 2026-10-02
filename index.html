@@ -3,20 +3,54 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mad Orbs</title>
-    <meta name="description" content="Deathmatch de Orbs no navegador. Chame os amigos e jogue na hora, sem instalar nada." />
+    <title>Mad Orbs: jogo de tiro online grátis no navegador</title>
+    <meta name="description" content="Jogo de tiro online e grátis no navegador: Deathmatch, Team Deathmatch e Capture a Bandeira com Orbs. Sem instalar e sem cadastro, chame os amigos." />
+    <link rel="canonical" href="https://madorbs.com/" />
     <meta name="theme-color" content="#0b1020" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Mad Orbs" />
+    <meta property="og:site_name" content="Mad Orbs" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:url" content="https://madorbs.com/" />
+    <meta property="og:title" content="Mad Orbs: tiro online no navegador" />
     <meta property="og:description" content="Deathmatch de Orbs no navegador. Chame os amigos e jogue na hora, sem instalar nada." />
     <meta property="og:image" content="__ORIGIN__/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Orbs coloridas trocando tiros numa arena do Mad Orbs" />
     <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "name": "Mad Orbs",
+            "url": "https://madorbs.com/",
+            "inLanguage": "pt-BR"
+          },
+          {
+            "@type": "VideoGame",
+            "name": "Mad Orbs",
+            "url": "https://madorbs.com/",
+            "description": "Jogo de tiro online multijogador no navegador, com Orbs que rolam pela arena: Deathmatch, Team Deathmatch e Capture a Bandeira, além de treino offline contra bots.",
+            "image": "https://madorbs.com/og-image.jpg",
+            "genre": ["Tiro", "Ação", "Multijogador"],
+            "gamePlatform": "Navegador web",
+            "applicationCategory": "Game",
+            "operatingSystem": "Windows, macOS, Linux",
+            "playMode": ["MultiPlayer", "SinglePlayer"],
+            "inLanguage": "pt-BR",
+            "isAccessibleForFree": true,
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "BRL" },
+            "author": { "@type": "Person", "name": "Érick Matheus de Oliveira" }
+          }
+        ]
+      }
+    </script>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
-    <!-- Google AdSense: site ownership. No ad units and no review yet (only after the original assets are replaced) -->
+    <!-- Google AdSense (also shows the cookie consent message to visitors from Europe). No ad units yet -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4734295007084792" crossorigin="anonymous"></script>
     <style>
       html, body { margin: 0; height: 100%; background: #0b1020; overflow: hidden; }
@@ -25,6 +59,12 @@
     </style>
   </head>
   <body>
+    <noscript>
+      <p style="color:#eef2ff;font:16px/1.5 system-ui,sans-serif;padding:24px">
+        Mad Orbs é um jogo de tiro online que roda no navegador e precisa do JavaScript ligado.
+        <a href="/sobre" style="color:#9fc4ff">Saiba como jogar</a>.
+      </p>
+    </noscript>
     <div id="game"></div>
 
     <div id="start" class="screen">
@@ -85,6 +125,7 @@
       </main>
 
       <footer class="footer">
+        <a href="/sobre" target="_blank" rel="noopener">Como jogar</a>
         <a href="/privacidade" target="_blank" rel="noopener">Privacidade</a>
         <a href="/termos" target="_blank" rel="noopener">Termos de uso</a>
         <a href="https://github.com/ErickOliveira12eng/MadOrbs" target="_blank" rel="noopener">Código-fonte</a>

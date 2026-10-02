@@ -85,6 +85,18 @@ a {
   color: #9fc4ff;
 }
 
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  background: rgba(10, 8, 30, 0.6);
+  font: 700 13px/1.5 system-ui, sans-serif;
+  text-align: center;
+}
+
 footer {
   max-width: 760px;
   margin: 0 auto;
