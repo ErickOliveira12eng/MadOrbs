@@ -31,6 +31,7 @@ export const en = {
   'footer.modes': 'Game modes',
   'footer.privacy': 'Privacy',
   'footer.terms': 'Terms of use',
+  'footer.cookies': 'Cookies',
   'footer.guides': 'Guides:',
 
   // ---- start screen

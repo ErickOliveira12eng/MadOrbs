@@ -29,6 +29,7 @@ export const pt: Record<Key, string> = {
   'footer.modes': 'Modos de jogo',
   'footer.privacy': 'Privacidade',
   'footer.terms': 'Termos de uso',
+  'footer.cookies': 'Cookies',
   'footer.guides': 'Guias:',
 
   'menu.searching': 'Procurando o servidor...',

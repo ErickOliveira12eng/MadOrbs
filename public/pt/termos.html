@@ -4,18 +4,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Google Analytics 4 (G-H15R1L9QEF). Consent Mode: in Europe (EEA, UK, Switzerland) analytics and
-         ad cookies wait for the visitor's consent (the AdSense consent message gives it); elsewhere they
-         are on. Visits are only counted on madorbs.com (not on localhost or in the test browsers) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-H15R1L9QEF"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('consent', 'default', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied', wait_for_update: 500, region: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IS','IE','IT','LV','LI','LT','LU','MT','NL','NO','PL','PT','RO','SK','SI','ES','SE','GB','CH'] });
-      gtag('consent', 'default', { ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted', analytics_storage: 'granted' });
-      gtag('js', new Date());
-      if (/(^|\.)madorbs\.com$/.test(location.hostname)) gtag('config', 'G-H15R1L9QEF');
-    </script>
+    <!-- Cookie banner (public/consent.js): Google Analytics and AdSense load only after the visitor agrees -->
+    <script src="/consent.js?v=1" defer></script>
     <title>Termos de Uso · Mad Orbs</title>
     <meta name="description" content="Regras para jogar Mad Orbs." />
     <link rel="canonical" href="https://madorbs.com/pt/termos" />
@@ -92,6 +82,13 @@
         <a href="mailto:contatomadorbs@gmail.com">contatomadorbs@gmail.com</a>.
       </p>
 
+      <h2>Cookies</h2>
+      <p>
+        O site só usa cookies de estatísticas de uso e de anúncios se você concordar no aviso de cookies; o jogo funciona
+        do mesmo jeito nos dois casos. Você pode mudar a sua escolha a qualquer momento pelo link <strong>Cookies</strong> no
+        rodapé das páginas. Os detalhes estão na <a href="/pt/privacidade">Política de Privacidade</a>.
+      </p>
+
       <h2>Anúncios</h2>
       <p>
         Os anúncios exibidos no site são de terceiros, escolhidos pelo Google. O Mad Orbs não se responsabiliza pelos
@@ -120,6 +117,6 @@
       </p>
       <p><a href="/pt/">Jogar agora</a></p>
     </main>
-    <footer><a href="/pt/como-jogar">Como jogar</a> · <a href="/pt/armas">Armas</a> · <a href="/pt/modos">Modos de jogo</a> · <a href="/pt/privacidade">Privacidade</a> · <a href="/pt/">Voltar ao jogo</a></footer>
+    <footer><a href="/pt/como-jogar">Como jogar</a> · <a href="/pt/armas">Armas</a> · <a href="/pt/modos">Modos de jogo</a> · <a href="/pt/privacidade">Privacidade</a> · <a href="#" data-cookie-settings>Cookies</a> · <a href="/pt/">Voltar ao jogo</a></footer>
   </body>
 </html>

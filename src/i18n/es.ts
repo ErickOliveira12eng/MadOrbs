@@ -29,6 +29,7 @@ export const es: Record<Key, string> = {
   'footer.modes': 'Modos de juego',
   'footer.privacy': 'Privacidad',
   'footer.terms': 'Términos de uso',
+  'footer.cookies': 'Cookies',
   'footer.guides': 'Guías:',
 
   'menu.searching': 'Buscando el servidor...',

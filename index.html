@@ -5,18 +5,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Google Analytics 4 (G-H15R1L9QEF). Consent Mode: in Europe (EEA, UK, Switzerland) analytics and
-         ad cookies wait for the visitor's consent (the AdSense consent message gives it); elsewhere they
-         are on. Visits are only counted on madorbs.com (not on localhost or in the test browsers) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-H15R1L9QEF"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('consent', 'default', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied', wait_for_update: 500, region: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IS','IE','IT','LV','LI','LT','LU','MT','NL','NO','PL','PT','RO','SK','SI','ES','SE','GB','CH'] });
-      gtag('consent', 'default', { ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted', analytics_storage: 'granted' });
-      gtag('js', new Date());
-      if (/(^|\.)madorbs\.com$/.test(location.hostname)) gtag('config', 'G-H15R1L9QEF');
-    </script>
+    <!-- Cookie banner (public/consent.js): Google Analytics and AdSense load only after the visitor agrees -->
+    <script src="/consent.js?v=1" defer></script>
     <script>
       // At "/", visitors who picked Portuguese or Spanish before (the language button), or whose
       // browser asks for it first, go to that version before anything shows
@@ -65,8 +55,8 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
-    <!-- Google AdSense (also shows the cookie consent message to visitors from Europe). No ad units yet -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4734295007084792" crossorigin="anonymous"></script>
+    <!-- Google AdSense: site ownership (the ads script itself loads only after consent, public/consent.js) -->
+    <meta name="google-adsense-account" content="ca-pub-4734295007084792" />
     <style>
       html, body { margin: 0; height: 100%; background: #0b1020; overflow: hidden; }
       #game { position: fixed; inset: 0; background: #000; }
@@ -153,6 +143,7 @@
         <a data-i18n-attr="href=link.modes" href="/modes" target="_blank" rel="noopener" data-i18n="footer.modes">Game modes</a>
         <a data-i18n-attr="href=link.privacy" href="/privacy" target="_blank" rel="noopener" data-i18n="footer.privacy">Privacy</a>
         <a data-i18n-attr="href=link.terms" href="/terms" target="_blank" rel="noopener" data-i18n="footer.terms">Terms of use</a>
+        <a href="#" data-cookie-settings data-i18n="footer.cookies">Cookies</a>
       </footer>
     </div>
 

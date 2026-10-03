@@ -4,18 +4,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Google Analytics 4 (G-H15R1L9QEF). Consent Mode: in Europe (EEA, UK, Switzerland) analytics and
-         ad cookies wait for the visitor's consent (the AdSense consent message gives it); elsewhere they
-         are on. Visits are only counted on madorbs.com (not on localhost or in the test browsers) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-H15R1L9QEF"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('consent', 'default', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied', wait_for_update: 500, region: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IS','IE','IT','LV','LI','LT','LU','MT','NL','NO','PL','PT','RO','SK','SI','ES','SE','GB','CH'] });
-      gtag('consent', 'default', { ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted', analytics_storage: 'granted' });
-      gtag('js', new Date());
-      if (/(^|\.)madorbs\.com$/.test(location.hostname)) gtag('config', 'G-H15R1L9QEF');
-    </script>
+    <!-- Cookie banner (public/consent.js): Google Analytics and AdSense load only after the visitor agrees -->
+    <script src="/consent.js?v=1" defer></script>
     <title>Privacy Policy · Mad Orbs</title>
     <meta name="description" content="How Mad Orbs handles the data of the people who play it." />
     <link rel="canonical" href="https://madorbs.com/privacy" />
@@ -96,26 +86,40 @@
         prevent cheating and abuse. It is not sold.
       </p>
 
-      <h2>Analytics, ads and cookies</h2>
+      <h2>Cookies and similar technologies</h2>
       <p>
-        Mad Orbs' own code doesn't use cookies. To know how many people visit and how the site is used, it uses
-        <strong>Google Analytics</strong>: Google records the pages viewed, the device and browser, the approximate region
-        (from the IP address, which Google doesn't keep) and how long the visit lasts, using cookies and identifiers, and
-        shows us only reports. You can turn it off with
-        <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Google's opt-out add-on</a>
-        or by blocking the site's cookies. In the European Economic Area, the United Kingdom and Switzerland, analytics
-        and ad cookies are only used after you agree.
+        The first time you open the site, a banner asks whether you accept cookies for usage statistics and for ads.
+        <strong>Nothing from Google Analytics or Google AdSense is loaded before you agree</strong>, and you can accept
+        only one of them, refuse both, or change your mind at any time with the <strong>Cookies</strong> link at the
+        bottom of the pages (refusing later deletes their cookies from this site).
       </p>
-      <p>
-        The site also shows <strong>Google AdSense</strong> ads: Google and its partners
-        use cookies and identifiers to show ads, including based on your visits to this and other websites. You can turn
-        off personalized ads in
-        <a href="https://myadcenter.google.com/" target="_blank" rel="noopener">Google's My Ad Center</a>
-        and learn more about
-        <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">how Google uses cookies in advertising</a>.
-        To opt out of other ad vendors' cookies, visit
-        <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">aboutads.info</a>.
-      </p>
+      <ul>
+        <li>
+          <strong>Necessary (always on).</strong> Kept in your own browser's storage, not in cookies: your settings
+          (name, Orb, volumes, language, training), your sign-in session if you have an account, and your cookie choice.
+          The game needs them to work; they are not used for ads or statistics.
+        </li>
+        <li>
+          <strong>Usage statistics (only if you accept).</strong> <strong>Google Analytics</strong> tells us how many people
+          visit and how the site is used: Google records the pages viewed, the device and browser, the approximate region
+          (from the IP address, which Google doesn't keep) and how long the visit lasts, using cookies (such as
+          <code>_ga</code>) and identifiers, and shows us only reports. Visits are counted only on madorbs.com.
+        </li>
+        <li>
+          <strong>Ads (only if you accept).</strong> <strong>Google AdSense</strong>: Google and its partners use cookies and
+          identifiers to show ads, including based on your visits to this and other websites. You can also turn off
+          personalized ads in
+          <a href="https://myadcenter.google.com/" target="_blank" rel="noopener">Google's My Ad Center</a>,
+          learn more about
+          <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">how Google uses cookies in advertising</a>
+          and opt out of other ad vendors' cookies at
+          <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">aboutads.info</a>.
+        </li>
+        <li>
+          <strong>Sign in with Google.</strong> If you choose to sign in, Google's sign-in window uses Google's own cookies,
+          under <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's privacy policy</a>.
+        </li>
+      </ul>
 
       <h2>Where the data is</h2>
       <p>
@@ -141,7 +145,7 @@
       <h2>Your rights</h2>
       <p>
         Under the LGPD, you can ask for confirmation that we handle your data, access to it, correction, anonymization,
-        blocking or deletion, information about sharing, and withdrawal of consent where it applies. Write to
+        blocking or deletion, information about sharing, and withdrawal of consent where it applies (for cookies, at any time with the Cookies link). Write to
         <a href="mailto:contatomadorbs@gmail.com">contatomadorbs@gmail.com</a>. Wherever you live, we answer these
         requests, and you can also complain to your data protection authority (in Brazil, the ANPD).
       </p>
@@ -159,6 +163,6 @@
       </p>
       <p><a href="/">Play now</a></p>
     </main>
-    <footer><a href="/how-to-play">How to play</a> · <a href="/weapons">Weapons</a> · <a href="/modes">Game modes</a> · <a href="/terms">Terms of use</a> · <a href="/">Back to the game</a></footer>
+    <footer><a href="/how-to-play">How to play</a> · <a href="/weapons">Weapons</a> · <a href="/modes">Game modes</a> · <a href="/terms">Terms of use</a> · <a href="#" data-cookie-settings>Cookies</a> · <a href="/">Back to the game</a></footer>
   </body>
 </html>
