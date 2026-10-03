@@ -2202,6 +2202,38 @@
   transition: width 0.2s;
 }
 
+/* The side banner (hudLayer updateSideAd; not in the campaign): on the right of the death screen and of the Esc menu
+   (above it; the menu's cards move left), in stage pixels like the rest of the HUD */
+.h-sidead {
+  right: 40px;
+  top: 50%;
+  z-index: 31;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  pointer-events: auto;
+  color: rgba(200, 206, 240, 0.55);
+  font: 800 11px var(--h-ui);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.h-sidead > div {
+  width: 300px;
+  height: 250px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(10, 8, 30, 0.6);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+}
+
+.h-pick.with-ad .h-pickin {
+  left: 24px;
+  transform: none;
+}
+
 /* The end of a level: the panel, and a banner under it (kept at its real size: --hud-k is the stage's scale) */
 .h-campend {
   left: 50%;

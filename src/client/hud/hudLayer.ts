@@ -9,7 +9,7 @@
 import { starsFor, type CampaignLevel } from '../campaign';
 import type { FeatKind } from '../../sim/feats';
 import { drawMapPreview } from '../mapPreview';
-import { mountAd } from '../ads';
+import { adsAllowed, mountAd } from '../ads';
 import { loadMap } from '../../sim/map';
 import './hud.css';
 import {
@@ -204,6 +204,9 @@ export class HudLayer {
   private featShown: { html: string; until: number } | null = null;
   /** Team modes: names take their team's colour. */
   private teamGame = false;
+  /** The banner on the right (death screen, Esc menu): showing now, and when it was loaded (HUD time, -1: not yet). */
+  private sideAdOn = false;
+  private sideAdAt = -1;
 
   constructor(
     private readonly container: HTMLElement,
@@ -284,6 +287,7 @@ export class HudLayer {
 
 <div class="h-abs h-feat" data-r="feat" hidden></div>
 <div class="h-abs h-campend" data-r="campend" hidden></div>
+<div class="h-abs h-sidead" data-r="sidead" hidden><span>${t('ads.label')}</span><div></div></div>
 <div class="h-abs h-banner" data-r="banner" hidden></div>
 <div class="h-abs h-endside" data-r="endside" hidden>
   <div class="h-panel h-mine" data-r="mine"></div>
@@ -678,6 +682,26 @@ export class HudLayer {
     if (table) this.updateTable(f, playing);
     if (!menu && !playing) this.updateBanner(f);
     this.updateCursors(f, !menu && alive && !spectator, !menu && deadScreen);
+    // A banner on the right, every mode but the campaign: on the death screen and in the Esc menu
+    this.updateSideAd(!f.campaign && (menu || deadScreen), menu);
+  }
+
+  /**
+   * The side banner (300x250, src/client/ads.ts: only where ads are allowed). One frame for the
+   * death screen and the Esc menu, loaded again when it shows after SIDE_AD_REFRESH seconds, not at
+   * every death. In the menu the weapon cards move left to make room.
+   */
+  private updateSideAd(want: boolean, menu: boolean): void {
+    let on = want && adsAllowed();
+    if (on && !this.sideAdOn && (this.sideAdAt < 0 || this.time - this.sideAdAt > SIDE_AD_REFRESH)) {
+      if (mountAd(this.r.sidead.lastElementChild as HTMLElement, 'rect')) this.sideAdAt = this.time;
+      else on = false;
+    }
+    if (on !== this.sideAdOn) {
+      this.sideAdOn = on;
+      show(this.r.sidead, on);
+    }
+    this.picker.el.classList.toggle('with-ad', on && menu);
   }
 
   private toStage(x: number, y: number): [number, number] {
@@ -1273,6 +1297,9 @@ export class HudLayer {
     this.root.remove();
   }
 }
+
+/** Seconds before the side banner loads a new ad when it shows again. */
+const SIDE_AD_REFRESH = 60;
 
 /** Each feat's look on screen: colours of its name, glow, how long it stays (the voice fits), how much it matters. */
 const FEAT_STYLE: Record<FeatKind, { c1: string; c2: string; glow: string; dur: number; prio: number; streak?: boolean }> = {
