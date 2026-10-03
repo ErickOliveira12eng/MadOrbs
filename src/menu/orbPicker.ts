@@ -2,7 +2,7 @@
 // ready-made colour sets and a big preview that rolls.
 import * as THREE from 'three';
 import { FRONT, type OrbStudio } from './orbStudio';
-import { SKINS, skinInfo, type Settings } from './settings';
+import { SKINS, randomOrb, skinInfo, type Settings } from './settings';
 import { t } from '../i18n';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -111,12 +111,11 @@ export class OrbPicker {
     this.changed(true);
   }
 
-  /** Like the bots' random look: a colour, a lighter and a darker version. */
+  /** A random style in one vivid colour (settings.randomOrb, like a first visit). */
   private randomize(): void {
-    this.settings.skin = SKINS[Math.floor(Math.random() * SKINS.length)];
-    const base = [Math.random(), Math.random(), Math.random()];
-    const hex = (c: number[]) => '#' + c.map((v) => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, '0')).join('');
-    this.setColors(hex(base.map((v) => v + 0.5)), hex(base), hex(base.map((v) => v * 0.5)));
+    const orb = randomOrb();
+    this.settings.skin = orb.skin;
+    this.setColors(orb.red, orb.green, orb.blue);
   }
 
   private changed(colours: boolean): void {

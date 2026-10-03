@@ -8,6 +8,7 @@ import { LANG_KEY, lang, t, type Lang } from '../i18n';
 import { ROOM_MODES, type RoomMode, type RoomStatus } from '../net/protocol';
 import type { Account } from './account';
 import { AccountModal } from './accountModal';
+import { isOldGeneratedName, randomGuestName } from './guestNames';
 import { Embers } from './embers';
 import { icon, type IconName } from './icons';
 import { OrbPicker } from './orbPicker';
@@ -180,9 +181,9 @@ export class StartScreen {
   }
 
   private play(mode: PlayMode): void {
-    if (!this.settings.name) {
-      // Like the .io games: a name for those who don't pick one
-      this.settings.name = `Orb${100 + Math.floor(Math.random() * 900)}`;
+    if (!this.settings.name || isOldGeneratedName(this.settings.name)) {
+      // Like the .io games: a name for those who don't pick one (a war word and three digits)
+      this.settings.name = randomGuestName();
       this.nameInput.value = this.settings.name;
       saveSettings(this.settings);
     }

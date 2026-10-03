@@ -59,10 +59,37 @@ export const DEFAULT_SETTINGS: Settings = {
 const isHex = (v: unknown): v is string => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
+/** A random style in one vivid colour: a lighter, the colour itself and a darker shade. */
+export function randomOrb(): Pick<Settings, 'skin' | 'red' | 'green' | 'blue'> {
+  const hue = Math.random() * 360;
+  return {
+    skin: SKINS[Math.floor(Math.random() * SKINS.length)],
+    red: hslHex(hue, 0.9, 0.75),
+    green: hslHex(hue, 0.85, 0.5),
+    blue: hslHex(hue, 0.9, 0.25),
+  };
+}
+
+function hslHex(h: number, s: number, l: number): string {
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const c = l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(c * 255).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
 export function loadSettings(): Settings {
   const s = { ...DEFAULT_SETTINGS };
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Record<string, unknown>;
+    const saved = localStorage.getItem(KEY);
+    // First visit: a random Orb (otherwise every new player is the same blue one), kept from now on
+    if (saved === null) {
+      Object.assign(s, randomOrb());
+      saveSettings(s);
+      return s;
+    }
+    const raw = JSON.parse(saved) as Record<string, unknown>;
     if (typeof raw.name === 'string') s.name = raw.name.slice(0, 31);
     if (typeof raw.skin === 'string' && SKINS.includes(raw.skin)) s.skin = raw.skin;
     if (isHex(raw.red)) s.red = raw.red;
