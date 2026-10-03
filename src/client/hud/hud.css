@@ -2006,12 +2006,12 @@
   letter-spacing: 0.4px;
 }
 
-.h-table .fc.penta {
+.h-table .fc.unstoppable {
   background: linear-gradient(90deg, #ffe066, #ff3b5c);
   color: #2a0a10;
 }
 
-.h-table .fc.quadra {
+.h-table .fc.dominating {
   background: rgba(255, 138, 28, 0.22);
   color: #ffc58a;
 }
@@ -2060,7 +2060,7 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.h-banner .hl .hi.penta {
+.h-banner .hl .hi.unstoppable {
   border-color: #ff3b5c;
   box-shadow: 0 0 14px rgba(255, 59, 92, 0.45);
 }

@@ -161,7 +161,7 @@ export class HudLayer {
   /** A map card of the vote was clicked. */
   onVote?: (index: number) => void;
   /** Kill feat announcements waiting, and the one on screen (until `until`, HUD time). */
-  private featQueue: { html: string; dur: number; prio: number }[] = [];
+  private featQueue: { html: string; dur: number; prio: number; onShow?: () => void }[] = [];
   private featShown: { html: string; until: number } | null = null;
   /** Team modes: names take their team's colour. */
   private teamGame = false;
@@ -403,7 +403,7 @@ export class HudLayer {
    * A kill feat (src/sim/feats.ts) to announce at the top of the screen: its name, who made it below
    * (avatar and name) and a line about it. Several in a row wait in a queue.
    */
-  announce(kind: FeatKind, who: Player | null, victim: Player | null, n?: number): void {
+  announce(kind: FeatKind, who: Player | null, victim: Player | null, n?: number, onShow?: () => void): void {
     const style = FEAT_STYLE[kind];
     const name = who ? `<span class="who">${this.avatar(who.displaySkin)}<b class="${this.teamGame ? `t${who.teamID}` : ''}">${esc(who.name)}</b></span>` : '';
     const v = victim ? esc(victim.name) : '';
@@ -414,8 +414,8 @@ export class HudLayer {
           ? t('feat.subRevenge', { victim: v })
           : kind === 'firstBlood'
             ? t('feat.subFirstBlood')
-            : style.spree
-              ? t('feat.subSpree', { n: n ?? 0 })
+            : style.streak && n
+              ? t('feat.subStreak', { n })
               : '';
     const html =
       `<div class="ft" style="--c1:${style.c1};--c2:${style.c2};--glow:${style.glow}">${t(`feat.${kind}` as const)}</div>` +
@@ -428,10 +428,13 @@ export class HudLayer {
       if (this.featQueue[low].prio > style.prio) return;
       this.featQueue.splice(low, 1);
     }
-    this.featQueue.push({ html, dur: style.dur, prio: style.prio });
+    this.featQueue.push({ html, dur: style.dur, prio: style.prio, onShow });
   }
 
-  /** `visible`: false while the score table or the menu covers the top (the queue waits meanwhile). */
+  /**
+   * One announcement at a time, each with its voice. `visible`: false while the score table or the
+   * menu covers the top: the queue goes on (the voices keep their timing), the banner just isn't shown.
+   */
   private updateFeat(playing: boolean, visible: boolean): void {
     if (!playing) {
       this.featQueue = [];
@@ -439,18 +442,15 @@ export class HudLayer {
       show(this.r.feat, false);
       return;
     }
-    if (!visible) {
-      show(this.r.feat, false);
-      return;
-    }
     if (this.featShown && this.time >= this.featShown.until) this.featShown = null;
     if (!this.featShown && this.featQueue.length) {
       const next = this.featQueue.shift()!;
       this.featShown = { html: next.html, until: this.time + next.dur };
+      next.onShow?.();
       // A new element each time: its entrance animation plays again
       setHTML(this.r.feat, `<div class="fbox">${next.html}</div>`);
     }
-    show(this.r.feat, !!this.featShown);
+    show(this.r.feat, visible && !!this.featShown);
   }
 
   /** The map vote opened, its counts changed, or it closed (null). */
@@ -1101,21 +1101,15 @@ export class HudLayer {
   }
 }
 
-/** Each feat's look on screen: colours of its name, glow, how long it stays, how much it matters. */
-const FEAT_STYLE: Record<FeatKind, { c1: string; c2: string; glow: string; dur: number; prio: number; spree?: boolean }> = {
-  double: { c1: '#bfe3ff', c2: '#5aa9ff', glow: '#5aa9ff66', dur: 1.9, prio: 1 },
-  triple: { c1: '#c8ffd4', c2: '#2fd35c', glow: '#2fd35c66', dur: 2.1, prio: 2 },
-  quadra: { c1: '#ffe2b8', c2: '#ff8a1c', glow: '#ff8a1c77', dur: 2.4, prio: 4 },
-  penta: { c1: '#ffe066', c2: '#ff3b5c', glow: '#ff3b5c88', dur: 3.2, prio: 6 },
-  firstBlood: { c1: '#ffc2c8', c2: '#ff2f4a', glow: '#ff2f4a77', dur: 2.2, prio: 3 },
-  spree: { c1: '#e3d0ff', c2: '#a36bff', glow: '#a36bff66', dur: 2.1, prio: 2, spree: true },
-  rampage: { c1: '#f0ccff', c2: '#cf5bff', glow: '#cf5bff66', dur: 2.1, prio: 2, spree: true },
-  unstoppable: { c1: '#ffd0f1', c2: '#ff4fc8', glow: '#ff4fc866', dur: 2.2, prio: 3, spree: true },
-  dominating: { c1: '#ffd1c4', c2: '#ff6a4d', glow: '#ff6a4d66', dur: 2.2, prio: 3, spree: true },
-  godlike: { c1: '#ffc4c4', c2: '#ff2f2f', glow: '#ff2f2f77', dur: 2.4, prio: 4, spree: true },
-  legendary: { c1: '#fff3a8', c2: '#ff8a1c', glow: '#ffb02e88', dur: 2.6, prio: 5, spree: true },
-  shutdown: { c1: '#fff1b0', c2: '#ffc21c', glow: '#ffc21c77', dur: 2.4, prio: 4 },
-  revenge: { c1: '#ffc9d5', c2: '#ff3d6e', glow: '#ff3d6e77', dur: 2.0, prio: 2 },
+/** Each feat's look on screen: colours of its name, glow, how long it stays (the voice fits), how much it matters. */
+const FEAT_STYLE: Record<FeatKind, { c1: string; c2: string; glow: string; dur: number; prio: number; streak?: boolean }> = {
+  double: { c1: '#bfe3ff', c2: '#5aa9ff', glow: '#5aa9ff66', dur: 2.0, prio: 1, streak: true },
+  triple: { c1: '#c8ffd4', c2: '#2fd35c', glow: '#2fd35c66', dur: 2.1, prio: 2, streak: true },
+  dominating: { c1: '#ffe2b8', c2: '#ff8a1c', glow: '#ff8a1c77', dur: 2.2, prio: 4, streak: true },
+  unstoppable: { c1: '#ffe066', c2: '#ff3b5c', glow: '#ff3b5c88', dur: 2.6, prio: 6, streak: true },
+  firstBlood: { c1: '#ffc2c8', c2: '#ff2f4a', glow: '#ff2f4a77', dur: 2.3, prio: 3 },
+  shutdown: { c1: '#fff1b0', c2: '#ffc21c', glow: '#ffc21c77', dur: 2.2, prio: 4 },
+  revenge: { c1: '#ffc9d5', c2: '#ff3d6e', glow: '#ff3d6e77', dur: 2.3, prio: 2 },
 };
 
 /** The score table's Highlights: the rarest feats first, four at most. */
@@ -1123,8 +1117,8 @@ function featChips(p: Player): string {
   const f = p.feats;
   const chips: string[] = [];
   const times = (n: number) => (n > 1 ? ` ×${n}` : '');
-  if (f.penta) chips.push(`<span class="fc penta">PENTA${times(f.penta)}</span>`);
-  if (f.quadra) chips.push(`<span class="fc quadra">QUADRA${times(f.quadra)}</span>`);
+  if (f.unstoppable) chips.push(`<span class="fc unstoppable">UNSTOPPABLE${times(f.unstoppable)}</span>`);
+  if (f.dominating) chips.push(`<span class="fc dominating">DOMINATING${times(f.dominating)}</span>`);
   if (f.triple) chips.push(`<span class="fc triple">TRIPLE${times(f.triple)}</span>`);
   if (f.double) chips.push(`<span class="fc double">DOUBLE${times(f.double)}</span>`);
   if (f.bestStreak >= 3) chips.push(`<span class="fc streak">${t('feat.chipStreak', { n: f.bestStreak })}</span>`);
@@ -1134,14 +1128,14 @@ function featChips(p: Player): string {
   return chips.slice(0, 4).join('');
 }
 
-/** End of the match: the best multi-kill, the longest streak, the most revenges, and First Blood. */
+/** End of the match: the biggest streak feat, the longest streak, the most revenges, and First Blood. */
 function matchHighlights(players: readonly (Player | null)[], teamGame: boolean): string {
   const list = players.filter((p): p is Player => !!p);
   const items: string[] = [];
-  const best = (key: 'penta' | 'quadra' | 'triple' | 'double' | 'bestStreak' | 'revenges' | 'firstBlood') =>
+  const best = (key: 'unstoppable' | 'dominating' | 'triple' | 'bestStreak' | 'revenges' | 'firstBlood') =>
     list.reduce<Player | null>((b, p) => (p.feats[key] > (b?.feats[key] ?? 0) ? p : b), null);
   const name = (p: Player) => `<b class="${teamGame ? `t${p.teamID}` : ''}">${esc(p.name)}</b>`;
-  for (const kind of ['penta', 'quadra', 'triple'] as const) {
+  for (const kind of ['unstoppable', 'dominating', 'triple'] as const) {
     const p = best(kind);
     if (p) {
       items.push(`<span class="hi ${kind}">${t('banner.featBy', { feat: t(`feat.${kind}`), name: name(p) })}</span>`);

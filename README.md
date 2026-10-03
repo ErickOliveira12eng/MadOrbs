@@ -43,3 +43,8 @@ Abra <http://localhost:5173> e escolha **Treinar com bots**: a partida roda inte
 
 GPL v3: veja [`LICENSE`](LICENSE). Você pode usar, estudar, modificar e redistribuir este código,
 desde que as versões redistribuídas também sejam GPL v3 e venham com o código-fonte.
+
+Exceção: a voz do locutor (`public/assets/sounds/announcer/`) é o
+[WARLORD Announcer Audio Pack](https://voicebosch.itch.io/warlord-announcer-audio-pack) de
+**VoiceBosch**, sob a [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) (ver o
+`LICENSE.txt` da pasta).

@@ -1,0 +1,20 @@
+Mad Orbs - announcer voice
+
+The sounds in this folder come from "WARLORD Announcer Audio Pack" by VoiceBosch
+(part of the SoundBiter SFX library), https://voicebosch.itch.io/warlord-announcer-audio-pack
+They are licensed under the Creative Commons Attribution-ShareAlike 4.0 International license
+(CC BY-SA 4.0): https://creativecommons.org/licenses/by-sa/4.0/
+
+Changes: only the file names (the audio is untouched).
+  start.wav              <- 01. Start.wav
+  double-kill.wav        <- 03. Double Kill.wav
+  triple-kill.wav        <- 04. Triple Kill.wav
+  dominating.wav         <- 05. Dominating.wav
+  unstoppable.wav        <- 06. Unstoppable.wav
+  first-blood.wav        <- 08. First Blood.wav
+  capture-the-flag.wav   <- 14. Capture the Flag.wav
+  last-man-standing.wav  <- 15. Last Man Standing.wav
+  revenge-kill.wav       <- 27. Revenge Kill.wav
+
+These files keep their CC BY-SA 4.0 license; anyone may share and adapt them under the same
+license, crediting VoiceBosch. The rest of Mad Orbs is under the GNU GPL version 3.

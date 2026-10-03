@@ -10,5 +10,10 @@ license.
 Two changes: in models/LifePack.DKO the cross is green instead of red (the red cross on white is a
 protected emblem), and skins/skin16.tga says "MAD ORBS" where it said "RndLabs". Files of the original folder that the game doesn't use were left out.
 
+Exception: sounds/announcer/ (the announcer's voice) is "WARLORD Announcer Audio Pack" by
+VoiceBosch, https://voicebosch.itch.io/warlord-announcer-audio-pack, under the Creative Commons
+Attribution-ShareAlike 4.0 International license (CC BY-SA 4.0); only the file names were changed.
+See sounds/announcer/LICENSE.txt.
+
 ORIGINAL-LICENSE.txt is the end-user license that shipped with the 2006 freeware game; it is part
 of the content folder as it was published.
