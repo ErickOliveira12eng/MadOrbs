@@ -194,6 +194,14 @@ export const en = {
   'chat.joinedTeam': '{name} joined the match on the {team}',
   'chat.left': '{name} left the match',
   'chat.admin': 'Admin',
+
+  // ---- end-of-match map vote
+  'vote.title': 'Next map',
+  'vote.hint': 'Vote: click a map or press {keys}',
+  'vote.zero': 'no votes',
+  'vote.one': '1 vote',
+  'vote.many': '{n} votes',
+  'vote.yours': 'your vote',
   'chat.balanced': '{name} moved to the {team} to balance the teams',
   'chat.say': 'Say:',
   'chat.hint': 'chat',

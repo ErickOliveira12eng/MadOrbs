@@ -6,6 +6,8 @@
 // Everything is laid out in a stage 900 design pixels high, scaled to the game view. While the
 // mouse is captured (pointer lock) the page gets no clicks: the death screen's weapon cards are
 // then clicked through clickAt() with the game's own cursor.
+import { drawMapPreview } from '../mapPreview';
+import { loadMap } from '../../sim/map';
 import './hud.css';
 import {
   FLAG_DROPPED, FLAG_ON_POD, GAME_BLUE_WIN, GAME_DRAW, GAME_PLAYING, GAME_RED_WIN, GAME_TYPE_CTF, GAME_TYPE_DM,
@@ -149,6 +151,14 @@ export class HudLayer {
   private isWall: ((x: number, y: number) => boolean) | null = null;
   private deadScreen = false;
   private hovered: HTMLElement | null = null;
+  /** The end-of-match map vote (online), with our choice (-1: none yet). */
+  private vote: { maps: string[]; counts: number[]; mine: number } | null = null;
+  private voting = false;
+  private voteHtml = '';
+  /** Top views of the maps offered (data URLs; null while loading). */
+  private readonly previews = new Map<string, string | null>();
+  /** A map card of the vote was clicked. */
+  onVote?: (index: number) => void;
 
   constructor(
     private readonly container: HTMLElement,
@@ -177,6 +187,10 @@ export class HudLayer {
     this.r.chips.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLElement>('.h-chip');
       if (b) this.picker.select(b.dataset.slot as 'primary' | 'secondary', Number(b.dataset.id));
+    });
+    this.r.vote.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('.h-vcard');
+      if (b) this.onVote?.(Number(b.dataset.i));
     });
   }
 
@@ -224,6 +238,7 @@ export class HudLayer {
 </div>
 
 <div class="h-abs h-banner" data-r="banner" hidden></div>
+<div class="h-abs h-panel h-vote" data-r="vote" hidden></div>
 <div class="h-abs h-panel h-scores" data-r="scores" hidden>
   <div class="h-thead"><div><h2>${t('table.title')}</h2><p data-r="tsub"></p></div><div class="h-tclock" data-r="tclock"></div></div>
   <table class="h-table"><thead data-r="thead"></thead><tbody data-r="table"></tbody></table>
@@ -368,10 +383,17 @@ export class HudLayer {
   }
 
   private cardAt(x: number, y: number): HTMLElement | null {
-    if (!this.deadScreen) return null;
+    // The death screen's weapon cards, or the map vote's cards
+    const selector = this.deadScreen ? '.h-chip' : this.voting ? '.h-vcard' : null;
+    if (!selector) return null;
     const rect = this.container.getBoundingClientRect();
     const hit = document.elementFromPoint(rect.left + x, rect.top + y);
-    return hit ? (hit.closest('.h-chip') as HTMLElement | null) : null;
+    return hit ? (hit.closest(selector) as HTMLElement | null) : null;
+  }
+
+  /** The map vote opened, its counts changed, or it closed (null). */
+  setVote(vote: { maps: string[]; counts: number[]; mine: number } | null): void {
+    this.vote = vote;
   }
 
   // ---------------------------------------------------------------- every frame
@@ -420,6 +442,10 @@ export class HudLayer {
     show(r.next, deadScreen && enabledPrimaries().length > 0);
     show(r.scores, table);
     show(r.banner, !menu && !playing);
+    this.voting = !menu && !playing && !!this.vote;
+    show(r.vote, this.voting);
+    r.scores.classList.toggle('voting', this.voting);
+    if (this.voting) this.updateVote(f);
     const carrying = liveHud && f.game.gameType === GAME_TYPE_CTF && f.game.carriedFlag(me) >= 0;
     show(r.carry, carrying);
     if (carrying) this.updateCarry(f);
@@ -926,6 +952,52 @@ export class HudLayer {
         (playing ? `<span>${t('table.releaseTab', { tab: '<span class="h-key">Tab</span>' })}</span>` : ''),
     );
     r.scores.classList.toggle('over', !playing);
+  }
+
+  /** The map vote: one card per map offered, with its top view, its votes and the key to press. */
+  private updateVote(f: HudFrame): void {
+    const v = this.vote!;
+    const ctf = f.game.gameType === GAME_TYPE_CTF;
+    const total = v.counts.reduce((a, b) => a + b, 0);
+    const best = Math.max(...v.counts);
+    const cards = v.maps
+      .map((name, i) => {
+        const preview = this.preview(name, ctf);
+        const n = v.counts[i];
+        const cls = ['h-vcard', i === v.mine ? 'mine' : '', n > 0 && n === best ? 'lead' : ''].join(' ');
+        const votes = n === 0 ? t('vote.zero') : n === 1 ? t('vote.one') : t('vote.many', { n });
+        return (
+          `<button type="button" class="${cls}" data-i="${i}"><span class="h-key">${i + 1}</span>` +
+          (preview ? `<img src="${preview}" alt="">` : '<span class="ph"></span>') +
+          `<span class="info"><b>${esc(name)}</b><small>${i === v.mine ? `${t('vote.yours')} · ` : ''}${votes}</small>` +
+          `<span class="bar"><i style="width:${total ? Math.round((n / total) * 100) : 0}%"></i></span></span></button>`
+        );
+      })
+      .join('');
+    const keys = v.maps.map((_, i) => `<span class="h-key">${i + 1}</span>`).join('');
+    const html = `<div class="h-vhead"><span class="h-label">${t('vote.title')}</span><span class="hint">${t('vote.hint', { keys })}</span></div>${cards}`;
+    if (html !== this.voteHtml) {
+      this.voteHtml = html;
+      setHTML(this.r.vote, html);
+      this.hovered = null;
+    }
+  }
+
+  /** A map's top view for the vote (loaded once; null until it is drawn). */
+  private preview(name: string, ctf: boolean): string | null {
+    const key = `${name}|${ctf}`;
+    if (!this.previews.has(key)) {
+      this.previews.set(key, null);
+      loadMap(name)
+        .then((map) => {
+          const c = document.createElement('canvas');
+          c.width = c.height = 168;
+          drawMapPreview(c, map, ctf);
+          this.previews.set(key, c.toDataURL());
+        })
+        .catch(() => {});
+    }
+    return this.previews.get(key) ?? null;
   }
 
   /** Game over: who won (a player, or a team), and the next map after sv.changeMapDelay. */

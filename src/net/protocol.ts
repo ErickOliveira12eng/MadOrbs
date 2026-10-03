@@ -8,7 +8,7 @@ import type { GameEvent } from '../sim/events';
 import type { SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 
-export const PROTOCOL_VERSION = 6;
+export const PROTOCOL_VERSION = 7;
 /** The client sends its coordinates every 2 simulation frames (gameVar.sv_minSendInterval). */
 export const CF_SEND_INTERVAL = 2;
 /** The server sends the players' state every 2 frames (15 Hz); events go out every frame. */
@@ -50,6 +50,8 @@ export type ClientMessage =
   | { t: 'spawn'; w: number; m: number }
   | { t: 'snd'; id: number; p: V3 }
   | { t: 'chat'; text: string }
+  /** The end-of-match map vote: index of the chosen map in the vote's list. */
+  | { t: 'vote'; i: number }
   | { t: 'pong'; id: number };
 
 // --------------------------------------------------------------------------- server -> client
@@ -96,6 +98,15 @@ export interface NetRules {
   forceRespawn: boolean;
 }
 
+/** The end-of-match map vote: the maps offered and how many votes each has. */
+export interface NetVote {
+  maps: string[];
+  counts: number[];
+}
+
+/** How many maps the end-of-match vote offers. */
+export const VOTE_CHOICES = 3;
+
 /** [blueScore, redScore, blueWin, redWin] */
 export type NetTeams = [number, number, number, number];
 
@@ -121,12 +132,16 @@ export type ServerMessage =
       rs: number;
       teams: NetTeams;
       flags: [NetFlag, NetFlag];
+      /** The map vote, when joining during one. */
+      vote?: NetVote;
     }
   /** code: what the client says in its language; reason: the text for pages older than the codes. */
   | { t: 'reject'; code?: 'version' | 'full'; reason: string }
   /** Every frame: events; every SNAPSHOT_INTERVAL frames also the players (p), timer (gt) and round state (rs). */
   | { t: 'tick'; f: number; e?: NetEvent[]; pr?: NetProjectileState[]; p?: NetPlayerState[]; gt?: number; rs?: number }
   | { t: 'players'; list: NetPlayerInfo[] }
+  /** The end-of-match map vote opened or its counts changed (the next mapChange closes it). */
+  | ({ t: 'vote' } & NetVote)
   /** s: [id, kills, deaths, score, dmg, pingFrames, returns]; ts: the team scores */
   | { t: 'scores'; s: [number, number, number, number, number, number, number][]; ts: NetTeams }
   /** rtt: the last round trip the server measured for this connection, in ms. */

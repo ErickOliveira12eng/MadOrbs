@@ -1009,6 +1009,122 @@
   top: 190px;
 }
 
+/* With the map vote beside it, the score table moves left */
+.h-scores.over.voting {
+  left: calc(50% - 170px);
+}
+
+/* End-of-match map vote (online): one card per map, clicked or picked with 1, 2, 3 */
+.h-vote {
+  left: calc(50% + 262px);
+  top: 190px;
+  width: 300px;
+  box-sizing: border-box;
+  padding: 14px 14px 10px;
+  background: var(--h-panel-strong);
+}
+
+.h-vhead {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+
+.h-vhead .hint {
+  font: 700 12px var(--h-ui);
+  color: var(--h-muted);
+}
+
+.h-vhead .hint .h-key {
+  margin: 0 1px;
+}
+
+.h-vcard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid var(--h-line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--h-text);
+  font: inherit;
+  text-align: left;
+  pointer-events: auto;
+  cursor: none;
+}
+
+.h-vcard:hover,
+.h-vcard.vhover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--h-line-strong);
+}
+
+.h-vcard.mine {
+  border-color: var(--h-gold-1);
+  background: rgba(255, 224, 102, 0.12);
+}
+
+.h-vcard > .h-key {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 1;
+}
+
+.h-vcard img,
+.h-vcard .ph {
+  width: 84px;
+  height: 84px;
+  flex: none;
+  border-radius: 8px;
+  background: #11183a;
+  image-rendering: pixelated;
+}
+
+.h-vcard .info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.h-vcard .info b {
+  overflow: hidden;
+  font: 800 16px var(--h-ui);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.h-vcard .info small {
+  font: 700 12px var(--h-ui);
+  color: var(--h-muted);
+}
+
+.h-vcard.lead .info small {
+  color: var(--h-gold-1);
+}
+
+.h-vcard .bar {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.h-vcard .bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--h-gold-2), var(--h-gold-1));
+  transition: width 0.25s;
+}
+
 .h-banner {
   left: 50%;
   top: 40px;

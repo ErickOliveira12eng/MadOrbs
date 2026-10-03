@@ -184,6 +184,14 @@ export const es: Record<Key, string> = {
   'chat.joinedTeam': '{name} entró a la partida en el {team}',
   'chat.left': '{name} salió de la partida',
   'chat.admin': 'Admin',
+
+  // ---- end-of-match map vote
+  'vote.title': 'Próximo mapa',
+  'vote.hint': 'Vota: haz clic en un mapa o pulsa {keys}',
+  'vote.zero': 'sin votos',
+  'vote.one': '1 voto',
+  'vote.many': '{n} votos',
+  'vote.yours': 'tu voto',
   'chat.balanced': '{name} pasó al {team} para equilibrar los equipos',
   'chat.say': 'Decir:',
   'chat.hint': 'chatear',

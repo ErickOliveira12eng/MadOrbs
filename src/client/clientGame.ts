@@ -7,6 +7,7 @@
 //             every 2 frames, the server's snapshots and events drive everything else.
 import * as THREE from 'three';
 import {
+  GAME_PLAYING,
   ITEM_GRENADE,
   ITEM_LIFE_PACK,
   ITEM_WEAPON,
@@ -52,6 +53,7 @@ import {
   type NetPlayerState,
   type NetProjectile,
   type NetTeams,
+  type NetVote,
   type RoomMode,
   type ServerMessage,
 } from '../net/protocol';
@@ -175,6 +177,7 @@ export class ClientGame {
       this.me.nextMeleeWeapon = choice.secondary;
     };
     menu.onTeamSelect = (team) => this.selectTeam(team);
+    this.hud.onVote = (i) => this.castVote(i);
     menu.onVisibilityChange = (visible) => {
       if (!visible) {
         // The mouse is captured again by the first click in the arena, not by the click that closed
@@ -271,6 +274,7 @@ export class ClientGame {
     this.applyTeams(welcome.teams);
     welcome.flags.forEach(([state, x, y], i) => this.game.applyFlag(i, state, new Vec3(x, y, 0)));
     this.applyPlayers(welcome.players);
+    if (welcome.vote) this.setVote(welcome.vote);
     this.me = this.game.players[welcome.id]!;
     this.me.locallyControlled = true;
     this.me.skin = this.opts.skin;
@@ -337,6 +341,25 @@ export class ClientGame {
     } finally {
       this.loadingMap = false;
     }
+  }
+
+  /** The end-of-match map vote (online): the maps offered and their votes, or null when it closes. */
+  private vote: NetVote | null = null;
+  private myVote = -1;
+
+  private setVote(vote: NetVote | null): void {
+    // A new vote (other maps): our choice starts over
+    if (!vote || !this.vote || vote.maps.join() !== this.vote.maps.join()) this.myVote = -1;
+    this.vote = vote ? { maps: vote.maps, counts: vote.counts } : null;
+    this.hud.setVote(this.vote ? { ...this.vote, mine: this.myVote } : null);
+  }
+
+  private castVote(i: number): void {
+    if (!this.vote || !this.conn || i < 0 || i >= this.vote.maps.length || i === this.myVote) return;
+    this.myVote = i;
+    this.conn.send({ t: 'vote', i });
+    this.hud.setVote({ ...this.vote, mine: i });
+    audio.play(this.sounds.chat, 120);
   }
 
   /** The server moved to another map: load it, then reset our game on it. */
@@ -516,8 +539,14 @@ export class ClientGame {
     // The death screen's weapon cards, clicked with the game's cursor while the mouse is captured:
     // that click must not also respawn us
     const cardClick = playing && input.locked && !me.isAlive && input.wasPressed(bindings.shoot) && this.hud.clickAt(input.mouseX, input.mouseY);
+    // The map vote at the end of a match: the game's cursor clicks its cards, or keys 1, 2, 3
+    const voting = playing && this.vote !== null && game.roundState !== GAME_PLAYING;
+    const voteClick = voting && input.locked && input.wasPressed(bindings.shoot) && this.hud.clickAt(input.mouseX, input.mouseY);
+    if (voting) {
+      for (let k = 1; k <= this.vote!.maps.length; k++) if (input.rawPressed(`Digit${k}`) || input.rawPressed(`Numpad${k}`)) this.castVote(k - 1);
+    }
     if (this.requireFreshPress && !input.isDown(bindings.shoot)) this.requireFreshPress = false;
-    if (cardClick) this.requireFreshPress = true;
+    if (cardClick || voteClick) this.requireFreshPress = true;
     const canShoot = playing && !this.requireFreshPress;
     inp.up = playing && input.isDown(bindings.moveUp);
     inp.down = playing && input.isDown(bindings.moveDown);
@@ -592,6 +621,9 @@ export class ClientGame {
           break;
         case 'players':
           this.applyPlayers(msg.list);
+          break;
+        case 'vote':
+          this.setVote(msg);
           break;
         case 'scores':
           for (const [id, kills, deaths, score, dmg, ping, returns] of msg.s) {
@@ -1006,6 +1038,7 @@ export class ClientGame {
       }
       case 'mapChange':
         if (fromServer) {
+          this.setVote(null);
           void this.changeMapOnline(e.mapName);
           break;
         }
