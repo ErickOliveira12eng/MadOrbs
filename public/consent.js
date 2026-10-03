@@ -1,8 +1,11 @@
-// Cookie consent banner of madorbs.com (the game page and the guide pages; plain script, no build).
-// Nothing from Google or the ad networks runs before the visitor agrees: Google Analytics (statistics),
-// Google AdSense and the Adsterra banners (ads, src/client/ads.ts) load only after "Accept" (or that
-// choice in "Customize"). The game asks window.madorbsConsent.allows('ads') and listens to the
-// "madorbs:consent" event (a choice made without a reload). The choice is kept in
+// Cookie banner of madorbs.com (the game page and the guide pages; plain script, no build): Google
+// Analytics (statistics), Google AdSense and the Adsterra banners (ads, src/client/ads.ts).
+// Two ways, by where the visitor is (the browser's time zone; unknown counts as Europe):
+// - Europe (EU/EEA, UK, Switzerland): opt-in. Nothing runs before "Accept" (or that choice in "Customize").
+// - Elsewhere (Brazil included): opt-out. Statistics and ads run from the start; the banner says so,
+//   with "Refuse" and "Customize" at hand until a choice is made, and the footer's "Cookies" link after.
+// The game asks window.madorbsConsent.allows('ads') and listens to the "madorbs:consent" event (a
+// choice made without a reload). The choice is kept in
 // this browser (localStorage "madorbs.consent"); the "Cookies" link in the footers opens the banner
 // again (window.madorbsConsent.open()). Texts in English, Portuguese and Spanish (from the address).
 (function () {
@@ -30,6 +33,8 @@
       ads: 'Ads',
       adsText: 'Google AdSense and Adsterra: ads on the menu screens that keep the game free, possibly based on your interests.',
       always: 'Always on',
+      notice: 'Mad Orbs uses cookies for usage statistics (Google Analytics) and for ads (Google AdSense and Adsterra), which keep the game free. You can refuse them or choose which ones, now or later with the Cookies link at the bottom of the page.',
+      acceptNotice: 'Got it',
     },
     pt: {
       title: 'Cookies',
@@ -47,6 +52,8 @@
       ads: 'Anúncios',
       adsText: 'Google AdSense e Adsterra: anúncios nas telas de menu que mantêm o jogo grátis, possivelmente com base nos seus interesses.',
       always: 'Sempre ligados',
+      notice: 'O Mad Orbs usa cookies para estatísticas de uso (Google Analytics) e para anúncios (Google AdSense e Adsterra), que mantêm o jogo grátis. Você pode recusar ou escolher quais, agora ou depois pelo link Cookies no rodapé da página.',
+      acceptNotice: 'Entendi',
     },
     es: {
       title: 'Cookies',
@@ -64,11 +71,35 @@
       ads: 'Anuncios',
       adsText: 'Google AdSense y Adsterra: anuncios en las pantallas de menú que mantienen el juego gratis, posiblemente según tus intereses.',
       always: 'Siempre activas',
+      notice: 'Mad Orbs usa cookies para estadísticas de uso (Google Analytics) y para anuncios (Google AdSense y Adsterra), que mantienen el juego gratis. Puedes rechazarlas o elegir cuáles, ahora o después con el enlace Cookies al pie de la página.',
+      acceptNotice: 'Entendido',
     },
   };
   // The language of the address (/pt/..., /es/..., English elsewhere), like src/i18n langOfPath
   var pathLang = /^\/(pt|es)(\/|$)/.exec(location.pathname);
   var T = TEXTS[pathLang ? pathLang[1] : 'en'];
+
+  // ------------------------------------------------------------ where: opt-in in Europe only
+  /** Time zones of the EU/EEA, the UK and Switzerland outside "Europe/..." (islands, Ceuta). */
+  var EUROPE_EXTRA = /^(Atlantic\/(Azores|Madeira|Canary|Faroe|Reykjavik)|Africa\/Ceuta|Arctic\/Longyearbyen)$/;
+  function inEurope() {
+    try {
+      var zone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      return !zone || /^Europe\//.test(zone) || EUROPE_EXTRA.test(zone);
+    } catch (e) {
+      return true;
+    }
+  }
+  /** Opt-out here: statistics and ads are on until refused. */
+  var OPT_OUT = !inEurope();
+  if (OPT_OUT) {
+    T.body = T.notice;
+    T.accept = T.acceptNotice;
+  }
+  /** What is on now: the choice made, or (no choice yet) everything outside Europe, nothing in it. */
+  function current() {
+    return read() || { analytics: OPT_OUT, ads: OPT_OUT, implied: true };
+  }
 
   function read() {
     try {
@@ -133,10 +164,9 @@
   }
 
   function choose(choice) {
-    var before = read();
     write(choice);
     close();
-    if (before && ((before.analytics && !choice.analytics) || (before.ads && !choice.ads))) {
+    if ((loaded.analytics && !choice.analytics) || (loaded.ads && !choice.ads)) {
       clearGoogleCookies();
       location.reload();
       return;
@@ -178,7 +208,7 @@
 
   function open(showDetails) {
     close();
-    var current = read();
+    var chosen = read();
     root = el('div', 'mo-consent');
     root.setAttribute('role', 'dialog');
     root.setAttribute('aria-label', T.title);
@@ -198,8 +228,8 @@
     details.hidden = !showDetails;
     details.appendChild(toggleRow('necessary', T.necessary, T.necessaryText, true, true));
     // Before any choice the switches start on; after one, they show it
-    details.appendChild(toggleRow('analytics', T.analytics, T.analyticsText, current ? current.analytics : true));
-    details.appendChild(toggleRow('ads', T.ads, T.adsText, current ? current.ads : true));
+    details.appendChild(toggleRow('analytics', T.analytics, T.analyticsText, chosen ? chosen.analytics : true));
+    details.appendChild(toggleRow('ads', T.ads, T.adsText, chosen ? chosen.ads : true));
     card.appendChild(details);
 
     var buttons = el('div', 'mc-buttons');
@@ -264,8 +294,9 @@
     style.textContent = css;
     document.head.appendChild(style);
     var choice = read();
-    if (choice) apply(choice);
-    else open(false);
+    // No choice yet: outside Europe everything runs now and the banner tells it; in Europe it asks first
+    apply(current());
+    if (!choice) open(false);
   }
 
   window.madorbsConsent = {
@@ -274,8 +305,7 @@
     },
     /** 'ads' or 'analytics': the visitor agreed to it. */
     allows: function (kind) {
-      var c = read();
-      return !!(c && c[kind]);
+      return !!current()[kind];
     },
   };
   // The "Cookies" links in the footers
