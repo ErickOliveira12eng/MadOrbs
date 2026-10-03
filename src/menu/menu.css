@@ -769,10 +769,10 @@ select:focus-visible {
 
 .shortcuts {
   margin-top: 18px;
-  /* Four in the width of the three mode cards */
+  /* Five in the width of the three mode cards */
   width: calc(3 * 214px + 2 * 16px);
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
 }
 
 .mode,
@@ -1525,6 +1525,9 @@ input[type='range'] {
   .shortcuts {
     grid-template-columns: repeat(2, 1fr);
   }
+  .shortcut.campaign {
+    grid-column: span 2;
+  }
   .btn-play.hero {
     width: min(100%, 470px);
   }
@@ -1988,5 +1991,283 @@ input[type='range'] {
   .icon-btn.account-btn {
     padding: 0;
     width: 44px;
+  }
+}
+
+/* ------------------------------------------------------------------ campaign (src/menu/campaignModal.ts) */
+
+/* The campaign's shortcut stands out */
+.shortcut.campaign {
+  border-color: rgba(255, 210, 63, 0.7);
+  background: linear-gradient(180deg, rgba(255, 210, 63, 0.16), rgba(14, 16, 42, 0.8) 75%);
+  box-shadow: 0 0 16px rgba(255, 210, 63, 0.25);
+}
+
+.shortcut.campaign .shortcut-icon {
+  color: #ffd23f;
+}
+
+.camp-modal {
+  width: min(960px, 100%);
+}
+
+.camp-body {
+  display: grid;
+  grid-template-columns: 270px 1fr;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.camp-chapters {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.camp-ch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.camp-ch:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.camp-ch.on {
+  border-color: rgba(255, 210, 63, 0.7);
+  background: rgba(255, 210, 63, 0.1);
+}
+
+.camp-ch.locked {
+  opacity: 0.55;
+}
+
+.camp-ch img {
+  width: 54px;
+  height: 30px;
+  object-fit: contain;
+  flex: none;
+}
+
+.camp-ch span {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.camp-ch small,
+.camp-head small {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.camp-ch b {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.camp-ch em {
+  color: var(--gold-1);
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.camp-ch em.lock {
+  color: var(--muted);
+}
+
+.camp-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.camp-head img {
+  width: 110px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.camp-head div {
+  display: flex;
+  flex-direction: column;
+}
+
+.camp-head b {
+  font: 400 28px var(--font-display);
+  letter-spacing: 0.5px;
+}
+
+.camp-head .note {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.camp-levels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.camp-lv {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 132px;
+  padding: 12px 10px;
+  border-radius: 14px;
+  border: 1.5px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.camp-lv:not(:disabled):hover {
+  background: rgba(122, 162, 255, 0.12);
+  border-color: rgba(122, 162, 255, 0.5);
+}
+
+.camp-lv.won {
+  border-color: rgba(95, 226, 125, 0.45);
+}
+
+.camp-lv:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.camp-lv .n {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.camp-lv b {
+  font: 400 21px var(--font-display);
+}
+
+.camp-lv .stars {
+  font-size: 22px;
+  letter-spacing: 2px;
+}
+
+.camp-lv .stars i {
+  font-style: normal;
+  color: rgba(255, 255, 255, 0.16);
+}
+
+.camp-lv .stars i.on {
+  color: var(--gold-1);
+  text-shadow: 0 0 8px rgba(255, 210, 63, 0.6);
+}
+
+.camp-lv small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.camp-lv .lock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+/* Where the progress is kept, and "Sign in" for guests */
+.camp-save {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(122, 162, 255, 0.1);
+  border: 1px solid rgba(122, 162, 255, 0.25);
+  color: #c9d6ff;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.camp-save .pill-btn {
+  margin: 0;
+  flex: none;
+}
+
+.camp-save .ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--play-1);
+}
+
+.camp-guide {
+  margin-left: 6px;
+  color: #9fc4ff;
+  font-weight: 800;
+}
+
+/* The boss: a whole row */
+.camp-lv.boss {
+  grid-column: 1 / -1;
+  min-height: 0;
+  border-color: rgba(255, 77, 94, 0.55);
+  background: linear-gradient(180deg, rgba(255, 77, 94, 0.14), rgba(255, 255, 255, 0.03));
+}
+
+.camp-lv.boss b {
+  font-size: 26px;
+  color: #ffc2c8;
+}
+
+.camp-lv .hint {
+  max-width: 46ch;
+}
+
+@media (max-width: 720px) {
+  .camp-body {
+    grid-template-columns: 1fr;
+  }
+
+  .camp-chapters {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .camp-ch {
+    flex: none;
+  }
+
+  .camp-levels {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

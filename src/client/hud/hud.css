@@ -2132,3 +2132,165 @@
   border-color: #ff3b5c;
   box-shadow: 0 0 14px rgba(255, 59, 92, 0.45);
 }
+
+/* ------------------------------------------------------------------ campaign (src/client/campaign.ts) */
+
+/* Under the clock: the stars still possible, the time left for them, the bots left */
+.h-camp {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  font: 800 14px var(--h-ui);
+  color: var(--h-muted);
+  text-shadow: var(--h-shadow);
+}
+
+.h-camp .stars i,
+.h-campend .stars i {
+  font-style: normal;
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.h-camp .stars i.on,
+.h-campend .stars i.on {
+  color: var(--h-gold-1);
+  text-shadow: 0 0 10px rgba(255, 210, 63, 0.7);
+}
+
+.h-camp .stars {
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+/* The boss's life */
+.h-boss {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font: 900 15px var(--h-ui);
+  text-shadow: var(--h-shadow);
+  color: #ffb3b3;
+}
+
+.h-boss span {
+  display: block;
+  width: 320px;
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 90, 90, 0.5);
+  overflow: hidden;
+}
+
+.h-boss i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff3b3b, #ff8a3b);
+  transition: width 0.2s;
+}
+
+/* The end of a level */
+.h-campend {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 460px;
+  padding: 26px 30px 22px;
+  border-radius: 22px;
+  background: var(--h-panel-strong);
+  border: 1px solid var(--h-line-strong);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  pointer-events: auto;
+  animation: feat-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.h-campend .t {
+  font: 400 52px/1 var(--h-display);
+  letter-spacing: 1.5px;
+  background: linear-gradient(180deg, var(--h-gold-1) 25%, var(--h-gold-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.h-campend .t.lost {
+  background: linear-gradient(180deg, #ffd0d0 25%, #d81f3f);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.h-campend .lvl {
+  margin-top: 6px;
+  color: var(--h-muted);
+  font: 800 15px var(--h-ui);
+}
+
+.h-campend .stars {
+  margin: 14px 0 4px;
+  font-size: 54px;
+  letter-spacing: 6px;
+}
+
+.h-campend .time {
+  font: 400 30px var(--h-display);
+}
+
+.h-campend .best {
+  margin-top: 2px;
+  color: var(--h-muted);
+  font: 800 14px var(--h-ui);
+}
+
+.h-campend .best.new {
+  color: var(--h-gold-1);
+}
+
+.h-campend .save {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(122, 162, 255, 0.12);
+  color: #c9d6ff;
+  font: 700 13px var(--h-ui);
+}
+
+.h-campend .thr,
+.h-campend .sub {
+  margin-top: 10px;
+  color: var(--h-muted);
+  font: 700 14px var(--h-ui);
+}
+
+.h-campend .btns {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.h-campend button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--h-line-strong);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--h-text);
+  font: 800 15px var(--h-ui);
+  cursor: pointer;
+}
+
+.h-campend button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.h-campend button.primary {
+  background: linear-gradient(180deg, #5fe27d, #24b24e);
+  border-color: #167a35;
+  color: #08240f;
+}

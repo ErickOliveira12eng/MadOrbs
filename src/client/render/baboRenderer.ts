@@ -515,8 +515,13 @@ export class BaboVisual {
     const x = this.prevPos.x + (this.curPos.x - this.prevPos.x) * alpha;
     const y = this.prevPos.y + (this.curPos.y - this.prevPos.y) * alpha;
     const z = this.prevPos.z + (this.curPos.z - this.prevPos.z) * alpha;
-    this.shadow.position.set(x + 0.1, y - 0.1, 0.025);
-    this.sphere.position.set(x, y, z);
+    // A bigger babo (the campaign's bosses): scaled from the floor, so it still sits on it
+    const k = player.radius / 0.25;
+    this.shadow.position.set(x + 0.1 * k, y - 0.1 * k, 0.025);
+    this.shadow.scale.setScalar(k);
+    this.sphere.position.set(x, y, z + (k - 1) * 0.25);
+    this.sphere.scale.setScalar(k);
+    this.weaponHolder.scale.setScalar(WEAPON_SCALE * k);
     this.sphere.quaternion.slerpQuaternions(this.prevRoll, this.roll, alpha);
     this.weaponHolder.position.set(x, y, 0);
     let da = this.curAngle - this.prevAngle;

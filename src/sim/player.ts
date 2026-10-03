@@ -105,6 +105,12 @@ export class Player {
 
   timeToSpawn = sv.sv_timeToSpawn;
   immuneTime = 0;
+  /** Spawns left (the campaign: 1, nobody comes back); Infinity elsewhere. */
+  lives = Infinity;
+  /** Size of the babo for hits and walls (the campaign's bosses are bigger). */
+  radius = 0.25;
+  /** Share of the damage taken (the campaign's bosses take less). */
+  damageScale = 1;
   protection = 0;
   timeDead = 0;
   timeAlive = 0;
@@ -657,6 +663,8 @@ export class Player {
       cdamage = (1 - distance / sv.sv_ftMaxRange) * cdamage;
     }
 
+    // A tougher babo (the campaign's bosses)
+    cdamage *= this.damageScale;
     // Shield protection
     if (this.protection > 0.6) cdamage *= 0.5;
     // Spawn immunity

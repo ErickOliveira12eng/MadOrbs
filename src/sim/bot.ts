@@ -95,7 +95,12 @@ export class BotController {
   private goalAt = new Vec3(-999, -999, 0);
   private guardSpot: Vec3 | null = null;
 
-  constructor(player: Player, skill = 0.5) {
+  /** `loadout`: always these weapons (the campaign: the chapter's weapon), else picked at random. */
+  constructor(
+    player: Player,
+    skill = 0.5,
+    private readonly loadout?: { primary: number; secondary: number },
+  ) {
     this.player = player;
     this.skill = skill;
     this.defender = player.playerID % 3 === 0;
@@ -125,6 +130,11 @@ export class BotController {
   }
 
   private pickLoadout(): void {
+    if (this.loadout) {
+      this.player.nextSpawnWeapon = this.loadout.primary;
+      this.player.nextMeleeWeapon = this.loadout.secondary;
+      return;
+    }
     const primaries = PRIMARY_WEAPONS.filter((w) => isWeaponEnabled(w));
     this.player.nextSpawnWeapon = primaries[Math.floor(Math.random() * primaries.length)] ?? 0;
     const secondaries = [WEAPON_KNIVES, WEAPON_SHIELD, WEAPON_NUCLEAR].filter((w) => isWeaponEnabled(w));

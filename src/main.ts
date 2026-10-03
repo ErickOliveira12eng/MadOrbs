@@ -6,6 +6,7 @@ import { audio } from './client/audio/audio';
 import { ClientGame } from './client/clientGame';
 import { DM_MAPS, MAP_LIST } from './client/mapList';
 import { gameSounds } from './client/sounds';
+import type { CampaignLevel } from './client/campaign';
 import { bestKills } from './client/records';
 import { Account } from './menu/account';
 import { AudioPanel } from './menu/audioPanel';
@@ -28,11 +29,20 @@ const studio = new OrbStudio();
 const account = new Account();
 // For the screenshot tools (tools/debug/menushots.mjs fills a signed-in account)
 (window as unknown as { madorbsAccount: Account }).madorbsAccount = account;
-const screen = new StartScreen(settings, studio, account, (mode) => void startGame(mode));
+const screen = new StartScreen(
+  settings,
+  studio,
+  account,
+  (mode) => void startGame(mode),
+  (level) => void startGame('offline', level),
+);
+/** What to do when the game closes, instead of the start screen (a campaign level's buttons). */
+let afterQuit: (() => void) | null = null;
 screen.show();
 void account.restore();
 
-async function startGame(mode: PlayMode): Promise<void> {
+/** `level`: a campaign level (offline, src/client/campaign.ts). */
+async function startGame(mode: PlayMode, level?: CampaignLevel): Promise<void> {
   audio.unlock();
   // The game music streams while the models and the map load
   audio.prepareMusic(gameSounds().gameMusic);
@@ -46,6 +56,13 @@ async function startGame(mode: PlayMode): Promise<void> {
     mode: settings.mode,
     onQuit: (reason?: string) => {
       audioPanel.setInGame(false);
+      // A campaign level's buttons: the next level, the same again, or the levels window
+      if (afterQuit) {
+        const then = afterQuit;
+        afterQuit = null;
+        then();
+        return;
+      }
       screen.show(reason);
       void audio.playMusic(gameSounds().menuMusic, 255);
       // The server saves the account's stats when the player leaves: read them once they are in
@@ -62,6 +79,30 @@ async function startGame(mode: PlayMode): Promise<void> {
       // The record to beat: this browser's or the account's, the higher
       const record = Math.max(bestKills(settings.mode), account.stats[settings.mode]?.bestKills ?? 0);
       game = await ClientGame.createOnline($('game'), { ...common, authToken: await account.accessToken(), bestKills: record }, onProgress);
+    } else if (level) {
+      game = await ClientGame.create(
+        $('game'),
+        {
+          ...common,
+          mode: 'tdm',
+          mapName: level.map,
+          campaign: level,
+          signedIn: account.signedIn,
+          onCampaignWin: (l, seconds) => void account.saveCampaign(l.id, seconds),
+          onCampaignAction: (action, target) => {
+            afterQuit =
+              action === 'menu'
+                ? () => {
+                    screen.show();
+                    screen.openCampaign(target);
+                    void audio.playMusic(gameSounds().menuMusic, 255);
+                  }
+                : () => void startGame('offline', target);
+            game.quit();
+          },
+        },
+        onProgress,
+      );
     } else {
       // Maps played in rotation, starting with the chosen one (the flag maps in Capture the Flag)
       const chosen = settings.mode === 'ctf' ? settings.ctfMap : settings.map;

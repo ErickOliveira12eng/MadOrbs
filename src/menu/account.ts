@@ -6,6 +6,7 @@
 import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { lang } from '../i18n';
 import type { RoomMode } from '../net/protocol';
+import { mergeProgress } from '../client/campaign';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../net/supabase';
 
 /** The Google OAuth client (Web) of madorbs.com: public, it goes in the page. */
@@ -128,10 +129,17 @@ export class Account {
     const client = this.client;
     const id = this.session?.user.id;
     if (!client || !id) return;
-    const [profile, stats] = await Promise.all([
+    const [profile, stats, campaign] = await Promise.all([
       client.from('profiles').select(PROFILE_COLUMNS).eq('id', id).maybeSingle(),
       client.from('player_stats').select(STATS_COLUMNS).eq('user_id', id),
+      client.from('campaign_progress').select('level, best_seconds').eq('user_id', id),
     ]);
+    // The campaign: the account's progress and this browser's, the better time of each level
+    if (campaign.error) console.warn('[account] cannot read the campaign', campaign.error.message);
+    else {
+      const remote = Object.fromEntries((campaign.data as { level: string; best_seconds: number }[]).map((r) => [r.level, r.best_seconds]));
+      for (const [level, seconds] of Object.entries(mergeProgress(remote))) void this.saveCampaign(level, seconds);
+    }
     if (profile.error) console.warn('[account] cannot read the profile', profile.error.message);
     else this.profile = profile.data as Profile | null;
     if (stats.error) console.warn('[account] cannot read the stats', stats.error.message);
@@ -220,6 +228,13 @@ export class Account {
     if (data) this.profile = data as Profile;
     this.emit();
     return null;
+  }
+
+  /** A campaign level won: its time goes to the account (which keeps the better one). */
+  async saveCampaign(level: string, seconds: number): Promise<void> {
+    if (!this.client || !this.session) return;
+    const { error } = await this.client.rpc('record_campaign', { p_level: level, p_seconds: seconds });
+    if (error) console.warn('[account] cannot save the campaign', error.message);
   }
 
   /** A fresh access token for the game server (refreshed first when it is about to expire). */

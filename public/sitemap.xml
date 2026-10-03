@@ -97,6 +97,30 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/modes" />
   </url>
   <url>
+    <loc>https://madorbs.com/campaign</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/campaign" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/campanha" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/campana" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/campaign" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/pt/campanha</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/campaign" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/campanha" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/campana" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/campaign" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/es/campana</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/campaign" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/campanha" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/campana" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/campaign" />
+  </url>
+  <url>
     <loc>https://madorbs.com/privacy</loc>
     <lastmod>2026-10-03</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/privacy" />

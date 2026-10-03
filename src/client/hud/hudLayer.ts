@@ -6,6 +6,7 @@
 // Everything is laid out in a stage 900 design pixels high, scaled to the game view. While the
 // mouse is captured (pointer lock) the page gets no clicks: the death screen's weapon cards are
 // then clicked through clickAt() with the game's own cursor.
+import { starsFor, type CampaignLevel } from '../campaign';
 import type { FeatKind } from '../../sim/feats';
 import { drawMapPreview } from '../mapPreview';
 import { loadMap } from '../../sim/map';
@@ -42,6 +43,33 @@ export interface ScreenPoint {
 }
 
 /** What the HUD reads every frame. */
+/** A campaign level as the HUD shows it (ClientGame.campaignHud). */
+export interface CampaignHud {
+  level: CampaignLevel;
+  /** Seconds since the start. */
+  seconds: number;
+  botsLeft: number;
+  botsTotal: number;
+  boss: { name: string; life: number } | null;
+  /** Won or lost: the end panel is up. */
+  over: boolean;
+}
+
+/** The end of a campaign level (ClientGame.endCampaign). */
+export interface CampaignEnd {
+  won: boolean;
+  level: CampaignLevel;
+  seconds: number;
+  stars: number;
+  /** The best time before this one, when this one isn't better. */
+  best: number | null;
+  isBest: boolean;
+  hasNext: boolean;
+  /** Not signed in: a line on keeping the progress with an account. */
+  guest: boolean;
+  onAction: (action: 'next' | 'retry' | 'menu') => void;
+}
+
 export interface HudFrame {
   /** Game type, team scores, flags. */
   game: Game;
@@ -58,6 +86,8 @@ export interface HudFrame {
   mouseY: number;
   /** Tab held. */
   showScores: boolean;
+  /** A campaign level (offline), else null. */
+  campaign: CampaignHud | null;
   /** The chat line being typed, or null. */
   chatInput: string | null;
   /** Sniper scope opacity: the crosshair fades out behind it. */
@@ -250,6 +280,7 @@ export class HudLayer {
 </div>
 
 <div class="h-abs h-feat" data-r="feat" hidden></div>
+<div class="h-abs h-campend" data-r="campend" hidden></div>
 <div class="h-abs h-banner" data-r="banner" hidden></div>
 <div class="h-abs h-endside" data-r="endside" hidden>
   <div class="h-panel h-mine" data-r="mine"></div>
@@ -464,6 +495,69 @@ export class HudLayer {
     show(this.r.feat, visible && !!this.featShown);
   }
 
+  /** The campaign's header: the clock, the stars still possible, the bots left, the boss's life. */
+  private updateCampaignHeader(c: CampaignHud): void {
+    const l = c.level;
+    const now = starsFor(l, c.seconds);
+    const stars = [1, 2, 3].map((i) => `<i class="${i <= now ? 'on' : ''}">★</i>`).join('');
+    const next = now === 3 ? l.stars3 : now === 2 ? l.stars2 : 0;
+    let html =
+      `<div class="h-clock">${clock(c.seconds)}</div>` +
+      `<div class="h-mode">${(l.boss ? t('campaign.bossTitle', { c: l.chapter.n }) : t('campaign.levelTitle', { c: l.chapter.n, n: l.n }))} · ${t(`w.${l.chapter.weaponKey}.name` as const)}</div>` +
+      `<div class="h-camp"><span class="stars">${stars}</span>${next ? `<span>${t('campaign.until', { time: clock(next) })}</span>` : ''}` +
+      `<span>${t('campaign.botsLeft', { n: c.botsLeft, total: c.botsTotal })}</span></div>`;
+    if (c.boss) {
+      html += `<div class="h-boss"><b>${esc(c.boss.name)}</b><span><i style="width:${Math.round(Math.max(0, c.boss.life) * 100)}%"></i></span></div>`;
+    }
+    setHTML(this.r.match, html);
+  }
+
+  private campEndKeys: ((e: KeyboardEvent) => void) | null = null;
+
+  /** The end of a campaign level: won (stars, time) or lost, and what to do next. */
+  showCampaignEnd(e: CampaignEnd): void {
+    const l = e.level;
+    const title = `${(l.boss ? t('campaign.bossTitle', { c: l.chapter.n }) : t('campaign.levelTitle', { c: l.chapter.n, n: l.n }))} · ${t(`w.${l.chapter.weaponKey}.name` as const)}`;
+    const stars = [1, 2, 3].map((i) => `<i class="${i <= e.stars ? 'on' : ''}">★</i>`).join('');
+    const body = e.won
+      ? `<div class="stars">${stars}</div><div class="time">${t('campaign.time', { time: clock(e.seconds) })}</div>` +
+        (e.isBest ? `<div class="best new">${t('campaign.newBest')}</div>` : e.best ? `<div class="best">${t('campaign.best', { time: clock(e.best) })}</div>` : '') +
+        `<div class="thr">${t('campaign.thresholds', { three: clock(l.stars3), two: clock(l.stars2) })}</div>` +
+        (e.guest ? `<div class="save">${t('campaign.saveHint')}</div>` : '')
+      : `<div class="sub">${t('campaign.lostText')}</div>`;
+    const buttons =
+      `<button type="button" data-a="menu"><span class="h-key">Esc</span>${t('campaign.menu')}</button>` +
+      (e.won && e.hasNext
+        ? `<button type="button" data-a="retry"><span class="h-key">R</span>${t('campaign.retry')}</button><button type="button" class="primary" data-a="next"><span class="h-key">Enter</span>${t('campaign.next')}</button>`
+        : `<button type="button" class="primary" data-a="retry"><span class="h-key">Enter</span>${t(e.won ? 'campaign.retry' : 'campaign.tryAgain')}</button>`);
+    setHTML(
+      this.r.campend,
+      `<div class="t ${e.won ? 'won' : 'lost'}">${t(e.won ? 'campaign.won' : 'campaign.lost')}</div><div class="lvl">${title}</div>${body}<div class="btns">${buttons}</div>`,
+    );
+    show(this.r.campend, true);
+    const act = (a: 'next' | 'retry' | 'menu') => {
+      if (this.campEndKeys) window.removeEventListener('keydown', this.campEndKeys, true);
+      this.campEndKeys = null;
+      e.onAction(a);
+    };
+    this.r.campend.onclick = (ev) => {
+      const b = (ev.target as HTMLElement).closest<HTMLElement>('[data-a]');
+      if (b) act(b.dataset.a as 'next' | 'retry' | 'menu');
+    };
+    this.campEndKeys = (ev: KeyboardEvent) => {
+      const primary = e.won && e.hasNext ? 'next' : 'retry';
+      const a = ev.code === 'Enter' || ev.code === 'NumpadEnter' ? primary : ev.code === 'KeyR' ? 'retry' : ev.code === 'Escape' ? 'menu' : null;
+      if (!a) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      act(a);
+    };
+    // A moment before the keys work: the shot or key that ended the level must not skip the panel
+    setTimeout(() => {
+      if (this.campEndKeys) window.addEventListener('keydown', this.campEndKeys, true);
+    }, 600);
+  }
+
   /** Our record before this match (online), or null (offline: no record). */
   setRecord(kills: number | null): void {
     this.recordBefore = kills;
@@ -521,7 +615,8 @@ export class HudLayer {
     }
     const menu = this.picker.visible;
     const table = !menu && (f.showScores || !playing);
-    const deadScreen = !menu && !table && playing && !alive && !spectator;
+    // The campaign has no respawn: its end panel instead of the death screen
+    const deadScreen = !menu && !table && playing && !alive && !spectator && !f.campaign;
     const liveHud = !menu && !table && alive && !spectator;
     this.deadScreen = deadScreen;
 
@@ -540,7 +635,7 @@ export class HudLayer {
     show(r.next, deadScreen && enabledPrimaries().length > 0);
     show(r.scores, table);
     show(r.banner, !menu && !playing);
-    this.updateFeat(playing, !menu && !table);
+    this.updateFeat(playing, !menu && !table && !f.campaign?.over);
     // End of a match: our summary, then the map vote, beside the score table
     const endSide = !menu && !playing;
     this.voting = endSide && !!this.vote;
@@ -612,6 +707,10 @@ export class HudLayer {
 
   /** The clock and the mode, with the team scores (and the flags in CTF) around it in team games. */
   private updateMatch(f: HudFrame): void {
+    if (f.campaign) {
+      this.updateCampaignHeader(f.campaign);
+      return;
+    }
     const g = f.game;
     const time = sv.sv_gameTimeLimit > 0 ? `<div class="h-clock">${clock(f.timeLeft + 1)}</div>` : '';
     const mode = modeName(modeOfGameType(g.gameType));
@@ -1137,6 +1236,7 @@ export class HudLayer {
   }
 
   dispose(): void {
+    if (this.campEndKeys) window.removeEventListener('keydown', this.campEndKeys, true);
     this.root.remove();
   }
 }

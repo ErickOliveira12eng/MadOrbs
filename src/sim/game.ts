@@ -371,6 +371,9 @@ export class Game {
   /** Game::spawnPlayer — DM: the spawn point farthest from the closest alive player. */
   spawnPlayer(player: Player): boolean {
     if (player.teamID !== PLAYER_TEAM_BLUE && player.teamID !== PLAYER_TEAM_RED) return false;
+    // A respawn spends a life (only the campaign counts them); a babo stuck in a wall just moves
+    const respawn = player.status !== PLAYER_STATUS_ALIVE;
+    if (respawn && player.lives <= 0) return false;
     const spawns = this.map.dmSpawns;
     if (spawns.length === 0) return false;
     let currentScore = 0;
@@ -395,6 +398,7 @@ export class Game {
         break;
       }
     }
+    if (respawn) player.lives--;
     player.spawn(new Vec3(spawns[bestFound].x, spawns[bestFound].y, 0.25));
     this.events.push({
       type: 'spawn',
@@ -516,19 +520,20 @@ export class Game {
       // Must have been on the field for more than 3 seconds
       if (other.timeAlive > 3 && p.timeAlive > 3) {
         const disSq = distanceSquared(p.currentCF.position, other.currentCF.position);
-        if (disSq <= 0.5 * 0.5) {
+        const touch = p.radius + other.radius;
+        if (disSq <= touch * touch) {
           const dis = other.currentCF.position.sub(p.currentCF.position).normalizeIn();
-          p.currentCF.position = other.currentCF.position.sub(dis.mul(0.51));
+          p.currentCF.position = other.currentCF.position.sub(dis.mul(touch + 0.01));
           p.currentCF.vel = p.currentCF.vel.mul(-BOUNCE_FACTOR);
-          map.performCollision(p.lastCF, p.currentCF, 0.25);
-          map.collisionClip(p.currentCF, 0.25);
+          map.performCollision(p.lastCF, p.currentCF, p.radius);
+          map.collisionClip(p.currentCF, p.radius);
           p.lastCF.position.copy(p.currentCF.position);
         }
       }
     }
-    map.performCollision(p.lastCF, p.currentCF, 0.25);
+    map.performCollision(p.lastCF, p.currentCF, p.radius);
     // Final clip
-    map.collisionClip(p.currentCF, 0.25);
+    map.collisionClip(p.currentCF, p.radius);
 
     // Stuck in a wall? Respawn request
     const x = Math.trunc(p.currentCF.position.x);
@@ -925,7 +930,7 @@ export class Game {
       let p3 = b.p2.clone();
       for (const other of this.players) {
         if (!other || other === player || !other.isAlive || !this.canPierce(player, other)) continue;
-        if (segmentToSphere(b.p1, p3, other.currentCF.position, weaponID === WEAPON_FLAME_THROWER ? 0.5 : 0.25)) {
+        if (segmentToSphere(b.p1, p3, other.currentCF.position, weaponID === WEAPON_FLAME_THROWER ? other.radius + 0.25 : other.radius)) {
           b.normal = p3.sub(b.p1).normalizeIn();
           p3 = b.p2.clone(); // full length (goes through everybody)
           b.hits.push(other);
@@ -936,7 +941,7 @@ export class Game {
       for (const other of this.players) {
         if (!other || other === player || !other.isAlive) continue;
         // segmentToSphere shortens p2 to the hit point, so the closest babo wins
-        if (segmentToSphere(b.p1, b.p2, other.currentCF.position, 0.25)) {
+        if (segmentToSphere(b.p1, b.p2, other.currentCF.position, other.radius)) {
           hit = other;
           b.normal = b.p2.sub(b.p1).normalizeIn();
         }
@@ -980,7 +985,7 @@ export class Game {
   playerInRadius(position: Vec3, radius: number, ignore = -1): Player | null {
     for (const p of this.players) {
       if (!p || !p.isAlive || p.playerID === ignore) continue;
-      if (distanceSquared(position, p.currentCF.position) <= (radius + 0.25) * (radius + 0.25)) return p;
+      if (distanceSquared(position, p.currentCF.position) <= (radius + p.radius) * (radius + p.radius)) return p;
     }
     return null;
   }

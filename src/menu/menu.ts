@@ -9,6 +9,8 @@ import { ROOM_MODES, type RoomMode, type RoomStatus } from '../net/protocol';
 import type { Account } from './account';
 import { AccountModal } from './accountModal';
 import { StatsModal } from './statsModal';
+import { CampaignModal } from './campaignModal';
+import type { CampaignLevel } from '../client/campaign';
 import { isOldGeneratedName, randomGuestName } from './guestNames';
 import { Embers } from './embers';
 import { icon, type IconName } from './icons';
@@ -25,7 +27,7 @@ export type PlayMode = 'online' | 'offline';
 const MODE_ICONS: Record<RoomMode, IconName> = { dm: 'skull', tdm: 'team', ctf: 'flag_fill' };
 
 /** The column is laid out for a window this high (top bar included) and zoomed to the real one. */
-const DESIGN_HEIGHT = 940;
+const DESIGN_HEIGHT = 960;
 const DESIGN_WIDTH = 1400;
 
 export class StartScreen {
@@ -37,6 +39,7 @@ export class StartScreen {
   private readonly training: TrainingModal;
   private readonly accountModal: AccountModal;
   private readonly statsModal: StatsModal;
+  private readonly campaign: CampaignModal;
   /** The account whose Orb was already brought into this page's settings. */
   private orbSyncedFor = '';
   private readonly embers: Embers | null;
@@ -53,6 +56,8 @@ export class StartScreen {
     private readonly studio: OrbStudio,
     private readonly account: Account,
     private readonly onPlay: (mode: PlayMode) => void,
+    /** A campaign level chosen (src/menu/campaignModal.ts). */
+    onCampaign: (level: CampaignLevel) => void,
   ) {
     for (const el of document.querySelectorAll<HTMLElement>('[data-icon]')) el.innerHTML = icon(el.dataset.icon as IconName, 20);
 
@@ -69,6 +74,15 @@ export class StartScreen {
     $('btnAccount').addEventListener('click', () => this.accountModal.open());
     this.statsModal = new StatsModal(account, () => this.accountModal.open());
     $('btnStats').addEventListener('click', () => this.statsModal.open());
+    this.campaign = new CampaignModal(
+      account,
+      (level) => {
+        if (!this.settings.name) this.play('offline', false);
+        onCampaign(level);
+      },
+      () => this.accountModal.open(),
+    );
+    $('btnCampaign').addEventListener('click', () => this.campaign.open());
     account.onChange(() => this.renderAccount());
     this.renderAccount();
 
@@ -179,20 +193,27 @@ export class StartScreen {
     this.training.close();
     this.accountModal.close();
     this.statsModal.close();
+    this.campaign.close();
     this.controls.hidden = true;
     cancelAnimationFrame(this.rafId);
     clearTimeout(this.statusTimer);
     this.embers?.clear();
   }
 
-  private play(mode: PlayMode): void {
+  /** `start`: false only gives the player a name (the campaign starts on its own). */
+  private play(mode: PlayMode, start = true): void {
     if (!this.settings.name || isOldGeneratedName(this.settings.name)) {
       // Like the .io games: a name for those who don't pick one (a war word and three digits)
       this.settings.name = randomGuestName();
       this.nameInput.value = this.settings.name;
       saveSettings(this.settings);
     }
-    this.onPlay(mode);
+    if (start) this.onPlay(mode);
+  }
+
+  /** The campaign window (back from a level: on its chapter). */
+  openCampaign(level?: CampaignLevel): void {
+    this.campaign.open(level);
   }
 
   /** The arrows beside the orb: the previous or next style, same colours. */

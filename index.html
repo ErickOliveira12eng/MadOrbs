@@ -123,6 +123,9 @@
           <div id="modes" class="modes" role="radiogroup" data-i18n-attr="aria-label=menu.gameMode" aria-label="Game mode"></div>
 
           <div class="shortcuts">
+            <button id="btnCampaign" class="shortcut campaign" type="button">
+              <span class="shortcut-icon" data-icon="swords"></span><span><b data-i18n="menu.campaign">Campaign</b><small data-i18n="menu.campaignSub">Levels vs bots</small></span>
+            </button>
             <button class="shortcut" type="button" disabled>
               <span class="shortcut-icon" data-icon="bars"></span><span><b data-i18n="menu.ranking">Ranking</b><small data-i18n="menu.soon">Coming soon</small></span>
             </button>
@@ -130,7 +133,7 @@
               <span class="shortcut-icon" data-icon="trophy"></span><span><b data-i18n="account.stats">Stats</b><small data-i18n="menu.statsSub">Your matches</small></span>
             </button>
             <button id="training" class="shortcut" type="button">
-              <span class="shortcut-icon" data-icon="gamepad"></span><span><b data-i18n="menu.train">Train with bots</b><small data-i18n="menu.offline">Play offline</small></span>
+              <span class="shortcut-icon" data-icon="gamepad"></span><span><b data-i18n="menu.train">Training</b><small data-i18n="menu.offline">Play offline</small></span>
             </button>
             <button id="btnControls" class="shortcut" type="button">
               <span class="shortcut-icon" data-icon="help"></span><span><b data-i18n="menu.controls">Controls</b><small data-i18n="menu.controlsSub">WASD + Mouse</small></span>
@@ -220,6 +223,26 @@
           </footer>
         </div>
         <p id="accountError" class="message account-error" role="alert" hidden></p>
+      </div>
+    </div>
+
+    <!-- Campaign: src/menu/campaignModal.ts -->
+    <div id="campaignModal" class="modal" hidden>
+      <div class="modal-card camp-modal" role="dialog" aria-modal="true" aria-labelledby="campTitle">
+        <header class="modal-head">
+          <h2 id="campTitle" data-i18n="campaign.title">Campaign</h2>
+          <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>
+        </header>
+        <p class="modal-sub"><span data-i18n="campaign.sub">You alone against the bots, one weapon per chapter. They don't respawn, and neither do you.</span>
+          <a class="camp-guide" data-i18n-attr="href=link.campaign" href="/campaign" target="_blank" rel="noopener" data-i18n="campaign.howItWorks">How it works</a></p>
+        <div class="camp-body">
+          <nav id="campChapters" class="camp-chapters"></nav>
+          <section class="camp-chapter">
+            <div id="campHead" class="camp-head"></div>
+            <div id="campLevels" class="camp-levels"></div>
+          </section>
+        </div>
+        <div id="campSave" class="camp-save"></div>
       </div>
     </div>
 

@@ -13,7 +13,11 @@ import {
   ITEM_WEAPON,
   PLAYER_STATUS_ALIVE,
   PLAYER_TEAM_AUTO_ASSIGN,
+  PLAYER_TEAM_BLUE,
+  PLAYER_TEAM_RED,
   PLAYER_TEAM_SPECTATOR,
+  GAME_TYPE_TDM,
+  WEAPON_KNIVES,
   PROJECTILE_COCKTAIL_MOLOTOV,
   PROJECTILE_DIRECT,
   PROJECTILE_DROPED_GRENADE,
@@ -32,6 +36,7 @@ import {
   WEAPON_NUCLEAR,
   WEAPON_SNIPER,
 } from '../sim/constants';
+import { BOSS, loadProgress, nextLevel, saveWin, starsFor, type CampaignLevel } from './campaign';
 import { bestKills, saveBestKills } from './records';
 import { loadAnnouncer, playAnnouncer } from './featSounds';
 import { applyFeatCounts, isAnnouncedToAll } from '../sim/feats';
@@ -74,7 +79,7 @@ import { FlagRenderer } from './render/flagRenderer';
 import { ProjectileRenderer } from './render/projectileRenderer';
 import { gameSounds } from './sounds';
 import type { OrbPictureFn } from './hud/hudArt';
-import { HudLayer, type HudFrame } from './hud/hudLayer';
+import { HudLayer, type CampaignHud, type HudFrame } from './hud/hudLayer';
 import { ViewOverlay, scopeAlpha } from './ui/viewOverlay';
 import { VIEW_ASPECT, fitView, type ViewRect } from './view';
 import { teamName } from './modes';
@@ -107,6 +112,14 @@ export interface ClientGameOptions {
   authToken?: string;
   /** The most kills we made in one online match of this mode, before this game (records.ts, account). */
   bestKills?: number;
+  // --- campaign (offline)
+  /** A campaign level: Team Deathmatch alone against the bots, nobody respawns (src/client/campaign.ts). */
+  campaign?: CampaignLevel;
+  /** A campaign level won (the account keeps it too); `signedIn`: else the end says how to keep the progress. */
+  onCampaignWin?: (level: CampaignLevel, seconds: number) => void;
+  signedIn?: boolean;
+  /** The end of a campaign level: what the player chose (next level, again, back to the menu). */
+  onCampaignAction?: (action: 'next' | 'retry' | 'menu', level: CampaignLevel) => void;
 }
 
 export class ClientGame {
@@ -198,11 +211,11 @@ export class ClientGame {
     menu.onQuit = () => this.quit();
     // Pressing Escape while the mouse is captured releases it: open the menu like k_menuAccess.
     this.input.onPointerLockChange = (locked) => {
-      if (!locked && this.running && !menu.visible) menu.show();
+      if (!locked && this.running && !menu.visible && !this.camp?.over) menu.show();
     };
     // Capture the mouse on a click in the arena (also after the menu closes, see onVisibilityChange)
     this.renderer.domElement.addEventListener('mousedown', () => {
-      if (this.running && !menu.visible && !this.input.locked) this.input.requestPointerLock();
+      if (this.running && !menu.visible && !this.input.locked && !this.camp?.over) this.input.requestPointerLock();
     });
     window.addEventListener('keydown', this.onChatKey, true);
 
@@ -249,6 +262,10 @@ export class ClientGame {
   // ---------------------------------------------------------------- setup
 
   private startOffline(map: GameMap): void {
+    if (this.opts.campaign) {
+      this.startCampaign(map, this.opts.campaign);
+      return;
+    }
     this.game = new Game(map, { gameType: ROOM_GAME_TYPE[this.opts.mode], onMapChangeRequest: () => void this.nextMap() });
     this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
     this.me.skin = this.opts.skin;
@@ -261,6 +278,146 @@ export class ClientGame {
     }
     this.onMapLoaded(map);
     this.beginLoop();
+  }
+
+  // ---------------------------------------------------------------- campaign
+
+  /** When our own Mission Failed feat was announced (the campaign's loss doesn't say it twice). */
+  private missionFailedAt = -1e9;
+
+  /** The level being played: its clock, the boss and its guards, and how it ended. */
+  private camp: {
+    level: CampaignLevel;
+    /** Seconds since the player spawned (stops at the end). */
+    elapsed: number;
+    started: boolean;
+    boss: Player | null;
+    guards: BotController[];
+    nextGuard: number;
+    over: 'won' | 'lost' | null;
+    overAt: number;
+  } | null = null;
+
+  /**
+   * A campaign level: Team Deathmatch with us alone on blue and the bots on red, everybody with the
+   * chapter's weapon and a single life; no score or time limit, no team balance.
+   */
+  private startCampaign(map: GameMap, level: CampaignLevel): void {
+    this.svBackup = { ...sv };
+    sv.sv_scoreLimit = 0;
+    sv.sv_winLimit = 0;
+    sv.sv_gameTimeLimit = 0;
+    sv.sv_autoBalance = false;
+    sv.sv_forceRespawn = false;
+    this.game = new Game(map, { gameType: GAME_TYPE_TDM, onMapChangeRequest: () => {} });
+    const weapon = level.chapter.weaponID;
+    this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
+    this.me.skin = this.opts.skin;
+    this.me.teamID = PLAYER_TEAM_BLUE;
+    this.me.lives = 1;
+    this.me.nextSpawnWeapon = weapon;
+    this.me.nextMeleeWeapon = WEAPON_KNIVES;
+    const names = [...BOT_NAMES].sort(() => Math.random() - 0.5);
+    const loadout = { primary: weapon, secondary: WEAPON_KNIVES };
+    const guards: BotController[] = [];
+    for (let i = 0; i < level.bots; i++) {
+      const p = this.game.addPlayer(names[i % names.length], true);
+      if (!p) break;
+      p.teamID = PLAYER_TEAM_RED;
+      p.lives = 1;
+      p.skin = randomSkin();
+      const bot = new BotController(p, level.skill, loadout);
+      this.bots.push(bot);
+      guards.push(bot);
+    }
+    let boss: Player | null = null;
+    if (level.boss) {
+      boss = this.game.addPlayer(t(`campaign.boss.${level.chapter.weaponKey}` as const), true);
+      if (boss) {
+        boss.teamID = PLAYER_TEAM_RED;
+        boss.lives = 1;
+        boss.radius = BOSS.radius;
+        boss.damageScale = BOSS.damageScale;
+        boss.skin = randomSkin();
+        this.bots.push(new BotController(boss, Math.min(1, level.skill + 0.1), loadout));
+      }
+    }
+    this.camp = { level, elapsed: 0, started: false, boss, guards: level.boss ? guards : [], nextGuard: BOSS.guardEvery, over: null, overAt: 0 };
+    this.onMapLoaded(map);
+    this.beginLoop();
+    // We start right away, no weapon menu; the bots too, far from us
+    this.hud.picker.hide();
+    this.game.requestSpawn(this.me);
+    for (const b of this.bots) this.game.requestSpawn(b.player);
+  }
+
+  /** Every tick of a campaign level: the clock, the boss's guards, the win and the loss. */
+  private updateCampaign(): void {
+    const c = this.camp;
+    if (!c || c.over) return;
+    const game = this.game;
+    if (!c.started && this.me.isAlive) c.started = true;
+    if (!c.started) return;
+    c.elapsed += TICK;
+    // Boss: a guard comes back now and then while it lives
+    if (c.boss && c.boss.isAlive && c.guards.length) {
+      c.nextGuard -= TICK;
+      if (c.nextGuard <= 0) {
+        c.nextGuard = BOSS.guardEvery;
+        const alive = c.guards.filter((g) => g.player.isAlive).length;
+        const down = c.guards.find((g) => !g.player.isAlive && g.player.lives <= 0);
+        if (alive < BOSS.maxGuards && down) {
+          down.player.lives = 1;
+          down.player.spawnRequested = false;
+          down.player.timeToSpawn = 0;
+        }
+      }
+    }
+    const reds = game.players.filter((p): p is Player => !!p && p.teamID === PLAYER_TEAM_RED);
+    const redsLeft = reds.filter((p) => p.isAlive || p.lives > 0).length;
+    if (!this.me.isAlive && this.me.lives <= 0) this.endCampaign('lost');
+    else if (c.boss ? !c.boss.isAlive && c.boss.lives <= 0 : redsLeft === 0) this.endCampaign('won');
+  }
+
+  private endCampaign(result: 'won' | 'lost'): void {
+    const c = this.camp!;
+    c.over = result;
+    c.overAt = performance.now();
+    const best = loadProgress()[c.level.id];
+    const isBest = result === 'won' && saveWin(c.level, c.elapsed);
+    if (result === 'won') this.opts.onCampaignWin?.(c.level, c.elapsed);
+    const next = nextLevel(c.level);
+    // "Mission failed", unless the feat (a streak lost) just said it
+    if (result === 'lost' && performance.now() - this.missionFailedAt > 1500) playAnnouncer('missionFailed');
+    // The mouse comes back for the buttons
+    this.input.exitPointerLock();
+    this.hud.showCampaignEnd({
+      won: result === 'won',
+      level: c.level,
+      seconds: c.elapsed,
+      stars: result === 'won' ? starsFor(c.level, c.elapsed) : 0,
+      best: isBest ? null : (best ?? null),
+      isBest,
+      hasNext: result === 'won' && !!next,
+      guest: !this.opts.signedIn,
+      onAction: (action) => this.opts.onCampaignAction?.(action, action === 'next' && next ? next : c.level),
+    });
+  }
+
+  /** The campaign's header on the HUD: the level, the clock, the bots left and the boss's life. */
+  private campaignHud(): CampaignHud | null {
+    const c = this.camp;
+    if (!c) return null;
+    const reds = this.game.players.filter((p): p is Player => !!p && p.teamID === PLAYER_TEAM_RED && p !== c.boss);
+    return {
+      level: c.level,
+      seconds: c.elapsed,
+      botsLeft: reds.filter((p) => p.isAlive || p.lives > 0).length,
+      botsTotal: c.boss ? reds.length : c.level.bots,
+      // Not born yet: a full bar
+      boss: c.boss ? { name: c.boss.name, life: c.boss.isAlive ? c.boss.life : c.boss.lives > 0 ? 1 : 0 } : null,
+      over: !!c.over,
+    };
   }
 
   private startOnline(map: GameMap, conn: Connection, welcome: WelcomeMessage): void {
@@ -578,6 +735,7 @@ export class ClientGame {
     for (const b of this.bots) b.think(TICK);
     game.update(TICK);
     for (const e of game.events.drain()) this.handleEvent(e, false);
+    this.updateCampaign();
 
     if (this.conn) {
       // NET_CLSV_SVCL_PLAYER_COORD_FRAME every sv_minSendInterval frames
@@ -1056,6 +1214,7 @@ export class ClientGame {
         const who = game.players[e.playerID] ?? null;
         if (who !== me && !isAnnouncedToAll(e.feat)) break;
         const kind = e.feat;
+        if (kind === 'missionFailed' && who === me) this.missionFailedAt = performance.now();
         this.hud.announce(kind, who, game.players[e.victimID] ?? null, e.n, () => playAnnouncer(kind));
         break;
       }
@@ -1139,6 +1298,7 @@ export class ClientGame {
       mouseX: this.input.mouseX,
       mouseY: this.input.mouseY,
       showScores: this.input.isDown(bindings.showScore) && !this.chat.active,
+      campaign: this.campaignHud(),
       chatInput: this.chat.active ? this.chat.text : null,
       scope,
       // Player::renderName: where a babo is on the screen (its drawn position), and just above it
