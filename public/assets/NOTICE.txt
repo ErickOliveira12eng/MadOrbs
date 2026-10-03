@@ -1,13 +1,14 @@
 Mad Orbs - game data
 
-The sounds, the music and the maps in this folder are original Babo Violent 2 content (RndLabs,
-2006). David St-Louis ("Daivuk"), one of the game's creators, published that content in the game's
-source code repository, https://github.com/Daivuk/BaboViolent2 (commit a6596d1, "Merged Engine +
-Added content", 7 December 2012), which is licensed under the GNU General Public License,
-version 3 (LICENSE.txt in that repository). Mad Orbs uses these files under that license.
+The files in this folder are original Babo Violent 2 content (RndLabs, 2006): models, textures,
+orb skins, sounds, music and maps. David St-Louis ("Daivuk"), one of the game's creators, published
+that content in the game's source code repository, https://github.com/Daivuk/BaboViolent2 (commit
+a6596d1, "Merged Engine + Added content", 7 December 2012), which is licensed under the GNU General
+Public License, version 3 (LICENSE.txt in that repository). Mad Orbs uses these files under that
+license.
+
+One change: in models/LifePack.DKO the cross is green instead of red (the red cross on white is a
+protected emblem). Files of the original folder that the game doesn't use were left out.
 
 ORIGINAL-LICENSE.txt is the end-user license that shipped with the 2006 freeware game; it is part
 of the content folder as it was published.
-
-The other files (orb skins, effect textures, HUD pictures, map theme textures and 3D models) were
-made for Mad Orbs. docs/ASSETS.md in the Mad Orbs source code explains where each group comes from.

@@ -10,6 +10,7 @@ export const pt: Record<Key, string> = {
     'Jogo de tiro online e grátis no navegador: Deathmatch, Team Deathmatch e Capture a Bandeira com Orbs. Sem instalar e sem cadastro, chame os amigos.',
   'meta.ogTitle': 'Mad Orbs: tiro online no navegador',
   'meta.ogDescription': 'Deathmatch de Orbs no navegador. Chame os amigos e jogue na hora, sem instalar nada.',
+  'meta.ogImage': '__ORIGIN__/og-image-pt.jpg',
   'meta.ogImageAlt': 'Orbs coloridas trocando tiros numa arena do Mad Orbs',
   'meta.ldDescription':
     'Jogo de tiro online multijogador no navegador, com Orbs que rolam pela arena: Deathmatch, Team Deathmatch e Capture a Bandeira, além de treino offline contra bots.',

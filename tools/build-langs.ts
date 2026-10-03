@@ -35,7 +35,7 @@ function structuredData(l: Lang): string {
         name: 'Mad Orbs',
         url,
         description: t('meta.ldDescription'),
-        image: 'https://madorbs.com/og-image.jpg',
+        image: t('meta.ogImage').replace('__ORIGIN__', 'https://madorbs.com'),
         genre: t('meta.ldGenres').split('|'),
         gamePlatform: t('meta.ldPlatform'),
         applicationCategory: 'Game',

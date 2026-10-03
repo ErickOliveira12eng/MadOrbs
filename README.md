@@ -18,9 +18,9 @@ correspondente.
 - `src/client/`: gráficos (three.js), som, controles, efeitos e o HUD.
 - `src/menu/`: a tela inicial.
 - `src/net/`: as mensagens trocadas com o servidor.
-- `public/`: os arquivos do jogo (mapas, sons, músicas, texturas, modelos 3D).
-- `tools/assets/`: os scripts que geram as skins das Orbs, as texturas e os modelos 3D feitos
-  para o Mad Orbs.
+- `src/i18n/`: os textos do jogo em inglês, português e espanhol.
+- `public/`: os arquivos do jogo (mapas, sons, músicas, texturas, modelos 3D) e as páginas de guia.
+- `tools/build-langs.ts`: escreve a página inicial de cada idioma no build.
 
 O servidor das partidas online não faz parte deste repositório: ele roda só nas máquinas do
 madorbs.com e não é distribuído.
@@ -38,10 +38,6 @@ npm run dev
 
 Abra <http://localhost:5173> e escolha **Treinar com bots**: a partida roda inteira no navegador.
 `npm run build` gera a página em `dist/`.
-
-Para refazer os assets feitos para o Mad Orbs: `node tools/assets/make-skins.mjs`,
-`node tools/assets/make-effects.mjs`, `node tools/assets/make-themes.mjs` e
-`npx tsx tools/assets/make-models.ts`.
 
 ## Licença
 

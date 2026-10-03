@@ -10,6 +10,8 @@ export const en = {
     'Free online shooting game in your browser: Deathmatch, Team Deathmatch and Capture the Flag with Orbs. Nothing to install, no sign-up: call your friends and play.',
   'meta.ogTitle': 'Mad Orbs: online shooter in your browser',
   'meta.ogDescription': 'Orb deathmatch in your browser. Call your friends and play right away, nothing to install.',
+  /** The link preview picture (tools/make-og-image.mjs); __ORIGIN__ is filled in by the server. */
+  'meta.ogImage': '__ORIGIN__/og-image.jpg',
   'meta.ogImageAlt': 'Colorful Orbs trading shots in a Mad Orbs arena',
   'meta.ldDescription':
     'Multiplayer online shooting game in the browser, with Orbs rolling around the arena: Deathmatch, Team Deathmatch and Capture the Flag, plus offline training against bots.',

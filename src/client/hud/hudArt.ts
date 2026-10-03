@@ -58,8 +58,6 @@ function renderWeapons(): Promise<Map<number, string>> {
       const def = weaponDefs[id];
       if (!def) continue;
       const obj = createDkoObject3D(getModel(def.model), 0);
-      // Slings, harness and ammo belt wrap around the orb: without one they hang in the air
-      for (const node of obj.children) if (node.name === 'Strap') node.visible = false;
       const group = new THREE.Group().add(obj);
       scene.add(group);
       group.updateMatrixWorld(true);
