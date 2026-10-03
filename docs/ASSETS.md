@@ -9,9 +9,8 @@ Babo Violent 2 content, except the announcer's voice (`sounds/announcer/`, below
 [WARLORD Announcer Audio Pack](https://voicebosch.itch.io/warlord-announcer-audio-pack) by
 **VoiceBosch** (part of the SoundBiter SFX library), released under
 [Creative Commons Attribution-ShareAlike 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
-("Preferred Attribution: VoiceBosch"). Nine of its 29 lines are used (Start, Double Kill, Triple
-Kill, Dominating, Unstoppable, First Blood, Capture the Flag, Last Man Standing, Revenge Kill); the
-files were only renamed (the list is in `LICENSE.txt` next to them). What the license asks:
+("Preferred Attribution: VoiceBosch"). Seven of its 29 lines are used (Start, Double Kill, Triple
+Kill, Dominating, Unstoppable, First Blood, Revenge Kill); the files were only renamed (the list is in `LICENSE.txt` next to them). What the license asks:
 credit (VoiceBosch, the pack, its link, the license; in this file, in `public/assets/NOTICE.txt`
 and in the Terms of use, "Source code and license"), and that edited versions of these sounds be
 shared under CC BY-SA 4.0 too. Edit a file? Say so in `LICENSE.txt`.

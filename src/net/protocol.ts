@@ -9,7 +9,7 @@ import type { GameEvent } from '../sim/events';
 import type { SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 
-export const PROTOCOL_VERSION = 9;
+export const PROTOCOL_VERSION = 10;
 /** The client sends its coordinates every 2 simulation frames (gameVar.sv_minSendInterval). */
 export const CF_SEND_INTERVAL = 2;
 /** The server sends the players' state every 2 frames (15 Hz); events go out every frame. */

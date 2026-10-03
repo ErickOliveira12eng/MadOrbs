@@ -8,8 +8,6 @@
 import * as THREE from 'three';
 import {
   GAME_PLAYING,
-  GAME_TYPE_CTF,
-  GAME_TYPE_DM,
   ITEM_GRENADE,
   ITEM_LIFE_PACK,
   ITEM_WEAPON,
@@ -34,7 +32,7 @@ import {
   WEAPON_NUCLEAR,
   WEAPON_SNIPER,
 } from '../sim/constants';
-import { loadAnnouncer, playAnnouncer, playFeatSound } from './featSounds';
+import { loadAnnouncer, playAnnouncer } from './featSounds';
 import { applyFeatCounts, isAnnouncedToAll } from '../sim/feats';
 import type { GameEvent } from '../sim/events';
 import { Game, type ClientNet } from '../sim/game';
@@ -293,9 +291,9 @@ export class ClientGame {
     this.beginLoop();
   }
 
-  /** A match begins: "Capture the flag" in that mode, "Start" in the others. */
+  /** A match begins: the announcer's "Start". */
   private announceStart(): void {
-    playAnnouncer(this.game.gameType === GAME_TYPE_CTF ? 'captureTheFlag' : 'start');
+    playAnnouncer('start');
   }
 
   private beginLoop(): void {
@@ -1052,9 +1050,9 @@ export class ClientGame {
       case 'feat': {
         // The big ones for everybody, the others only for the one who made them
         const who = game.players[e.playerID] ?? null;
-        if (who !== me && !isAnnouncedToAll(e.feat, e.n)) break;
+        if (who !== me && !isAnnouncedToAll(e.feat)) break;
         const kind = e.feat;
-        this.hud.announce(kind, who, game.players[e.victimID] ?? null, e.n, () => playFeatSound(kind));
+        this.hud.announce(kind, who, game.players[e.victimID] ?? null, e.n, () => playAnnouncer(kind));
         break;
       }
       case 'mapChange':
@@ -1071,8 +1069,6 @@ export class ClientGame {
         break;
       case 'roundState':
         if (fromServer) game.roundState = e.state;
-        // A Deathmatch won: the announcer's "Last man standing"
-        if (e.state !== GAME_PLAYING && game.gameType === GAME_TYPE_DM && game.players.some((p) => p && p.score > 0)) playAnnouncer('lastManStanding');
         break;
       case 'flag': {
         // ClientRecv NET_SVCL_CHANGE_FLAG_STATE / NET_SVCL_DROP_FLAG

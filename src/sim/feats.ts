@@ -1,12 +1,12 @@
 // Kill feats with an announcer, like League of Legends: one count, kills without dying, gives Double
-// Kill (2), Triple Kill (3), Dominating (4) and Unstoppable (5, then every 5 more); also First Blood,
-// Shutdown (ending a streak of 3 or more) and Revenge Kill (killing your killer). Decided where the
-// game is authoritative (the server, or the page offline) from Player.dieSV; they go out as 'feat'
-// events and each player's counts travel with the scores.
+// Kill (2), Triple Kill (3), Dominating (4) and Unstoppable (5, then every 5 more); also First Blood
+// and Revenge Kill (killing your killer). Decided where the game is authoritative (the server, or the
+// page offline) from Player.dieSV; they go out as 'feat' events and each player's counts travel with
+// the scores.
 import type { Game } from './game';
 import type { Player } from './player';
 
-export type FeatKind = 'firstBlood' | 'double' | 'triple' | 'dominating' | 'unstoppable' | 'shutdown' | 'revenge';
+export type FeatKind = 'firstBlood' | 'double' | 'triple' | 'dominating' | 'unstoppable' | 'revenge';
 
 /** Kills without dying -> the feat announced (Unstoppable again every 5 more: 10, 15...). */
 const STREAK: Record<number, FeatKind> = { 2: 'double', 3: 'triple', 4: 'dominating', 5: 'unstoppable' };
@@ -24,31 +24,29 @@ export interface PlayerFeats {
   unstoppable: number;
   bestStreak: number;
   revenges: number;
-  shutdowns: number;
   firstBlood: number;
 }
 
 export function newFeats(): PlayerFeats {
-  return { streak: 0, lastKilledBy: -1, double: 0, triple: 0, dominating: 0, unstoppable: 0, bestStreak: 0, revenges: 0, shutdowns: 0, firstBlood: 0 };
+  return { streak: 0, lastKilledBy: -1, double: 0, triple: 0, dominating: 0, unstoppable: 0, bestStreak: 0, revenges: 0, firstBlood: 0 };
 }
 
-/** [double, triple, dominating, unstoppable, bestStreak, revenges, shutdowns, firstBlood] (the scores message). */
-export type FeatCounts = [number, number, number, number, number, number, number, number];
+/** [double, triple, dominating, unstoppable, bestStreak, revenges, firstBlood] (the scores message). */
+export type FeatCounts = [number, number, number, number, number, number, number];
 
 export function featCounts(f: PlayerFeats): FeatCounts {
-  return [f.double, f.triple, f.dominating, f.unstoppable, f.bestStreak, f.revenges, f.shutdowns, f.firstBlood];
+  return [f.double, f.triple, f.dominating, f.unstoppable, f.bestStreak, f.revenges, f.firstBlood];
 }
 
 export function applyFeatCounts(f: PlayerFeats, c: readonly number[] | undefined): void {
   if (!c) return;
-  [f.double, f.triple, f.dominating, f.unstoppable, f.bestStreak, f.revenges, f.shutdowns, f.firstBlood] = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => c[i] ?? 0);
+  [f.double, f.triple, f.dominating, f.unstoppable, f.bestStreak, f.revenges, f.firstBlood] = [0, 1, 2, 3, 4, 5, 6].map((i) => c[i] ?? 0);
 }
 
 /** A real kill (not a suicide, not a team kill): the killer's feats, and the victim's streak ends. */
 export function onKill(game: Game, killer: Player, victim: Player): void {
   const k = killer.feats;
   const v = victim.feats;
-  const victimStreak = v.streak;
   v.streak = 0;
   v.lastKilledBy = killer.playerID;
   const feat = (kind: FeatKind, n?: number) => game.events.push({ type: 'feat', playerID: killer.playerID, feat: kind, victimID: victim.playerID, n });
@@ -65,10 +63,6 @@ export function onKill(game: Game, killer: Player, victim: Player): void {
     k[streak as 'double' | 'triple' | 'dominating' | 'unstoppable']++;
     feat(streak, k.streak);
   }
-  if (victimStreak >= 3) {
-    k.shutdowns++;
-    feat('shutdown', victimStreak);
-  }
   if (k.lastKilledBy === victim.playerID) {
     k.revenges++;
     k.lastKilledBy = -1;
@@ -76,20 +70,9 @@ export function onKill(game: Game, killer: Player, victim: Player): void {
   }
 }
 
-/**
- * Announced to the whole room: Triple Kill and up, First Blood and the end of a streak of 4 or more.
- * Double Kill, small shutdowns and Revenge Kill only to the one who made them.
- */
-export function isAnnouncedToAll(kind: FeatKind, n = 0): boolean {
-  switch (kind) {
-    case 'double':
-    case 'revenge':
-      return false;
-    case 'shutdown':
-      return n >= 4;
-    default:
-      return true;
-  }
+/** Announced to the whole room: Triple Kill and up, and First Blood. Double Kill and Revenge Kill only to the one who made them. */
+export function isAnnouncedToAll(kind: FeatKind): boolean {
+  return kind !== 'double' && kind !== 'revenge';
 }
 
 /** Any other death (suicide, team kill, the map): the streak ends, no feat. */

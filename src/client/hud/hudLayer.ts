@@ -408,15 +408,13 @@ export class HudLayer {
     const name = who ? `<span class="who">${this.avatar(who.displaySkin)}<b class="${this.teamGame ? `t${who.teamID}` : ''}">${esc(who.name)}</b></span>` : '';
     const v = victim ? esc(victim.name) : '';
     const sub =
-      kind === 'shutdown'
-        ? t('feat.subShutdown', { victim: v, n: n ?? 0 })
-        : kind === 'revenge'
-          ? t('feat.subRevenge', { victim: v })
-          : kind === 'firstBlood'
-            ? t('feat.subFirstBlood')
-            : style.streak && n
-              ? t('feat.subStreak', { n })
-              : '';
+      kind === 'revenge'
+        ? t('feat.subRevenge', { victim: v })
+        : kind === 'firstBlood'
+          ? t('feat.subFirstBlood')
+          : style.streak && n
+            ? t('feat.subStreak', { n })
+            : '';
     const html =
       `<div class="ft" style="--c1:${style.c1};--c2:${style.c2};--glow:${style.glow}">${t(`feat.${kind}` as const)}</div>` +
       name +
@@ -1108,7 +1106,6 @@ const FEAT_STYLE: Record<FeatKind, { c1: string; c2: string; glow: string; dur: 
   dominating: { c1: '#ffe2b8', c2: '#ff8a1c', glow: '#ff8a1c77', dur: 2.2, prio: 4, streak: true },
   unstoppable: { c1: '#ffe066', c2: '#ff3b5c', glow: '#ff3b5c88', dur: 2.6, prio: 6, streak: true },
   firstBlood: { c1: '#ffc2c8', c2: '#ff2f4a', glow: '#ff2f4a77', dur: 2.3, prio: 3 },
-  shutdown: { c1: '#fff1b0', c2: '#ffc21c', glow: '#ffc21c77', dur: 2.2, prio: 4 },
   revenge: { c1: '#ffc9d5', c2: '#ff3d6e', glow: '#ff3d6e77', dur: 2.3, prio: 2 },
 };
 
@@ -1122,7 +1119,6 @@ function featChips(p: Player): string {
   if (f.triple) chips.push(`<span class="fc triple">TRIPLE${times(f.triple)}</span>`);
   if (f.double) chips.push(`<span class="fc double">DOUBLE${times(f.double)}</span>`);
   if (f.bestStreak >= 3) chips.push(`<span class="fc streak">${t('feat.chipStreak', { n: f.bestStreak })}</span>`);
-  if (f.shutdowns) chips.push(`<span class="fc shut">${t('feat.chipShutdown', { n: f.shutdowns })}</span>`);
   if (f.revenges) chips.push(`<span class="fc rev">${t('feat.chipRevenge', { n: f.revenges })}</span>`);
   if (f.firstBlood) chips.push(`<span class="fc fb">${t('feat.chipFirstBlood')}</span>`);
   return chips.slice(0, 4).join('');
