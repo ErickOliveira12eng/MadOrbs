@@ -513,6 +513,8 @@ export class HudLayer {
   }
 
   private campEndKeys: ((e: KeyboardEvent) => void) | null = null;
+  /** The end of a campaign level: the system's cursor, no crosshair. */
+  private cursorFree = false;
 
   /** The end of a campaign level: won (stars, time) or lost, and what to do next. */
   showCampaignEnd(e: CampaignEnd): void {
@@ -535,6 +537,9 @@ export class HudLayer {
       `<div class="t ${e.won ? 'won' : 'lost'}">${t(e.won ? 'campaign.won' : 'campaign.lost')}</div><div class="lvl">${title}</div>${body}<div class="btns">${buttons}</div>`,
     );
     show(this.r.campend, true);
+    // The system's cursor instead of the game's
+    this.cursorFree = true;
+    this.root.classList.add('free-cursor');
     const act = (a: 'next' | 'retry' | 'menu') => {
       if (this.campEndKeys) window.removeEventListener('keydown', this.campEndKeys, true);
       this.campEndKeys = null;
@@ -1006,6 +1011,7 @@ export class HudLayer {
   }
 
   private updateCursors(f: HudFrame, crosshair: boolean, arrow: boolean): void {
+    if (this.cursorFree) crosshair = arrow = false;
     const r = this.r;
     const [mx, my] = this.toStage(f.mouseX, f.mouseY);
     show(r.xhair, crosshair);

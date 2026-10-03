@@ -33,6 +33,16 @@
   -webkit-user-select: none;
 }
 
+/* The end of a campaign level: the system's cursor for the buttons */
+.mo-hud.free-cursor,
+.mo-hud.free-cursor * {
+  cursor: auto;
+}
+
+.mo-hud.free-cursor button {
+  cursor: pointer;
+}
+
 .mo-hud [hidden] {
   display: none !important;
 }

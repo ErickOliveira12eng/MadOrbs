@@ -390,8 +390,9 @@ export class ClientGame {
     // "Mission failed", unless the feat (a streak lost) just said it
     if (result === 'lost' && performance.now() - this.missionFailedAt > 1500) playAnnouncer('missionFailed');
     if (result === 'won') playAnnouncer('objectiveCompleted');
-    // The mouse comes back for the buttons
+    // The mouse comes back for the buttons, with the system's cursor
     this.input.exitPointerLock();
+    this.renderer.domElement.style.cursor = 'auto';
     this.hud.showCampaignEnd({
       won: result === 'won',
       level: c.level,
@@ -1211,6 +1212,8 @@ export class ClientGame {
         break;
       }
       case 'feat': {
+        // Not in the campaign: dying ends the level there, the announcer has its own lines
+        if (this.camp) break;
         // The big ones for everybody, the others only for the one who made them
         const who = game.players[e.playerID] ?? null;
         if (who !== me && !isAnnouncedToAll(e.feat)) break;
