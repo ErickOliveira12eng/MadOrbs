@@ -71,6 +71,8 @@ interface ChatEntry {
   name: string | null;
   text: string;
   t: number;
+  /** 'admin': a message from the admin page (src/server/admin.ts). */
+  kind?: 'admin';
 }
 
 interface DeathInfo {
@@ -343,9 +345,9 @@ export class HudLayer {
     this.picker.modeName = modeName(modeOfGameType(gameType));
   }
 
-  /** A chat line; `name` null for the server's own messages. */
-  addChat(name: string | null, text: string): void {
-    this.chat.push({ name, text: plain(text), t: this.time });
+  /** A chat line; `name` null for the server's own messages; `kind` 'admin' stands out. */
+  addChat(name: string | null, text: string, kind?: 'admin'): void {
+    this.chat.push({ name, text: plain(text), t: this.time, kind });
     if (this.chat.length > 6) this.chat.shift();
   }
 
@@ -567,7 +569,8 @@ export class HudLayer {
     let html = this.chat
       .map((c) => {
         const fade = this.time - c.t > CHAT_LIFE - 0.6 ? ' fade' : '';
-        return c.name === null ? `<p class="sys${fade}">${esc(c.text)}</p>` : `<p class="${fade}"><b>${esc(c.name)}:</b> ${esc(c.text)}</p>`;
+        if (c.name === null) return `<p class="sys${fade}">${esc(c.text)}</p>`;
+        return `<p class="${c.kind ?? ''}${fade}"><b>${esc(c.name)}:</b> ${esc(c.text)}</p>`;
       })
       .join('');
     if (f.chatInput !== null) html += `<p class="input"><b>${t('chat.say')}</b> ${esc(f.chatInput)}<span class="caret"></span></p>`;

@@ -185,6 +185,7 @@ export const en = {
   'net.noAnswer': "The server didn't answer.",
   'net.cantConnect': "Couldn't connect to the server.",
   'net.restarting': 'The server is restarting. Try joining again in a few seconds.',
+  'net.kicked': 'The admin removed you from the match.',
   'net.version': 'Different version from the server: reload the page (Ctrl+F5).',
   'net.full': 'Server full.',
 
@@ -192,6 +193,7 @@ export const en = {
   'chat.joined': '{name} joined the match',
   'chat.joinedTeam': '{name} joined the match on the {team}',
   'chat.left': '{name} left the match',
+  'chat.admin': 'Admin',
   'chat.balanced': '{name} moved to the {team} to balance the teams',
   'chat.say': 'Say:',
   'chat.hint': 'chat',

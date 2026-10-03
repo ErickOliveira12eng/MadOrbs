@@ -400,6 +400,11 @@
   color: #cfe0ff;
 }
 
+.h-chat p.admin,
+.h-chat p.admin b {
+  color: #ffe066;
+}
+
 .h-chat p.sys {
   color: var(--h-muted);
   font-style: italic;

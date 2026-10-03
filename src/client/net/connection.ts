@@ -44,8 +44,8 @@ export class Connection {
     ws.onclose = (ev) => {
       if (this.closed) return;
       this.closed = true;
-      // 1001: the server is restarting (GameServer.stop)
-      this.onClose?.(ev.code === 1001 ? t('net.restarting') : t('net.lost'));
+      // 1001: the server is restarting (GameServer.stop); 4001: the admin removed us (GameServer.kick)
+      this.onClose?.(ev.code === 1001 ? t('net.restarting') : ev.code === 4001 ? t('net.kicked') : t('net.lost'));
     };
   }
 

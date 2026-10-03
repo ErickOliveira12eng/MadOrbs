@@ -999,6 +999,7 @@ export class ClientGame {
         // The server's own lines come as a kind and a name, written here in our language
         if (e.sys === 'join') this.hud.addChat(null, e.team !== undefined && e.team >= 0 ? t('chat.joinedTeam', { name: e.text, team: teamName(e.team) }) : t('chat.joined', { name: e.text }));
         else if (e.sys === 'leave') this.hud.addChat(null, t('chat.left', { name: e.text }));
+        else if (e.sys === 'admin') this.hud.addChat(t('chat.admin'), e.text, 'admin');
         else this.hud.addChat(p ? p.name : null, e.text);
         audio.play(S.chat, 150);
         break;

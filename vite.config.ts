@@ -33,6 +33,7 @@ export default defineConfig(({ isSsrBuild }) => ({
     proxy: {
       '/ws': { target: `ws://${gameServer}`, ws: true },
       '/health': `http://${gameServer}`,
+      '/admin': `http://${gameServer}`,
     },
   },
   build: isSsrBuild

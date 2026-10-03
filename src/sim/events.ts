@@ -53,7 +53,7 @@ export type GameEvent =
    * playerID -1: the server's own line. `sys` 'join' / 'leave' (with `text` the player's name and
    * `team` their team, or -1) are written by each client in its language.
    */
-  | { type: 'chat'; playerID: number; text: string; sys?: 'join' | 'leave'; team?: number };
+  | { type: 'chat'; playerID: number; text: string; sys?: 'join' | 'leave' | 'admin'; team?: number };
 
 export class EventQueue {
   private list: GameEvent[] = [];
