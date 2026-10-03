@@ -811,6 +811,37 @@
   top: 300px;
 }
 
+.h-respawn.click {
+  left: 50%;
+  top: auto;
+  bottom: 160px;
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  flex-direction: column;
+  gap: 12px;
+  transform: translateX(-50%);
+  background: none;
+  border: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.h-respawn.click .h-play {
+  padding: 16px 40px 15px;
+  font-size: 32px;
+}
+
+.h-respawn.click .h-rtext {
+  align-items: center;
+}
+
+.h-respawn.click .h-rtext span {
+  color: #e4e8ff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0, 0, 0, 0.6);
+}
+
 .h-ringwrap {
   position: relative;
   width: 72px;

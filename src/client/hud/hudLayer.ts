@@ -573,8 +573,10 @@ export class HudLayer {
     if (f.chatInput !== null) html += `<p class="input"><b>${t('chat.say')}</b> ${esc(f.chatInput)}<span class="caret"></span></p>`;
     else if (f.online && !deadScreen) html += `<p class="hint"><span class="h-key">T</span> ${t('chat.hint')}</p>`;
     setHTML(this.r.chat, html);
-    // While dead the death screen takes the left side
-    setStyle(this.r.chat, 'left', deadScreen ? '520px' : '14px');
+    // While dead the death screen takes the left side and the respawn button the bottom centre:
+    // the chat goes to the bottom right (the minimap and the weapons are hidden then)
+    setStyle(this.r.chat, 'left', deadScreen ? 'auto' : '14px');
+    setStyle(this.r.chat, 'right', deadScreen ? '14px' : 'auto');
   }
 
   private drawMinimap(f: HudFrame): void {
@@ -846,6 +848,8 @@ export class HudLayer {
     }
     setHTML(r.respawn, html);
     r.respawn.classList.toggle('alone', !d);
+    // "Click to join / respawn": a big button at the bottom centre, above the next life's weapons
+    r.respawn.classList.toggle('click', mode === 'click');
     if (mode === 'count') {
       const secs = Math.ceil(toSpawn);
       setText(r.respawn.querySelector<HTMLElement>('[data-num]')!, String(secs));
