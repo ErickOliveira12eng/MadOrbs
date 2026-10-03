@@ -147,7 +147,7 @@ export class OrbPicker {
       const s = this.settings;
       // Rolls slowly towards the viewer, like on the ground
       const roll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0.2).normalize(), -this.spin * 1.4);
-      this.studio.draw(this.big, await this.studio.texture(skinInfo(s)), roll.multiply(FRONT));
+      this.studio.draw(this.big, await this.studio.texture(skinInfo(s), true), roll.multiply(FRONT));
       // The gallery is redrawn a few orbs per frame, so the page stays responsive
       if (this.thumbsDirty) {
         this.thumbsDirty = false;

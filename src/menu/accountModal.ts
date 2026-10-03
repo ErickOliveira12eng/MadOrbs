@@ -87,7 +87,7 @@ export class AccountModal {
     $('statKd').textContent = num((p?.kills ?? 0) / Math.max(1, p?.deaths ?? 0), 2);
     $('statWins').textContent = bigNum(p?.wins ?? 0);
     $('statMatches').textContent = bigNum(p?.matches ?? 0);
-    void this.studio.picture(skinInfo(this.settings), 144).then((src) => ($<HTMLImageElement>('accountOrb').src = src));
+    void this.studio.picture(skinInfo(this.settings), 144, undefined, true).then((src) => ($<HTMLImageElement>('accountOrb').src = src));
   }
 
   /** Google's button, drawn once per page (its script loads the first time). */

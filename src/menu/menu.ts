@@ -278,6 +278,9 @@ export class StartScreen {
     // Narrow screens scroll: then the width decides
     const k = w < 760 ? Math.max(0.5, Math.min(1, w / 720)) : Math.max(0.6, Math.min(1.4, h / DESIGN_HEIGHT, w / DESIGN_WIDTH));
     document.documentElement.style.setProperty('--menu-k', k.toFixed(3));
+    // The orb's canvas as sharp as the screen shows it (190 px in the column, zoomed, times the pixel ratio)
+    const px = Math.min(512, Math.max(190, Math.ceil(190 * k * (window.devicePixelRatio || 1))));
+    if (this.preview.width !== px) this.preview.width = this.preview.height = px;
   }
 
   /** One card per game mode (icon, name, one line, how many play it now). */
@@ -366,7 +369,7 @@ export class StartScreen {
     this.spin += dt;
     this.drawing = true;
     void this.studio
-      .texture(skinInfo(this.settings))
+      .texture(skinInfo(this.settings), true)
       .then((tex) => {
         const roll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0.2).normalize(), -this.spin * 1.1);
         this.studio.draw(this.preview, tex, roll.multiply(FRONT));
