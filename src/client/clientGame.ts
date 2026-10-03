@@ -457,6 +457,17 @@ export class ClientGame {
       botsTotal: c.boss ? reds.length : c.level.bots,
       // Not born yet: a full bar
       boss: c.boss ? { name: c.boss.name, life: c.boss.isAlive ? c.boss.life : c.boss.lives > 0 ? 1 : 0 } : null,
+      enemies: this.game.players
+        .filter((p): p is Player => !!p && p.teamID === PLAYER_TEAM_RED)
+        .sort((a, b) => Number(b === c.boss) - Number(a === c.boss))
+        .map((p) => ({
+          name: p.name,
+          skin: p.displaySkin,
+          // Not born yet, or a guard coming back: still to beat
+          alive: p.isAlive || p.lives > 0,
+          boss: p === c.boss,
+          life: p.isAlive ? p.life : 1,
+        })),
       over: !!c.over,
     };
   }
@@ -1237,7 +1248,8 @@ export class ClientGame {
       }
       case 'playerJoin': {
         const p = game.players[e.playerID];
-        if (p && !online) this.hud.addChat(null, t('chat.joined', { name: p.name }));
+        // Offline the page says who joined; not in the campaign (the bots are the level itself)
+        if (p && !online && !this.camp) this.hud.addChat(null, t('chat.joined', { name: p.name }));
         break;
       }
       case 'chat': {

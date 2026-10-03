@@ -51,6 +51,8 @@ export interface CampaignHud {
   botsLeft: number;
   botsTotal: number;
   boss: { name: string; life: number } | null;
+  /** The red team, the boss first: who is still standing. */
+  enemies: { name: string; skin: SkinInfo | null; alive: boolean; boss: boolean; life: number }[];
   /** Won or lost: the end panel is up. */
   over: boolean;
 }
@@ -504,8 +506,7 @@ export class HudLayer {
     let html =
       `<div class="h-clock">${clock(c.seconds)}</div>` +
       `<div class="h-mode">${(l.boss ? t('campaign.bossTitle', { c: l.chapter.n }) : t('campaign.levelTitle', { c: l.chapter.n, n: l.n }))} · ${t(`w.${l.chapter.weaponKey}.name` as const)}</div>` +
-      `<div class="h-camp"><span class="stars">${stars}</span>${next ? `<span>${t('campaign.until', { time: clock(next) })}</span>` : ''}` +
-      `<span>${t('campaign.botsLeft', { n: c.botsLeft, total: c.botsTotal })}</span></div>`;
+      `<div class="h-camp"><span class="stars">${stars}</span>${next ? `<span>${t('campaign.until', { time: clock(next) })}</span>` : ''}</div>`;
     if (c.boss) {
       html += `<div class="h-boss"><b>${esc(c.boss.name)}</b><span><i style="width:${Math.round(Math.max(0, c.boss.life) * 100)}%"></i></span></div>`;
     }
@@ -764,6 +765,10 @@ export class HudLayer {
   }
 
   private updateBoard(f: HudFrame): void {
+    if (f.campaign) {
+      this.updateEnemies(f.campaign);
+      return;
+    }
     const g = f.game;
     const rows = ranked(f.players);
     const top = rows.slice(0, 4);
@@ -792,6 +797,21 @@ export class HudLayer {
       g.isTeamGame && f.me.teamID >= 0 ? `<span class="t${f.me.teamID}">${t('board.you', { team: teamName(f.me.teamID) })}</span>` : '',
     ].filter(Boolean);
     if (foot.length) html += `<div class="h-bfoot">${foot.join(' · ')}</div>`;
+    setHTML(this.r.board, html);
+  }
+
+  /** The campaign's corner panel: how many enemies are still standing, and each one. */
+  private updateEnemies(c: CampaignHud): void {
+    const alive = c.enemies.filter((e) => e.alive).length;
+    let html =
+      `<div class="h-bhead"><span class="h-label">${t('campaign.enemies')}</span><span class="sp"></span></div>` +
+      `<div class="h-ecount"><b>${alive}</b><span>/ ${c.enemies.length}</span><small>${t(alive === 1 ? 'campaign.aliveOne' : 'campaign.alive')}</small></div>`;
+    for (const e of c.enemies) {
+      html +=
+        `<div class="h-erow${e.alive ? '' : ' down'}${e.boss ? ' boss' : ''}">${this.avatar(e.skin)}<span class="nm">${esc(e.name)}</span>` +
+        (e.alive ? (e.boss ? `<span class="lf"><i style="width:${Math.round(e.life * 100)}%"></i></span>` : '') : `<span class="sk">${SKULL}</span>`) +
+        `</div>`;
+    }
     setHTML(this.r.board, html);
   }
 
@@ -1298,3 +1318,7 @@ function matchHighlights(players: readonly (Player | null)[], teamGame: boolean)
   if (fb) items.push(`<span class="hi">${t('banner.featBy', { feat: t('feat.firstBlood'), name: name(fb) })}</span>`);
   return items.join('');
 }
+
+/** A small skull: an enemy down in the campaign's panel. */
+const SKULL =
+  '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 2a8.5 8.5 0 0 0-5.3 15.14v2.36A2.5 2.5 0 0 0 9.2 22h5.6a2.5 2.5 0 0 0 2.5-2.5v-2.36A8.5 8.5 0 0 0 12 2z"/><circle cx="8.7" cy="11.2" r="2.3" fill="#171236"/><circle cx="15.3" cy="11.2" r="2.3" fill="#171236"/></svg>';

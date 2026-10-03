@@ -2304,3 +2304,87 @@
   border-color: #167a35;
   color: #08240f;
 }
+
+/* The campaign's corner panel: the enemies still standing */
+.h-ecount {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0 6px 8px;
+}
+
+.h-ecount b {
+  font: 400 34px/1 var(--h-display);
+  color: #ff8f8f;
+}
+
+.h-ecount span {
+  font: 400 20px var(--h-display);
+  color: var(--h-muted);
+}
+
+.h-ecount small {
+  margin-left: 2px;
+  color: var(--h-muted);
+  font: 800 13px var(--h-ui);
+}
+
+.h-erow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  border-left: 3px solid var(--h-red, #ff5a5a);
+  margin-top: 3px;
+  background: rgba(255, 90, 90, 0.08);
+  font: 800 14px var(--h-ui);
+}
+
+.h-erow img,
+.h-erow .h-av {
+  width: 22px;
+  height: 22px;
+}
+
+.h-erow .nm {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.h-erow.down {
+  border-left-color: rgba(255, 255, 255, 0.15);
+  background: transparent;
+  opacity: 0.45;
+}
+
+.h-erow.down .nm {
+  text-decoration: line-through;
+}
+
+.h-erow .sk {
+  display: inline-flex;
+  color: var(--h-muted);
+}
+
+.h-erow.boss {
+  border-left-color: #ff3b3b;
+  background: rgba(255, 59, 59, 0.16);
+}
+
+.h-erow .lf {
+  width: 54px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.h-erow .lf i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff3b3b, #ff8a3b);
+}
