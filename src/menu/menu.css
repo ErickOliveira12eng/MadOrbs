@@ -802,29 +802,45 @@ select:focus-visible {
   border-color: rgba(255, 255, 255, 0.24);
 }
 
+/* Each mode has its colour: the border glows with it, the icon and the line under the name take it */
+.mode-dm {
+  --mc: 255, 210, 63;
+  --mc-text: #ffe9a8;
+}
+
+.mode-tdm {
+  --mc: 110, 128, 255;
+  --mc-text: #a9b8ff;
+}
+
+.mode-ctf {
+  --mc: 255, 77, 94;
+  --mc-text: #ffa3ad;
+}
+
+.mode {
+  border: 2px solid rgba(var(--mc), 0.8);
+  background: linear-gradient(180deg, rgba(var(--mc), 0.1), rgba(12, 14, 38, 0.88) 70%);
+  box-shadow: 0 0 16px rgba(var(--mc), 0.32), inset 0 0 20px rgba(var(--mc), 0.1);
+}
+
+.mode:hover {
+  border-color: rgb(var(--mc));
+  background: linear-gradient(180deg, rgba(var(--mc), 0.16), rgba(16, 18, 46, 0.88) 70%);
+  box-shadow: 0 0 20px rgba(var(--mc), 0.35), inset 0 0 22px rgba(var(--mc), 0.1);
+}
+
 .mode-icon {
   display: grid;
   place-items: center;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
+  color: rgb(var(--mc));
+  filter: drop-shadow(0 0 8px rgba(var(--mc), 0.55));
 }
 
 .mode-icon .icon {
-  width: 32px;
-  height: 32px;
-}
-
-.mode-dm .mode-icon {
-  color: #ffd23f;
-  filter: drop-shadow(0 0 8px rgba(255, 210, 63, 0.45));
-}
-
-.mode-tdm .mode-icon {
-  color: #c3c1ff;
-}
-
-.mode-ctf .mode-icon {
-  color: #ff4d5e;
-  filter: drop-shadow(0 0 8px rgba(255, 77, 94, 0.4));
+  width: 36px;
+  height: 36px;
 }
 
 .mode b {
@@ -835,28 +851,15 @@ select:focus-visible {
 }
 
 .mode small {
-  color: #a4a8d8;
+  color: var(--mc-text);
   font: 700 13px var(--font-ui);
 }
 
+/* The chosen mode: its colour at full strength */
 .mode[aria-checked='true'] {
-  border-color: #ffd23f;
-  background: linear-gradient(180deg, rgba(60, 50, 30, 0.8), rgba(24, 22, 40, 0.82));
-  box-shadow: 0 0 0 1px #ffd23f, 0 0 24px rgba(255, 210, 63, 0.35), inset 0 0 26px rgba(255, 210, 63, 0.1);
-}
-
-/* The dot under the chosen mode */
-.mode[aria-checked='true']::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -7px;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  transform: translateX(-50%);
-  background: #ffd23f;
-  box-shadow: 0 0 10px 2px rgba(255, 210, 63, 0.7);
+  border: 2.5px solid rgb(var(--mc));
+  background: linear-gradient(180deg, rgba(var(--mc), 0.22), rgba(20, 18, 42, 0.9) 75%);
+  box-shadow: 0 0 0 1px rgba(var(--mc), 0.9), 0 0 22px rgba(var(--mc), 0.75), 0 0 46px rgba(var(--mc), 0.4), inset 0 0 28px rgba(var(--mc), 0.22);
 }
 
 .mode.closed {
