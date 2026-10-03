@@ -116,6 +116,21 @@ export class Projectile {
     return p;
   }
 
+  /**
+   * An explosion (Game::explosion) and its damage (Game::radiusHit). A predicted projectile does no
+   * damage, and when its blast would reach its own shooter it shows nothing: the server's blast
+   * then arrives together with the damage, instead of our blast first and our death a round trip
+   * later.
+   */
+  private blast(game: Game, pos: Vec3, normal: Vec3, radius: number, playerID: number, hitRadius: number, weaponID: number): void {
+    if (this.predicted) {
+      if (!game.blastReaches(pos, hitRadius, this.fromID)) game.explosion(pos, normal, radius, playerID);
+      return;
+    }
+    game.explosion(pos, normal, radius, playerID);
+    game.radiusHit(pos, hitRadius, this.fromID, weaponID);
+  }
+
   /** Projectile::update (server logic). */
   update(delay: number, game: Game): void {
     const map = game.map;
@@ -222,8 +237,7 @@ export class Projectile {
       if (type === PROJECTILE_GRENADE) {
         if (this.needToBeDeleted) return;
         this.needToBeDeleted = true;
-        game.explosion(cf.position.clone(), new Vec3(0, 0, 1), 1.5, -1);
-        if (!this.predicted) game.radiusHit(cf.position, 3, this.fromID, WEAPON_GRENADE);
+        this.blast(game, cf.position.clone(), new Vec3(0, 0, 1), 1.5, -1, 3, WEAPON_GRENADE);
         return;
       }
       if (type === PROJECTILE_ROCKET) {
@@ -250,8 +264,7 @@ export class Projectile {
         }
         this.needToBeDeleted = true;
         const pos = hit.currentCF.position.clone();
-        game.explosion(pos, new Vec3(0, 0, 1), zookaRadius, this.fromID);
-        if (!this.predicted) game.radiusHit(pos, zookaRadius, this.fromID, WEAPON_BAZOOKA);
+        this.blast(game, pos, new Vec3(0, 0, 1), zookaRadius, this.fromID, zookaRadius, WEAPON_BAZOOKA);
         return;
       }
       const p2 = cf.position.clone();
@@ -263,8 +276,7 @@ export class Projectile {
         }
         p2.addIn(normal.mul(0.1));
         this.needToBeDeleted = true;
-        game.explosion(p2.clone(), normal.clone(), zookaRadius, this.fromID);
-        if (!this.predicted) game.radiusHit(p2, zookaRadius, this.fromID, WEAPON_BAZOOKA);
+        this.blast(game, p2.clone(), normal.clone(), zookaRadius, this.fromID, zookaRadius, WEAPON_BAZOOKA);
         return;
       }
     }

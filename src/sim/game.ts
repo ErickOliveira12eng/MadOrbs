@@ -1001,6 +1001,13 @@ export class Game {
     }
   }
 
+  /** Whether a blast there would hurt that player (Game::radiusHit's distance and wall rules). */
+  blastReaches(pos: Vec3, radius: number, playerID: number): boolean {
+    const p = this.players[playerID];
+    if (!p || !p.isAlive || distance(p.currentCF.position, pos) >= radius) return false;
+    return !this.map.rayTest(pos.clone(), p.currentCF.position.clone(), new Vec3());
+  }
+
   explosion(position: Vec3, normal: Vec3, radius: number, playerID: number): void {
     this.events.push({ type: 'explosion', position, normal, radius, playerID });
   }
