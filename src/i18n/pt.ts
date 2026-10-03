@@ -49,6 +49,7 @@ export const pt: Record<Key, string> = {
   'menu.gameMode': 'Modo de jogo',
   'menu.ranking': 'Ranking',
   'menu.soon': 'Em breve',
+  'menu.statsSub': 'Suas partidas',
   'menu.train': 'Treinar com bots',
   'menu.offline': 'Jogue offline',
   'menu.controls': 'Controles',
@@ -65,6 +66,7 @@ export const pt: Record<Key, string> = {
   'menu.loading': 'Carregando...',
 
   // ---- account (Sign in with Google)
+  'stats.signInText': 'Entre com a sua conta do Google para guardar as suas estatísticas e recordes de todas as partidas online.',
   'account.signIn': 'Entrar',
   'account.mine': 'Sua conta',
   'account.title': 'Conta',

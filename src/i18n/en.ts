@@ -52,6 +52,7 @@ export const en = {
   'menu.gameMode': 'Game mode',
   'menu.ranking': 'Ranking',
   'menu.soon': 'Coming soon',
+  'menu.statsSub': 'Your matches',
   'menu.train': 'Train with bots',
   'menu.offline': 'Play offline',
   'menu.controls': 'Controls',
@@ -68,6 +69,7 @@ export const en = {
   'menu.loading': 'Loading...',
 
   // ---- account (Sign in with Google)
+  'stats.signInText': 'Sign in with your Google account to keep your stats and records from every online match.',
   'account.signIn': 'Sign in',
   'account.mine': 'Your account',
   'account.title': 'Account',

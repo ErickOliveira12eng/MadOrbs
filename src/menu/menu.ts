@@ -8,6 +8,7 @@ import { LANG_KEY, lang, t, type Lang } from '../i18n';
 import { ROOM_MODES, type RoomMode, type RoomStatus } from '../net/protocol';
 import type { Account } from './account';
 import { AccountModal } from './accountModal';
+import { StatsModal } from './statsModal';
 import { isOldGeneratedName, randomGuestName } from './guestNames';
 import { Embers } from './embers';
 import { icon, type IconName } from './icons';
@@ -35,6 +36,7 @@ export class StartScreen {
   private readonly picker: OrbPicker;
   private readonly training: TrainingModal;
   private readonly accountModal: AccountModal;
+  private readonly statsModal: StatsModal;
   /** The account whose Orb was already brought into this page's settings. */
   private orbSyncedFor = '';
   private readonly embers: Embers | null;
@@ -65,6 +67,8 @@ export class StartScreen {
 
     this.accountModal = new AccountModal(account, settings, studio, (name) => this.setName(name));
     $('btnAccount').addEventListener('click', () => this.accountModal.open());
+    this.statsModal = new StatsModal(account, () => this.accountModal.open());
+    $('btnStats').addEventListener('click', () => this.statsModal.open());
     account.onChange(() => this.renderAccount());
     this.renderAccount();
 
@@ -174,6 +178,7 @@ export class StartScreen {
     this.picker.close();
     this.training.close();
     this.accountModal.close();
+    this.statsModal.close();
     this.controls.hidden = true;
     cancelAnimationFrame(this.rafId);
     clearTimeout(this.statusTimer);

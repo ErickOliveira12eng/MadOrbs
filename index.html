@@ -126,6 +126,9 @@
             <button class="shortcut" type="button" disabled>
               <span class="shortcut-icon" data-icon="bars"></span><span><b data-i18n="menu.ranking">Ranking</b><small data-i18n="menu.soon">Coming soon</small></span>
             </button>
+            <button id="btnStats" class="shortcut" type="button">
+              <span class="shortcut-icon" data-icon="trophy"></span><span><b data-i18n="account.stats">Stats</b><small data-i18n="menu.statsSub">Your matches</small></span>
+            </button>
             <button id="training" class="shortcut" type="button">
               <span class="shortcut-icon" data-icon="gamepad"></span><span><b data-i18n="menu.train">Train with bots</b><small data-i18n="menu.offline">Play offline</small></span>
             </button>
@@ -211,16 +214,31 @@
             <button class="btn-ghost" type="submit" data-i18n="account.save">Save</button>
           </form>
           <p id="accountNameMsg" class="account-msg" role="status" hidden></p>
-          <h3 data-i18n="account.stats">Stats</h3>
-          <div id="statsModes" class="segmented account-modes" role="radiogroup" data-i18n-attr="aria-label=account.stats" aria-label="Stats"></div>
-          <div id="statsBody" class="stats-body"></div>
-          <p class="account-note" data-i18n="account.statsNote">Online matches only: the offline training doesn't count.</p>
           <footer class="modal-foot account-foot">
             <button id="accountDelete" class="btn-ghost danger" type="button"><span data-icon="trash"></span><span id="accountDeleteText" data-i18n="account.delete">Delete account</span></button>
             <button id="accountSignOut" class="btn-ghost" type="button"><span data-icon="log_out"></span><span data-i18n="account.signOut">Sign out</span></button>
           </footer>
         </div>
         <p id="accountError" class="message account-error" role="alert" hidden></p>
+      </div>
+    </div>
+
+    <!-- Stats (the start screen's "Stats" button): src/menu/statsModal.ts -->
+    <div id="statsModal" class="modal" hidden>
+      <div class="modal-card account-modal" role="dialog" aria-modal="true" aria-labelledby="statsTitle">
+        <header class="modal-head">
+          <h2 id="statsTitle" data-i18n="account.stats">Stats</h2>
+          <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>
+        </header>
+        <div id="statsOut">
+          <p class="modal-sub" data-i18n="stats.signInText">Sign in with your Google account to keep your stats and records from every online match.</p>
+          <div class="stats-cta"><button id="statsSignIn" class="btn-play small" type="button"><span data-icon="user"></span><span data-i18n="account.signIn">Sign in</span></button></div>
+        </div>
+        <div id="statsIn" hidden>
+          <div id="statsModes" class="segmented account-modes" role="radiogroup" data-i18n-attr="aria-label=account.stats" aria-label="Stats"></div>
+          <div id="statsBody" class="stats-body"></div>
+          <p class="account-note" data-i18n="account.statsNote">Online matches only: the offline training doesn't count.</p>
+        </div>
       </div>
     </div>
 
