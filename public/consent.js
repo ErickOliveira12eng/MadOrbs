@@ -190,8 +190,9 @@
     var details = el('div', 'mc-details');
     details.hidden = !showDetails;
     details.appendChild(toggleRow('necessary', T.necessary, T.necessaryText, true, true));
-    details.appendChild(toggleRow('analytics', T.analytics, T.analyticsText, current ? current.analytics : false));
-    details.appendChild(toggleRow('ads', T.ads, T.adsText, current ? current.ads : false));
+    // Before any choice the switches start on; after one, they show it
+    details.appendChild(toggleRow('analytics', T.analytics, T.analyticsText, current ? current.analytics : true));
+    details.appendChild(toggleRow('ads', T.ads, T.adsText, current ? current.ads : true));
     card.appendChild(details);
 
     var buttons = el('div', 'mc-buttons');
