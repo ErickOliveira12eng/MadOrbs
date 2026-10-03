@@ -8,7 +8,7 @@ import type { GameEvent } from '../sim/events';
 import type { SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 
-export const PROTOCOL_VERSION = 4;
+export const PROTOCOL_VERSION = 5;
 /** The client sends its coordinates every 2 simulation frames (gameVar.sv_minSendInterval). */
 export const CF_SEND_INTERVAL = 2;
 /** The server sends the players' state every 2 frames (15 Hz); events go out every frame. */
@@ -38,7 +38,8 @@ export type V2 = [number, number];
 // --------------------------------------------------------------------------- client -> server
 
 export type ClientMessage =
-  | { t: 'hello'; v: number; name: string; skin: SkinInfo }
+  /** token: the Supabase session of a signed-in player (its name is reserved, its stats are kept). */
+  | { t: 'hello'; v: number; name: string; skin: SkinInfo; token?: string }
   /** Our babo's coordinate frame (NET_CLSV_SVCL_PLAYER_COORD_FRAME). z = camera height (sniper). */
   | { t: 'cf'; f: number; p: V3; v: V3; m: V2; z: number }
   /** A shot traced by the client: b = bullets, each [endX, endY, endZ, ...IDs of the babos it touched]. */

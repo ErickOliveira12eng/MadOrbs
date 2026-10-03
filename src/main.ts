@@ -6,6 +6,7 @@ import { audio } from './client/audio/audio';
 import { ClientGame } from './client/clientGame';
 import { DM_MAPS, MAP_LIST } from './client/mapList';
 import { gameSounds } from './client/sounds';
+import { Account } from './menu/account';
 import { AudioPanel } from './menu/audioPanel';
 import { StartScreen, type PlayMode } from './menu/menu';
 import { OrbStudio } from './menu/orbStudio';
@@ -23,8 +24,10 @@ const settings = loadSettings();
 applyAudioSettings(settings);
 const audioPanel = new AudioPanel(settings, () => saveSettings(settings));
 const studio = new OrbStudio();
-const screen = new StartScreen(settings, studio, (mode) => void startGame(mode));
+const account = new Account();
+const screen = new StartScreen(settings, studio, account, (mode) => void startGame(mode));
 screen.show();
+void account.restore();
 
 async function startGame(mode: PlayMode): Promise<void> {
   audio.unlock();
@@ -51,7 +54,7 @@ async function startGame(mode: PlayMode): Promise<void> {
   try {
     let game: ClientGame;
     if (mode === 'online') {
-      game = await ClientGame.createOnline($('game'), common, onProgress);
+      game = await ClientGame.createOnline($('game'), { ...common, authToken: await account.accessToken() }, onProgress);
     } else {
       // Maps played in rotation, starting with the chosen one (the flag maps in Capture the Flag)
       const chosen = settings.mode === 'ctf' ? settings.ctfMap : settings.map;

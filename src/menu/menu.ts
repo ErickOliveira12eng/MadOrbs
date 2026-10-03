@@ -1,11 +1,13 @@
 // The start screen: the player's orb on its pedestal (arrows switch the style, "Customize Orb"
 // opens the full picker), the name, play online in the chosen mode, the offline training, the
-// controls, the language, and how many play now. The background is a picture of a fight rendered by the game
+// controls, the language, the account (Sign in with Google), and how many play now. The background is a picture of a fight rendered by the game
 // itself (tools/make-menu-bg.mjs), with drifting orbs and sparks on top.
 import * as THREE from 'three';
 import { modeName, modeTagline } from '../client/modes';
 import { LANG_KEY, lang, t, type Lang } from '../i18n';
 import { ROOM_MODES, type RoomMode, type RoomStatus } from '../net/protocol';
+import { isNameTaken, type Account } from './account';
+import { AccountModal } from './accountModal';
 import { Embers } from './embers';
 import { icon, type IconName } from './icons';
 import { OrbPicker } from './orbPicker';
@@ -31,6 +33,10 @@ export class StartScreen {
   private readonly controls = $('controlsModal');
   private readonly picker: OrbPicker;
   private readonly training: TrainingModal;
+  private readonly accountModal: AccountModal;
+  /** The account whose Orb was already brought into this page's settings. */
+  private orbSyncedFor = '';
+  private nameCheck = 0;
   private readonly embers: Embers | null;
   private statusTimer = 0;
   /** The server's rooms (/health), null while unknown or unreachable. */
@@ -43,6 +49,7 @@ export class StartScreen {
   constructor(
     private readonly settings: Settings,
     private readonly studio: OrbStudio,
+    private readonly account: Account,
     private readonly onPlay: (mode: PlayMode) => void,
   ) {
     for (const el of document.querySelectorAll<HTMLElement>('[data-icon]')) el.innerHTML = icon(el.dataset.icon as IconName, 20);
@@ -51,9 +58,17 @@ export class StartScreen {
     this.nameInput.addEventListener('input', () => {
       settings.name = this.nameInput.value.trim().slice(0, 31);
       saveSettings(settings);
+      this.checkName();
     });
+    // Signed in, the name is the account's: a new one is claimed when the field is left
+    this.nameInput.addEventListener('change', () => void this.claimName());
 
-    this.picker = new OrbPicker(studio, settings, () => saveSettings(settings));
+    this.accountModal = new AccountModal(account, settings, studio, (name) => this.setName(name));
+    $('btnAccount').addEventListener('click', () => this.accountModal.open());
+    account.onChange(() => this.renderAccount());
+    this.renderAccount();
+
+    this.picker = new OrbPicker(studio, settings, () => this.saveOrb());
     this.training = new TrainingModal(
       settings,
       () => {
@@ -158,6 +173,7 @@ export class StartScreen {
     this.root.hidden = true;
     this.picker.close();
     this.training.close();
+    this.accountModal.close();
     this.controls.hidden = true;
     cancelAnimationFrame(this.rafId);
     clearTimeout(this.statusTimer);
@@ -178,7 +194,81 @@ export class StartScreen {
   private cycleSkin(step: number): void {
     const i = Math.max(0, SKINS.indexOf(this.settings.skin));
     this.settings.skin = SKINS[(i + step + SKINS.length) % SKINS.length];
+    this.saveOrb();
+  }
+
+  /** The Orb is kept in this browser and, signed in, in the account. */
+  private saveOrb(): void {
     saveSettings(this.settings);
+    const { skin, red, green, blue } = this.settings;
+    if (this.account.signedIn) this.account.saveOrb({ skin, red, green, blue });
+  }
+
+  private setName(name: string): void {
+    this.settings.name = name;
+    this.nameInput.value = name;
+    saveSettings(this.settings);
+    this.checkName();
+  }
+
+  /**
+   * The top bar's account button (the name once signed in). The first time an account's profile
+   * arrives, an existing account brings its Orb and name; a new one takes this browser's Orb.
+   */
+  private renderAccount(): void {
+    const button = $('btnAccount');
+    const label = $('accountLabel');
+    const account = this.account;
+    const p = account.profile;
+    button.classList.toggle('signed-in', account.signedIn);
+    label.textContent = account.signedIn ? (p?.name ?? t('account.mine')) : t('account.signIn');
+    button.title = account.signedIn ? t('account.mine') : t('account.signIn');
+    const id = account.session?.user.id ?? '';
+    if (p && id && this.orbSyncedFor !== id) {
+      this.orbSyncedFor = id;
+      const { skin, red, green, blue } = this.settings;
+      if (p.name) {
+        Object.assign(this.settings, { skin: p.skin, red: p.red, green: p.green, blue: p.blue });
+        this.setName(p.name);
+      } else account.saveOrb({ skin, red, green, blue }, true);
+    }
+    if (!account.signedIn) this.orbSyncedFor = '';
+    this.checkName();
+  }
+
+  /** Signed in: the name typed becomes the account's (back to the old one when taken). */
+  private async claimName(): Promise<void> {
+    const p = this.account.profile;
+    if (!this.account.signedIn || !p) return;
+    const name = this.nameInput.value.trim();
+    if (!name || name === p.name) {
+      if (p.name) this.setName(p.name);
+      return;
+    }
+    const err = await this.accountModal.saveName(name, true);
+    if (err) {
+      this.showNameHint(t(err === 'taken' ? 'account.taken' : err === 'invalid' ? 'account.invalid' : 'account.error'));
+      if (p.name) this.setName(p.name);
+    }
+  }
+
+  /** A guest typing a name an account owns is told so (the server would rename them). */
+  private checkName(): void {
+    clearTimeout(this.nameCheck);
+    this.showNameHint('');
+    const name = this.settings.name;
+    if (this.account.signedIn || !name) return;
+    this.nameCheck = window.setTimeout(() => {
+      void isNameTaken(name).then((taken) => {
+        if (taken && name === this.settings.name && !this.account.signedIn) this.showNameHint(t('menu.nameReserved'));
+      });
+    }, 500);
+  }
+
+  private showNameHint(text: string): void {
+    const hint = $('nameHint');
+    hint.textContent = text;
+    hint.hidden = !text;
   }
 
   /** Zoom of the centre column: laid out for DESIGN_HEIGHT, it fills the window's height. */

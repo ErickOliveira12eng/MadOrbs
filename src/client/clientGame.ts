@@ -98,6 +98,8 @@ export interface ClientGameOptions {
   mapRotation?: string[];
   // --- online only
   serverUrl?: string;
+  /** The signed-in player's session (Supabase access token): the server checks it. */
+  authToken?: string;
 }
 
 export class ClientGame {
@@ -218,7 +220,7 @@ export class ClientGame {
     onProgress?.(t('loading.assets'));
     await preloadAssets((d, total) => onProgress?.(t('loading.assetsN', { d, t: total })));
     onProgress?.(t('loading.connecting'));
-    const { conn, welcome } = await Connection.open(opts.serverUrl ?? defaultServerUrl(opts.mode), opts.playerName, opts.skin);
+    const { conn, welcome } = await Connection.open(opts.serverUrl ?? defaultServerUrl(opts.mode), opts.playerName, opts.skin, opts.authToken);
     try {
       onProgress?.(t('loading.mapName', { map: welcome.map }));
       const map = await loadMap(welcome.map);

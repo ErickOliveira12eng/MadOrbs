@@ -50,7 +50,7 @@ export class Connection {
   }
 
   /** Connects, introduces the player and resolves with the server's welcome. */
-  static open(url: string, name: string, skin: SkinInfo, timeoutMs = 10000): Promise<{ conn: Connection; welcome: WelcomeMessage }> {
+  static open(url: string, name: string, skin: SkinInfo, token?: string, timeoutMs = 10000): Promise<{ conn: Connection; welcome: WelcomeMessage }> {
     return new Promise((resolve, reject) => {
       let settled = false;
       let ws: WebSocket;
@@ -73,7 +73,7 @@ export class Connection {
         reject(new Error(reason));
       };
       const timer = setTimeout(() => fail(t('net.noAnswer')), timeoutMs);
-      ws.onopen = () => conn.send({ t: 'hello', v: PROTOCOL_VERSION, name, skin });
+      ws.onopen = () => conn.send({ t: 'hello', v: PROTOCOL_VERSION, name, skin, token });
       ws.onerror = () => fail(t('net.cantConnect'));
       const baseOnMessage = ws.onmessage;
       ws.onmessage = (ev) => {
