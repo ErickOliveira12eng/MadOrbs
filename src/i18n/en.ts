@@ -253,6 +253,7 @@ export const en = {
   'campaign.bossTitle': 'Chapter {c} · Boss',
   'campaign.level': 'Level {n}',
   'campaign.bots': '{n} bots',
+  'campaign.oneBot': '1 bot',
   'campaign.bossCard': 'Boss and guards',
   'campaign.locked': 'Locked',
   'campaign.until': 'until {time}',

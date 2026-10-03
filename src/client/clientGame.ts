@@ -36,7 +36,7 @@ import {
   WEAPON_NUCLEAR,
   WEAPON_SNIPER,
 } from '../sim/constants';
-import { BOSS, loadProgress, nextLevel, saveWin, starsFor, type CampaignLevel } from './campaign';
+import { BOSS, HEALTH_PACKS, loadProgress, nextLevel, saveWin, starsFor, type CampaignLevel } from './campaign';
 import { bestKills, saveBestKills } from './records';
 import { loadAnnouncer, playAnnouncer } from './featSounds';
 import { applyFeatCounts, isAnnouncedToAll } from '../sim/feats';
@@ -296,6 +296,9 @@ export class ClientGame {
     nextGuard: number;
     over: 'won' | 'lost' | null;
     overAt: number;
+    /** The health packs on the map, and when the next one comes. */
+    packs: Projectile[];
+    nextPack: number;
   } | null = null;
 
   /**
@@ -315,6 +318,7 @@ export class ClientGame {
     this.me.skin = this.opts.skin;
     this.me.teamID = PLAYER_TEAM_BLUE;
     this.me.lives = 1;
+    this.me.damageScale = level.playerDamage;
     this.me.nextSpawnWeapon = weapon;
     this.me.nextMeleeWeapon = WEAPON_KNIVES;
     const names = [...BOT_NAMES].sort(() => Math.random() - 0.5);
@@ -342,7 +346,7 @@ export class ClientGame {
         this.bots.push(new BotController(boss, Math.min(1, level.skill + 0.1), loadout));
       }
     }
-    this.camp = { level, elapsed: 0, started: false, boss, guards: level.boss ? guards : [], nextGuard: BOSS.guardEvery, over: null, overAt: 0 };
+    this.camp = { level, elapsed: 0, started: false, boss, guards: level.boss ? guards : [], nextGuard: BOSS.guardEvery, over: null, overAt: 0, packs: [], nextPack: -1 };
     this.onMapLoaded(map);
     this.beginLoop();
     // We start right away, no weapon menu; the bots too, far from us
@@ -359,6 +363,20 @@ export class ClientGame {
     if (!c.started && this.me.isAlive) c.started = true;
     if (!c.started) return;
     c.elapsed += TICK;
+    // A few health packs to get away and come back to: all of them at the start, then one comes
+    // back a while after it is taken
+    if (c.nextPack < 0) {
+      for (let i = 0; i < HEALTH_PACKS.count; i++) this.dropHealthPack();
+      c.nextPack = HEALTH_PACKS.every;
+    }
+    c.packs = c.packs.filter((p) => !p.needToBeDeleted);
+    if (c.packs.length < HEALTH_PACKS.count) {
+      c.nextPack -= TICK;
+      if (c.nextPack <= 0) {
+        this.dropHealthPack();
+        c.nextPack = HEALTH_PACKS.every;
+      }
+    }
     // Boss: a guard comes back now and then while it lives
     if (c.boss && c.boss.isAlive && c.guards.length) {
       c.nextGuard -= TICK;
@@ -377,6 +395,27 @@ export class ClientGame {
     const redsLeft = reds.filter((p) => p.isAlive || p.lives > 0).length;
     if (!this.me.isAlive && this.me.lives <= 0) this.endCampaign('lost');
     else if (c.boss ? !c.boss.isAlive && c.boss.lives <= 0 : redsLeft === 0) this.endCampaign('won');
+  }
+
+  /** A health pack on a free floor cell, away from us and from the other packs; it doesn't expire. */
+  private dropHealthPack(): void {
+    const c = this.camp!;
+    const map = this.game.map;
+    const [w, h] = map.size;
+    const me = this.me.currentCF.position;
+    const far = (x: number, y: number, d: number) =>
+      Math.hypot(x - me.x, y - me.y) >= d && c.packs.every((p) => Math.hypot(x - p.currentCF.position.x, y - p.currentCF.position.y) >= d);
+    for (let tries = 0; tries < 200; tries++) {
+      const x = Math.floor(Math.random() * w);
+      const y = Math.floor(Math.random() * h);
+      // Far away if the map allows it, closer on a small one
+      if (!map.cells[y * w + x]?.passable || !far(x + 0.5, y + 0.5, tries < 100 ? 5 : tries < 170 ? 2.5 : 0.8)) continue;
+      if (!this.game.spawnProjectile(new Vec3(x + 0.5, y + 0.5, 0.3), new Vec3(), this.me.playerID, PROJECTILE_LIFE_PACK, 0)) return;
+      const pack = this.game.projectiles[this.game.projectiles.length - 1];
+      pack.duration = Infinity;
+      c.packs.push(pack);
+      return;
+    }
   }
 
   private endCampaign(result: 'won' | 'lost'): void {

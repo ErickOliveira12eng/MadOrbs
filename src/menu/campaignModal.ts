@@ -100,7 +100,7 @@ export class CampaignModal {
         const best = progress[l.id];
         const won = best !== undefined;
         const title = l.boss ? t('campaign.boss') : t('campaign.level', { n: l.n });
-        const what = l.boss ? t(`campaign.boss.${chapter.weaponKey}`) : t('campaign.bots', { n: l.bots });
+        const what = l.boss ? t(`campaign.boss.${chapter.weaponKey}`) : l.bots === 1 ? t('campaign.oneBot') : t('campaign.bots', { n: l.bots });
         return (
           `<button type="button" class="camp-lv${l.boss ? ' boss' : ''}${won ? ' won' : ''}" data-level="${l.n}"${open ? '' : ' disabled'}>` +
           `<span class="n">${title}</span><b>${what}</b>` +

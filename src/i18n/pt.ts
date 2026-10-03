@@ -243,6 +243,7 @@ export const pt: Record<Key, string> = {
   'campaign.bossTitle': 'Capítulo {c} · Chefão',
   'campaign.level': 'Fase {n}',
   'campaign.bots': '{n} bots',
+  'campaign.oneBot': '1 bot',
   'campaign.bossCard': 'Chefão e guardas',
   'campaign.locked': 'Bloqueada',
   'campaign.until': 'até {time}',

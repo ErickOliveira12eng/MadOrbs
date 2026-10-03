@@ -1,7 +1,7 @@
 // The campaign: chapters of levels against bots, one weapon per chapter. Like Team Deathmatch with the
 // player alone on the blue team and the bots on the red one; nobody respawns: the level is won when
-// every bot is down, lost when the player dies. Each level of a chapter has one bot more; each chapter
-// has smarter bots; the last level is a boss (a bigger, tougher orb) with bots joining now and then.
+// every bot is down, lost when the player dies. Each level of a chapter has one bot more (1 to 5); each
+// chapter has smarter bots and the player takes more damage (half in chapter 1); the last level is a boss (a bigger, tougher orb) with bots joining now and then.
 // The stars come from the time. Progress is kept in this browser and, signed in, in the account
 // (campaign_progress, merged by src/menu/account.ts).
 import {
@@ -41,6 +41,8 @@ export interface CampaignLevel {
   /** Bots at the start (the boss level: its guards, without the boss). */
   bots: number;
   skill: number;
+  /** Share of the damage the player takes: less in the first chapters. */
+  playerDamage: number;
   /** Seconds for 3 and 2 stars (1 star: just win). */
   stars3: number;
   stars2: number;
@@ -48,6 +50,9 @@ export interface CampaignLevel {
 
 /** Boss: radius (a babo is 0.25), share of the damage taken, guards at the start, most guards at once, seconds between guards. */
 export const BOSS = { radius: 0.45, damageScale: 0.2, guards: 2, maxGuards: 3, guardEvery: 10 };
+
+/** Health packs on the map: how many at once, and seconds before a taken one comes back elsewhere. */
+export const HEALTH_PACKS = { count: 2, every: 30 };
 
 export const LEVELS_PER_CHAPTER = 6;
 
@@ -64,7 +69,8 @@ const CHAPTERS: CampaignChapter[] = [
 
 function makeLevel(chapter: CampaignChapter, n: number): CampaignLevel {
   const boss = n === LEVELS_PER_CHAPTER;
-  const bots = boss ? BOSS.guards : n + 1;
+  // One bot more each level: 1 to 5
+  const bots = boss ? BOSS.guards : n;
   // About 9 s per bot for 3 stars and 16 s for 2 (the boss: as much as 6 bots), slower weapons more
   const size = boss ? 6 : bots;
   return {
@@ -75,6 +81,8 @@ function makeLevel(chapter: CampaignChapter, n: number): CampaignLevel {
     map: chapter.maps[n - 1],
     bots,
     skill: chapter.skill,
+    // Chapter 1: half the damage; a little more each chapter, about 90% in chapter 8
+    playerDamage: Math.min(1, 0.5 + (chapter.n - 1) * 0.06),
     stars3: Math.round((10 + 9 * size) * chapter.pace),
     stars2: Math.round((20 + 16 * size) * chapter.pace),
   };
