@@ -193,6 +193,9 @@ export const es: Record<Key, string> = {
   'chat.admin': 'Admin',
 
   // ---- kill feats (src/sim/feats.ts)
+  'feat.missionFailed': 'Mission Failed',
+  'feat.subMissionFailed': 'tu racha de {n} terminó',
+  'feat.subMissionFailedBy': '{name} terminó tu racha de {n}',
   'feat.dominating': 'Dominating',
   'feat.unstoppable': 'Unstoppable',
   'feat.revenge': 'Revenge Kill',

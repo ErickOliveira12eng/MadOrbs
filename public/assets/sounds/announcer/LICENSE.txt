@@ -13,6 +13,7 @@ Changes: only the file names (the audio is untouched).
   unstoppable.wav        <- 06. Unstoppable.wav
   first-blood.wav        <- 08. First Blood.wav
   revenge-kill.wav       <- 27. Revenge Kill.wav
+  mission-failed.wav     <- 20. Mission Failed.wav
 
 These files keep their CC BY-SA 4.0 license; anyone may share and adapt them under the same
 license, crediting VoiceBosch. The rest of Mad Orbs is under the GNU GPL version 3.

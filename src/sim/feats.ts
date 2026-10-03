@@ -1,12 +1,12 @@
 // Kill feats with an announcer, like League of Legends: one count, kills without dying, gives Double
 // Kill (2), Triple Kill (3), Dominating (4) and Unstoppable (5, then every 5 more); also First Blood
-// and Revenge Kill (killing your killer). Decided where the game is authoritative (the server, or the
-// page offline) from Player.dieSV; they go out as 'feat' events and each player's counts travel with
-// the scores.
+// and Revenge Kill (killing your killer); dying with a streak of 3 or more is Mission Failed (for the
+// one who died). Decided where the game is authoritative (the server, or the page offline) from
+// Player.dieSV; they go out as 'feat' events and each player's counts travel with the scores.
 import type { Game } from './game';
 import type { Player } from './player';
 
-export type FeatKind = 'firstBlood' | 'double' | 'triple' | 'dominating' | 'unstoppable' | 'revenge';
+export type FeatKind = 'firstBlood' | 'double' | 'triple' | 'dominating' | 'unstoppable' | 'revenge' | 'missionFailed';
 
 /** Kills without dying -> the feat announced (Unstoppable again every 5 more: 10, 15...). */
 const STREAK: Record<number, FeatKind> = { 2: 'double', 3: 'triple', 4: 'dominating', 5: 'unstoppable' };
@@ -47,7 +47,7 @@ export function applyFeatCounts(f: PlayerFeats, c: readonly number[] | undefined
 export function onKill(game: Game, killer: Player, victim: Player): void {
   const k = killer.feats;
   const v = victim.feats;
-  v.streak = 0;
+  streakLost(game, victim, killer);
   v.lastKilledBy = killer.playerID;
   const feat = (kind: FeatKind, n?: number) => game.events.push({ type: 'feat', playerID: killer.playerID, feat: kind, victimID: victim.playerID, n });
 
@@ -70,12 +70,22 @@ export function onKill(game: Game, killer: Player, victim: Player): void {
   }
 }
 
-/** Announced to the whole room: Triple Kill and up, and First Blood. Double Kill and Revenge Kill only to the one who made them. */
+/**
+ * Announced to the whole room: Triple Kill and up, and First Blood. Double Kill, Revenge Kill and
+ * Mission Failed only to the player they are about.
+ */
 export function isAnnouncedToAll(kind: FeatKind): boolean {
-  return kind !== 'double' && kind !== 'revenge';
+  return kind !== 'double' && kind !== 'revenge' && kind !== 'missionFailed';
 }
 
-/** Any other death (suicide, team kill, the map): the streak ends, no feat. */
-export function onDeath(victim: Player): void {
+/** Any other death (suicide, team kill, the map): the streak ends. */
+export function onDeath(game: Game, victim: Player): void {
+  streakLost(game, victim, null);
+}
+
+/** The streak ends; after a Triple Kill (3 or more) that's Mission Failed for the one who died. */
+function streakLost(game: Game, victim: Player, killer: Player | null): void {
+  const n = victim.feats.streak;
   victim.feats.streak = 0;
+  if (n >= 3) game.events.push({ type: 'feat', playerID: victim.playerID, feat: 'missionFailed', victimID: killer?.playerID ?? -1, n });
 }

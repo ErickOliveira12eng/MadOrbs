@@ -718,7 +718,7 @@ export class Player {
       }
       from.deaths++;
       if (game.gameType !== GAME_TYPE_CTF) from.score--; // CTF scores are captures only
-      onDeath(this);
+      onDeath(game, this);
       return;
     }
     if (from !== this) {
@@ -729,7 +729,7 @@ export class Player {
       this.deaths++;
       onKill(game, from, this);
     } else {
-      onDeath(this);
+      onDeath(game, this);
       from.deaths++;
       if (game.gameType !== GAME_TYPE_CTF) {
         from.kills--;

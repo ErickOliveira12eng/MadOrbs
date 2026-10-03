@@ -14,6 +14,7 @@ const FILES: Record<Line, string> = {
   dominating: 'dominating',
   unstoppable: 'unstoppable',
   revenge: 'revenge-kill',
+  missionFailed: 'mission-failed',
 };
 
 let lines: Record<Line, SoundHandle> | null = null;

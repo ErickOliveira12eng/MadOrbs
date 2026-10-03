@@ -31,7 +31,7 @@ export type GameEvent =
   | { type: 'hit'; playerID: number; fromID: number; weaponID: number; damage: number; life: number; position: Vec3 }
   /** A player died (kill message, death sound, blood). */
   | { type: 'death'; playerID: number; fromID: number; weaponID: number; friendlyFire: boolean; position: Vec3 }
-  /** A kill feat of playerID (src/sim/feats.ts); n: the streak (kills without dying) for the streak feats. */
+  /** A kill feat of playerID (src/sim/feats.ts); n: the streak (kills without dying); Mission Failed: victimID is the killer (-1: none). */
   | { type: 'feat'; playerID: number; feat: FeatKind; victimID: number; n?: number }
   /** NET_SVCL_PLAYER_SPAWN: where the server placed the babo and with which weapons. */
   | { type: 'spawn'; playerID: number; position: Vec3; weaponID: number; meleeID: number }

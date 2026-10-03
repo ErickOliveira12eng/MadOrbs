@@ -408,13 +408,17 @@ export class HudLayer {
     const name = who ? `<span class="who">${this.avatar(who.displaySkin)}<b class="${this.teamGame ? `t${who.teamID}` : ''}">${esc(who.name)}</b></span>` : '';
     const v = victim ? esc(victim.name) : '';
     const sub =
-      kind === 'revenge'
-        ? t('feat.subRevenge', { victim: v })
-        : kind === 'firstBlood'
-          ? t('feat.subFirstBlood')
-          : style.streak && n
-            ? t('feat.subStreak', { n })
-            : '';
+      kind === 'missionFailed'
+        ? victim && victim !== who
+          ? t('feat.subMissionFailedBy', { name: v, n: n ?? 0 })
+          : t('feat.subMissionFailed', { n: n ?? 0 })
+        : kind === 'revenge'
+          ? t('feat.subRevenge', { victim: v })
+          : kind === 'firstBlood'
+            ? t('feat.subFirstBlood')
+            : style.streak && n
+              ? t('feat.subStreak', { n })
+              : '';
     const html =
       `<div class="ft" style="--c1:${style.c1};--c2:${style.c2};--glow:${style.glow}">${t(`feat.${kind}` as const)}</div>` +
       name +
@@ -1107,6 +1111,7 @@ const FEAT_STYLE: Record<FeatKind, { c1: string; c2: string; glow: string; dur: 
   unstoppable: { c1: '#ffe066', c2: '#ff3b5c', glow: '#ff3b5c88', dur: 2.6, prio: 6, streak: true },
   firstBlood: { c1: '#ffc2c8', c2: '#ff2f4a', glow: '#ff2f4a77', dur: 2.3, prio: 3 },
   revenge: { c1: '#ffc9d5', c2: '#ff3d6e', glow: '#ff3d6e77', dur: 2.3, prio: 2 },
+  missionFailed: { c1: '#e2e4ee', c2: '#b3122e', glow: '#b3122e88', dur: 2.6, prio: 5 },
 };
 
 /** The score table's Highlights: the rarest feats first, four at most. */

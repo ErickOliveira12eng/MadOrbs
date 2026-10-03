@@ -203,6 +203,9 @@ export const en = {
   'chat.admin': 'Admin',
 
   // ---- kill feats (src/sim/feats.ts)
+  'feat.missionFailed': 'Mission Failed',
+  'feat.subMissionFailed': 'your streak of {n} ended',
+  'feat.subMissionFailedBy': '{name} ended your streak of {n}',
   'feat.dominating': 'Dominating',
   'feat.unstoppable': 'Unstoppable',
   'feat.revenge': 'Revenge Kill',
