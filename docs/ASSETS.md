@@ -26,6 +26,8 @@ and is never distributed, so it is not part of that repository.
 - `models/LifePack.DKO`: the cross is green (material "02 - Default", ambient and diffuse colour)
   instead of red. A red cross on white is the Red Cross emblem, protected by the Geneva Conventions
   and national laws; the Red Cross asks games not to use it.
+- `skins/skin16.tga`: the original company's name ("RndLabs") replaced with "MAD ORBS", in the
+  same pixel lettering (2 px strokes, 18 rows, blue on red, between the same green octagons).
 - Files of the original folder that the game doesn't use (old menus, medals, arrows, cursors, the
   original company's logo, the bitmap font, `Bomb.DKO`, `FlagPole.DKO`, `ControlOver.wav`...) were
   deleted: 43 files.

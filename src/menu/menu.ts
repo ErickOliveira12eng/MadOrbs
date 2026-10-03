@@ -12,6 +12,7 @@ import { OrbPicker } from './orbPicker';
 import { FRONT, type OrbStudio } from './orbStudio';
 import { SKINS, saveSettings, skinInfo, type Settings } from './settings';
 import { TrainingModal } from './training';
+import { versioned } from '../sim/assetVersion';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -287,7 +288,7 @@ export class StartScreen {
   private async makeBackground(): Promise<void> {
     const scene = $('bgScene');
     const img = new Image();
-    img.src = '/menu-bg.webp';
+    img.src = versioned('/menu-bg.webp');
     img
       .decode()
       .then(() => {

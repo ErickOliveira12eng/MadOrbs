@@ -1,6 +1,7 @@
 // Shared texture cache. Original assets are TGA files under /assets (public/assets).
 import * as THREE from 'three';
 import { TGALoader } from 'three/examples/jsm/loaders/TGALoader.js';
+import { versioned } from '../../sim/assetVersion';
 
 const tgaLoader = new TGALoader();
 const imgLoader = new THREE.TextureLoader();
@@ -96,7 +97,7 @@ export function loadTexture(path: string, opts: TextureOptions = {}): THREE.Text
   if (hit) return hit;
   const loader = url.toLowerCase().endsWith('.tga') ? tgaLoader : imgLoader;
   const tex = loader.load(
-    url,
+    versioned(url),
     (t) => configure(t, opts),
     undefined,
     (err) => console.warn('texture load failed', url, err),
@@ -115,7 +116,7 @@ export function loadTextureAsync(path: string, opts: TextureOptions = {}): Promi
   let p = pending.get(k);
   if (p) return p;
   const loader = url.toLowerCase().endsWith('.tga') ? tgaLoader : imgLoader;
-  p = loader.loadAsync(url).then((t) => {
+  p = loader.loadAsync(versioned(url)).then((t) => {
     configure(t, opts);
     cache.set(k, t);
     return t;

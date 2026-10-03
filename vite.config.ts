@@ -1,10 +1,32 @@
+import { createHash } from 'node:crypto';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { defineConfig } from 'vite';
 
 // The game server listens on PORT (3000). In development Vite serves the page and
 // forwards the WebSocket and /health to it; in production the server serves everything itself.
 const gameServer = `localhost:${process.env.PORT || 3000}`;
 
+/**
+ * A hash of the game files and the start screen background (src/sim/assetVersion.ts): their
+ * addresses carry it, so browsers fetch them again only when they change.
+ */
+function assetVersion(): string {
+  const hash = createHash('sha256');
+  const files = [
+    ...readdirSync('public/assets', { recursive: true, encoding: 'utf8' }).map((f) => join('public/assets', f)),
+    'public/menu-bg.webp',
+  ].sort();
+  for (const f of files) {
+    if (!statSync(f).isFile()) continue;
+    hash.update(f.replace(/\\/g, '/'));
+    hash.update(readFileSync(f));
+  }
+  return hash.digest('hex').slice(0, 10);
+}
+
 export default defineConfig(({ isSsrBuild }) => ({
+  define: { __ASSET_VERSION__: JSON.stringify(isSsrBuild ? '' : assetVersion()) },
   server: {
     host: true,
     port: 5173,

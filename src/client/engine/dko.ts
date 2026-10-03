@@ -22,6 +22,7 @@
 import * as THREE from 'three';
 import { Vec3 } from '../../sim/vec';
 import { assetUrl, loadTexture } from './textures';
+import { versioned } from '../../sim/assetVersion';
 
 // --- Chunk IDs (CdkoModel.h / "DKO Chunk Info.txt") ---
 export const DKO_VERSION = 0x0002;
@@ -571,7 +572,7 @@ export function loadDko(path: string): Promise<DkoModel> {
   const url = assetUrl(path);
   let p = modelCache.get(url);
   if (!p) {
-    p = fetch(url).then(async (res) => {
+    p = fetch(versioned(url)).then(async (res) => {
       if (!res.ok) throw new Error(`DKO ${url}: HTTP ${res.status}`);
       return parseDko(await res.arrayBuffer(), url);
     });

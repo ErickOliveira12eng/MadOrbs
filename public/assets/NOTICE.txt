@@ -7,8 +7,8 @@ a6596d1, "Merged Engine + Added content", 7 December 2012), which is licensed un
 Public License, version 3 (LICENSE.txt in that repository). Mad Orbs uses these files under that
 license.
 
-One change: in models/LifePack.DKO the cross is green instead of red (the red cross on white is a
-protected emblem). Files of the original folder that the game doesn't use were left out.
+Two changes: in models/LifePack.DKO the cross is green instead of red (the red cross on white is a
+protected emblem), and skins/skin16.tga says "MAD ORBS" where it said "RndLabs". Files of the original folder that the game doesn't use were left out.
 
 ORIGINAL-LICENSE.txt is the end-user license that shipped with the 2006 freeware game; it is part
 of the content folder as it was published.

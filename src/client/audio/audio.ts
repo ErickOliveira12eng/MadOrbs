@@ -6,6 +6,7 @@
 //  - the listener sits at the camera position (Client.cpp: FSOUND_3D_Listener_SetAttributes(camPos, ...))
 
 import { Vec3 } from '../../sim/vec';
+import { versioned } from '../../sim/assetVersion';
 
 export type SoundHandle = { buffer: AudioBuffer | null; url: string };
 
@@ -127,7 +128,7 @@ class AudioSystem {
     try {
       let raw = this.rawCache.get(url);
       if (!raw) {
-        raw = fetch(url).then((r) => {
+        raw = fetch(versioned(url)).then((r) => {
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           return r.arrayBuffer();
         });
@@ -224,7 +225,7 @@ class AudioSystem {
       const el = new Audio();
       el.preload = 'auto';
       el.loop = true;
-      el.src = url;
+      el.src = versioned(url);
       t = { el, gain: null };
       this.tracks.set(url, t);
     }

@@ -18,6 +18,7 @@
 
 import { Vec3 } from './vec';
 import { CoordFrame } from './coordFrame';
+import { versioned } from './assetVersion';
 
 // ---------------------------------------------------------------------------------------------
 // Constants (Map.h)
@@ -965,7 +966,7 @@ export function mapUrl(name: string): string {
 export async function loadMap(url: string, opts: MapLoadOptions = {}): Promise<GameMap> {
   const isBareName = !url.includes('/') && !url.toLowerCase().endsWith('.bvm');
   const fullUrl = isBareName ? mapUrl(url) : url;
-  const res = await fetch(fullUrl);
+  const res = await fetch(versioned(fullUrl));
   if (!res.ok) throw new Error(`loadMap: ${fullUrl}: HTTP ${res.status}`);
   const buf = await res.arrayBuffer();
   const base = fullUrl.split('?')[0]!.split('/').pop() ?? fullUrl;
