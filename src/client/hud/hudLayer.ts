@@ -6,6 +6,7 @@
 // Everything is laid out in a stage 900 design pixels high, scaled to the game view. While the
 // mouse is captured (pointer lock) the page gets no clicks: the death screen's weapon cards are
 // then clicked through clickAt() with the game's own cursor.
+import type { FeatKind } from '../../sim/feats';
 import { drawMapPreview } from '../mapPreview';
 import { loadMap } from '../../sim/map';
 import './hud.css';
@@ -159,6 +160,11 @@ export class HudLayer {
   private readonly previews = new Map<string, string | null>();
   /** A map card of the vote was clicked. */
   onVote?: (index: number) => void;
+  /** Kill feat announcements waiting, and the one on screen (until `until`, HUD time). */
+  private featQueue: { html: string; dur: number; prio: number }[] = [];
+  private featShown: { html: string; until: number } | null = null;
+  /** Team modes: names take their team's colour. */
+  private teamGame = false;
 
   constructor(
     private readonly container: HTMLElement,
@@ -237,6 +243,7 @@ export class HudLayer {
   <div class="h-chips" data-r="chips"></div>
 </div>
 
+<div class="h-abs h-feat" data-r="feat" hidden></div>
 <div class="h-abs h-banner" data-r="banner" hidden></div>
 <div class="h-abs h-panel h-vote" data-r="vote" hidden></div>
 <div class="h-abs h-panel h-scores" data-r="scores" hidden>
@@ -358,6 +365,7 @@ export class HudLayer {
   /** The game type: the weapon menu's header says which mode this is. */
   setGameType(gameType: number): void {
     this.picker.modeName = modeName(modeOfGameType(gameType));
+    this.teamGame = modeOfGameType(gameType) !== 'dm';
   }
 
   /** A chat line; `name` null for the server's own messages; `kind` 'admin' stands out. */
@@ -389,6 +397,60 @@ export class HudLayer {
     const rect = this.container.getBoundingClientRect();
     const hit = document.elementFromPoint(rect.left + x, rect.top + y);
     return hit ? (hit.closest(selector) as HTMLElement | null) : null;
+  }
+
+  /**
+   * A kill feat (src/sim/feats.ts) to announce at the top of the screen: its name, who made it below
+   * (avatar and name) and a line about it. Several in a row wait in a queue.
+   */
+  announce(kind: FeatKind, who: Player | null, victim: Player | null, n?: number): void {
+    const style = FEAT_STYLE[kind];
+    const name = who ? `<span class="who">${this.avatar(who.displaySkin)}<b class="${this.teamGame ? `t${who.teamID}` : ''}">${esc(who.name)}</b></span>` : '';
+    const v = victim ? esc(victim.name) : '';
+    const sub =
+      kind === 'shutdown'
+        ? t('feat.subShutdown', { victim: v, n: n ?? 0 })
+        : kind === 'revenge'
+          ? t('feat.subRevenge', { victim: v })
+          : kind === 'firstBlood'
+            ? t('feat.subFirstBlood')
+            : style.spree
+              ? t('feat.subSpree', { n: n ?? 0 })
+              : '';
+    const html =
+      `<div class="ft" style="--c1:${style.c1};--c2:${style.c2};--glow:${style.glow}">${t(`feat.${kind}` as const)}</div>` +
+      name +
+      (sub ? `<div class="fs">${sub}</div>` : '');
+    if (this.featQueue.length >= 4) {
+      // Too many at once: the least important waiting one goes
+      let low = 0;
+      for (let i = 1; i < this.featQueue.length; i++) if (this.featQueue[i].prio < this.featQueue[low].prio) low = i;
+      if (this.featQueue[low].prio > style.prio) return;
+      this.featQueue.splice(low, 1);
+    }
+    this.featQueue.push({ html, dur: style.dur, prio: style.prio });
+  }
+
+  /** `visible`: false while the score table or the menu covers the top (the queue waits meanwhile). */
+  private updateFeat(playing: boolean, visible: boolean): void {
+    if (!playing) {
+      this.featQueue = [];
+      this.featShown = null;
+      show(this.r.feat, false);
+      return;
+    }
+    if (!visible) {
+      show(this.r.feat, false);
+      return;
+    }
+    if (this.featShown && this.time >= this.featShown.until) this.featShown = null;
+    if (!this.featShown && this.featQueue.length) {
+      const next = this.featQueue.shift()!;
+      this.featShown = { html: next.html, until: this.time + next.dur };
+      // A new element each time: its entrance animation plays again
+      setHTML(this.r.feat, `<div class="fbox">${next.html}</div>`);
+    }
+    show(this.r.feat, !!this.featShown);
   }
 
   /** The map vote opened, its counts changed, or it closed (null). */
@@ -442,6 +504,7 @@ export class HudLayer {
     show(r.next, deadScreen && enabledPrimaries().length > 0);
     show(r.scores, table);
     show(r.banner, !menu && !playing);
+    this.updateFeat(playing, !menu && !table);
     this.voting = !menu && !playing && !!this.vote;
     show(r.vote, this.voting);
     r.scores.classList.toggle('voting', this.voting);
@@ -916,6 +979,7 @@ export class HudLayer {
       t('table.deaths'),
       ...(ctf ? [t('table.captures'), t('table.returns')] : []),
       t('table.damage'),
+      t('table.feats'),
       ...(f.online ? [t('table.ping')] : []),
     ];
     setHTML(r.thead, `<tr>${cols.map((c) => `<th>${c}</th>`).join('')}</tr>`);
@@ -928,6 +992,7 @@ export class HudLayer {
         `<td class="k">${ctf ? p.kills : p.score}</td><td>${p.deaths}</td>` +
         (ctf ? `<td class="k">${p.score}</td><td>${p.returns}</td>` : '') +
         `<td>${bigNum(Math.round(p.dmg * 100))}</td>` +
+        `<td class="fx">${featChips(p)}</td>` +
         (f.online ? `<td style="color:${pingColor(ms)}"><span class="h-pdot"></span>${ms} ms</td>` : '') +
         '</tr>'
       );
@@ -1022,10 +1087,72 @@ export class HudLayer {
       result = who + (winner ? ` <span>${t('banner.with', { n: winner.score, kills: t(winner.score === 1 ? 'words.kill' : 'words.kills') })}</span>` : '');
     }
     const next = left > 0 ? t('banner.nextMap', { n: left }) : t('banner.loadingNext');
-    setHTML(this.r.banner, `<div class="t">${t('banner.over')}</div><div class="s">${result}</div><div class="s"><span>${next}</span></div>`);
+    const highlights = matchHighlights(f.players, this.teamGame);
+    setHTML(
+      this.r.banner,
+      `<div class="t">${t('banner.over')}</div><div class="s">${result}</div>` +
+        (highlights ? `<div class="hl">${highlights}</div>` : '') +
+        `<div class="s"><span>${next}</span></div>`,
+    );
   }
 
   dispose(): void {
     this.root.remove();
   }
+}
+
+/** Each feat's look on screen: colours of its name, glow, how long it stays, how much it matters. */
+const FEAT_STYLE: Record<FeatKind, { c1: string; c2: string; glow: string; dur: number; prio: number; spree?: boolean }> = {
+  double: { c1: '#bfe3ff', c2: '#5aa9ff', glow: '#5aa9ff66', dur: 1.9, prio: 1 },
+  triple: { c1: '#c8ffd4', c2: '#2fd35c', glow: '#2fd35c66', dur: 2.1, prio: 2 },
+  quadra: { c1: '#ffe2b8', c2: '#ff8a1c', glow: '#ff8a1c77', dur: 2.4, prio: 4 },
+  penta: { c1: '#ffe066', c2: '#ff3b5c', glow: '#ff3b5c88', dur: 3.2, prio: 6 },
+  firstBlood: { c1: '#ffc2c8', c2: '#ff2f4a', glow: '#ff2f4a77', dur: 2.2, prio: 3 },
+  spree: { c1: '#e3d0ff', c2: '#a36bff', glow: '#a36bff66', dur: 2.1, prio: 2, spree: true },
+  rampage: { c1: '#f0ccff', c2: '#cf5bff', glow: '#cf5bff66', dur: 2.1, prio: 2, spree: true },
+  unstoppable: { c1: '#ffd0f1', c2: '#ff4fc8', glow: '#ff4fc866', dur: 2.2, prio: 3, spree: true },
+  dominating: { c1: '#ffd1c4', c2: '#ff6a4d', glow: '#ff6a4d66', dur: 2.2, prio: 3, spree: true },
+  godlike: { c1: '#ffc4c4', c2: '#ff2f2f', glow: '#ff2f2f77', dur: 2.4, prio: 4, spree: true },
+  legendary: { c1: '#fff3a8', c2: '#ff8a1c', glow: '#ffb02e88', dur: 2.6, prio: 5, spree: true },
+  shutdown: { c1: '#fff1b0', c2: '#ffc21c', glow: '#ffc21c77', dur: 2.4, prio: 4 },
+  revenge: { c1: '#ffc9d5', c2: '#ff3d6e', glow: '#ff3d6e77', dur: 2.0, prio: 2 },
+};
+
+/** The score table's Highlights: the rarest feats first, four at most. */
+function featChips(p: Player): string {
+  const f = p.feats;
+  const chips: string[] = [];
+  const times = (n: number) => (n > 1 ? ` ×${n}` : '');
+  if (f.penta) chips.push(`<span class="fc penta">PENTA${times(f.penta)}</span>`);
+  if (f.quadra) chips.push(`<span class="fc quadra">QUADRA${times(f.quadra)}</span>`);
+  if (f.triple) chips.push(`<span class="fc triple">TRIPLE${times(f.triple)}</span>`);
+  if (f.double) chips.push(`<span class="fc double">DOUBLE${times(f.double)}</span>`);
+  if (f.bestStreak >= 3) chips.push(`<span class="fc streak">${t('feat.chipStreak', { n: f.bestStreak })}</span>`);
+  if (f.shutdowns) chips.push(`<span class="fc shut">${t('feat.chipShutdown', { n: f.shutdowns })}</span>`);
+  if (f.revenges) chips.push(`<span class="fc rev">${t('feat.chipRevenge', { n: f.revenges })}</span>`);
+  if (f.firstBlood) chips.push(`<span class="fc fb">${t('feat.chipFirstBlood')}</span>`);
+  return chips.slice(0, 4).join('');
+}
+
+/** End of the match: the best multi-kill, the longest streak, the most revenges, and First Blood. */
+function matchHighlights(players: readonly (Player | null)[], teamGame: boolean): string {
+  const list = players.filter((p): p is Player => !!p);
+  const items: string[] = [];
+  const best = (key: 'penta' | 'quadra' | 'triple' | 'double' | 'bestStreak' | 'revenges' | 'firstBlood') =>
+    list.reduce<Player | null>((b, p) => (p.feats[key] > (b?.feats[key] ?? 0) ? p : b), null);
+  const name = (p: Player) => `<b class="${teamGame ? `t${p.teamID}` : ''}">${esc(p.name)}</b>`;
+  for (const kind of ['penta', 'quadra', 'triple'] as const) {
+    const p = best(kind);
+    if (p) {
+      items.push(`<span class="hi ${kind}">${t('banner.featBy', { feat: t(`feat.${kind}`), name: name(p) })}</span>`);
+      break;
+    }
+  }
+  const streak = best('bestStreak');
+  if (streak && streak.feats.bestStreak >= 3) items.push(`<span class="hi">${t('banner.bestStreak', { name: name(streak), n: streak.feats.bestStreak })}</span>`);
+  const rev = best('revenges');
+  if (rev) items.push(`<span class="hi">${t('banner.revenges', { name: name(rev), n: rev.feats.revenges })}</span>`);
+  const fb = best('firstBlood');
+  if (fb) items.push(`<span class="hi">${t('banner.featBy', { feat: t('feat.firstBlood'), name: name(fb) })}</span>`);
+  return items.join('');
 }

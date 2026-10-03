@@ -177,6 +177,63 @@ class AudioSystem {
     return src;
   }
 
+  /**
+   * A short synthesized jingle on the effects bus (the kill feats' announcements: no recorded voice).
+   * notes: [semitones from `base` Hz, start s, length s]; `impact` adds a low thump and a noise hit.
+   */
+  jingle(notes: readonly (readonly [number, number, number])[], opts: { base: number; wave: OscillatorType; volume: number; impact?: boolean }): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const t0 = ctx.currentTime + 0.01;
+    const out = ctx.createGain();
+    out.gain.value = (Math.max(0, Math.min(255, opts.volume)) / 255) * 0.35;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 3200;
+    filter.connect(out).connect(this.sfxBus);
+    for (const [semi, start, len] of notes) {
+      const freq = opts.base * 2 ** (semi / 12);
+      const env = ctx.createGain();
+      const at = t0 + start;
+      env.gain.setValueAtTime(0, at);
+      env.gain.linearRampToValueAtTime(1, at + 0.012);
+      env.gain.setValueAtTime(0.75, at + Math.min(0.08, len * 0.5));
+      env.gain.exponentialRampToValueAtTime(0.001, at + len);
+      env.connect(filter);
+      // Two oscillators a little apart: a fuller sound
+      for (const detune of [-6, 6]) {
+        const osc = ctx.createOscillator();
+        osc.type = opts.wave;
+        osc.frequency.value = freq;
+        osc.detune.value = detune;
+        osc.connect(env);
+        osc.start(at);
+        osc.stop(at + len + 0.05);
+      }
+    }
+    if (opts.impact) {
+      const thump = ctx.createOscillator();
+      const tg = ctx.createGain();
+      thump.type = 'sine';
+      thump.frequency.setValueAtTime(140, t0);
+      thump.frequency.exponentialRampToValueAtTime(45, t0 + 0.3);
+      tg.gain.setValueAtTime(1.4, t0);
+      tg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.35);
+      thump.connect(tg).connect(out);
+      thump.start(t0);
+      thump.stop(t0 + 0.4);
+      const noise = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.25), ctx.sampleRate);
+      const d = noise.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 3;
+      const src = ctx.createBufferSource();
+      const ng = ctx.createGain();
+      ng.gain.value = 0.5;
+      src.buffer = noise;
+      src.connect(ng).connect(filter);
+      src.start(t0);
+    }
+  }
+
   /** 3D sound (dksPlay3DSound(sound, channel, range, position, volume)). */
   play3D(
     sound: SoundHandle | null | undefined,

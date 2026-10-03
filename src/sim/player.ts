@@ -1,4 +1,5 @@
 // Port of Player.cpp / PlayerUpdate.cpp (simulation side).
+import { newFeats, onDeath, onKill } from './feats';
 import {
   GAME_TYPE_CTF,
   GAME_TYPE_DM,
@@ -90,6 +91,8 @@ export class Player {
   ping = 0;
   /** CTF: own flag brought back home, enemy flag picked up (Player::returns, flagAttempts). */
   returns = 0;
+  /** Multi-kills, sprees, revenges... of this match (src/sim/feats.ts). */
+  feats = newFeats();
   flagAttempts = 0;
 
   currentCF = new CoordFrame();
@@ -520,6 +523,7 @@ export class Player {
     this.deaths = 0;
     this.score = 0;
     this.returns = 0;
+    this.feats = newFeats();
     this.flagAttempts = 0;
     this.timePlayedCurGame = 0;
   }
@@ -714,6 +718,7 @@ export class Player {
       }
       from.deaths++;
       if (game.gameType !== GAME_TYPE_CTF) from.score--; // CTF scores are captures only
+      onDeath(this);
       return;
     }
     if (from !== this) {
@@ -722,7 +727,9 @@ export class Player {
       if (game.gameType !== GAME_TYPE_CTF) from.score++;
       from.kills++;
       this.deaths++;
+      onKill(game, from, this);
     } else {
+      onDeath(this);
       from.deaths++;
       if (game.gameType !== GAME_TYPE_CTF) {
         from.kills--;

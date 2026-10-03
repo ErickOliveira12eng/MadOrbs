@@ -124,6 +124,8 @@ export class Game {
   flagState: [number, number] = [FLAG_ON_POD, FLAG_ON_POD];
   flagPos: [Vec3, Vec3] = [new Vec3(), new Vec3()];
   changeMapDelay = 0;
+  /** The match's first kill was made (First Blood, src/sim/feats.ts). */
+  firstBloodDone = false;
   private autoBalanceTimer = 0;
   private uniqueProjectileID = 0;
   /** Client mode: ids of our predicted projectiles, negative so they never meet the server's. */
@@ -599,6 +601,7 @@ export class Game {
     this.gameTimeLeft = sv.sv_gameTimeLimit;
     this.roundTimeLeft = sv.sv_roundTimeLimit;
     this.roundState = GAME_PLAYING;
+    this.firstBloodDone = false;
     for (const p of this.players) {
       if (!p) continue;
       p.reinit();

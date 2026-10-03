@@ -32,6 +32,8 @@ import {
   WEAPON_NUCLEAR,
   WEAPON_SNIPER,
 } from '../sim/constants';
+import { playFeatSound } from './featSounds';
+import { applyFeatCounts, isAnnouncedToAll } from '../sim/feats';
 import type { GameEvent } from '../sim/events';
 import { Game, type ClientNet } from '../sim/game';
 import { sv, weaponDefs } from '../sim/gameVar';
@@ -626,7 +628,7 @@ export class ClientGame {
           this.setVote(msg);
           break;
         case 'scores':
-          for (const [id, kills, deaths, score, dmg, ping, returns] of msg.s) {
+          for (const [id, kills, deaths, score, dmg, ping, returns, ...feats] of msg.s) {
             const p = this.game.players[id];
             if (!p) continue;
             p.kills = kills;
@@ -635,6 +637,7 @@ export class ClientGame {
             p.dmg = dmg;
             p.pingFrames = ping;
             p.returns = returns ?? 0;
+            applyFeatCounts(p.feats, feats);
           }
           if (msg.ts) this.applyTeams(msg.ts);
           break;
@@ -1034,6 +1037,14 @@ export class ClientGame {
         else if (e.sys === 'admin') this.hud.addChat(t('chat.admin'), e.text, 'admin');
         else this.hud.addChat(p ? p.name : null, e.text);
         audio.play(S.chat, 150);
+        break;
+      }
+      case 'feat': {
+        // The big ones for everybody, the others only for the one who made them
+        const who = game.players[e.playerID] ?? null;
+        if (who !== me && !isAnnouncedToAll(e.feat, e.n)) break;
+        this.hud.announce(e.feat, who, game.players[e.victimID] ?? null, e.n);
+        playFeatSound(e.feat);
         break;
       }
       case 'mapChange':

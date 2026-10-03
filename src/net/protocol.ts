@@ -4,11 +4,12 @@
 // sv_minSendInterval = 2 frames) and asks the server to shoot / throw / use its secondary weapon;
 // the server decides hits, damage, projectiles, items and scores and sends the results.
 import { GAME_TYPE_CTF, GAME_TYPE_DM, GAME_TYPE_TDM } from '../sim/constants';
+import type { FeatCounts } from '../sim/feats';
 import type { GameEvent } from '../sim/events';
 import type { SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 
-export const PROTOCOL_VERSION = 7;
+export const PROTOCOL_VERSION = 8;
 /** The client sends its coordinates every 2 simulation frames (gameVar.sv_minSendInterval). */
 export const CF_SEND_INTERVAL = 2;
 /** The server sends the players' state every 2 frames (15 Hz); events go out every frame. */
@@ -107,6 +108,9 @@ export interface NetVote {
 /** How many maps the end-of-match vote offers. */
 export const VOTE_CHOICES = 3;
 
+/** [id, kills, deaths, score, dmg, pingFrames, returns, ...the feat counts (src/sim/feats.ts FeatCounts)] */
+export type NetScore = [number, number, number, number, number, number, number, ...FeatCounts];
+
 /** [blueScore, redScore, blueWin, redWin] */
 export type NetTeams = [number, number, number, number];
 
@@ -142,8 +146,8 @@ export type ServerMessage =
   | { t: 'players'; list: NetPlayerInfo[] }
   /** The end-of-match map vote opened or its counts changed (the next mapChange closes it). */
   | ({ t: 'vote' } & NetVote)
-  /** s: [id, kills, deaths, score, dmg, pingFrames, returns]; ts: the team scores */
-  | { t: 'scores'; s: [number, number, number, number, number, number, number][]; ts: NetTeams }
+  /** s: one NetScore per player; ts: the team scores */
+  | { t: 'scores'; s: NetScore[]; ts: NetTeams }
   /** rtt: the last round trip the server measured for this connection, in ms. */
   | { t: 'ping'; id: number; rtt: number };
 
