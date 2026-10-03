@@ -54,7 +54,7 @@ export const es: Record<Key, string> = {
   'ads.label': 'Publicidad',
   'adblock.title': 'Bloqueador de anuncios activado',
   'adblock.intro': 'Mad Orbs es gratis y lo hace una sola persona. Los anuncios ayudan a pagar los servidores y a mantener el juego en línea.',
-  'adblock.never': 'Nunca durante la partida: solo en el menú y al final de los niveles de la campaña.',
+  'adblock.never': 'Nunca mientras juegas: solo en los menús, la pantalla de muerte y el final de los niveles.',
   'adblock.gameplay': 'No cambian en nada la jugabilidad.',
   'adblock.noPopups': 'Nada de pop-ups ni anuncios a pantalla completa.',
   'adblock.ask': 'Si puedes, desactiva el bloqueador para madorbs.com y recarga la página. ¡Gracias!',

@@ -57,7 +57,7 @@ export const en = {
   'ads.label': 'Advertisement',
   'adblock.title': 'Ad blocker on',
   'adblock.intro': 'Mad Orbs is free and made by one person. The ads help pay for the servers and keep the game online.',
-  'adblock.never': 'Never during a match: only on the menu and at the end of campaign levels.',
+  'adblock.never': 'Never while you play: only on the menus, the death screen and the end of levels.',
   'adblock.gameplay': "They don't change the gameplay in any way.",
   'adblock.noPopups': 'No pop-ups, no full-screen ads.',
   'adblock.ask': 'If you can, turn off your blocker for madorbs.com and reload the page. Thank you!',
