@@ -46,6 +46,8 @@ export class AccountModal {
     this.showError('');
     this.showNameMessage('');
     this.render();
+    // The stats change while playing: read them again
+    if (this.account.signedIn) void this.account.refreshProfile();
   }
 
   close(): void {

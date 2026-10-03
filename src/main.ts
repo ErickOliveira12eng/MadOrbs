@@ -45,6 +45,8 @@ async function startGame(mode: PlayMode): Promise<void> {
       audioPanel.setInGame(false);
       screen.show(reason);
       void audio.playMusic(gameSounds().menuMusic, 255);
+      // The server saves the account's stats when the player leaves: read them once they are in
+      if (account.signedIn) setTimeout(() => void account.refreshProfile(), 2000);
     },
     onMenuVisibility: (visible: boolean) => audioPanel.setInGame(visible),
     onToggleMusic: () => audioPanel.toggleMusic(),
