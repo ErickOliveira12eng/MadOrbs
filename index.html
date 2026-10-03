@@ -182,7 +182,7 @@
         <div id="accountOut">
           <p class="modal-sub" data-i18n="account.sub">Sign in to keep your name and your stats. Playing without an account still works.</p>
           <ul class="account-perks">
-            <li><span data-icon="lock"></span><span data-i18n="account.perkName">Your name is yours: nobody else plays with it</span></li>
+            <li><span data-icon="lock"></span><span data-i18n="account.perkName">A player ID that is yours alone, next to your name</span></li>
             <li><span data-icon="palette"></span><span data-i18n="account.perkOrb">Your Orb on any computer</span></li>
             <li><span data-icon="bars"></span><span data-i18n="account.perkStats">Kills, deaths and wins saved for the ranking</span></li>
           </ul>
@@ -199,11 +199,12 @@
             <img id="accountOrb" class="account-orb" alt="" width="72" height="72" />
             <div class="account-id">
               <b id="accountName"></b>
+              <span class="account-tag"><span data-i18n="account.tag">Player ID</span> <code id="accountTag"></code></span>
               <small id="accountEmail"></small>
             </div>
           </div>
           <form id="accountNameForm" class="account-name-form" autocomplete="off">
-            <label class="field"><span data-i18n="account.name">Your name (only yours)</span><input id="accountNameInput" type="text" maxlength="31" spellcheck="false" /></label>
+            <label class="field"><span data-i18n="account.name">Your name</span><input id="accountNameInput" type="text" maxlength="31" spellcheck="false" /></label>
             <button class="btn-ghost" type="submit" data-i18n="account.save">Save</button>
           </form>
           <p id="accountNameMsg" class="account-msg" role="status" hidden></p>

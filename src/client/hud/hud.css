@@ -1129,6 +1129,20 @@
   color: var(--h-muted);
 }
 
+/* Player ID next to the name: the account's, or a guest's (dimmer) */
+.h-table td.pl em.tag {
+  margin-left: -4px;
+  color: var(--h-muted);
+  font: 700 12px var(--h-ui);
+  font-style: normal;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.h-table td.pl em.tag.anon {
+  opacity: 0.6;
+}
+
 .h-table td.k {
   font: 400 21px var(--h-display);
 }

@@ -1,5 +1,5 @@
 // The account window: signed out, what an account gives and Google's button; signed in, the
-// reserved name, the stats the game server keeps, sign out and delete the account.
+// name, the player ID, the stats the game server keeps, sign out and delete the account.
 import { bigNum, num, t } from '../i18n';
 import type { Account, SaveError } from './account';
 import type { OrbStudio } from './orbStudio';
@@ -55,7 +55,7 @@ export class AccountModal {
     this.disarmDelete();
   }
 
-  /** Claims a name for the account; `quiet` leaves no message when it works (claimed at sign-in). */
+  /** Saves the account's name; `quiet` leaves no message when it works (at sign-in). */
   async saveName(raw: string, quiet = false): Promise<SaveError | null> {
     const name = raw.trim().slice(0, 31);
     if (!name) return 'invalid';
@@ -80,6 +80,7 @@ export class AccountModal {
     }
     const p = this.account.profile;
     $('accountName').textContent = p?.name ?? t('account.pickName');
+    $('accountTag').textContent = p ? `#${p.tag}` : '';
     $('accountEmail').textContent = this.account.email;
     if (document.activeElement !== this.nameInput) this.nameInput.value = p?.name ?? this.settings.name;
     $('statKills').textContent = bigNum(p?.kills ?? 0);
@@ -109,7 +110,7 @@ export class AccountModal {
       });
   }
 
-  /** A new account takes the name typed on the start screen, if nobody has it. */
+  /** A new account takes the name typed on the start screen. */
   private async afterSignIn(): Promise<void> {
     this.showError('');
     const p = this.account.profile;

@@ -647,6 +647,7 @@ export class ClientGame {
         p = game.addRemotePlayer(info.id, info.name, info.team, info.bot);
       }
       p.name = info.name;
+      p.tag = info.tag ?? '';
       p.teamID = info.team;
       if (p !== this.me) p.skin = info.skin;
     }

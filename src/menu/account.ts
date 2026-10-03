@@ -1,6 +1,6 @@
 // The player's account (optional: guests play as before). Sign in with Google gives an ID token
-// that Supabase Auth turns into a session; the profile keeps the reserved name, the Orb and the
-// stats the game server writes. supabase-js and Google's script load only when they are needed:
+// that Supabase Auth turns into a session; the profile keeps the player ID (tag, made by the
+// database, never changes), the name, the Orb and the stats the game server writes. supabase-js and Google's script load only when they are needed:
 // a saved session at startup, or the account window opened.
 import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { lang } from '../i18n';
@@ -10,9 +10,11 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../net/supabase';
 const GOOGLE_CLIENT_ID = '224448068826-3dfhsa8j80ab13s639g70kh0c1dafpmk.apps.googleusercontent.com';
 /** Where supabase-js keeps the session in localStorage. */
 const STORAGE_KEY = 'madorbs.auth';
-const PROFILE_COLUMNS = 'name, skin, red, green, blue, kills, deaths, wins, matches';
+const PROFILE_COLUMNS = 'tag, name, skin, red, green, blue, kills, deaths, wins, matches';
 
 export interface Profile {
+  /** Player ID ("K7Q2MX", shown as #K7Q2MX): unique, made with the account, never changes. */
+  tag: string;
   name: string | null;
   skin: string;
   red: string;
@@ -26,7 +28,7 @@ export interface Profile {
 
 export type OrbChoice = Pick<Profile, 'skin' | 'red' | 'green' | 'blue'>;
 
-/** Why a profile change failed: the name belongs to another account, breaks the rules, or anything else. */
+/** Why a profile change failed: the name is taken (only while names were unique), breaks the rules, or anything else. */
 export type SaveError = 'taken' | 'invalid' | 'error';
 
 interface GoogleId {
@@ -164,7 +166,7 @@ export class Account {
     await this.signOut();
   }
 
-  /** Claims a name for the account (unique, case aside). */
+  /** The account's name (any name: the player ID tells players apart). */
   async saveName(name: string): Promise<SaveError | null> {
     return this.save({ name });
   }
@@ -202,21 +204,6 @@ export class Account {
     } catch {
       return undefined;
     }
-  }
-}
-
-/** Does an account own this name? Asked while a guest types it (false when unknown). */
-export async function isNameTaken(name: string): Promise<boolean> {
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/name_taken`, {
-      method: 'POST',
-      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, 'content-type': 'application/json' },
-      body: JSON.stringify({ p_name: name }),
-      signal: AbortSignal.timeout(4000),
-    });
-    return res.ok && (await res.json()) === true;
-  } catch {
-    return false;
   }
 }
 

@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { modeName, modeTagline } from '../client/modes';
 import { LANG_KEY, lang, t, type Lang } from '../i18n';
 import { ROOM_MODES, type RoomMode, type RoomStatus } from '../net/protocol';
-import { isNameTaken, type Account } from './account';
+import type { Account } from './account';
 import { AccountModal } from './accountModal';
 import { Embers } from './embers';
 import { icon, type IconName } from './icons';
@@ -36,7 +36,6 @@ export class StartScreen {
   private readonly accountModal: AccountModal;
   /** The account whose Orb was already brought into this page's settings. */
   private orbSyncedFor = '';
-  private nameCheck = 0;
   private readonly embers: Embers | null;
   private statusTimer = 0;
   /** The server's rooms (/health), null while unknown or unreachable. */
@@ -58,9 +57,9 @@ export class StartScreen {
     this.nameInput.addEventListener('input', () => {
       settings.name = this.nameInput.value.trim().slice(0, 31);
       saveSettings(settings);
-      this.checkName();
+      this.showNameHint('');
     });
-    // Signed in, the name is the account's: a new one is claimed when the field is left
+    // Signed in, the name is saved to the account when the field is left
     this.nameInput.addEventListener('change', () => void this.claimName());
 
     this.accountModal = new AccountModal(account, settings, studio, (name) => this.setName(name));
@@ -208,7 +207,6 @@ export class StartScreen {
     this.settings.name = name;
     this.nameInput.value = name;
     saveSettings(this.settings);
-    this.checkName();
   }
 
   /**
@@ -233,10 +231,9 @@ export class StartScreen {
       } else account.saveOrb({ skin, red, green, blue }, true);
     }
     if (!account.signedIn) this.orbSyncedFor = '';
-    this.checkName();
   }
 
-  /** Signed in: the name typed becomes the account's (back to the old one when taken). */
+  /** Signed in: the name typed is saved to the account (back to the old one if it can't be). */
   private async claimName(): Promise<void> {
     const p = this.account.profile;
     if (!this.account.signedIn || !p) return;
@@ -250,19 +247,6 @@ export class StartScreen {
       this.showNameHint(t(err === 'taken' ? 'account.taken' : err === 'invalid' ? 'account.invalid' : 'account.error'));
       if (p.name) this.setName(p.name);
     }
-  }
-
-  /** A guest typing a name an account owns is told so (the server would rename them). */
-  private checkName(): void {
-    clearTimeout(this.nameCheck);
-    this.showNameHint('');
-    const name = this.settings.name;
-    if (this.account.signedIn || !name) return;
-    this.nameCheck = window.setTimeout(() => {
-      void isNameTaken(name).then((taken) => {
-        if (taken && name === this.settings.name && !this.account.signedIn) this.showNameHint(t('menu.nameReserved'));
-      });
-    }, 500);
   }
 
   private showNameHint(text: string): void {

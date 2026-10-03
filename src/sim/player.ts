@@ -74,6 +74,8 @@ export class Player {
   readonly game: Game;
   readonly playerID: number;
   name = 'Orb';
+  /** Player ID shown next to the name on the score table (online only; see NetPlayerInfo.tag). */
+  tag = '';
   teamID = PLAYER_TEAM_SPECTATOR;
   status = PLAYER_STATUS_LOADING;
   isBot = false;

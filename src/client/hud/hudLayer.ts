@@ -895,7 +895,7 @@ export class HudLayer {
       const ms = p.pingFrames * 33;
       // CTF scores are captures: the frags are the kills there (GameShowStats "Kills" / "Caps")
       return (
-        `<tr class="${cls}"><td>${i + 1}</td><td class="pl"><div>${this.avatar(p.displaySkin)}<span>${esc(p.name)}</span>${p.isAlive ? '' : `<small>${t('table.dead')}</small>`}</div></td>` +
+        `<tr class="${cls}"><td>${i + 1}</td><td class="pl"><div>${this.avatar(p.displaySkin)}<span>${esc(p.name)}</span>${p.tag ? `<em class="tag${p.tag.startsWith('ANON-') ? ' anon' : ''}">#${esc(p.tag)}</em>` : ''}${p.isAlive ? '' : `<small>${t('table.dead')}</small>`}</div></td>` +
         `<td class="k">${ctf ? p.kills : p.score}</td><td>${p.deaths}</td>` +
         (ctf ? `<td class="k">${p.score}</td><td>${p.returns}</td>` : '') +
         `<td>${bigNum(Math.round(p.dmg * 100))}</td>` +
