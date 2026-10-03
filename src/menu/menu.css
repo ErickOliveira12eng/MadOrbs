@@ -1844,6 +1844,16 @@ input[type='range'] {
   font-weight: 800;
 }
 
+/* The record: the most kills in one match */
+.stats-tiles .record {
+  border-color: rgba(255, 224, 102, 0.45);
+  background: rgba(255, 224, 102, 0.08);
+}
+
+.stats-tiles .record b {
+  color: var(--gold-1);
+}
+
 /* "All": one row per mode (a click opens it) */
 .stats-modes {
   margin-top: 12px;

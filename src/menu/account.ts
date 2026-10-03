@@ -13,7 +13,7 @@ const GOOGLE_CLIENT_ID = '224448068826-3dfhsa8j80ab13s639g70kh0c1dafpmk.apps.goo
 /** Where supabase-js keeps the session in localStorage. */
 const STORAGE_KEY = 'madorbs.auth';
 const PROFILE_COLUMNS = 'tag, name, skin, red, green, blue';
-const STATS_COLUMNS = 'mode, kills, deaths, wins, matches, captures';
+const STATS_COLUMNS = 'mode, kills, deaths, wins, matches, captures, best_kills';
 
 export interface Profile {
   /** Player ID ("K7Q2MX", shown as #K7Q2MX): unique, made with the account, never changes. */
@@ -33,9 +33,11 @@ export interface ModeStats {
   matches: number;
   /** Capture the Flag only. */
   captures: number;
+  /** The most kills in one match (the personal record). */
+  bestKills: number;
 }
 
-export const NO_STATS: ModeStats = { kills: 0, deaths: 0, wins: 0, matches: 0, captures: 0 };
+export const NO_STATS: ModeStats = { kills: 0, deaths: 0, wins: 0, matches: 0, captures: 0, bestKills: 0 };
 
 export type OrbChoice = Pick<Profile, 'skin' | 'red' | 'green' | 'blue'>;
 
@@ -133,7 +135,10 @@ export class Account {
     if (profile.error) console.warn('[account] cannot read the profile', profile.error.message);
     else this.profile = profile.data as Profile | null;
     if (stats.error) console.warn('[account] cannot read the stats', stats.error.message);
-    else this.stats = Object.fromEntries((stats.data as (ModeStats & { mode: RoomMode })[]).map(({ mode, ...s }) => [mode, s]));
+    else
+      this.stats = Object.fromEntries(
+        (stats.data as (Omit<ModeStats, 'bestKills'> & { mode: RoomMode; best_kills: number })[]).map(({ mode, best_kills, ...s }) => [mode, { ...s, bestKills: best_kills }]),
+      );
     this.emit();
   }
 

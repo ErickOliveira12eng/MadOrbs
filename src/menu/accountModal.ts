@@ -138,10 +138,10 @@ export class AccountModal {
       `<div class="stats-pair"><span>${t('account.kd')}</span><b>${num(s.kills / Math.max(1, s.deaths), 2)}</b></div>` +
       `<div class="stats-pair"><span>${t('account.killsPerMatch')}</span><b>${s.matches ? num(s.kills / s.matches, 1) : '–'}</b></div>` +
       `</div></div>`;
-    const tile = (value: number, key: Parameters<typeof t>[0]) => `<div><b>${bigNum(value)}</b><span>${t(key)}</span></div>`;
+    const tile = (value: number, key: Parameters<typeof t>[0], cls = '') => `<div class="${cls}"${cls ? ` title="${t('account.recordHint')}"` : ''}><b>${bigNum(value)}</b><span>${t(key)}</span></div>`;
     const tiles =
       `<div class="stats-tiles">${tile(s.kills, 'account.kills')}${tile(s.deaths, 'account.deaths')}${tile(s.matches, 'account.matches')}` +
-      `${tile(s.wins, 'account.wins')}${mode === 'ctf' ? tile(s.captures, 'account.captures') : ''}</div>`;
+      `${tile(s.wins, 'account.wins')}${mode === 'ctf' ? tile(s.captures, 'account.captures') : ''}${tile(s.bestKills, 'account.record', 'record')}</div>`;
     // All modes: how each one goes, side by side
     let modes = '';
     if (mode === 'all') {
@@ -242,7 +242,15 @@ export class AccountModal {
 
 function sumStats(list: ModeStats[]): ModeStats {
   return list.reduce(
-    (sum, x) => ({ kills: sum.kills + x.kills, deaths: sum.deaths + x.deaths, wins: sum.wins + x.wins, matches: sum.matches + x.matches, captures: sum.captures + x.captures }),
+    (sum, x) => ({
+      kills: sum.kills + x.kills,
+      deaths: sum.deaths + x.deaths,
+      wins: sum.wins + x.wins,
+      matches: sum.matches + x.matches,
+      captures: sum.captures + x.captures,
+      // The record: the highest of the modes
+      bestKills: Math.max(sum.bestKills, x.bestKills),
+    }),
     NO_STATS,
   );
 }

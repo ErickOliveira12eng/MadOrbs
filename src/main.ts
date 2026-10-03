@@ -6,6 +6,7 @@ import { audio } from './client/audio/audio';
 import { ClientGame } from './client/clientGame';
 import { DM_MAPS, MAP_LIST } from './client/mapList';
 import { gameSounds } from './client/sounds';
+import { bestKills } from './client/records';
 import { Account } from './menu/account';
 import { AudioPanel } from './menu/audioPanel';
 import { StartScreen, type PlayMode } from './menu/menu';
@@ -58,7 +59,9 @@ async function startGame(mode: PlayMode): Promise<void> {
   try {
     let game: ClientGame;
     if (mode === 'online') {
-      game = await ClientGame.createOnline($('game'), { ...common, authToken: await account.accessToken() }, onProgress);
+      // The record to beat: this browser's or the account's, the higher
+      const record = Math.max(bestKills(settings.mode), account.stats[settings.mode]?.bestKills ?? 0);
+      game = await ClientGame.createOnline($('game'), { ...common, authToken: await account.accessToken(), bestKills: record }, onProgress);
     } else {
       // Maps played in rotation, starting with the chosen one (the flag maps in Capture the Flag)
       const chosen = settings.mode === 'ctf' ? settings.ctfMap : settings.map;

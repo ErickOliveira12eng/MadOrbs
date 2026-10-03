@@ -1014,11 +1014,79 @@
   left: calc(50% - 175px);
 }
 
-/* End-of-match map vote (online): one card per map, clicked or picked with 1, 2, 3 */
-.h-vote {
+/* End of a match, right of the score table: our summary, then the map vote (online) */
+.h-endside {
   left: calc(50% + 305px);
   top: 190px;
   width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.h-mine {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  box-sizing: border-box;
+  background: var(--h-panel-strong);
+}
+
+.h-mine .kills b {
+  display: block;
+  font: 400 30px/1.1 var(--h-display);
+}
+
+.h-mine .kills small {
+  color: var(--h-muted);
+  font: 700 13px var(--h-ui);
+}
+
+/* A new personal record */
+.h-mine .rec {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 224, 102, 0.22), rgba(255, 159, 28, 0.12));
+  border: 1px solid rgba(255, 224, 102, 0.55);
+  box-shadow: 0 0 22px rgba(255, 210, 63, 0.3);
+  animation: feat-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.h-mine .rec span {
+  color: var(--h-gold-1);
+  font: 900 12px var(--h-ui);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.h-mine .rec b {
+  font: 400 32px/1.1 var(--h-display);
+  background: linear-gradient(180deg, var(--h-gold-1) 30%, var(--h-gold-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.h-mine .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 7px;
+  border-top: 1px solid var(--h-line);
+  color: var(--h-muted);
+  font: 700 13px var(--h-ui);
+}
+
+.h-mine .row b {
+  color: var(--h-text);
+  font: 400 20px var(--h-display);
+}
+
+.h-vote {
   box-sizing: border-box;
   padding: 14px 14px 10px;
   background: var(--h-panel-strong);
@@ -2053,6 +2121,11 @@
   border-radius: 999px;
   background: rgba(10, 12, 34, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.h-banner .hl .hi.mvp {
+  border-color: var(--h-gold-1);
+  box-shadow: 0 0 14px rgba(255, 210, 63, 0.4);
 }
 
 .h-banner .hl .hi.unstoppable {

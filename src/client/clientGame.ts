@@ -32,6 +32,7 @@ import {
   WEAPON_NUCLEAR,
   WEAPON_SNIPER,
 } from '../sim/constants';
+import { bestKills, saveBestKills } from './records';
 import { loadAnnouncer, playAnnouncer } from './featSounds';
 import { applyFeatCounts, isAnnouncedToAll } from '../sim/feats';
 import type { GameEvent } from '../sim/events';
@@ -104,6 +105,8 @@ export interface ClientGameOptions {
   serverUrl?: string;
   /** The signed-in player's session (Supabase access token): the server checks it. */
   authToken?: string;
+  /** The most kills we made in one online match of this mode, before this game (records.ts, account). */
+  bestKills?: number;
 }
 
 export class ClientGame {
@@ -298,6 +301,7 @@ export class ClientGame {
 
   private beginLoop(): void {
     this.hud.setGameType(this.game.gameType);
+    if (this.online) this.hud.setRecord(this.opts.bestKills ?? bestKills(this.opts.mode));
     loadAnnouncer();
     // Offline the match starts now; online only when joining in its first seconds
     if (!this.online || this.game.gameTimeLeft > sv.sv_gameTimeLimit - 5) setTimeout(() => this.announceStart(), 600);
@@ -1057,6 +1061,11 @@ export class ClientGame {
       }
       case 'mapChange':
         this.announceStart();
+        // The match that just ended may hold a new personal record (online, 30 s played at least)
+        if (this.online && me.timePlayedCurGame >= 30 && me.kills > 0) {
+          saveBestKills(this.opts.mode, me.kills);
+          this.hud.setRecord(Math.max(this.opts.bestKills ?? 0, bestKills(this.opts.mode)));
+        }
         if (fromServer) {
           this.setVote(null);
           void this.changeMapOnline(e.mapName);

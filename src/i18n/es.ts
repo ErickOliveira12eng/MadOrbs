@@ -213,6 +213,17 @@ export const es: Record<Key, string> = {
   'banner.bestStreak': 'Mayor racha: {name} ({n})',
   'banner.revenges': 'Más venganzas: {name} ({n})',
 
+  // ---- end of a match: our summary and the personal record
+  'end.title': 'Tu partida',
+  'end.newRecord': 'Nuevo récord personal',
+  'end.kills': '{n} bajas',
+  'end.oneKill': '1 baja',
+  'end.record': 'Récord: {n} bajas',
+  'end.bestStreak': 'Mayor racha',
+  'banner.mvp': 'MVP: {name}',
+  'account.record': 'Récord',
+  'account.recordHint': 'Más bajas en una partida',
+
   // ---- end-of-match map vote
   'vote.title': 'Próximo mapa',
   'vote.hint': 'Vota: haz clic en un mapa o pulsa {keys}',

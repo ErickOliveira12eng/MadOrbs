@@ -160,6 +160,12 @@ export class HudLayer {
   private readonly previews = new Map<string, string | null>();
   /** A map card of the vote was clicked. */
   onVote?: (index: number) => void;
+  /**
+   * Our record of kills in one match before this one (online; null offline, where records don't
+   * count): the end of a match says "new personal record" when it is beaten.
+   */
+  private recordBefore: number | null = null;
+  private mineHtml = '';
   /** Kill feat announcements waiting, and the one on screen (until `until`, HUD time). */
   private featQueue: { html: string; dur: number; prio: number; onShow?: () => void }[] = [];
   private featShown: { html: string; until: number } | null = null;
@@ -245,7 +251,10 @@ export class HudLayer {
 
 <div class="h-abs h-feat" data-r="feat" hidden></div>
 <div class="h-abs h-banner" data-r="banner" hidden></div>
-<div class="h-abs h-panel h-vote" data-r="vote" hidden></div>
+<div class="h-abs h-endside" data-r="endside" hidden>
+  <div class="h-panel h-mine" data-r="mine"></div>
+  <div class="h-panel h-vote" data-r="vote" hidden></div>
+</div>
 <div class="h-abs h-panel h-scores" data-r="scores" hidden>
   <div class="h-thead"><div><h2>${t('table.title')}</h2><p data-r="tsub"></p></div><div class="h-tclock" data-r="tclock"></div></div>
   <table class="h-table"><thead data-r="thead"></thead><tbody data-r="table"></tbody></table>
@@ -455,6 +464,31 @@ export class HudLayer {
     show(this.r.feat, visible && !!this.featShown);
   }
 
+  /** Our record before this match (online), or null (offline: no record). */
+  setRecord(kills: number | null): void {
+    this.recordBefore = kills;
+  }
+
+  /** End of a match, "Your match": our kills (a new personal record?), longest streak and deaths. */
+  private updateMine(f: HudFrame): void {
+    const me = f.me;
+    const before = this.recordBefore;
+    // Like the account's stats: a match counts after 30 s played
+    const isRecord = before !== null && me.kills > before && me.kills > 0 && me.timePlayedCurGame >= 30;
+    const kills = t(me.kills === 1 ? 'end.oneKill' : 'end.kills', { n: me.kills });
+    const head = isRecord
+      ? `<div class="rec"><span>${t('end.newRecord')}</span><b>${kills}</b></div>`
+      : `<div class="kills"><b>${kills}</b>${before ? `<small>${t('end.record', { n: before })}</small>` : ''}</div>`;
+    const html =
+      `<span class="h-label">${t('end.title')}</span>${head}` +
+      `<div class="row"><span>${t('end.bestStreak')}</span><b>${me.feats.bestStreak}</b></div>` +
+      `<div class="row"><span>${t('table.deaths')}</span><b>${me.deaths}</b></div>`;
+    if (html !== this.mineHtml) {
+      this.mineHtml = html;
+      setHTML(this.r.mine, html);
+    }
+  }
+
   /** The map vote opened, its counts changed, or it closed (null). */
   setVote(vote: { maps: string[]; counts: number[]; mine: number } | null): void {
     this.vote = vote;
@@ -507,9 +541,13 @@ export class HudLayer {
     show(r.scores, table);
     show(r.banner, !menu && !playing);
     this.updateFeat(playing, !menu && !table);
-    this.voting = !menu && !playing && !!this.vote;
+    // End of a match: our summary, then the map vote, beside the score table
+    const endSide = !menu && !playing;
+    this.voting = endSide && !!this.vote;
+    show(r.endside, endSide);
     show(r.vote, this.voting);
-    r.scores.classList.toggle('voting', this.voting);
+    r.scores.classList.toggle('voting', endSide);
+    if (endSide) this.updateMine(f);
     if (this.voting) this.updateVote(f);
     const carrying = liveHud && f.game.gameType === GAME_TYPE_CTF && f.game.carriedFlag(me) >= 0;
     show(r.carry, carrying);
@@ -1136,6 +1174,9 @@ function matchHighlights(players: readonly (Player | null)[], teamGame: boolean)
   const best = (key: 'unstoppable' | 'dominating' | 'triple' | 'bestStreak' | 'revenges' | 'firstBlood') =>
     list.reduce<Player | null>((b, p) => (p.feats[key] > (b?.feats[key] ?? 0) ? p : b), null);
   const name = (p: Player) => `<b class="${teamGame ? `t${p.teamID}` : ''}">${esc(p.name)}</b>`;
+  // The match's best player: the score (captures in CTF), then the kills
+  const mvp = list.reduce<Player | null>((b, p) => (!b || p.score > b.score || (p.score === b.score && p.kills > b.kills) ? p : b), null);
+  if (mvp && (mvp.score > 0 || mvp.kills > 0)) items.push(`<span class="hi mvp">${t('banner.mvp', { name: name(mvp) })}</span>`);
   for (const kind of ['unstoppable', 'dominating', 'triple'] as const) {
     const p = best(kind);
     if (p) {

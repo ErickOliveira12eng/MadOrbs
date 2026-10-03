@@ -223,6 +223,17 @@ export const en = {
   'banner.bestStreak': 'Best streak: {name} ({n})',
   'banner.revenges': 'Most revenges: {name} ({n})',
 
+  // ---- end of a match: our summary and the personal record
+  'end.title': 'Your match',
+  'end.newRecord': 'New personal record',
+  'end.kills': '{n} kills',
+  'end.oneKill': '1 kill',
+  'end.record': 'Record: {n} kills',
+  'end.bestStreak': 'Best streak',
+  'banner.mvp': 'MVP: {name}',
+  'account.record': 'Record',
+  'account.recordHint': 'Most kills in one match',
+
   // ---- end-of-match map vote
   'vote.title': 'Next map',
   'vote.hint': 'Vote: click a map or press {keys}',
