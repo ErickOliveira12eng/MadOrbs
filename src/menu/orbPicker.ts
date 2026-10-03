@@ -1,7 +1,7 @@
 // The Orb picker: every skin drawn as a real orb with the player's colours, the colours, a few
 // ready-made colour sets and a big preview that rolls.
 import * as THREE from 'three';
-import { FRONT, type OrbStudio } from './orbStudio';
+import { frontFor, turning, type OrbStudio } from './orbStudio';
 import { SKINS, randomOrb, skinInfo, type Settings } from './settings';
 import { t } from '../i18n';
 
@@ -144,16 +144,15 @@ export class OrbPicker {
     this.drawing = true;
     try {
       const s = this.settings;
-      // Rolls slowly towards the viewer, like on the ground
-      const roll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0.2).normalize(), -this.spin * 1.4);
-      this.studio.draw(this.big, await this.studio.texture(skinInfo(s), true), roll.multiply(FRONT));
+      // Rolls slowly towards the viewer, like on the ground (the eye looks at us)
+      this.studio.draw(this.big, await this.studio.texture(skinInfo(s), true), turning(s.skin, this.spin, 1.4));
       // The gallery is redrawn a few orbs per frame, so the page stays responsive
       if (this.thumbsDirty) {
         this.thumbsDirty = false;
         this.thumbQueue = [...this.thumbs.keys()];
       }
       for (const skin of this.thumbQueue.splice(0, 6)) {
-        this.studio.draw(this.thumbs.get(skin)!, await this.studio.texture(skinInfo({ ...s, skin })), FRONT);
+        this.studio.draw(this.thumbs.get(skin)!, await this.studio.texture(skinInfo({ ...s, skin })), frontFor(skin));
       }
     } finally {
       this.drawing = false;

@@ -13,6 +13,28 @@ const HD_SCALE = 8;
 /** Turned so that the skin's band faces the viewer (the poles of the texture look pinched). */
 export const FRONT = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2 + 0.35, 0, 0.5));
 
+/** The eye (skin14: its pupil is the texture's top rows, the sphere's +z pole), looking at the camera. */
+export const EYE_SKIN = 'skin14';
+const EYE_FRONT = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, -1.9, 1.25).normalize());
+
+/** How a skin faces the viewer at rest. */
+export function frontFor(skin: string): THREE.Quaternion {
+  return skin === EYE_SKIN ? EYE_FRONT : FRONT;
+}
+
+/**
+ * An orb turning on its own (the pedestal, the picker's preview): it rolls towards the viewer; the
+ * eye only sways, so it keeps looking at us.
+ */
+export function turning(skin: string, t: number, speed: number): THREE.Quaternion {
+  if (skin === EYE_SKIN) {
+    const sway = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.sin(t * 0.9) * 0.18, 0, Math.sin(t * 0.6) * 0.35));
+    return sway.multiply(EYE_FRONT);
+  }
+  const roll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0.2).normalize(), -t * speed);
+  return roll.multiply(FRONT);
+}
+
 export class OrbStudio {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
@@ -85,7 +107,7 @@ export class OrbStudio {
   }
 
   /** A still picture of the orb, as a data URL (for <img> elements). */
-  async picture(info: SkinInfo, size: number, rotation = FRONT, hd = false): Promise<string> {
+  async picture(info: SkinInfo, size: number, rotation = frontFor(info.skin), hd = false): Promise<string> {
     const tex = await this.texture(info, hd);
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = size;

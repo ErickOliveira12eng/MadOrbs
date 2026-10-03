@@ -15,7 +15,7 @@ import { isOldGeneratedName, randomGuestName } from './guestNames';
 import { Embers } from './embers';
 import { icon, type IconName } from './icons';
 import { OrbPicker } from './orbPicker';
-import { FRONT, type OrbStudio } from './orbStudio';
+import { turning, type OrbStudio } from './orbStudio';
 import { SKINS, saveSettings, skinInfo, type Settings } from './settings';
 import { TrainingModal } from './training';
 import { versioned } from '../sim/assetVersion';
@@ -381,10 +381,7 @@ export class StartScreen {
     this.drawing = true;
     void this.studio
       .texture(skinInfo(this.settings), true)
-      .then((tex) => {
-        const roll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0.2).normalize(), -this.spin * 1.1);
-        this.studio.draw(this.preview, tex, roll.multiply(FRONT));
-      })
+      .then((tex) => this.studio.draw(this.preview, tex, turning(this.settings.skin, this.spin, 1.1)))
       .finally(() => (this.drawing = false));
   }
 

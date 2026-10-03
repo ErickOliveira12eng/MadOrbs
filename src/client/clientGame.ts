@@ -342,7 +342,8 @@ export class ClientGame {
         boss.lives = 1;
         boss.radius = BOSS.radius;
         boss.damageScale = BOSS.damageScale;
-        boss.skin = randomSkin();
+        // Every boss is the eye (skin14), in the red team's colours
+        boss.skin = { ...randomSkin(), skin: 'skin14' };
         this.bots.push(new BotController(boss, Math.min(1, level.skill + 0.1), loadout));
       }
     }
