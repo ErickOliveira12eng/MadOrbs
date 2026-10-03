@@ -7,6 +7,7 @@ import { Vec3 } from '../../sim/vec';
 import { weaponDummies } from '../../sim/weaponDummies';
 import { createDkoObject3D, setDkoFrame } from '../engine/dko';
 import { loadTextureAsync } from '../engine/textures';
+import { recolorMix, upscaleSkinMix, type SkinMix, type SkinPixels } from './skinUpscale';
 import { getModel, getTexture, MODEL_SHIELD_MAGNET, TEXTURES } from '../assets';
 
 /** NUZZLE_DELAY (Weapon.h) */
@@ -53,22 +54,57 @@ export function createGluSphere(radius: number, slices: number, stacks: number):
   return g;
 }
 
-const baboSphere = createGluSphere(0.25, 16, 16);
+// The original's gluSphere(0.25, 16, 16) looked faceted and bent the skin's drawing: twice the slices
+const baboSphere = createGluSphere(0.25, 32, 24);
 const botSphere = createGluSphere(0.15, 8, 8);
 
 // ------------------------------------------------------------------ skins
 
 const skinCache = new Map<string, Promise<THREE.Texture>>();
 
+/** The babos in game get their skin 4x bigger, with sharp edges (skinUpscale.ts). */
+const GAME_SKIN_SCALE = 4;
+
 /** Player::updateSkin for the babos in game (cached per skin and colours). */
 export function getSkinTexture(info: SkinInfo): Promise<THREE.Texture> {
   const key = `${info.skin}|${info.redDecal}|${info.greenDecal}|${info.blueDecal}`;
   let p = skinCache.get(key);
   if (!p) {
-    p = loadTextureAsync(`main/skins/${info.skin}.tga`).then((src) => recolorSkin(src, info));
+    p = loadSkinBase(info.skin).then((src) => recolorSkinHD(src, info, GAME_SKIN_SCALE));
     skinCache.set(key, p);
   }
   return p;
+}
+
+/** Upscaled skins (the slow part, the same whatever the colours), per skin and scale. */
+const mixCache = new Map<string, SkinMix>();
+
+/**
+ * Player::updateSkin at `scale` times the 64x32 skin: drawn edges come out smooth and sharp,
+ * gradients stay gradients (src/client/render/skinUpscale.ts). Not cached: the caller owns the texture.
+ */
+export function recolorSkinHD(src: THREE.Texture, info: SkinInfo, scale: number, anisotropy = 4): THREE.DataTexture {
+  const key = `${info.skin}|${scale}`;
+  let mix = mixCache.get(key);
+  if (mix) mixCache.delete(key);
+  else mix = upscaleSkinMix(src.image as SkinPixels, scale);
+  mixCache.set(key, mix);
+  // Least recently used out (a 4x skin is 128 KB, an 8x one 512 KB)
+  for (const k of mixCache.keys()) {
+    if (mixCache.size <= 32) break;
+    mixCache.delete(k);
+  }
+  const tex = new THREE.DataTexture(recolorMix(mix, [info.redDecal, info.greenDecal, info.blueDecal]), mix.width, mix.height, THREE.RGBAFormat);
+  tex.flipY = src.flipY;
+  tex.colorSpace = THREE.NoColorSpace;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.generateMipmaps = true;
+  tex.anisotropy = anisotropy;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.needsUpdate = true;
+  return tex;
 }
 
 /** The skin's original texture (its red, green and blue areas take the three decal colours). */
