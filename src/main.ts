@@ -25,6 +25,8 @@ applyAudioSettings(settings);
 const audioPanel = new AudioPanel(settings, () => saveSettings(settings));
 const studio = new OrbStudio();
 const account = new Account();
+// For the screenshot tools (tools/debug/menushots.mjs fills a signed-in account)
+(window as unknown as { madorbsAccount: Account }).madorbsAccount = account;
 const screen = new StartScreen(settings, studio, account, (mode) => void startGame(mode));
 screen.show();
 void account.restore();
