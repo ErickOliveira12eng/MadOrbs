@@ -1,7 +1,9 @@
 // The account window: signed out, what an account gives and Google's button; signed in, the
 // name, the player ID, the stats the game server keeps, sign out and delete the account.
+import { modeShort } from '../client/modes';
 import { bigNum, num, t } from '../i18n';
-import type { Account, SaveError } from './account';
+import { ROOM_MODES, type RoomMode } from '../net/protocol';
+import { NO_STATS, type Account, type ModeStats, type SaveError } from './account';
 import type { OrbStudio } from './orbStudio';
 import { skinInfo, type Settings } from './settings';
 
@@ -12,6 +14,8 @@ export class AccountModal {
   private readonly nameInput = $<HTMLInputElement>('accountNameInput');
   private googleShown = false;
   private deleteArmed = 0;
+  /** The stats shown: one game mode, or all of them added up. */
+  private statsMode: RoomMode | 'all' = 'all';
 
   constructor(
     private readonly account: Account,
@@ -34,6 +38,7 @@ export class AccountModal {
     });
     $('accountSignOut').addEventListener('click', () => void account.signOut());
     $('accountDelete').addEventListener('click', () => void this.deleteAccount());
+    this.buildStatsTabs();
     account.onChange(() => this.render());
   }
 
@@ -83,12 +88,45 @@ export class AccountModal {
     $('accountTag').textContent = p ? `#${p.tag}` : '';
     $('accountEmail').textContent = this.account.email;
     if (document.activeElement !== this.nameInput) this.nameInput.value = p?.name ?? this.settings.name;
-    $('statKills').textContent = bigNum(p?.kills ?? 0);
-    $('statDeaths').textContent = bigNum(p?.deaths ?? 0);
-    $('statKd').textContent = num((p?.kills ?? 0) / Math.max(1, p?.deaths ?? 0), 2);
-    $('statWins').textContent = bigNum(p?.wins ?? 0);
-    $('statMatches').textContent = bigNum(p?.matches ?? 0);
+    this.renderStats();
     void this.studio.picture(skinInfo(this.settings), 144, undefined, true).then((src) => ($<HTMLImageElement>('accountOrb').src = src));
+  }
+
+  /** "All" and one button per game mode above the stats. */
+  private buildStatsTabs(): void {
+    const box = $('statsModes');
+    for (const mode of ['all', ...ROOM_MODES] as const) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.mode = mode;
+      b.setAttribute('role', 'radio');
+      b.textContent = mode === 'all' ? t('account.allModes') : modeShort(mode);
+      b.addEventListener('click', () => {
+        this.statsMode = mode;
+        this.renderStats();
+      });
+      box.appendChild(b);
+    }
+  }
+
+  private renderStats(): void {
+    for (const b of $('statsModes').querySelectorAll<HTMLElement>('[data-mode]')) b.setAttribute('aria-checked', String(b.dataset.mode === this.statsMode));
+    const all = this.account.stats;
+    const s: ModeStats =
+      this.statsMode === 'all'
+        ? ROOM_MODES.reduce((sum, m) => {
+            const x = all[m] ?? NO_STATS;
+            return { kills: sum.kills + x.kills, deaths: sum.deaths + x.deaths, wins: sum.wins + x.wins, matches: sum.matches + x.matches, captures: sum.captures + x.captures };
+          }, NO_STATS)
+        : (all[this.statsMode] ?? NO_STATS);
+    $('statKills').textContent = bigNum(s.kills);
+    $('statDeaths').textContent = bigNum(s.deaths);
+    $('statKd').textContent = num(s.kills / Math.max(1, s.deaths), 2);
+    $('statWins').textContent = bigNum(s.wins);
+    $('statMatches').textContent = bigNum(s.matches);
+    // Captures only mean something in Capture the Flag
+    $('statCapturesBox').hidden = this.statsMode !== 'ctf';
+    $('statCaptures').textContent = bigNum(s.captures);
   }
 
   /** Google's button, drawn once per page (its script loads the first time). */

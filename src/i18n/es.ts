@@ -88,6 +88,8 @@ export const es: Record<Key, string> = {
   'account.kd': 'B/M',
   'account.wins': 'Victorias',
   'account.matches': 'Partidas',
+  'account.captures': 'Capturas',
+  'account.allModes': 'General',
   'account.statsNote': 'Solo partidas online: el entrenamiento offline no cuenta.',
   'account.signOut': 'Salir',
   'account.delete': 'Borrar cuenta',

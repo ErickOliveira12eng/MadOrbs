@@ -209,12 +209,14 @@
           </form>
           <p id="accountNameMsg" class="account-msg" role="status" hidden></p>
           <h3 data-i18n="account.stats">Stats</h3>
+          <div id="statsModes" class="segmented account-modes" role="radiogroup" data-i18n-attr="aria-label=account.stats" aria-label="Stats"></div>
           <div class="account-stats">
             <div><b id="statKills">0</b><span data-i18n="account.kills">Kills</span></div>
             <div><b id="statDeaths">0</b><span data-i18n="account.deaths">Deaths</span></div>
             <div><b id="statKd">0</b><span data-i18n="account.kd">K/D</span></div>
             <div><b id="statWins">0</b><span data-i18n="account.wins">Wins</span></div>
             <div><b id="statMatches">0</b><span data-i18n="account.matches">Matches</span></div>
+            <div id="statCapturesBox" hidden><b id="statCaptures">0</b><span data-i18n="account.captures">Captures</span></div>
           </div>
           <p class="account-note" data-i18n="account.statsNote">Online matches only: the offline training doesn't count.</p>
           <footer class="modal-foot account-foot">

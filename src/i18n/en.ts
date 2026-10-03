@@ -91,6 +91,8 @@ export const en = {
   'account.kd': 'K/D',
   'account.wins': 'Wins',
   'account.matches': 'Matches',
+  'account.captures': 'Captures',
+  'account.allModes': 'All',
   'account.statsNote': "Online matches only: the offline training doesn't count.",
   'account.signOut': 'Sign out',
   'account.delete': 'Delete account',

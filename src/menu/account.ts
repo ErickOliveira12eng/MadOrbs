@@ -1,16 +1,19 @@
 // The player's account (optional: guests play as before). Sign in with Google gives an ID token
 // that Supabase Auth turns into a session; the profile keeps the player ID (tag, made by the
-// database, never changes), the name, the Orb and the stats the game server writes. supabase-js and Google's script load only when they are needed:
+// database, never changes), the name and the Orb; player_stats the online stats of each game mode,
+// written by the game server. supabase-js and Google's script load only when they are needed:
 // a saved session at startup, or the account window opened.
 import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { lang } from '../i18n';
+import type { RoomMode } from '../net/protocol';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../net/supabase';
 
 /** The Google OAuth client (Web) of madorbs.com: public, it goes in the page. */
 const GOOGLE_CLIENT_ID = '224448068826-3dfhsa8j80ab13s639g70kh0c1dafpmk.apps.googleusercontent.com';
 /** Where supabase-js keeps the session in localStorage. */
 const STORAGE_KEY = 'madorbs.auth';
-const PROFILE_COLUMNS = 'tag, name, skin, red, green, blue, kills, deaths, wins, matches';
+const PROFILE_COLUMNS = 'tag, name, skin, red, green, blue';
+const STATS_COLUMNS = 'mode, kills, deaths, wins, matches, captures';
 
 export interface Profile {
   /** Player ID ("K7Q2MX", shown as #K7Q2MX): unique, made with the account, never changes. */
@@ -20,11 +23,19 @@ export interface Profile {
   red: string;
   green: string;
   blue: string;
+}
+
+/** Online stats of one game mode (player_stats). */
+export interface ModeStats {
   kills: number;
   deaths: number;
   wins: number;
   matches: number;
+  /** Capture the Flag only. */
+  captures: number;
 }
+
+export const NO_STATS: ModeStats = { kills: 0, deaths: 0, wins: 0, matches: 0, captures: 0 };
 
 export type OrbChoice = Pick<Profile, 'skin' | 'red' | 'green' | 'blue'>;
 
@@ -45,6 +56,8 @@ declare global {
 export class Account {
   session: Session | null = null;
   profile: Profile | null = null;
+  /** The account's stats per game mode (a mode never played has no row). */
+  stats: Partial<Record<RoomMode, ModeStats>> = {};
   private client: SupabaseClient | null = null;
   private loading: Promise<SupabaseClient> | null = null;
   private readonly listeners = new Set<() => void>();
@@ -94,7 +107,10 @@ export class Account {
       client.auth.onAuthStateChange((event, session) => {
         const userChanged = session?.user.id !== this.session?.user.id;
         this.session = session;
-        if (!session) this.profile = null;
+        if (!session) {
+          this.profile = null;
+          this.stats = {};
+        }
         // No Supabase call inside this callback (it would wait on the auth lock)
         if (session && (userChanged || event === 'USER_UPDATED')) setTimeout(() => void this.refreshProfile(), 0);
         else this.emit();
@@ -110,9 +126,14 @@ export class Account {
     const client = this.client;
     const id = this.session?.user.id;
     if (!client || !id) return;
-    const { data, error } = await client.from('profiles').select(PROFILE_COLUMNS).eq('id', id).maybeSingle();
-    if (error) console.warn('[account] cannot read the profile', error.message);
-    else this.profile = data as Profile | null;
+    const [profile, stats] = await Promise.all([
+      client.from('profiles').select(PROFILE_COLUMNS).eq('id', id).maybeSingle(),
+      client.from('player_stats').select(STATS_COLUMNS).eq('user_id', id),
+    ]);
+    if (profile.error) console.warn('[account] cannot read the profile', profile.error.message);
+    else this.profile = profile.data as Profile | null;
+    if (stats.error) console.warn('[account] cannot read the stats', stats.error.message);
+    else this.stats = Object.fromEntries((stats.data as (ModeStats & { mode: RoomMode })[]).map(({ mode, ...s }) => [mode, s]));
     this.emit();
   }
 
@@ -155,6 +176,7 @@ export class Account {
     if (client) await client.auth.signOut({ scope: 'local' });
     this.session = null;
     this.profile = null;
+    this.stats = {};
     this.emit();
   }
 
