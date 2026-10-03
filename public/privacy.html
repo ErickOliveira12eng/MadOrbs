@@ -4,6 +4,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Google Analytics 4 (G-H15R1L9QEF). Consent Mode: in Europe (EEA, UK, Switzerland) analytics and
+         ad cookies wait for the visitor's consent (the AdSense consent message gives it); elsewhere they
+         are on. Visits are only counted on madorbs.com (not on localhost or in the test browsers) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-H15R1L9QEF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('consent', 'default', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied', wait_for_update: 500, region: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IS','IE','IT','LV','LI','LT','LU','MT','NL','NO','PL','PT','RO','SK','SI','ES','SE','GB','CH'] });
+      gtag('consent', 'default', { ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted', analytics_storage: 'granted' });
+      gtag('js', new Date());
+      if (/(^|\.)madorbs\.com$/.test(location.hostname)) gtag('config', 'G-H15R1L9QEF');
+    </script>
     <title>Privacy Policy · Mad Orbs</title>
     <meta name="description" content="How Mad Orbs handles the data of the people who play it." />
     <link rel="canonical" href="https://madorbs.com/privacy" />
@@ -84,9 +96,18 @@
         prevent cheating and abuse. It is not sold.
       </p>
 
-      <h2>Ads and cookies</h2>
+      <h2>Analytics, ads and cookies</h2>
       <p>
-        Mad Orbs itself doesn't use cookies. The site shows <strong>Google AdSense</strong> ads: Google and its partners
+        Mad Orbs' own code doesn't use cookies. To know how many people visit and how the site is used, it uses
+        <strong>Google Analytics</strong>: Google records the pages viewed, the device and browser, the approximate region
+        (from the IP address, which Google doesn't keep) and how long the visit lasts, using cookies and identifiers, and
+        shows us only reports. You can turn it off with
+        <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Google's opt-out add-on</a>
+        or by blocking the site's cookies. In the European Economic Area, the United Kingdom and Switzerland, analytics
+        and ad cookies are only used after you agree.
+      </p>
+      <p>
+        The site also shows <strong>Google AdSense</strong> ads: Google and its partners
         use cookies and identifiers to show ads, including based on your visits to this and other websites. You can turn
         off personalized ads in
         <a href="https://myadcenter.google.com/" target="_blank" rel="noopener">Google's My Ad Center</a>
@@ -107,7 +128,7 @@
       <ul>
         <li>with the other players, for your name, Orb and chat, during the match;</li>
         <li>with the hosting providers that keep the site running, and with Supabase, which keeps the accounts;</li>
-        <li>with Google, for the ads and for signing in, as described above;</li>
+        <li>with Google, for the usage statistics, the ads and signing in, as described above;</li>
         <li>with authorities, when the law requires it.</li>
       </ul>
 
