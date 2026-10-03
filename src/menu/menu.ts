@@ -1,9 +1,10 @@
-// The start screen: the player's orb on its pedestal (arrows switch the style, "Personalizar Orb"
+// The start screen: the player's orb on its pedestal (arrows switch the style, "Customize Orb"
 // opens the full picker), the name, play online in the chosen mode, the offline training, the
-// controls, and how many play now. The background is a picture of a fight rendered by the game
+// controls, the language, and how many play now. The background is a picture of a fight rendered by the game
 // itself (tools/make-menu-bg.mjs), with drifting orbs and sparks on top.
 import * as THREE from 'three';
-import { MODE_INFO } from '../client/modes';
+import { modeName, modeTagline } from '../client/modes';
+import { LANG_KEY, lang, t, type Lang } from '../i18n';
 import { ROOM_MODES, type RoomMode, type RoomStatus } from '../net/protocol';
 import { Embers } from './embers';
 import { icon, type IconName } from './icons';
@@ -84,7 +85,7 @@ export class StartScreen {
     const updateFullscreen = () => {
       const on = !!document.fullscreenElement;
       fullscreen.innerHTML = icon(on ? 'minimize' : 'maximize', 20);
-      fullscreen.title = on ? 'Sair da tela cheia' : 'Tela cheia';
+      fullscreen.title = t(on ? 'menu.exitFullscreen' : 'menu.fullscreen');
     };
     fullscreen.addEventListener('click', () => {
       if (document.fullscreenElement) void document.exitFullscreen();
@@ -94,6 +95,8 @@ export class StartScreen {
     updateFullscreen();
     if (!document.documentElement.requestFullscreen) fullscreen.hidden = true;
 
+    this.setupLanguage();
+
     // Phones and tablets: the game needs a keyboard and a mouse
     $('touchNotice').hidden = !(matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches);
 
@@ -101,6 +104,38 @@ export class StartScreen {
     window.addEventListener('resize', () => this.fit());
     this.embers = matchMedia('(prefers-reduced-motion: reduce)').matches ? null : new Embers($<HTMLCanvasElement>('bgSparks'));
     void this.makeBackground();
+  }
+
+  /**
+   * The language button and its menu: real links to each language's page (crawlers follow them
+   * too); a click also saves the choice, which the script at the top of index.html reads at "/".
+   */
+  private setupLanguage(): void {
+    const button = $('btnLang');
+    const menu = $('langMenu');
+    $('langCode').textContent = lang().toUpperCase();
+    for (const a of menu.querySelectorAll<HTMLAnchorElement>('a[data-lang]')) {
+      const l = a.dataset.lang as Lang;
+      if (l === lang()) a.setAttribute('aria-current', 'true');
+      a.addEventListener('click', () => {
+        try {
+          localStorage.setItem(LANG_KEY, l);
+        } catch {
+          /* storage unavailable: the address keeps the language */
+        }
+      });
+    }
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.hidden = !menu.hidden;
+    });
+    document.addEventListener('pointerdown', (e) => {
+      const target = e.target as Node;
+      if (!menu.hidden && !menu.contains(target) && !button.contains(target)) menu.hidden = true;
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') menu.hidden = true;
+    });
   }
 
   get visible(): boolean {
@@ -164,8 +199,8 @@ export class StartScreen {
       b.dataset.mode = mode;
       b.setAttribute('role', 'radio');
       b.innerHTML =
-        `<span class="mode-icon">${icon(MODE_ICONS[mode], 30)}</span><b>${MODE_INFO[mode].name}</b>` +
-        `<small>${MODE_INFO[mode].tagline}</small><span class="mode-count" hidden></span>`;
+        `<span class="mode-icon">${icon(MODE_ICONS[mode], 30)}</span><b>${modeName(mode)}</b>` +
+        `<small>${modeTagline(mode)}</small><span class="mode-count" hidden></span>`;
       b.addEventListener('click', () => {
         this.settings.mode = mode;
         saveSettings(this.settings);
@@ -209,22 +244,22 @@ export class StartScreen {
       const room = this.rooms?.[b.dataset.mode as RoomMode];
       const count = b.querySelector<HTMLElement>('.mode-count')!;
       count.hidden = !room || room.players === 0;
-      count.textContent = room ? `${room.players} jogando` : '';
+      count.textContent = room ? t('menu.playing', { n: room.players }) : '';
       b.classList.toggle('closed', this.serverUp === true && !room);
     }
-    sub.textContent = 'Partida rápida';
+    sub.textContent = t('menu.quickMatch');
     if (this.serverUp === null) return;
     if (!this.serverUp) {
-      text.textContent = 'Servidor fora do ar';
+      text.textContent = t('menu.serverDown');
       pill.className = 'online-pill down';
       return;
     }
     const total = Object.values(this.rooms ?? {}).reduce((n, r) => n + (r?.players ?? 0), 0);
-    text.textContent = total === 0 ? 'Ninguém jogando agora' : total === 1 ? '1 jogador online' : `${total} jogadores online`;
+    text.textContent = total === 0 ? t('menu.nobody') : total === 1 ? t('menu.onePlayer') : t('menu.players', { n: total });
     pill.className = 'online-pill ok';
     const room = this.rooms?.[this.settings.mode];
-    if (!room) sub.textContent = `${MODE_INFO[this.settings.mode].name} fechado neste servidor`;
-    else if (room.maxPlayers && room.players >= room.maxPlayers) sub.textContent = `Partida cheia · ${room.players}/${room.maxPlayers}`;
+    if (!room) sub.textContent = t('menu.modeClosed', { mode: modeName(this.settings.mode) });
+    else if (room.maxPlayers && room.players >= room.maxPlayers) sub.textContent = t('menu.full', { n: room.players, max: room.maxPlayers });
   }
 
   private drawing = false;

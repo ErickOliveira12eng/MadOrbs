@@ -16,7 +16,8 @@ import type { Game } from '../../sim/game';
 import { sv, weaponDefs } from '../../sim/gameVar';
 import type { GameMap } from '../../sim/map';
 import type { Player, SkinInfo } from '../../sim/player';
-import { MODE_INFO, flagName, modeOfGameType, teamName } from '../modes';
+import { flagName, modeName, modeOfGameType, teamName } from '../modes';
+import { bigNum, capitalize, t, type Key } from '../../i18n';
 import type { ViewRect } from '../view';
 import { HudArt, type OrbPictureFn } from './hudArt';
 import { esc, mouseIcon, pingColor, plain, signalIcon, weaponIcon } from './icons';
@@ -64,9 +65,7 @@ export interface HudFrame {
 /** A kill, or something that happened to a CTF flag. Teams are -1 outside team games. */
 type FeedEntry =
   | { kind: 'kill'; killer: string | null; killerTeam: number; killerMe: boolean; victim: string; victimTeam: number; victimMe: boolean; weaponID: number; t: number }
-  | { kind: 'flag'; who: string; team: number; me: boolean; good: boolean; verb: string; flagID: number; t: number };
-
-const FLAG_VERBS: Record<FlagReason, string> = { took: 'pegou', returned: 'devolveu', captured: 'capturou', dropped: 'deixou cair' };
+  | { kind: 'flag'; who: string; team: number; me: boolean; good: boolean; reason: FlagReason; flagID: number; t: number };
 
 interface ChatEntry {
   name: string | null;
@@ -202,29 +201,29 @@ export class HudLayer {
 <div class="h-abs h-panel h-health" data-r="health">
   <svg class="plus" viewBox="0 0 24 24" aria-hidden="true"><rect data-r="plus" x="1" y="1" width="22" height="22" rx="7" fill="#47b800"/><path d="M12 6v12M6 12h12" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>
   <b class="h-hp" data-r="hp"></b>
-  <div class="h-hpcol"><span class="h-label">Vida</span><div class="h-hpbar"><i data-r="hpbar"></i><span class="tk" style="left:25%"></span><span class="tk" style="left:50%"></span><span class="tk" style="left:75%"></span></div></div>
+  <div class="h-hpcol"><span class="h-label">${t('hud.health')}</span><div class="h-hpbar"><i data-r="hpbar"></i><span class="tk" style="left:25%"></span><span class="tk" style="left:50%"></span><span class="tk" style="left:75%"></span></div></div>
 </div>
 <div class="h-abs h-weapons" data-r="weapons">
   <div class="h-panel h-wbox"><div class="h-wtop"><span data-r="wicon"></span><span class="h-wextra" data-r="wextra"></span></div><div class="name" data-r="wname"></div></div>
   <div class="h-panel h-slot" data-r="sec">
     <div class="h-cd"><svg class="ring" viewBox="0 0 38 38" aria-hidden="true"><circle cx="19" cy="19" r="17" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="3"/><circle data-r="secRing" cx="19" cy="19" r="17" fill="none" stroke="#7aa2ff" stroke-width="3" stroke-linecap="round" stroke-dasharray="${RING_C}" stroke-dashoffset="0"/></svg><span data-r="secIcon"></span></div>
-    <span class="h-key">Espaço</span>
+    <span class="h-key">${t('hud.space')}</span>
   </div>
-  <div class="h-panel h-slot" data-r="gren"><img data-r="grenImg" alt="Granadas"><div class="cnt"><span data-r="grenN"></span>${mouseIcon('right')}</div><i class="h-cool" data-r="grenCool" hidden></i></div>
+  <div class="h-panel h-slot" data-r="gren"><img data-r="grenImg" alt="${t('hud.grenades')}"><div class="cnt"><span data-r="grenN"></span>${mouseIcon('right')}</div><i class="h-cool" data-r="grenCool" hidden></i></div>
   <div class="h-panel h-slot" data-r="molo"><img data-r="moloImg" alt="Molotov"><div class="cnt"><span data-r="moloN"></span>${mouseIcon('middle')}</div><i class="h-cool" data-r="moloCool" hidden></i></div>
 </div>
-<div class="h-abs h-panel h-spec" data-r="spec" hidden>Assistindo como espectador <span>· WASD move a câmera · Esc para voltar a jogar</span></div>
+<div class="h-abs h-panel h-spec" data-r="spec" hidden>${t('hud.spectating')} <span>${t('hud.specHint')}</span></div>
 
 <div class="h-abs h-panel h-dead" data-r="deadCard" hidden></div>
 <div class="h-abs h-panel h-respawn" data-r="respawn" hidden></div>
 <div class="h-abs h-panel h-next" data-r="next" hidden>
-  <div class="h-nhead"><span class="h-label">Próxima vida</span><span class="hint">Clique para trocar · <span class="h-key">Esc</span> mostra os detalhes</span></div>
+  <div class="h-nhead"><span class="h-label">${t('hud.nextLife')}</span><span class="hint">${t('hud.nextHint', { esc: '<span class="h-key">Esc</span>' })}</span></div>
   <div class="h-chips" data-r="chips"></div>
 </div>
 
 <div class="h-abs h-banner" data-r="banner" hidden></div>
 <div class="h-abs h-panel h-scores" data-r="scores" hidden>
-  <div class="h-thead"><div><h2>Placar</h2><p data-r="tsub"></p></div><div class="h-tclock" data-r="tclock"></div></div>
+  <div class="h-thead"><div><h2>${t('table.title')}</h2><p data-r="tsub"></p></div><div class="h-tclock" data-r="tclock"></div></div>
   <table class="h-table"><thead data-r="thead"></thead><tbody data-r="table"></tbody></table>
   <div class="h-tfoot" data-r="tfoot"></div>
 </div>`;
@@ -327,12 +326,12 @@ export class HudLayer {
   flagEvent(reason: FlagReason, flagID: number, player: Player | null, me: Player): void {
     this.feed.push({
       kind: 'flag',
-      who: player ? (player === me ? 'Você' : player.name) : 'Alguém',
+      who: player ? (player === me ? t('feed.you') : player.name) : t('feed.someone'),
       team: player ? player.teamID : -1,
       me: player === me,
       // Good news for our team: we took, returned or captured, or they dropped it
       good: !!player && (player.teamID === me.teamID) === (reason !== 'dropped'),
-      verb: FLAG_VERBS[reason],
+      reason,
       flagID,
       t: this.time,
     });
@@ -341,7 +340,7 @@ export class HudLayer {
 
   /** The game type: the weapon menu's header says which mode this is. */
   setGameType(gameType: number): void {
-    this.picker.modeName = MODE_INFO[modeOfGameType(gameType)].name;
+    this.picker.modeName = modeName(modeOfGameType(gameType));
   }
 
   /** A chat line; `name` null for the server's own messages. */
@@ -469,7 +468,8 @@ export class HudLayer {
         if (e.kind === 'flag') {
           // Good news for our team in gold, bad news in red
           const tone = e.good ? 'mine' : 'died';
-          return `<div class="h-frow flagev ${tone} ${aged}">${this.flagImg(e.flagID)}${name(e.who, e.team, e.me)} ${e.verb} ${flagName(e.flagID)}</div>`;
+          const line = t(`feed.${e.reason}${e.me ? '.me' : ''}` as Key, { who: name(e.who, e.team, e.me), flag: flagName(e.flagID) });
+          return `<div class="h-frow flagev ${tone} ${aged}">${this.flagImg(e.flagID)}${line}</div>`;
         }
         const cls = [e.killerMe ? 'mine' : e.victimMe ? 'died' : '', aged].join(' ');
         const killer = e.killer !== null ? name(e.killer, e.killerTeam, e.killerMe) : '';
@@ -483,15 +483,15 @@ export class HudLayer {
   private updateMatch(f: HudFrame): void {
     const g = f.game;
     const time = sv.sv_gameTimeLimit > 0 ? `<div class="h-clock">${clock(f.timeLeft + 1)}</div>` : '';
-    const mode = MODE_INFO[modeOfGameType(g.gameType)].name;
+    const mode = modeName(modeOfGameType(g.gameType));
     if (!g.isTeamGame) {
-      const goal = sv.sv_scoreLimit > 0 ? ` · <b>1º a ${sv.sv_scoreLimit}</b>` : '';
+      const goal = sv.sv_scoreLimit > 0 ? ` · <b>${t('hud.firstTo', { n: sv.sv_scoreLimit })}</b>` : '';
       setHTML(this.r.match, `${time}<div class="h-mode">${mode} · ${esc(this.mapName)}${goal}</div>`);
       return;
     }
     const ctf = g.gameType === GAME_TYPE_CTF;
     const [blue, red, limit] = teamScores(g);
-    const goal = limit > 0 ? ` · <b>${limit} ${ctf ? 'capturas' : 'abates'}</b>` : '';
+    const goal = limit > 0 ? ` · <b>${t('hud.goal', { n: limit, what: t(ctf ? 'words.captures' : 'words.kills') })}</b>` : '';
     let html =
       `<div class="h-tscore"><span class="h-tpill t0">${this.flagImg(0)}<b>${blue}</b></span>${time || '<span class="h-vs">x</span>'}` +
       `<span class="h-tpill t1"><b>${red}</b>${this.flagImg(1)}</span></div><div class="h-mode">${mode} · ${esc(this.mapName)}${goal}</div>`;
@@ -501,7 +501,16 @@ export class HudLayer {
       for (let i = 0; i < 2; ++i) {
         const s = g.flagState[i];
         const carrier = s >= 0 ? g.players[s] : null;
-        const where = s === FLAG_ON_POD ? 'na base' : s === FLAG_DROPPED ? 'no chão' : carrier ? `com ${carrier === f.me ? 'você' : esc(carrier.name)}` : 'sumiu';
+        const where =
+          s === FLAG_ON_POD
+            ? t('flagState.base')
+            : s === FLAG_DROPPED
+              ? t('flagState.ground')
+              : carrier
+                ? carrier === f.me
+                  ? t('flagState.withYou')
+                  : t('flagState.with', { name: esc(carrier.name) })
+                : t('flagState.gone');
         html += `<span class="h-fstat t${i}${s === FLAG_ON_POD ? '' : ' away'}">${this.flagImg(i)}${where}</span>`;
       }
       html += '</div>';
@@ -515,7 +524,7 @@ export class HudLayer {
     const home = f.game.flagState[own] === FLAG_ON_POD;
     setHTML(
       this.r.carry,
-      `${this.flagImg(1 - own)}<div><strong>Você está com a bandeira!</strong><span>${home ? 'Leve até a sua base para pontuar.' : 'Sua bandeira precisa voltar para a base para você pontuar.'}</span></div>`,
+      `${this.flagImg(1 - own)}<div><strong>${t('carry.title')}</strong><span>${t(home ? 'carry.home' : 'carry.away')}</span></div>`,
     );
   }
 
@@ -525,7 +534,7 @@ export class HudLayer {
     const top = rows.slice(0, 4);
     const mine = rows.indexOf(f.me);
     if (mine >= 4) top[3] = f.me;
-    let html = '<div class="h-bhead"><span class="h-label">Placar</span><span class="h-key">Tab</span><span class="sp"></span>';
+    let html = `<div class="h-bhead"><span class="h-label">${t('board.title')}</span><span class="h-key">Tab</span><span class="sp"></span>`;
     if (f.online && f.pingMs !== null) {
       const ms = Math.round(f.pingMs);
       html += `<span class="h-ping" style="color:${pingColor(ms)}">${signalIcon(ms)} ${ms} ms</span>`;
@@ -543,7 +552,10 @@ export class HudLayer {
       html += `<div class="h-brow ${cls}"><span class="rk">${rank}</span>${this.avatar(p.displaySkin)}<span class="nm">${esc(p.name)}</span><span class="kl">${p.score}</span></div>`;
     }
     const more = rows.length - top.length;
-    const foot = [more > 0 ? `+${more} ${more === 1 ? 'jogador' : 'jogadores'}` : '', g.isTeamGame && f.me.teamID >= 0 ? `<span class="t${f.me.teamID}">Você: time ${teamName(f.me.teamID)}</span>` : ''].filter(Boolean);
+    const foot = [
+      more > 0 ? t('board.more', { n: more, players: t(more === 1 ? 'words.player' : 'words.players') }) : '',
+      g.isTeamGame && f.me.teamID >= 0 ? `<span class="t${f.me.teamID}">${t('board.you', { team: teamName(f.me.teamID) })}</span>` : '',
+    ].filter(Boolean);
     if (foot.length) html += `<div class="h-bfoot">${foot.join(' · ')}</div>`;
     setHTML(this.r.board, html);
   }
@@ -558,8 +570,8 @@ export class HudLayer {
         return c.name === null ? `<p class="sys${fade}">${esc(c.text)}</p>` : `<p class="${fade}"><b>${esc(c.name)}:</b> ${esc(c.text)}</p>`;
       })
       .join('');
-    if (f.chatInput !== null) html += `<p class="input"><b>Dizer:</b> ${esc(f.chatInput)}<span class="caret"></span></p>`;
-    else if (f.online && !deadScreen) html += '<p class="hint"><span class="h-key">T</span> conversar</p>';
+    if (f.chatInput !== null) html += `<p class="input"><b>${t('chat.say')}</b> ${esc(f.chatInput)}<span class="caret"></span></p>`;
+    else if (f.online && !deadScreen) html += `<p class="hint"><span class="h-key">T</span> ${t('chat.hint')}</p>`;
     setHTML(this.r.chat, html);
     // While dead the death screen takes the left side
     setStyle(this.r.chat, 'left', deadScreen ? '520px' : '14px');
@@ -690,7 +702,7 @@ export class HudLayer {
       const left = Math.max(0, 6 - w.shotInc);
       for (let i = 0; i < 6; i++) extra += `<span class="h-pip${i >= left ? ' off' : ''}"></span>`;
     } else if (w && id === WEAPON_CHAIN_GUN) {
-      extra = `<span class="h-label" style="font-size:10px">calor</span><span class="h-heat${w.overHeated ? ' hot' : ''}"><i style="width:${Math.round((1 - w.chainOverHeat) * 100)}%"></i></span>`;
+      extra = `<span class="h-label" style="font-size:10px">${t('hud.heat')}</span><span class="h-heat${w.overHeated ? ' hot' : ''}"><i style="width:${Math.round((1 - w.chainOverHeat) * 100)}%"></i></span>`;
     }
     setHTML(r.wextra, extra);
 
@@ -805,41 +817,41 @@ export class HudLayer {
       const lifeDmg = Math.max(0, Math.round((me.dmg - this.life.dmgAtSpawn) * 100));
       setHTML(
         r.deadCard,
-        `<div class="h-eyebrow">Eliminado</div>` +
+        `<div class="h-eyebrow">${t('death.eliminated')}</div>` +
           (d.suicide
-            ? `<div class="h-krow"><div class="h-kav">${this.avatar(me.displaySkin)}</div><div><div class="h-kname">Você</div><div class="h-kwith">se eliminou com ${how}</div></div></div>`
-            : `<div class="h-krow"><div class="h-kav">${this.avatar(d.killerSkin)}</div><div><div class="h-kname">${esc(d.killerName)}</div><div class="h-kwith">te pegou com ${how}</div></div></div>` +
-              (d.count >= 2 ? `<span class="h-nemesis">${d.count}ª vez que ${esc(d.killerName)} te pega nesta partida</span>` : '')) +
-          `<div class="h-divider"></div><span class="h-label">Esta vida</span><div class="h-life">` +
-          `<div><b>${this.life.kills}</b><span>${this.life.kills === 1 ? 'abate' : 'abates'}</span></div>` +
-          `<div><b>${lifeDmg}</b><span>de dano</span></div>` +
-          `<div><b>${clock(this.life.length)}</b><span>vivo</span></div></div>`,
+            ? `<div class="h-krow"><div class="h-kav">${this.avatar(me.displaySkin)}</div><div><div class="h-kname">${t('death.you')}</div><div class="h-kwith">${t('death.self', { how })}</div></div></div>`
+            : `<div class="h-krow"><div class="h-kav">${this.avatar(d.killerSkin)}</div><div><div class="h-kname">${esc(d.killerName)}</div><div class="h-kwith">${t('death.by', { how })}</div></div></div>` +
+              (d.count >= 2 ? `<span class="h-nemesis">${t('death.nemesis', { n: d.count, name: esc(d.killerName) })}</span>` : '')) +
+          `<div class="h-divider"></div><span class="h-label">${t('death.thisLife')}</span><div class="h-life">` +
+          `<div><b>${this.life.kills}</b><span>${t(this.life.kills === 1 ? 'words.kill' : 'words.kills')}</span></div>` +
+          `<div><b>${lifeDmg}</b><span>${t('death.damage')}</span></div>` +
+          `<div><b>${clock(this.life.length)}</b><span>${t('death.alive')}</span></div></div>`,
       );
     }
 
     // Player::update: the respawn countdown, then the shoot key (or sv_forceRespawn)
-    const t = me.timeToSpawn;
-    const mode = t > 0 ? 'count' : me.spawnRequested ? 'wait' : sv.sv_forceRespawn ? 'force' : 'click';
+    const toSpawn = me.timeToSpawn;
+    const mode = toSpawn > 0 ? 'count' : me.spawnRequested ? 'wait' : sv.sv_forceRespawn ? 'force' : 'click';
     const first = !d;
     let html: string;
     if (mode === 'count') {
       html =
         `<div class="h-ringwrap"><svg viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6"/>` +
         `<circle data-ring cx="36" cy="36" r="30" fill="none" stroke="#5fe27d" stroke-width="6" stroke-linecap="round" stroke-dasharray="${RESPAWN_C}"/></svg><b data-num></b></div>` +
-        `<div class="h-rtext"><strong data-title></strong><span>Escolha a arma da próxima vida aqui embaixo.</span></div>`;
+        `<div class="h-rtext"><strong data-title></strong><span>${t('death.pickBelow')}</span></div>`;
     } else if (mode === 'click') {
-      html = `<span class="h-play pulse">${first ? 'Clique para entrar' : 'Clique para renascer'}</span><div class="h-rtext"><span>Em qualquer lugar da tela.</span></div>`;
+      html = `<span class="h-play pulse">${t(first ? 'death.clickJoin' : 'death.clickRespawn')}</span><div class="h-rtext"><span>${t('death.anywhere')}</span></div>`;
     } else {
-      html = `<div class="h-rtext"><strong>${mode === 'wait' ? 'Entrando na arena...' : 'Renascendo...'}</strong></div>`;
+      html = `<div class="h-rtext"><strong>${t(mode === 'wait' ? 'death.entering' : 'death.respawning')}</strong></div>`;
     }
     setHTML(r.respawn, html);
     r.respawn.classList.toggle('alone', !d);
     if (mode === 'count') {
-      const secs = Math.ceil(t);
+      const secs = Math.ceil(toSpawn);
       setText(r.respawn.querySelector<HTMLElement>('[data-num]')!, String(secs));
-      setText(r.respawn.querySelector<HTMLElement>('[data-title]')!, `Renasce em ${secs} s`);
+      setText(r.respawn.querySelector<HTMLElement>('[data-title]')!, t('death.respawnIn', { n: secs }));
       const ring = r.respawn.querySelector<SVGElement>('[data-ring]')!;
-      setStyle(ring, 'stroke-dashoffset', (RESPAWN_C * (1 - t / Math.max(0.01, sv.sv_timeToSpawn))).toFixed(1));
+      setStyle(ring, 'stroke-dashoffset', (RESPAWN_C * (1 - toSpawn / Math.max(0.01, sv.sv_timeToSpawn))).toFixed(1));
     }
 
     const p = this.picker;
@@ -861,20 +873,28 @@ export class HudLayer {
     const g = f.game;
     const ctf = g.gameType === GAME_TYPE_CTF;
     const limit = g.isTeamGame ? teamScores(g)[2] : sv.sv_scoreLimit;
-    const goal = limit <= 0 ? '' : g.isTeamGame ? ` · vence o time que chegar primeiro a ${limit} ${ctf ? 'capturas' : 'abates'}` : ` · vence quem chegar primeiro a ${limit} abates`;
-    setText(r.tsub, `${MODE_INFO[modeOfGameType(g.gameType)].name} · ${this.mapName}${goal}`);
-    setHTML(r.tclock, sv.sv_gameTimeLimit > 0 ? `<b>${clock(f.timeLeft + 1)}</b><span>restantes</span>` : '');
-    const cols = ['#', 'Jogador', 'Abates', 'Mortes', ...(ctf ? ['Capturas', 'Devoluções'] : []), 'Dano', ...(f.online ? ['Ping'] : [])];
+    const goal = limit <= 0 ? '' : g.isTeamGame ? t('table.teamGoal', { n: limit, what: t(ctf ? 'words.captures' : 'words.kills') }) : t('table.goal', { n: limit });
+    setText(r.tsub, `${modeName(modeOfGameType(g.gameType))} · ${this.mapName}${goal}`);
+    setHTML(r.tclock, sv.sv_gameTimeLimit > 0 ? `<b>${clock(f.timeLeft + 1)}</b><span>${t('table.left')}</span>` : '');
+    const cols = [
+      '#',
+      t('table.player'),
+      t('table.kills'),
+      t('table.deaths'),
+      ...(ctf ? [t('table.captures'), t('table.returns')] : []),
+      t('table.damage'),
+      ...(f.online ? [t('table.ping')] : []),
+    ];
     setHTML(r.thead, `<tr>${cols.map((c) => `<th>${c}</th>`).join('')}</tr>`);
     const row = (p: Player, i: number): string => {
       const cls = [p === f.me ? 'me' : '', i === 0 ? 'first' : '', p.isAlive ? '' : 'dead'].join(' ');
       const ms = p.pingFrames * 33;
       // CTF scores are captures: the frags are the kills there (GameShowStats "Kills" / "Caps")
       return (
-        `<tr class="${cls}"><td>${i + 1}</td><td class="pl"><div>${this.avatar(p.displaySkin)}<span>${esc(p.name)}</span>${p.isAlive ? '' : '<small>morto</small>'}</div></td>` +
+        `<tr class="${cls}"><td>${i + 1}</td><td class="pl"><div>${this.avatar(p.displaySkin)}<span>${esc(p.name)}</span>${p.isAlive ? '' : `<small>${t('table.dead')}</small>`}</div></td>` +
         `<td class="k">${ctf ? p.kills : p.score}</td><td>${p.deaths}</td>` +
         (ctf ? `<td class="k">${p.score}</td><td>${p.returns}</td>` : '') +
-        `<td>${Math.round(p.dmg * 100).toLocaleString('pt-BR')}</td>` +
+        `<td>${bigNum(Math.round(p.dmg * 100))}</td>` +
         (f.online ? `<td style="color:${pingColor(ms)}"><span class="h-pdot"></span>${ms} ms</td>` : '') +
         '</tr>'
       );
@@ -883,11 +903,11 @@ export class HudLayer {
     if (!g.isTeamGame) html = ranked(f.players).map(row).join('');
     else {
       const [blue, red] = teamScores(g);
-      for (const t of blue >= red ? [PLAYER_TEAM_BLUE, PLAYER_TEAM_RED] : [PLAYER_TEAM_RED, PLAYER_TEAM_BLUE]) {
-        const members = ranked(f.players).filter((p) => p.teamID === t);
+      for (const team of blue >= red ? [PLAYER_TEAM_BLUE, PLAYER_TEAM_RED] : [PLAYER_TEAM_RED, PLAYER_TEAM_BLUE]) {
+        const members = ranked(f.players).filter((p) => p.teamID === team);
         html +=
-          `<tr class="h-tteam t${t}"><td colspan="${cols.length}"><div>${this.flagImg(t)}<span>Time ${teamName(t)}</span>` +
-          `<b>${t === PLAYER_TEAM_BLUE ? blue : red}</b><small>${members.length} ${members.length === 1 ? 'jogador' : 'jogadores'}</small></div></td></tr>`;
+          `<tr class="h-tteam t${team}"><td colspan="${cols.length}"><div>${this.flagImg(team)}<span>${capitalize(teamName(team))}</span>` +
+          `<b>${team === PLAYER_TEAM_BLUE ? blue : red}</b><small>${members.length} ${t(members.length === 1 ? 'words.player' : 'words.players')}</small></div></td></tr>`;
         html += members.map(row).join('');
       }
     }
@@ -895,7 +915,8 @@ export class HudLayer {
     const specs = f.players.filter((p): p is Player => !!p && p.teamID === PLAYER_TEAM_SPECTATOR).map((p) => p.name);
     setHTML(
       r.tfoot,
-      `<span>Espectadores: ${specs.length ? esc(specs.join(', ')) : 'ninguém'}</span>` + (playing ? '<span>Solte <span class="h-key">Tab</span> para voltar ao jogo</span>' : ''),
+      `<span>${t('table.spectators', { list: specs.length ? esc(specs.join(', ')) : t('table.nobody') })}</span>` +
+        (playing ? `<span>${t('table.releaseTab', { tab: '<span class="h-key">Tab</span>' })}</span>` : ''),
     );
     r.scores.classList.toggle('over', !playing);
   }
@@ -910,15 +931,19 @@ export class HudLayer {
       const [blue, red] = teamScores(g);
       const rs = g.roundState;
       const winner = rs === GAME_BLUE_WIN ? PLAYER_TEAM_BLUE : rs === GAME_RED_WIN ? PLAYER_TEAM_RED : rs === GAME_DRAW || blue === red ? -1 : blue > red ? PLAYER_TEAM_BLUE : PLAYER_TEAM_RED;
-      const ours = winner >= 0 && winner === f.me.teamID ? ' Seu time!' : '';
-      result = winner < 0 ? `Empate <span>${blue} a ${red}</span>` : `<b class="t${winner}">Time ${teamName(winner)}</b> venceu${ours} <span>${Math.max(blue, red)} a ${Math.min(blue, red)}</span>`;
+      const ours = winner >= 0 && winner === f.me.teamID ? t('banner.yourTeam') : '';
+      const score = t('banner.score', { a: Math.max(blue, red), b: Math.min(blue, red) });
+      result =
+        winner < 0
+          ? `${t('banner.draw')} <span>${score}</span>`
+          : `${t('banner.teamWon', { team: `<b class="t${winner}">${capitalize(teamName(winner))}</b>`, ours })} <span>${score}</span>`;
     } else {
       const winner = ranked(f.players)[0];
-      const who = !winner ? '' : winner === f.me ? 'Você venceu!' : `${esc(winner.name)} venceu`;
-      result = who + (winner ? ` <span>com ${winner.score} ${winner.score === 1 ? 'abate' : 'abates'}</span>` : '');
+      const who = !winner ? '' : winner === f.me ? t('banner.youWon') : t('banner.playerWon', { name: esc(winner.name) });
+      result = who + (winner ? ` <span>${t('banner.with', { n: winner.score, kills: t(winner.score === 1 ? 'words.kill' : 'words.kills') })}</span>` : '');
     }
-    const next = left > 0 ? `Próximo mapa em ${left} s` : 'Carregando o próximo mapa...';
-    setHTML(this.r.banner, `<div class="t">Fim de partida</div><div class="s">${result}</div><div class="s"><span>${next}</span></div>`);
+    const next = left > 0 ? t('banner.nextMap', { n: left }) : t('banner.loadingNext');
+    setHTML(this.r.banner, `<div class="t">${t('banner.over')}</div><div class="s">${result}</div><div class="s"><span>${next}</span></div>`);
   }
 
   dispose(): void {

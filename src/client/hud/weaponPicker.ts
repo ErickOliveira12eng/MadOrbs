@@ -6,6 +6,7 @@ import { sv } from '../../sim/gameVar';
 import type { HudArt } from './hudArt';
 import { CHECK, esc, mouseIcon, weaponIcon } from './icons';
 import { enabledPrimaries, enabledSecondaries, weaponInfo } from './weaponInfo';
+import { t } from '../../i18n';
 
 export interface WeaponChoice {
   primary: number;
@@ -108,7 +109,7 @@ export class WeaponPicker {
     const art = this.art;
     const primaries = enabledPrimaries();
     const secondaries = enabledSecondaries();
-    const badge = `<span class="h-badge">${CHECK}Selecionada</span>`;
+    const badge = `<span class="h-badge">${CHECK}${t('pick.selected')}</span>`;
     const cards = primaries
       .map((id) => {
         const w = weaponInfo(id);
@@ -139,23 +140,23 @@ export class WeaponPicker {
     const hasSecondary = secondaries.includes(this.secondary);
     const s = weaponInfo(this.secondary);
     const loadout =
-      `<span class="h-label">Seu equipamento</span>` +
+      `<span class="h-label">${t('pick.loadout')}</span>` +
       `<div class="h-lorow">${weaponIcon(art, p.id, 'white')}${esc(p.name)}` +
       (hasSecondary ? `<span class="plus">+</span>${weaponIcon(art, s.id, 'white')}${esc(s.name)}` : '') +
-      `</div><div class="h-lorow"><small>Sempre com 2 granadas${sv.sv_enableMolotov ? ' e 1 molotov' : ''}</small></div>`;
+      `</div><div class="h-lorow"><small>${t(sv.sv_enableMolotov ? 'pick.alwaysMolotov' : 'pick.always')}</small></div>`;
 
     const where = [this.modeName, this.mapName, this.serverName].filter(Boolean).map(esc).join(' · ');
     this.el.innerHTML =
       `<div class="h-pickin">` +
-      `<div class="h-phead"><div><span class="h-label">${where}</span><h2>Escolha suas armas</h2>` +
-      `<span class="sub">A troca vale no próximo respawn.</span></div><div class="h-panel h-loadout">${loadout}</div></div>` +
-      `<div class="h-shead"><span class="h-label">Arma principal</span><span class="hint">${mouseIcon('left')} atirar</span></div>` +
+      `<div class="h-phead"><div><span class="h-label">${where}</span><h2>${t('pick.title')}</h2>` +
+      `<span class="sub">${t('pick.sub')}</span></div><div class="h-panel h-loadout">${loadout}</div></div>` +
+      `<div class="h-shead"><span class="h-label">${t('pick.primary')}</span><span class="hint">${mouseIcon('left')} ${t('pick.shoot')}</span></div>` +
       `<div class="h-grid">${cards}</div>` +
-      (scards ? `<div class="h-shead"><span class="h-label">Secundária</span><span class="hint"><span class="h-key">Espaço</span> usar</span></div><div class="h-srow">${scards}</div>` : '') +
+      (scards ? `<div class="h-shead"><span class="h-label">${t('pick.secondary')}</span><span class="hint"><span class="h-key">${t('hud.space')}</span> ${t('pick.use')}</span></div><div class="h-srow">${scards}</div>` : '') +
       `<div class="h-pfoot">` +
-      `<button type="button" class="h-ghost danger" data-act="quit">Sair da partida</button>` +
-      (this.canSpectate ? `<button type="button" class="h-ghost" data-act="spectate">${this.spectating ? 'Voltar a jogar' : 'Assistir como espectador'}</button>` : '') +
-      `<button type="button" class="h-play" data-act="back">${this.joined ? 'Voltar ao jogo' : 'Entrar na partida'} <span class="h-key">Esc</span></button>` +
+      `<button type="button" class="h-ghost danger" data-act="quit">${t('pick.quit')}</button>` +
+      (this.canSpectate ? `<button type="button" class="h-ghost" data-act="spectate">${t(this.spectating ? 'pick.playAgain' : 'pick.spectate')}</button>` : '') +
+      `<button type="button" class="h-play" data-act="back">${t(this.joined ? 'pick.back' : 'pick.join')} <span class="h-key">Esc</span></button>` +
       `</div></div>`;
   }
 }

@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { FRONT, type OrbStudio } from './orbStudio';
 import { SKINS, skinInfo, type Settings } from './settings';
+import { t } from '../i18n';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -44,7 +45,7 @@ export class OrbPicker {
       const b = document.createElement('button');
       b.type = 'button';
       b.setAttribute('role', 'option');
-      b.title = `Estilo ${+skin.slice(4)}`;
+      b.title = t('orb.styleN', { n: +skin.slice(4) });
       const c = document.createElement('canvas');
       c.width = c.height = THUMB;
       b.appendChild(c);
@@ -59,7 +60,7 @@ export class OrbPicker {
     for (const [c1, c2, c3] of PRESETS) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.title = 'Usar estas cores';
+      b.title = t('orb.useColors');
       b.style.background = `linear-gradient(135deg, ${c1} 0 34%, ${c2} 34% 67%, ${c3} 67%)`;
       b.addEventListener('click', () => this.setColors(c1, c2, c3));
       presets.appendChild(b);

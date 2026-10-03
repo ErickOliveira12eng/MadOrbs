@@ -12,8 +12,12 @@ import { OrbStudio } from './menu/orbStudio';
 import { trainingMaps } from './menu/training';
 import { applyAudioSettings, loadSettings, saveSettings, skinInfo } from './menu/settings';
 import type { SkinInfo } from './sim/player';
+import { t, translateDom } from './i18n';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+// The page's texts in its language (each language's index.html already has them; dev and "/" may not)
+translateDom();
 
 const settings = loadSettings();
 applyAudioSettings(settings);
@@ -59,7 +63,7 @@ async function startGame(mode: PlayMode): Promise<void> {
     (window as unknown as { madorbs: ClientGame }).madorbs = game;
   } catch (e) {
     console.error(e);
-    screen.show(`Não foi possível entrar: ${(e as Error).message}`);
+    screen.show(t('menu.joinFailed', { reason: (e as Error).message }));
   } finally {
     loading.hidden = true;
   }

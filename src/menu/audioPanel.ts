@@ -3,6 +3,7 @@
 // speaker or, in game, from the button shown while the Esc menu is open. M toggles the music.
 import { icon, type IconName } from './icons';
 import { applyAudioSettings, type Settings } from './settings';
+import { t } from '../i18n';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -80,7 +81,7 @@ export class AudioPanel {
     s.musicMuted = !s.musicMuted;
     if (!s.musicMuted) s.muted = false;
     this.changed();
-    this.showToast(s.musicMuted ? 'Música desligada (M)' : 'Música ligada (M)');
+    this.showToast(t(s.musicMuted ? 'audio.musicOffM' : 'audio.musicOnM'));
   }
 
   private showToast(text: string): void {
@@ -107,13 +108,13 @@ export class AudioPanel {
       mute.classList.toggle('off', muted);
     }
     this.master.setAttribute('aria-checked', String(!s.muted));
-    $('masterState').textContent = s.muted ? 'Desligado' : 'Ligado';
+    $('masterState').textContent = t(s.muted ? 'audio.off' : 'audio.on');
     $('audioChannels').classList.toggle('dimmed', s.muted);
     const silent = s.muted || CHANNELS.every((k) => s[MUTED[k]] || s[k] === 0);
     for (const b of [this.startButton, this.gameButton]) {
       b.innerHTML = icon(silent ? 'volume_x' : 'volume_2', 20);
       b.classList.toggle('off', silent);
-      b.title = silent ? 'Som desligado' : 'Som';
+      b.title = t(silent ? 'audio.soundOff' : 'audio.title');
     }
   }
 }

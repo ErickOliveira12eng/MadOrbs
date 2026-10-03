@@ -1,51 +1,54 @@
 <!doctype html>
-<html lang="pt-BR">
+<!-- The English page (/). tools/build-langs.ts writes /pt/ and /es/ from this one at build time:
+     the data-i18n attribute names the text of an element, data-i18n-attr its attributes (src/i18n). -->
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mad Orbs: jogo de tiro online grátis no navegador</title>
-    <meta name="description" content="Jogo de tiro online e grátis no navegador: Deathmatch, Team Deathmatch e Capture a Bandeira com Orbs. Sem instalar e sem cadastro, chame os amigos." />
-    <link rel="canonical" href="https://madorbs.com/" />
+    <script>
+      // At "/", visitors who picked Portuguese or Spanish before (the language button), or whose
+      // browser asks for it first, go to that version before anything shows
+      (function () {
+        if (location.pathname !== '/') return;
+        var l = null;
+        try {
+          l = localStorage.getItem('madorbs.lang');
+        } catch (e) {}
+        if (!l) {
+          var asked = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];
+          for (var i = 0; i < asked.length; i++) {
+            var base = String(asked[i]).slice(0, 2).toLowerCase();
+            if (base === 'en' || base === 'pt' || base === 'es') {
+              l = base;
+              break;
+            }
+          }
+        }
+        if (l === 'pt' || l === 'es') location.replace('/' + l + '/' + location.search + location.hash);
+      })();
+    </script>
+    <title data-i18n="meta.title">Mad Orbs: free online shooter in your browser</title>
+    <meta name="description" data-i18n-attr="content=meta.description" content="Free online shooting game in your browser: Deathmatch, Team Deathmatch and Capture the Flag with Orbs. Nothing to install, no sign-up: call your friends and play." />
+    <link rel="canonical" data-i18n-attr="href=meta.url" href="https://madorbs.com/" />
+    <link rel="alternate" hreflang="en" href="https://madorbs.com/" />
+    <link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/" />
+    <link rel="alternate" hreflang="es" href="https://madorbs.com/es/" />
+    <link rel="alternate" hreflang="x-default" href="https://madorbs.com/" />
     <meta name="theme-color" content="#0b1020" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Mad Orbs" />
-    <meta property="og:locale" content="pt_BR" />
-    <meta property="og:url" content="https://madorbs.com/" />
-    <meta property="og:title" content="Mad Orbs: tiro online no navegador" />
-    <meta property="og:description" content="Deathmatch de Orbs no navegador. Chame os amigos e jogue na hora, sem instalar nada." />
+    <meta property="og:locale" data-i18n-attr="content=meta.locale" content="en_US" />
+    <meta property="og:url" data-i18n-attr="content=meta.url" content="https://madorbs.com/" />
+    <meta property="og:title" data-i18n-attr="content=meta.ogTitle" content="Mad Orbs: online shooter in your browser" />
+    <meta property="og:description" data-i18n-attr="content=meta.ogDescription" content="Orb deathmatch in your browser. Call your friends and play right away, nothing to install." />
     <meta property="og:image" content="__ORIGIN__/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Orbs coloridas trocando tiros numa arena do Mad Orbs" />
+    <meta property="og:image:alt" data-i18n-attr="content=meta.ogImageAlt" content="Colorful Orbs trading shots in a Mad Orbs arena" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "WebSite",
-            "name": "Mad Orbs",
-            "url": "https://madorbs.com/",
-            "inLanguage": "pt-BR"
-          },
-          {
-            "@type": "VideoGame",
-            "name": "Mad Orbs",
-            "url": "https://madorbs.com/",
-            "description": "Jogo de tiro online multijogador no navegador, com Orbs que rolam pela arena: Deathmatch, Team Deathmatch e Capture a Bandeira, além de treino offline contra bots.",
-            "image": "https://madorbs.com/og-image.jpg",
-            "genre": ["Tiro", "Ação", "Multijogador"],
-            "gamePlatform": "Navegador web",
-            "applicationCategory": "Game",
-            "operatingSystem": "Windows, macOS, Linux",
-            "playMode": ["MultiPlayer", "SinglePlayer"],
-            "inLanguage": "pt-BR",
-            "isAccessibleForFree": true,
-            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "BRL" },
-            "author": { "@type": "Person", "name": "Érick Matheus de Oliveira" }
-          }
-        ]
-      }
+    <!-- Structured data, written for each language by tools/build-langs.ts -->
+    <script type="application/ld+json" id="ld-json">
+      {}
     </script>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
@@ -61,8 +64,8 @@
   <body>
     <noscript>
       <p style="color:#eef2ff;font:16px/1.5 system-ui,sans-serif;padding:24px">
-        Mad Orbs é um jogo de tiro online que roda no navegador e precisa do JavaScript ligado.
-        <a href="/sobre" style="color:#9fc4ff">Saiba como jogar</a>.
+        <span data-i18n="meta.noscript">Mad Orbs is an online shooting game that runs in the browser and needs JavaScript turned on.</span>
+        <a data-i18n-attr="href=link.howToPlay" href="/how-to-play" style="color:#9fc4ff" data-i18n="meta.noscriptLink">Learn how to play</a>
       </p>
     </noscript>
     <div id="game"></div>
@@ -75,61 +78,67 @@
       </div>
 
       <div class="topbar">
-        <div id="serverStatus" class="online-pill"><span class="dot"></span><span data-icon="users"></span><span class="status-text">Procurando o servidor...</span></div>
-        <button id="btnAudio" class="icon-btn" type="button" title="Som" aria-label="Som: ligar, desligar e volumes" aria-haspopup="true"></button>
-        <button id="btnFullscreen" class="icon-btn" type="button" title="Tela cheia" aria-label="Tela cheia"></button>
+        <div id="serverStatus" class="online-pill"><span class="dot"></span><span data-icon="users"></span><span class="status-text" data-i18n="menu.searching">Looking for the server...</span></div>
+        <button id="btnAudio" class="icon-btn" type="button" data-i18n-attr="title=menu.sound;aria-label=menu.soundAria" title="Sound" aria-label="Sound: on, off and volumes" aria-haspopup="true"></button>
+        <button id="btnLang" class="icon-btn lang-btn" type="button" data-i18n-attr="title=menu.language;aria-label=menu.language" title="Language" aria-label="Language" aria-haspopup="true"><span data-icon="globe"></span><span id="langCode" class="lang-code">EN</span></button>
+        <button id="btnFullscreen" class="icon-btn" type="button" data-i18n-attr="title=menu.fullscreen;aria-label=menu.fullscreen" title="Full screen" aria-label="Full screen"></button>
       </div>
+      <nav id="langMenu" class="popover lang-menu" hidden data-i18n-attr="aria-label=menu.language" aria-label="Language">
+        <a href="/" hreflang="en" lang="en" data-lang="en">English</a>
+        <a href="/pt/" hreflang="pt" lang="pt-BR" data-lang="pt">Português</a>
+        <a href="/es/" hreflang="es" lang="es" data-lang="es">Español</a>
+      </nav>
 
       <main class="menu">
         <h1 class="logo" aria-label="Mad Orbs">
           <span class="logo-mad" data-text="MAD">MAD</span><span class="logo-orbs" data-text="ORBS">ORBS</span>
           <span class="logo-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
         </h1>
-        <p class="slogan">ROLE. ATIRE. DESTRUA.</p>
-        <p class="tagline">Deathmatch de Orbs no navegador</p>
+        <p class="slogan" data-i18n="menu.slogan">ROLL. SHOOT. DESTROY.</p>
+        <p class="tagline" data-i18n="menu.tagline">Orb deathmatch in your browser</p>
 
         <form id="startForm" class="play-area" autocomplete="off">
           <div class="orb-row">
-            <button id="orbPrev" class="orb-arrow" type="button" title="Estilo anterior" aria-label="Estilo anterior"><span data-icon="chevron_left"></span></button>
-            <button id="orbButton" class="orb-stage" type="button" title="Personalizar Orb">
+            <button id="orbPrev" class="orb-arrow" type="button" data-i18n-attr="title=menu.prevStyle;aria-label=menu.prevStyle" title="Previous style" aria-label="Previous style"><span data-icon="chevron_left"></span></button>
+            <button id="orbButton" class="orb-stage" type="button" data-i18n-attr="title=menu.customize" title="Customize Orb">
               <span class="pedestal"></span>
               <span class="orb-shadow"></span>
               <canvas id="orbPreview" width="360" height="360"></canvas>
             </button>
-            <button id="orbNext" class="orb-arrow" type="button" title="Próximo estilo" aria-label="Próximo estilo"><span data-icon="chevron_right"></span></button>
+            <button id="orbNext" class="orb-arrow" type="button" data-i18n-attr="title=menu.nextStyle;aria-label=menu.nextStyle" title="Next style" aria-label="Next style"><span data-icon="chevron_right"></span></button>
           </div>
-          <input id="name" class="name-input" type="text" maxlength="31" placeholder="Seu nome" spellcheck="false" aria-label="Seu nome" />
-          <button id="orbCustomize" class="pill-btn" type="button"><span data-icon="palette"></span>Personalizar Orb</button>
+          <input id="name" class="name-input" type="text" maxlength="31" data-i18n-attr="placeholder=menu.yourName;aria-label=menu.yourName" placeholder="Your name" spellcheck="false" aria-label="Your name" />
+          <button id="orbCustomize" class="pill-btn" type="button"><span data-icon="palette"></span><span data-i18n="menu.customize">Customize Orb</span></button>
 
           <button id="play" class="btn-play hero" type="submit">
-            <span class="play-main"><span data-icon="play"></span>JOGAR AGORA</span>
-            <span id="playSub" class="play-sub">Partida rápida</span>
+            <span class="play-main"><span data-icon="play"></span><span data-i18n="menu.play">PLAY NOW</span></span>
+            <span id="playSub" class="play-sub" data-i18n="menu.quickMatch">Quick match</span>
           </button>
           <div id="message" class="message" role="alert" hidden></div>
 
-          <div id="modes" class="modes" role="radiogroup" aria-label="Modo de jogo"></div>
+          <div id="modes" class="modes" role="radiogroup" data-i18n-attr="aria-label=menu.gameMode" aria-label="Game mode"></div>
 
           <div class="shortcuts">
             <button class="shortcut" type="button" disabled>
-              <span class="shortcut-icon" data-icon="bars"></span><span><b>Ranking</b><small>Em breve</small></span>
+              <span class="shortcut-icon" data-icon="bars"></span><span><b data-i18n="menu.ranking">Ranking</b><small data-i18n="menu.soon">Coming soon</small></span>
             </button>
             <button id="training" class="shortcut" type="button">
-              <span class="shortcut-icon" data-icon="gamepad"></span><span><b>Treinar com bots</b><small>Jogue offline</small></span>
+              <span class="shortcut-icon" data-icon="gamepad"></span><span><b data-i18n="menu.train">Train with bots</b><small data-i18n="menu.offline">Play offline</small></span>
             </button>
             <button id="btnControls" class="shortcut" type="button">
-              <span class="shortcut-icon" data-icon="help"></span><span><b>Controles</b><small>WASD + Mouse</small></span>
+              <span class="shortcut-icon" data-icon="help"></span><span><b data-i18n="menu.controls">Controls</b><small data-i18n="menu.controlsSub">WASD + Mouse</small></span>
             </button>
           </div>
         </form>
-        <p id="touchNotice" class="touch-notice" hidden>Mad Orbs precisa de teclado e mouse: abra no computador para jogar.</p>
+        <p id="touchNotice" class="touch-notice" hidden data-i18n="menu.touch">Mad Orbs needs a keyboard and a mouse: open it on a computer to play.</p>
       </main>
 
       <footer class="footer">
-        <a href="/sobre" target="_blank" rel="noopener">Como jogar</a>
-        <a href="/armas" target="_blank" rel="noopener">Armas</a>
-        <a href="/modos" target="_blank" rel="noopener">Modos de jogo</a>
-        <a href="/privacidade" target="_blank" rel="noopener">Privacidade</a>
-        <a href="/termos" target="_blank" rel="noopener">Termos de uso</a>
+        <a data-i18n-attr="href=link.howToPlay" href="/how-to-play" target="_blank" rel="noopener" data-i18n="footer.howToPlay">How to play</a>
+        <a data-i18n-attr="href=link.weapons" href="/weapons" target="_blank" rel="noopener" data-i18n="footer.weapons">Weapons</a>
+        <a data-i18n-attr="href=link.modes" href="/modes" target="_blank" rel="noopener" data-i18n="footer.modes">Game modes</a>
+        <a data-i18n-attr="href=link.privacy" href="/privacy" target="_blank" rel="noopener" data-i18n="footer.privacy">Privacy</a>
+        <a data-i18n-attr="href=link.terms" href="/terms" target="_blank" rel="noopener" data-i18n="footer.terms">Terms of use</a>
       </footer>
     </div>
 
@@ -137,25 +146,26 @@
     <div id="controlsModal" class="modal" hidden>
       <div class="modal-card controls-modal" role="dialog" aria-modal="true" aria-labelledby="controlsTitle">
         <header class="modal-head">
-          <h2 id="controlsTitle">Controles</h2>
-          <button class="icon-btn modal-close" type="button" data-close aria-label="Fechar"><span data-icon="x"></span></button>
+          <h2 id="controlsTitle" data-i18n="controls.title">Controls</h2>
+          <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>
         </header>
-        <section class="controls" aria-label="Controles">
-          <div class="ctrl"><span class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span>mover</div>
-          <div class="ctrl"><span class="keys"><kbd class="mouse" data-icon="mouse_pointer_click"></kbd></span>atirar</div>
-          <div class="ctrl"><span class="keys"><kbd>botão direito</kbd></span>granada</div>
-          <div class="ctrl"><span class="keys"><kbd>botão do meio</kbd></span>molotov</div>
-          <div class="ctrl"><span class="keys"><kbd>espaço</kbd></span>arma secundária</div>
-          <div class="ctrl"><span class="keys"><kbd>F</kbd></span>pegar arma</div>
-          <div class="ctrl"><span class="keys"><kbd>Tab</kbd></span>placar</div>
-          <div class="ctrl"><span class="keys"><kbd>T</kbd></span>chat</div>
-          <div class="ctrl"><span class="keys"><kbd>M</kbd></span>música</div>
-          <div class="ctrl"><span class="keys"><kbd>Esc</kbd></span>armas e opções</div>
+        <section class="controls" data-i18n-attr="aria-label=controls.title" aria-label="Controls">
+          <div class="ctrl"><span class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span data-i18n="controls.move">move</span></div>
+          <div class="ctrl"><span class="keys"><kbd class="mouse" data-icon="mouse_pointer_click"></kbd></span><span data-i18n="controls.shoot">shoot</span></div>
+          <div class="ctrl"><span class="keys"><kbd data-i18n="controls.rightButton">right button</kbd></span><span data-i18n="controls.grenade">grenade</span></div>
+          <div class="ctrl"><span class="keys"><kbd data-i18n="controls.middleButton">middle button</kbd></span><span data-i18n="controls.molotov">molotov</span></div>
+          <div class="ctrl"><span class="keys"><kbd data-i18n="controls.space">space</kbd></span><span data-i18n="controls.secondary">secondary weapon</span></div>
+          <div class="ctrl"><span class="keys"><kbd>F</kbd></span><span data-i18n="controls.pickup">pick up weapon</span></div>
+          <div class="ctrl"><span class="keys"><kbd>Tab</kbd></span><span data-i18n="controls.scores">scoreboard</span></div>
+          <div class="ctrl"><span class="keys"><kbd>T</kbd></span><span data-i18n="controls.chat">chat</span></div>
+          <div class="ctrl"><span class="keys"><kbd>M</kbd></span><span data-i18n="controls.music">music</span></div>
+          <div class="ctrl"><span class="keys"><kbd>Esc</kbd></span><span data-i18n="controls.menu">weapons and options</span></div>
         </section>
         <p class="guide-links">
-          Guias: <a href="/sobre" target="_blank" rel="noopener">Como jogar</a> ·
-          <a href="/armas" target="_blank" rel="noopener">Armas</a> ·
-          <a href="/modos" target="_blank" rel="noopener">Modos de jogo</a>
+          <span data-i18n="footer.guides">Guides:</span>
+          <a data-i18n-attr="href=link.howToPlay" href="/how-to-play" target="_blank" rel="noopener" data-i18n="footer.howToPlay">How to play</a> ·
+          <a data-i18n-attr="href=link.weapons" href="/weapons" target="_blank" rel="noopener" data-i18n="footer.weapons">Weapons</a> ·
+          <a data-i18n-attr="href=link.modes" href="/modes" target="_blank" rel="noopener" data-i18n="footer.modes">Game modes</a>
         </p>
       </div>
     </div>
@@ -164,8 +174,8 @@
     <div id="orbModal" class="modal" hidden>
       <div class="modal-card orb-modal" role="dialog" aria-modal="true" aria-labelledby="orbModalTitle">
         <header class="modal-head">
-          <h2 id="orbModalTitle">Sua Orb</h2>
-          <button class="icon-btn modal-close" type="button" data-close aria-label="Fechar"><span data-icon="x"></span></button>
+          <h2 id="orbModalTitle" data-i18n="orb.title">Your Orb</h2>
+          <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>
         </header>
         <div class="orb-picker">
           <div class="orb-picker-preview">
@@ -173,22 +183,22 @@
               <canvas id="orbBig" width="520" height="520"></canvas>
               <span class="orb-shadow"></span>
             </div>
-            <button id="orbRandom" class="btn-ghost" type="button"><span data-icon="dices"></span>Aleatória</button>
+            <button id="orbRandom" class="btn-ghost" type="button"><span data-icon="dices"></span><span data-i18n="orb.random">Random</span></button>
           </div>
           <div class="orb-picker-side">
-            <h3>Estilo</h3>
-            <div id="orbGrid" class="orb-grid" role="listbox" aria-label="Estilos de Orb"></div>
-            <h3>Cores</h3>
+            <h3 data-i18n="orb.style">Style</h3>
+            <div id="orbGrid" class="orb-grid" role="listbox" data-i18n-attr="aria-label=orb.styles" aria-label="Orb styles"></div>
+            <h3 data-i18n="orb.colors">Colors</h3>
             <div class="orb-colors">
-              <label class="swatch"><input id="red" type="color" /><span>Cor 1</span></label>
-              <label class="swatch"><input id="green" type="color" /><span>Cor 2</span></label>
-              <label class="swatch"><input id="blue" type="color" /><span>Cor 3</span></label>
+              <label class="swatch"><input id="red" type="color" /><span data-i18n="orb.color1">Color 1</span></label>
+              <label class="swatch"><input id="green" type="color" /><span data-i18n="orb.color2">Color 2</span></label>
+              <label class="swatch"><input id="blue" type="color" /><span data-i18n="orb.color3">Color 3</span></label>
             </div>
-            <div id="orbPresets" class="orb-presets" aria-label="Combinações de cores"></div>
+            <div id="orbPresets" class="orb-presets" data-i18n-attr="aria-label=orb.presets" aria-label="Color combos"></div>
           </div>
         </div>
         <footer class="modal-foot">
-          <button class="btn-play small" type="button" data-close><span data-icon="check"></span>Pronto</button>
+          <button class="btn-play small" type="button" data-close><span data-icon="check"></span><span data-i18n="orb.done">Done</span></button>
         </footer>
       </div>
     </div>
@@ -197,29 +207,29 @@
     <div id="trainingModal" class="modal" hidden>
       <form id="trainingForm" class="modal-card training-modal" role="dialog" aria-modal="true" aria-labelledby="trainingTitle">
         <header class="modal-head">
-          <h2 id="trainingTitle">Treino offline</h2>
-          <button class="icon-btn modal-close" type="button" data-close aria-label="Fechar"><span data-icon="x"></span></button>
+          <h2 id="trainingTitle" data-i18n="training.title">Offline training</h2>
+          <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>
         </header>
-        <p class="modal-sub">Só você e os bots, sem precisar do servidor.</p>
+        <p class="modal-sub" data-i18n="training.sub">Just you and the bots, no server needed.</p>
         <div class="training-body">
           <canvas id="mapPreview" class="map-preview" width="220" height="220"></canvas>
           <div class="training-fields">
-            <div class="field">Modo
+            <div class="field"><span data-i18n="training.mode">Mode</span>
               <div id="trainingMode" class="segmented" role="radiogroup"></div>
             </div>
-            <label class="field">Mapa<select id="map"></select></label>
-            <label class="field"><span>Bots: <b id="botsValue"></b></span><input id="bots" type="range" min="0" max="15" step="1" /></label>
-            <div class="field">Dificuldade
+            <label class="field"><span data-i18n="training.map">Map</span><select id="map"></select></label>
+            <label class="field"><span><span data-i18n="training.bots">Bots:</span> <b id="botsValue"></b></span><input id="bots" type="range" min="0" max="15" step="1" /></label>
+            <div class="field"><span data-i18n="training.difficulty">Difficulty</span>
               <div id="skill" class="segmented" role="radiogroup">
-                <button type="button" data-value="0.2">Fácil</button>
-                <button type="button" data-value="0.5">Médio</button>
-                <button type="button" data-value="0.85">Difícil</button>
+                <button type="button" data-value="0.2" data-i18n="training.easy">Easy</button>
+                <button type="button" data-value="0.5" data-i18n="training.medium">Medium</button>
+                <button type="button" data-value="0.85" data-i18n="training.hard">Hard</button>
               </div>
             </div>
           </div>
         </div>
         <footer class="modal-foot">
-          <button class="btn-play small" type="submit"><span data-icon="swords"></span>Começar treino</button>
+          <button class="btn-play small" type="submit"><span data-icon="swords"></span><span data-i18n="training.start">Start training</span></button>
         </footer>
       </form>
     </div>
@@ -227,37 +237,37 @@
     <!-- Sound settings (start screen and in-game menu) -->
     <div id="audioPanel" class="popover" hidden>
       <div class="audio-head">
-        <span class="audio-title">Som</span>
+        <span class="audio-title" data-i18n="audio.title">Sound</span>
         <span id="masterState" class="audio-state"></span>
-        <button id="masterMute" class="switch" type="button" role="switch" aria-label="Som do jogo"><span class="switch-knob"></span></button>
+        <button id="masterMute" class="switch" type="button" role="switch" data-i18n-attr="aria-label=audio.gameSound" aria-label="Game sound"><span class="switch-knob"></span></button>
       </div>
       <div id="audioChannels" class="audio-channels">
         <div class="audio-row">
-          <button id="musicMute" class="icon-btn small" type="button" aria-label="Ligar/desligar música"></button>
-          <span class="audio-label">Música</span>
-          <input id="musicVolume" type="range" min="0" max="100" step="1" aria-label="Volume da música" />
+          <button id="musicMute" class="icon-btn small" type="button" data-i18n-attr="aria-label=audio.toggleMusic" aria-label="Music on/off"></button>
+          <span class="audio-label" data-i18n="audio.music">Music</span>
+          <input id="musicVolume" type="range" min="0" max="100" step="1" data-i18n-attr="aria-label=audio.musicVolume" aria-label="Music volume" />
           <span id="musicValue" class="audio-value"></span>
         </div>
         <div class="audio-row">
-          <button id="sfxMute" class="icon-btn small" type="button" aria-label="Ligar/desligar efeitos"></button>
-          <span class="audio-label">Efeitos</span>
-          <input id="sfxVolume" type="range" min="0" max="100" step="1" aria-label="Volume dos efeitos" />
+          <button id="sfxMute" class="icon-btn small" type="button" data-i18n-attr="aria-label=audio.toggleSfx" aria-label="Effects on/off"></button>
+          <span class="audio-label" data-i18n="audio.sfx">Effects</span>
+          <input id="sfxVolume" type="range" min="0" max="100" step="1" data-i18n-attr="aria-label=audio.sfxVolume" aria-label="Effects volume" />
           <span id="sfxValue" class="audio-value"></span>
         </div>
-        <div class="audio-row" title="Chuva, vento e lava dos mapas">
-          <button id="ambientMute" class="icon-btn small" type="button" aria-label="Ligar/desligar som ambiente"></button>
-          <span class="audio-label">Ambiente</span>
-          <input id="ambientVolume" type="range" min="0" max="100" step="1" aria-label="Volume do som ambiente: chuva, vento e lava" />
+        <div class="audio-row" data-i18n-attr="title=audio.ambientHint" title="Rain, wind and lava on the maps">
+          <button id="ambientMute" class="icon-btn small" type="button" data-i18n-attr="aria-label=audio.toggleAmbient" aria-label="Ambience on/off"></button>
+          <span class="audio-label" data-i18n="audio.ambient">Ambience</span>
+          <input id="ambientVolume" type="range" min="0" max="100" step="1" data-i18n-attr="aria-label=audio.ambientVolume" aria-label="Ambience volume: rain, wind and lava" />
           <span id="ambientValue" class="audio-value"></span>
         </div>
       </div>
     </div>
-    <button id="gameAudioBtn" class="icon-btn game-audio-btn" type="button" title="Som" aria-label="Som" hidden></button>
+    <button id="gameAudioBtn" class="icon-btn game-audio-btn" type="button" data-i18n-attr="title=menu.sound;aria-label=menu.sound" title="Sound" aria-label="Sound" hidden></button>
     <div id="toast" class="toast" hidden></div>
 
     <div id="loading" class="loading" hidden>
       <div class="spinner"></div>
-      <div id="loadingText">Carregando...</div>
+      <div id="loadingText" data-i18n="menu.loading">Loading...</div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

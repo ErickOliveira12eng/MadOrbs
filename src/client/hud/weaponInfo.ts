@@ -1,5 +1,5 @@
-// What the HUD and the weapon cards say about each weapon: the Portuguese name, the name in the
-// original game, and the numbers of the rules this game runs with (sv_*Damage, fireDelay... in
+// What the HUD and the weapon cards say about each weapon, in the page's language: the name, the
+// name in the original game, and the numbers of the rules this game runs with (sv_*Damage, fireDelay... in
 // gameVar.ts, the "Pro" values the server uses). Damage is shown with a full life = 100.
 import {
   PRIMARY_WEAPONS, SECONDARY_WEAPONS, SERVER_TYPE_PRO, WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_COCKTAIL_MOLOTOV,
@@ -7,6 +7,7 @@ import {
   WEAPON_NUCLEAR, WEAPON_PHOTON_RIFLE, WEAPON_SHIELD, WEAPON_SHOTGUN, WEAPON_SMG, WEAPON_SNIPER,
 } from '../../sim/constants';
 import { bazookaDamage, isWeaponEnabled, sv, weaponDefs } from '../../sim/gameVar';
+import { num, t } from '../../i18n';
 
 export interface WeaponStat {
   label: string;
@@ -17,43 +18,39 @@ export interface WeaponStat {
 
 export interface WeaponInfo {
   id: number;
-  /** Portuguese name. */
+  /** Name in the page's language. */
   name: string;
   /** Name in the original game (English). */
   original: string;
   /** Short label for the small cards of the death screen. */
   short: string;
-  /** Article used in "te pegou com a Escopeta". */
-  article: 'a' | 'o' | 'as';
+  /** Article used in "got you with the Shotgun" ("a" Escopeta, "la" Escopeta). */
+  article: string;
   /** Damage, fire rate and accuracy (primary weapons). */
   stats: WeaponStat[];
   tip: string;
-  /** "Recarga 3 s" (secondary weapons). */
+  /** "Cooldown 3 s" (secondary weapons). */
   cooldown?: string;
 }
 
-const NAMES: Record<number, [name: string, original: string, short: string, article: WeaponInfo['article']]> = {
-  [WEAPON_SMG]: ['Submetralhadora', 'Sub Machine Gun', 'SMG', 'a'],
-  [WEAPON_SHOTGUN]: ['Escopeta', 'Shotgun', 'Escopeta', 'a'],
-  [WEAPON_SNIPER]: ['Rifle Sniper', 'Sniper Rifle', 'Sniper', 'o'],
-  [WEAPON_DUAL_MACHINE_GUN]: ['Metralhadora Dupla', 'Dual Machine Gun', 'Dupla', 'a'],
-  [WEAPON_CHAIN_GUN]: ['Chain Gun', 'Chain Gun', 'Chain Gun', 'a'],
-  [WEAPON_BAZOOKA]: ['Bazuca', 'Bazooka', 'Bazuca', 'a'],
-  [WEAPON_PHOTON_RIFLE]: ['Rifle de Fótons', 'Photon Rifle', 'Fótons', 'o'],
-  [WEAPON_FLAME_THROWER]: ['Lança-chamas', 'Flame Thrower', 'Chamas', 'o'],
-  [WEAPON_GRENADE]: ['Granada', 'Grenade', 'Granada', 'a'],
-  [WEAPON_COCKTAIL_MOLOTOV]: ['Molotov', 'Molotov Cocktail', 'Molotov', 'o'],
-  [WEAPON_KNIVES]: ['Facas', 'Popup Knives', 'Facas', 'as'],
-  [WEAPON_NUCLEAR]: ['Robô Nuclear', 'Nuke Bot', 'Nuke', 'o'],
-  [WEAPON_SHIELD]: ['Escudo Instantâneo', 'Instant Shield', 'Escudo', 'o'],
-  [WEAPON_MINIBOT]: ['Mini Bot', 'Mini Bot', 'Mini Bot', 'o'],
+/** Each weapon's dictionary key (w.<key>.name, .short, .art) and its name in the original game. */
+const NAMES: Record<number, [key: WeaponKey, original: string]> = {
+  [WEAPON_SMG]: ['smg', 'Sub Machine Gun'],
+  [WEAPON_SHOTGUN]: ['shotgun', 'Shotgun'],
+  [WEAPON_SNIPER]: ['sniper', 'Sniper Rifle'],
+  [WEAPON_DUAL_MACHINE_GUN]: ['dmg', 'Dual Machine Gun'],
+  [WEAPON_CHAIN_GUN]: ['chaingun', 'Chain Gun'],
+  [WEAPON_BAZOOKA]: ['bazooka', 'Bazooka'],
+  [WEAPON_PHOTON_RIFLE]: ['photon', 'Photon Rifle'],
+  [WEAPON_FLAME_THROWER]: ['flame', 'Flame Thrower'],
+  [WEAPON_GRENADE]: ['grenade', 'Grenade'],
+  [WEAPON_COCKTAIL_MOLOTOV]: ['molotov', 'Molotov Cocktail'],
+  [WEAPON_KNIVES]: ['knives', 'Popup Knives'],
+  [WEAPON_NUCLEAR]: ['nuke', 'Nuke Bot'],
+  [WEAPON_SHIELD]: ['shield', 'Instant Shield'],
+  [WEAPON_MINIBOT]: ['minibot', 'Mini Bot'],
 };
-
-/** 1.5 -> "1,5", 2 -> "2". */
-function num(v: number, decimals = 1): string {
-  const r = Math.round(v * 10 ** decimals) / 10 ** decimals;
-  return String(r).replace('.', ',');
-}
+type WeaponKey = 'smg' | 'shotgun' | 'sniper' | 'dmg' | 'chaingun' | 'bazooka' | 'photon' | 'flame' | 'grenade' | 'molotov' | 'knives' | 'nuke' | 'shield' | 'minibot';
 
 /** Player::hitSV, sv_photonType 1, right in front of the gun: the most a photon beam does. */
 function photonMaxDamage(): number {
@@ -79,9 +76,9 @@ function shotDamage(id: number): [number, string] {
     case WEAPON_BAZOOKA:
       return [bazookaDamage() * 100, num(bazookaDamage() * 100)];
     case WEAPON_PHOTON_RIFLE:
-      return [photonMaxDamage() * 100, `até ${num(photonMaxDamage() * 100, 0)}`];
+      return [photonMaxDamage() * 100, t('stat.upTo', { n: num(photonMaxDamage() * 100, 0) })];
     case WEAPON_FLAME_THROWER:
-      return [sv.sv_ftDamage * 100, `até ${num(sv.sv_ftDamage * 100)}`];
+      return [sv.sv_ftDamage * 100, t('stat.upTo', { n: num(sv.sv_ftDamage * 100) })];
     default:
       return [def.damage * 100, num(def.damage * 100)];
   }
@@ -91,30 +88,30 @@ function tip(id: number): string {
   const def = weaponDefs[id];
   switch (id) {
     case WEAPON_SMG:
-      return 'Equilibrada. É a arma com que todo mundo começa.';
+      return t('tip.smg');
     case WEAPON_SHOTGUN:
-      return `${def.nbShot} balins em cone. Forte de perto, alcance de ${num(sv.sv_shottyRange, 0)} blocos.`;
+      return t('tip.shotgun', { pellets: def.nbShot, range: num(sv.sv_shottyRange, 0) });
     case WEAPON_SNIPER:
-      return `Mire longe: com a câmera alta, cada tiro vira 3 balas (${num(3 * sv.sv_sniperDamage * 100)}).`;
+      return t('tip.sniper', { dmg: num(3 * sv.sv_sniperDamage * 100) });
     case WEAPON_DUAL_MACHINE_GUN:
-      return 'Duas armas: mais dano que a SMG, menos precisão.';
+      return t('tip.dmg');
     case WEAPON_CHAIN_GUN:
-      return 'O maior dano contínuo. Superaquece se não soltar.';
+      return t('tip.chaingun');
     case WEAPON_BAZOOKA:
       // Remote detonation (Weapon.shoot / Game.handleProjectileRequest): a new click while it flies
       return sv.sv_zookaRemoteDet && sv.sv_serverType === SERVER_TYPE_PRO
-        ? `Explode em área, raio de ${num(sv.sv_zookaRadius)}. Clique de novo para detonar no ar.`
-        : `Foguete que explode em área, raio de ${num(sv.sv_zookaRadius)} blocos.`;
+        ? t('tip.bazookaRemote', { radius: num(sv.sv_zookaRadius) })
+        : t('tip.bazooka', { radius: num(sv.sv_zookaRadius) });
     case WEAPON_PHOTON_RIFLE:
-      return 'Atravessa Orbs em linha. Mais forte de perto.';
+      return t('tip.photon');
     case WEAPON_FLAME_THROWER:
-      return `Atravessa Orbs. Alcance curto, até ${num(sv.sv_ftMaxRange)} blocos.`;
+      return t('tip.flame', { range: num(sv.sv_ftMaxRange) });
     case WEAPON_KNIVES:
-      return `Golpe corpo a corpo: ${num(def.damage * 100)} de dano.`;
+      return t('tip.knives', { damage: num(def.damage * 100) });
     case WEAPON_NUCLEAR:
-      return `Explode ${num(sv.sv_nukeTimer)} s depois, raio de ${num(sv.sv_nukeRadius)} blocos.`;
+      return t('tip.nuke', { timer: num(sv.sv_nukeTimer), radius: num(sv.sv_nukeRadius) });
     case WEAPON_SHIELD:
-      return 'Metade do dano recebido por um instante.';
+      return t('tip.shield');
     default:
       return '';
   }
@@ -123,27 +120,30 @@ function tip(id: number): string {
 /** Spread (Weapon::impressision) as a 0..1 accuracy and a word. */
 function accuracy(id: number): WeaponStat {
   const def = weaponDefs[id];
-  if (def.nbShot > 1) return { label: 'Precisão', value: 0.15, text: 'Cone' };
+  if (def.nbShot > 1) return { label: t('stat.accuracy'), value: 0.15, text: t('acc.cone') };
   const v = def.imp <= 0 ? 1 : Math.max(0.15, 1 - def.imp / 20);
-  const text = v >= 0.95 ? 'Máxima' : v >= 0.55 ? 'Boa' : v >= 0.4 ? 'Média' : 'Baixa';
-  return { label: 'Precisão', value: v, text };
+  const text = t(v >= 0.95 ? 'acc.max' : v >= 0.55 ? 'acc.good' : v >= 0.4 ? 'acc.medium' : 'acc.low');
+  return { label: t('stat.accuracy'), value: v, text };
 }
 
 export function weaponInfo(id: number): WeaponInfo {
-  const [name, original, short, article] = NAMES[id] ?? [weaponDefs[id]?.name ?? '?', weaponDefs[id]?.name ?? '?', '?', 'a'];
+  const entry = NAMES[id];
   const def = weaponDefs[id];
-  const info: WeaponInfo = { id, name, original, short, article, stats: [], tip: tip(id) };
+  const fallback = def?.name ?? '?';
+  const info: WeaponInfo = entry
+    ? { id, name: t(`w.${entry[0]}.name`), original: entry[1], short: t(`w.${entry[0]}.short`), article: t(`w.${entry[0]}.art`), stats: [], tip: tip(id) }
+    : { id, name: fallback, original: fallback, short: fallback, article: '', stats: [], tip: '' };
   if ((PRIMARY_WEAPONS as readonly number[]).includes(id)) {
     const [dmg, dmgText] = shotDamage(id);
     const rate = 1 / def.fireDelay;
     // Square roots: the SMG's 10 and the shotgun's 105 both read on the same bar
     info.stats = [
-      { label: 'Dano', value: Math.sqrt(Math.min(1, dmg / 105)), text: dmgText },
-      { label: 'Cadência', value: Math.sqrt(Math.min(1, rate / 10)), text: `${num(rate)}/s` },
+      { label: t('stat.damage'), value: Math.sqrt(Math.min(1, dmg / 105)), text: dmgText },
+      { label: t('stat.rate'), value: Math.sqrt(Math.min(1, rate / 10)), text: t('stat.perSecond', { n: num(rate) }) },
       accuracy(id),
     ];
   } else if ((SECONDARY_WEAPONS as readonly number[]).includes(id)) {
-    info.cooldown = `Recarga ${num(def.fireDelay)} s`;
+    info.cooldown = t('stat.cooldown', { n: num(def.fireDelay) });
   }
   return info;
 }

@@ -72,6 +72,8 @@ import type { OrbPictureFn } from './hud/hudArt';
 import { HudLayer, type HudFrame } from './hud/hudLayer';
 import { ViewOverlay, scopeAlpha } from './ui/viewOverlay';
 import { VIEW_ASPECT, fitView, type ViewRect } from './view';
+import { teamName } from './modes';
+import { t } from '../i18n';
 
 const Z_AXIS = new Vec3(0, 0, 1);
 
@@ -165,7 +167,7 @@ export class ClientGame {
     this.hud = new HudLayer(container, { orbPicture: opts.orbPicture, online });
 
     const menu = this.hud.picker;
-    menu.serverName = online ? '' : 'Treino offline';
+    menu.serverName = online ? '' : t('pick.offline');
     menu.onWeaponSelect = (choice) => {
       this.me.nextSpawnWeapon = choice.primary;
       this.me.nextMeleeWeapon = choice.secondary;
@@ -201,9 +203,9 @@ export class ClientGame {
 
   /** Offline game against bots. */
   static async create(container: HTMLElement, opts: ClientGameOptions, onProgress?: (text: string) => void): Promise<ClientGame> {
-    onProgress?.('Carregando modelos e texturas...');
-    await preloadAssets((d, t) => onProgress?.(`Carregando modelos e texturas... ${d}/${t}`));
-    onProgress?.('Carregando mapa...');
+    onProgress?.(t('loading.assets'));
+    await preloadAssets((d, total) => onProgress?.(t('loading.assetsN', { d, t: total })));
+    onProgress?.(t('loading.map'));
     const map = await loadMap(opts.mapName ?? 'DM-Arena');
     const cg = new ClientGame(container, opts, false);
     await cg.hud.ready;
@@ -213,12 +215,12 @@ export class ClientGame {
 
   /** Online game on the server this page comes from (or `opts.serverUrl`). */
   static async createOnline(container: HTMLElement, opts: ClientGameOptions, onProgress?: (text: string) => void): Promise<ClientGame> {
-    onProgress?.('Carregando modelos e texturas...');
-    await preloadAssets((d, t) => onProgress?.(`Carregando modelos e texturas... ${d}/${t}`));
-    onProgress?.('Conectando ao servidor...');
+    onProgress?.(t('loading.assets'));
+    await preloadAssets((d, total) => onProgress?.(t('loading.assetsN', { d, t: total })));
+    onProgress?.(t('loading.connecting'));
     const { conn, welcome } = await Connection.open(opts.serverUrl ?? defaultServerUrl(opts.mode), opts.playerName, opts.skin);
     try {
-      onProgress?.(`Carregando mapa ${welcome.map}...`);
+      onProgress?.(t('loading.mapName', { map: welcome.map }));
       const map = await loadMap(welcome.map);
       const cg = new ClientGame(container, opts, true);
       await cg.hud.ready;
@@ -986,12 +988,15 @@ export class ClientGame {
       }
       case 'playerJoin': {
         const p = game.players[e.playerID];
-        if (p && !online) this.hud.addChat(null, `${p.name} entrou na partida`);
+        if (p && !online) this.hud.addChat(null, t('chat.joined', { name: p.name }));
         break;
       }
       case 'chat': {
         const p = game.players[e.playerID];
-        this.hud.addChat(p ? p.name : null, e.text);
+        // The server's own lines come as a kind and a name, written here in our language
+        if (e.sys === 'join') this.hud.addChat(null, e.team !== undefined && e.team >= 0 ? t('chat.joinedTeam', { name: e.text, team: teamName(e.team) }) : t('chat.joined', { name: e.text }));
+        else if (e.sys === 'leave') this.hud.addChat(null, t('chat.left', { name: e.text }));
+        else this.hud.addChat(p ? p.name : null, e.text);
         audio.play(S.chat, 150);
         break;
       }
@@ -1022,7 +1027,7 @@ export class ClientGame {
         const p = game.players[e.playerID];
         if (!p) break;
         if (fromServer) p.teamID = e.teamID;
-        this.hud.addChat(null, `${p.name} foi para o time ${e.teamID === 0 ? 'azul' : 'vermelho'} para equilibrar os times`);
+        this.hud.addChat(null, t('chat.balanced', { name: p.name, team: teamName(e.teamID) }));
         break;
       }
     }

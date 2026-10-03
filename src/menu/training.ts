@@ -1,7 +1,8 @@
 // Offline training: game mode, map (with a top view drawn from the map file), number of bots,
 // difficulty.
 import { CTF_MAPS, DM_MAPS, MAP_LIST } from '../client/mapList';
-import { MODE_INFO } from '../client/modes';
+import { modeName, modeShort } from '../client/modes';
+import { t } from '../i18n';
 import { ROOM_MODES, type RoomMode } from '../net/protocol';
 import { loadMap, type GameMap } from '../sim/map';
 import type { Settings } from './settings';
@@ -30,8 +31,8 @@ export class TrainingModal {
       const b = document.createElement('button');
       b.type = 'button';
       b.dataset.value = mode;
-      b.textContent = mode === 'ctf' ? 'Bandeira' : mode === 'tdm' ? 'Times' : 'Deathmatch';
-      b.title = MODE_INFO[mode].name;
+      b.textContent = modeShort(mode);
+      b.title = modeName(mode);
       b.addEventListener('click', () => {
         this.settings.mode = mode;
         this.fillMaps();
@@ -105,7 +106,7 @@ export class TrainingModal {
     const dm = document.createElement('optgroup');
     dm.label = 'Deathmatch';
     const others = document.createElement('optgroup');
-    others.label = 'Outros mapas';
+    others.label = t('training.otherMaps');
     for (const m of list) (DM_MAPS.includes(m) ? dm : others).appendChild(option(m, !DM_MAPS.includes(m)));
     this.mapSelect.append(dm, others);
     if (!list.includes(s.map)) s.map = 'DM-Arena';

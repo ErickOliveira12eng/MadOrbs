@@ -2,6 +2,7 @@
 // start of each simulation tick; pings are answered right away so the measured latency is real.
 import type { SkinInfo } from '../../sim/player';
 import { PROTOCOL_VERSION, roomPath, type ClientMessage, type RoomMode, type ServerMessage } from '../../net/protocol';
+import { t } from '../../i18n';
 
 export type WelcomeMessage = Extract<ServerMessage, { t: 'welcome' }>;
 
@@ -43,7 +44,8 @@ export class Connection {
     ws.onclose = (ev) => {
       if (this.closed) return;
       this.closed = true;
-      this.onClose?.(ev.reason || 'Conexão com o servidor perdida.');
+      // 1001: the server is restarting (GameServer.stop)
+      this.onClose?.(ev.code === 1001 ? t('net.restarting') : t('net.lost'));
     };
   }
 
@@ -70,9 +72,9 @@ export class Connection {
         }
         reject(new Error(reason));
       };
-      const timer = setTimeout(() => fail('O servidor não respondeu.'), timeoutMs);
+      const timer = setTimeout(() => fail(t('net.noAnswer')), timeoutMs);
       ws.onopen = () => conn.send({ t: 'hello', v: PROTOCOL_VERSION, name, skin });
-      ws.onerror = () => fail('Não foi possível conectar ao servidor.');
+      ws.onerror = () => fail(t('net.cantConnect'));
       const baseOnMessage = ws.onmessage;
       ws.onmessage = (ev) => {
         baseOnMessage?.call(ws, ev);
@@ -82,7 +84,7 @@ export class Connection {
         conn.queue.splice(conn.queue.indexOf(first), 1);
         clearTimeout(timer);
         if (first.t === 'reject') {
-          fail(first.reason);
+          fail(first.code === 'version' ? t('net.version') : first.code === 'full' ? t('net.full') : first.reason);
           return;
         }
         settled = true;

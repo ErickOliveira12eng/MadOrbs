@@ -1,9 +1,147 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://madorbs.com/</loc><lastmod>2026-10-01</lastmod></url>
-  <url><loc>https://madorbs.com/sobre</loc><lastmod>2026-10-01</lastmod></url>
-  <url><loc>https://madorbs.com/armas</loc><lastmod>2026-10-02</lastmod></url>
-  <url><loc>https://madorbs.com/modos</loc><lastmod>2026-10-02</lastmod></url>
-  <url><loc>https://madorbs.com/privacidade</loc><lastmod>2026-10-01</lastmod></url>
-  <url><loc>https://madorbs.com/termos</loc><lastmod>2026-10-01</lastmod></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://madorbs.com/</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/pt/</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/es/</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/how-to-play</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/how-to-play" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/como-jogar" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/como-jugar" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/how-to-play" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/pt/como-jogar</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/how-to-play" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/como-jogar" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/como-jugar" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/how-to-play" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/es/como-jugar</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/how-to-play" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/como-jogar" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/como-jugar" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/how-to-play" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/weapons</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/weapons" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/armas" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/armas" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/weapons" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/pt/armas</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/weapons" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/armas" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/armas" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/weapons" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/es/armas</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/weapons" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/armas" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/armas" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/weapons" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/modes</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/modes" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/modos" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/modos" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/modes" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/pt/modos</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/modes" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/modos" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/modos" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/modes" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/es/modos</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/modes" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/modos" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/modos" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/modes" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/privacy</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/privacy" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/privacidade" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/privacidad" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/privacy" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/pt/privacidade</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/privacy" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/privacidade" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/privacidad" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/privacy" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/es/privacidad</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/privacy" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/privacidade" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/privacidad" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/privacy" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/terms</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/terms" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/termos" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/terminos" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/terms" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/pt/termos</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/terms" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/termos" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/terminos" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/terms" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/es/terminos</loc>
+    <lastmod>2026-10-03</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/terms" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/termos" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/terminos" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/terms" />
+  </url>
 </urlset>

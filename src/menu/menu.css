@@ -179,6 +179,52 @@
   color: var(--danger);
 }
 
+/* Language: the globe with the current language's code, and its menu of links */
+.icon-btn.lang-btn {
+  width: auto;
+  gap: 6px;
+  padding: 0 12px;
+}
+
+.lang-code {
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.popover.lang-menu {
+  width: 190px;
+  padding: 6px;
+  gap: 2px;
+}
+
+.lang-menu a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: 10px;
+  color: var(--text);
+  font-weight: 800;
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.lang-menu a:hover,
+.lang-menu a:focus-visible {
+  background: rgba(122, 162, 255, 0.16);
+  outline: none;
+}
+
+.lang-menu a[aria-current='true']::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--play-1);
+  box-shadow: 0 0 8px var(--play-1);
+}
+
 .online-pill {
   display: inline-flex;
   align-items: center;
