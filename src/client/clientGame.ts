@@ -389,6 +389,7 @@ export class ClientGame {
     const next = nextLevel(c.level);
     // "Mission failed", unless the feat (a streak lost) just said it
     if (result === 'lost' && performance.now() - this.missionFailedAt > 1500) playAnnouncer('missionFailed');
+    if (result === 'won') playAnnouncer('objectiveCompleted');
     // The mouse comes back for the buttons
     this.input.exitPointerLock();
     this.hud.showCampaignEnd({

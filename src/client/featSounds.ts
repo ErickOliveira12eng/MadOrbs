@@ -1,13 +1,14 @@
 // The announcer: the voice of "WARLORD Announcer Audio Pack" by VoiceBosch (CC BY-SA 4.0,
-// public/assets/sounds/announcer/LICENSE.txt) for the kill feats (src/sim/feats.ts) and the start of
-// a match.
+// public/assets/sounds/announcer/LICENSE.txt) for the kill feats (src/sim/feats.ts), the start of
+// a match and a campaign level cleared.
 import type { FeatKind } from '../sim/feats';
 import { audio, type SoundHandle } from './audio/audio';
 
-type Line = 'start' | FeatKind;
+type Line = 'start' | 'objectiveCompleted' | FeatKind;
 
 const FILES: Record<Line, string> = {
   start: 'start',
+  objectiveCompleted: 'objective-completed',
   firstBlood: 'first-blood',
   double: 'double-kill',
   triple: 'triple-kill',
