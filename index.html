@@ -157,6 +157,26 @@
       <aside id="adRect" class="ad-slot ad-rect" hidden><span class="ad-label" data-i18n="ads.label">Advertisement</span><div class="ad-frame"></div></aside>
     </div>
 
+    <!-- Ad blocker on (src/menu/adblockModal.ts) -->
+    <div id="adblockModal" class="modal" hidden>
+      <div class="modal-card adblock-modal" role="dialog" aria-modal="true" aria-labelledby="adblockTitle">
+        <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>
+        <div class="adblock-heart"><span data-icon="heart"></span></div>
+        <h2 id="adblockTitle" data-i18n="adblock.title">Ad blocker on</h2>
+        <p class="adblock-intro" data-i18n="adblock.intro">Mad Orbs is free and made by one person. The ads help pay for the servers and keep the game online.</p>
+        <ul class="adblock-points">
+          <li><span data-icon="check"></span><span data-i18n="adblock.never">Never during a match: only on the menu and at the end of campaign levels.</span></li>
+          <li><span data-icon="check"></span><span data-i18n="adblock.gameplay">They don't change the gameplay in any way.</span></li>
+          <li><span data-icon="check"></span><span data-i18n="adblock.noPopups">No pop-ups, no full-screen ads.</span></li>
+        </ul>
+        <p class="adblock-ask" data-i18n="adblock.ask">If you can, turn off your blocker for madorbs.com and reload the page. Thank you!</p>
+        <div class="adblock-buttons">
+          <button class="btn-ghost" type="button" data-close data-i18n="adblock.keep">Continue anyway</button>
+          <button id="adblockReload" class="btn-play adblock-reload" type="button"><span data-icon="check"></span><span data-i18n="adblock.reload">I turned it off</span></button>
+        </div>
+      </div>
+    </div>
+
     <!-- Controls -->
     <div id="controlsModal" class="modal" hidden>
       <div class="modal-card controls-modal" role="dialog" aria-modal="true" aria-labelledby="controlsTitle">

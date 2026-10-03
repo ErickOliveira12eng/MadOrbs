@@ -10,6 +10,7 @@ import type { Account } from './account';
 import { AccountModal } from './accountModal';
 import { StatsModal } from './statsModal';
 import { CampaignModal } from './campaignModal';
+import { AdblockModal } from './adblockModal';
 import type { CampaignLevel } from '../client/campaign';
 import { isOldGeneratedName, randomGuestName } from './guestNames';
 import { Embers } from './embers';
@@ -52,6 +53,7 @@ export class StartScreen {
   private readonly accountModal: AccountModal;
   private readonly statsModal: StatsModal;
   private readonly campaign: CampaignModal;
+  private readonly adblock = new AdblockModal();
   /** The account whose Orb was already brought into this page's settings. */
   private orbSyncedFor = '';
   private readonly embers: Embers | null;
@@ -150,7 +152,10 @@ export class StartScreen {
 
     this.fit();
     window.addEventListener('resize', () => this.fit());
-    onAdsAllowed(() => this.layoutAds(true));
+    onAdsAllowed(() => {
+      this.layoutAds(true);
+      this.checkAdBlock();
+    });
     this.embers = matchMedia('(prefers-reduced-motion: reduce)').matches ? null : new Embers($<HTMLCanvasElement>('bgSparks'));
     void this.makeBackground();
   }
@@ -201,6 +206,12 @@ export class StartScreen {
     this.rafId = requestAnimationFrame((t) => this.frame(t));
     void this.refreshStatus();
     this.layoutAds(this.adsAt > 0 && performance.now() - this.adsAt > AD_REFRESH_MS);
+    this.checkAdBlock();
+  }
+
+  /** Every time the start screen opens: an ad blocker found asks (kindly) to be turned off. */
+  private checkAdBlock(): void {
+    void this.adblock.check(() => this.visible).then(() => this.layoutAds());
   }
 
   hide(): void {
@@ -210,6 +221,7 @@ export class StartScreen {
     this.accountModal.close();
     this.statsModal.close();
     this.campaign.close();
+    this.adblock.close();
     this.controls.hidden = true;
     cancelAnimationFrame(this.rafId);
     clearTimeout(this.statusTimer);

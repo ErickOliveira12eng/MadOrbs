@@ -1066,6 +1066,96 @@ kbd.mouse .icon {
 
 /* ------------------------------------------------------------------ modals */
 
+/* Ad blocker on (src/menu/adblockModal.ts): above the other windows (back from a level, the levels window opens too) */
+#adblockModal {
+  z-index: 31;
+}
+
+.modal-card.adblock-modal {
+  width: min(480px, 100%);
+  padding: 26px 28px 22px;
+  text-align: center;
+}
+
+.adblock-modal .modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.adblock-heart {
+  display: inline-grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff8aa5, #e0335c);
+  box-shadow: 0 8px 26px rgba(224, 51, 92, 0.45);
+  color: #fff;
+}
+
+.adblock-heart .icon {
+  width: 32px;
+  height: 32px;
+  fill: currentColor;
+}
+
+.adblock-modal h2 {
+  margin: 14px 0 6px;
+  font: 400 30px var(--font-display);
+  letter-spacing: 1px;
+}
+
+.adblock-intro,
+.adblock-ask {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.adblock-points {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.adblock-points li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 700;
+}
+
+.adblock-points .icon {
+  color: var(--play-1);
+}
+
+.adblock-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.adblock-reload {
+  width: auto;
+  padding: 11px 22px 9px;
+  font-size: 22px;
+}
+
+.adblock-reload .icon {
+  width: 22px;
+  height: 22px;
+}
+
 .modal {
   position: fixed;
   inset: 0;

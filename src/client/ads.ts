@@ -42,20 +42,68 @@ function rightHost(): boolean {
 
 /** The frames' origin answers (checked once, at load): until it does (its DNS, say), no banner. */
 let reachable = false;
+/** An ad blocker was found (adBlocked): no banner, their space would stay empty. */
+let blocked = false;
 const listeners: (() => void)[] = [];
-if (rightHost() && frameOrigin()) {
-  fetch(`${frameOrigin()}/ad-frame.html`, { mode: 'no-cors', cache: 'no-store' }).then(
-    () => {
-      reachable = true;
-      if (adsAllowed()) for (const fn of listeners) fn();
-    },
-    () => console.warn('[ads] the banners origin does not answer'),
+const frameCheck: Promise<boolean> =
+  rightHost() && frameOrigin()
+    ? fetch(`${frameOrigin()}/ad-frame.html`, { mode: 'no-cors', cache: 'no-store', credentials: 'omit' }).then(
+        () => true,
+        () => false,
+      )
+    : Promise.resolve(false);
+void frameCheck.then((ok) => {
+  reachable = ok;
+  if (!ok) console.warn('[ads] the banners origin does not answer');
+  else if (adsAllowed()) for (const fn of listeners) fn();
+});
+
+/** Google's ad script, which every blocker refuses (loaded anyway by consent.js once ads are agreed to). */
+const GOOGLE_ADS = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4734295007084792';
+
+/** A request the browser refuses (a blocker; or no network). */
+function refused(url: string): Promise<boolean> {
+  return fetch(url, { mode: 'no-cors', credentials: 'omit' }).then(
+    () => false,
+    () => true,
   );
+}
+
+/** A box with the class names of ads: the blockers' page rules hide it. */
+function baitHidden(): Promise<boolean> {
+  const bait = document.createElement('div');
+  bait.className = 'adsbox ad-banner ad-placement textads banner_ad pub_300x250 adsbygoogle';
+  bait.setAttribute('aria-hidden', 'true');
+  bait.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:300px;height:250px;pointer-events:none';
+  bait.innerHTML = '&nbsp;';
+  document.body.append(bait);
+  return new Promise((done) =>
+    setTimeout(() => {
+      const style = getComputedStyle(bait);
+      done(bait.offsetHeight === 0 || style.display === 'none' || style.visibility === 'hidden');
+      bait.remove();
+    }, 500),
+  );
+}
+
+let blockCheck: Promise<boolean> | null = null;
+/**
+ * An ad blocker is on: checked once per page, only where banners would show and the visitor agreed to
+ * ads (so the requests don't go out before consent). Any of: the bait box hidden, Google's ad script
+ * refused, the banners' own origin refused.
+ */
+export function adBlocked(): Promise<boolean> {
+  if (!rightHost() || !consented() || !frameOrigin()) return Promise.resolve(false);
+  blockCheck ??= Promise.all([baitHidden(), refused(GOOGLE_ADS), frameCheck.then((ok) => !ok)]).then((found) => {
+    blocked = found.some(Boolean);
+    return blocked;
+  });
+  return blockCheck;
 }
 
 /** Banners may show here and now (agreed to, on madorbs.com, and the frames' origin answers). */
 export function adsAllowed(): boolean {
-  return reachable && rightHost() && consented();
+  return reachable && !blocked && rightHost() && consented();
 }
 
 /** Calls `fn` when banners become possible later: the visitor agrees to ads, or the frames' origin answers. */
