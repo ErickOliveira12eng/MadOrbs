@@ -51,6 +51,7 @@ export const es: Record<Key, string> = {
   'menu.gameMode': 'Modo de juego',
   'menu.ranking': 'Ranking',
   'menu.soon': 'Próximamente',
+  'ads.label': 'Publicidad',
   'menu.statsSub': 'Tus partidas',
   'menu.train': 'Entrenar',
   'menu.offline': 'Juega sin conexión',

@@ -1,0 +1,27 @@
+<!doctype html>
+<!-- One Adsterra banner, framed by the game page (src/client/ads.ts) from its own origin (ads.madorbs.com):
+     the ad's script can't reach the game's page, its storage or the sign-in session. ?key=<unit>&w=<px>&h=<px> -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>Advertisement</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; background: transparent; }
+    </style>
+  </head>
+  <body>
+    <script>
+      (function () {
+        var q = new URLSearchParams(location.search);
+        var key = q.get('key') || '';
+        var w = Number(q.get('w'));
+        var h = Number(q.get('h'));
+        if (!/^[0-9a-f]{32}$/.test(key) || !(w > 0 && w <= 1000) || !(h > 0 && h <= 1000)) return;
+        window.atOptions = { key: key, format: 'iframe', height: h, width: w, params: {} };
+        // Written while the page is parsed, like the snippet Adsterra gives
+        document.write('<script src="https://bauval.org/22/' + key + '"><\/script>');
+      })();
+    </script>
+  </body>
+</html>

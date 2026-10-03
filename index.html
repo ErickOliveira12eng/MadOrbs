@@ -5,8 +5,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Cookie banner (public/consent.js): Google Analytics and AdSense load only after the visitor agrees -->
-    <script src="/consent.js?v=2" defer></script>
+    <!-- Cookie banner (public/consent.js): Google Analytics and the ads load only after the visitor agrees -->
+    <script src="/consent.js?v=3" defer></script>
     <script>
       // At "/", visitors who picked Portuguese or Spanish before (the language button), or whose
       // browser asks for it first, go to that version before anything shows
@@ -151,6 +151,10 @@
         <a data-i18n-attr="href=link.terms" href="/terms" target="_blank" rel="noopener" data-i18n="footer.terms">Terms of use</a>
         <a href="#" data-cookie-settings data-i18n="footer.cookies">Cookies</a>
       </footer>
+
+      <!-- Banners beside the column, when the window has room and the visitor agreed (src/client/ads.ts) -->
+      <aside id="adSky" class="ad-slot ad-sky" hidden><span class="ad-label" data-i18n="ads.label">Advertisement</span><div class="ad-frame"></div></aside>
+      <aside id="adRect" class="ad-slot ad-rect" hidden><span class="ad-label" data-i18n="ads.label">Advertisement</span><div class="ad-frame"></div></aside>
     </div>
 
     <!-- Controls -->

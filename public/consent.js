@@ -1,20 +1,22 @@
 // Cookie consent banner of madorbs.com (the game page and the guide pages; plain script, no build).
-// Nothing from Google runs before the visitor agrees: Google Analytics (statistics) and Google
-// AdSense (ads) are loaded only after "Accept" (or that choice in "Customize"). The choice is kept in
+// Nothing from Google or the ad networks runs before the visitor agrees: Google Analytics (statistics),
+// Google AdSense and the Adsterra banners (ads, src/client/ads.ts) load only after "Accept" (or that
+// choice in "Customize"). The game asks window.madorbsConsent.allows('ads') and listens to the
+// "madorbs:consent" event (a choice made without a reload). The choice is kept in
 // this browser (localStorage "madorbs.consent"); the "Cookies" link in the footers opens the banner
 // again (window.madorbsConsent.open()). Texts in English, Portuguese and Spanish (from the address).
 (function () {
   'use strict';
   var KEY = 'madorbs.consent';
   /** Bump when what is asked changes: everybody is asked again. */
-  var VERSION = 1;
+  var VERSION = 2;
   var GA_ID = 'G-H15R1L9QEF';
   var ADS_CLIENT = 'ca-pub-4734295007084792';
 
   var TEXTS = {
     en: {
       title: 'Cookies',
-      body: 'Mad Orbs uses cookies only if you agree: for usage statistics (Google Analytics) and for ads (Google AdSense). The game works either way.',
+      body: 'Mad Orbs uses cookies only if you agree: for usage statistics (Google Analytics) and for ads (Google AdSense and Adsterra). The game works either way.',
       privacy: 'Privacy policy',
       privacyUrl: '/privacy',
       accept: 'Accept',
@@ -26,12 +28,12 @@
       analytics: 'Usage statistics',
       analyticsText: 'Google Analytics: how many people visit and how the site is used.',
       ads: 'Ads',
-      adsText: 'Google AdSense: ads that keep the game free, possibly based on your interests.',
+      adsText: 'Google AdSense and Adsterra: ads on the menu screens that keep the game free, possibly based on your interests.',
       always: 'Always on',
     },
     pt: {
       title: 'Cookies',
-      body: 'O Mad Orbs só usa cookies se você concordar: para estatísticas de uso (Google Analytics) e para anúncios (Google AdSense). O jogo funciona de qualquer jeito.',
+      body: 'O Mad Orbs só usa cookies se você concordar: para estatísticas de uso (Google Analytics) e para anúncios (Google AdSense e Adsterra). O jogo funciona de qualquer jeito.',
       privacy: 'Política de privacidade',
       privacyUrl: '/pt/privacidade',
       accept: 'Aceitar',
@@ -43,12 +45,12 @@
       analytics: 'Estatísticas de uso',
       analyticsText: 'Google Analytics: quantas pessoas visitam e como o site é usado.',
       ads: 'Anúncios',
-      adsText: 'Google AdSense: anúncios que mantêm o jogo grátis, possivelmente com base nos seus interesses.',
+      adsText: 'Google AdSense e Adsterra: anúncios nas telas de menu que mantêm o jogo grátis, possivelmente com base nos seus interesses.',
       always: 'Sempre ligados',
     },
     es: {
       title: 'Cookies',
-      body: 'Mad Orbs solo usa cookies si aceptas: para estadísticas de uso (Google Analytics) y para anuncios (Google AdSense). El juego funciona igual.',
+      body: 'Mad Orbs solo usa cookies si aceptas: para estadísticas de uso (Google Analytics) y para anuncios (Google AdSense y Adsterra). El juego funciona igual.',
       privacy: 'Política de privacidad',
       privacyUrl: '/es/privacidad',
       accept: 'Aceptar',
@@ -60,7 +62,7 @@
       analytics: 'Estadísticas de uso',
       analyticsText: 'Google Analytics: cuántas personas visitan y cómo se usa el sitio.',
       ads: 'Anuncios',
-      adsText: 'Google AdSense: anuncios que mantienen el juego gratis, posiblemente según tus intereses.',
+      adsText: 'Google AdSense y Adsterra: anuncios en las pantallas de menú que mantienen el juego gratis, posiblemente según tus intereses.',
       always: 'Siempre activas',
     },
   };
@@ -140,6 +142,11 @@
       return;
     }
     apply(choice);
+    try {
+      window.dispatchEvent(new Event('madorbs:consent'));
+    } catch (e) {
+      /* old browsers: the game sees the choice on the next page */
+    }
   }
 
   // ------------------------------------------------------------ the banner
@@ -264,6 +271,11 @@
   window.madorbsConsent = {
     open: function () {
       open(true);
+    },
+    /** 'ads' or 'analytics': the visitor agreed to it. */
+    allows: function (kind) {
+      var c = read();
+      return !!(c && c[kind]);
     },
   };
   // The "Cookies" links in the footers

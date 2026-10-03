@@ -51,6 +51,7 @@ export const pt: Record<Key, string> = {
   'menu.gameMode': 'Modo de jogo',
   'menu.ranking': 'Ranking',
   'menu.soon': 'Em breve',
+  'ads.label': 'Publicidade',
   'menu.statsSub': 'Suas partidas',
   'menu.train': 'Treinar',
   'menu.offline': 'Jogue offline',

@@ -1027,6 +1027,43 @@ kbd.mouse .icon {
   text-decoration: underline;
 }
 
+/* ------------------------------------------------------------------ banners (src/client/ads.ts)
+   Beside the column, centred in the free side of the window (menu.ts places them and shows them where they fit). */
+
+.ad-slot {
+  position: fixed;
+  z-index: 2;
+  top: calc(50% + 14px);
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ad-sky {
+  left: 28px;
+}
+
+.ad-rect {
+  right: 28px;
+}
+
+.ad-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(160, 166, 220, 0.5);
+}
+
+.ad-frame {
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(10, 8, 30, 0.55);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
 /* ------------------------------------------------------------------ modals */
 
 .modal {

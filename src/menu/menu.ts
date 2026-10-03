@@ -19,6 +19,7 @@ import { turning, type OrbStudio } from './orbStudio';
 import { SKINS, saveSettings, skinInfo, type Settings } from './settings';
 import { TrainingModal } from './training';
 import { versioned } from '../sim/assetVersion';
+import { adsAllowed, mountAd, onAdsAllowed, type AdSlot } from '../client/ads';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -29,6 +30,17 @@ const MODE_ICONS: Record<RoomMode, IconName> = { dm: 'skull', tdm: 'team', ctf: 
 /** The column is laid out for a window this high (top bar included) and zoomed to the real one. */
 const DESIGN_HEIGHT = 960;
 const DESIGN_WIDTH = 1400;
+
+/** The banners beside the column: their element, ad unit and size (with the label above). */
+const SIDE_ADS: { id: string; slot: AdSlot; width: number; height: number }[] = [
+  { id: 'adSky', slot: 'sky', width: 160, height: 600 },
+  { id: 'adRect', slot: 'rect', width: 300, height: 250 },
+];
+/** Room kept around a banner (the gap to the column and to the window's edge), and the label's height. */
+const AD_MARGIN = 28;
+const AD_LABEL = 18;
+/** Back on the start screen after this long, the banners load again. */
+const AD_REFRESH_MS = 60_000;
 
 export class StartScreen {
   private readonly root = $('start');
@@ -48,6 +60,8 @@ export class StartScreen {
   private rooms: Partial<Record<RoomMode, RoomStatus>> | null = null;
   private serverUp: boolean | null = null;
   private rafId = 0;
+  /** When the side banners were loaded (0: not yet). */
+  private adsAt = 0;
   private spin = 0;
   private lastTime = 0;
 
@@ -136,6 +150,7 @@ export class StartScreen {
 
     this.fit();
     window.addEventListener('resize', () => this.fit());
+    onAdsAllowed(() => this.layoutAds(true));
     this.embers = matchMedia('(prefers-reduced-motion: reduce)').matches ? null : new Embers($<HTMLCanvasElement>('bgSparks'));
     void this.makeBackground();
   }
@@ -185,6 +200,7 @@ export class StartScreen {
     cancelAnimationFrame(this.rafId);
     this.rafId = requestAnimationFrame((t) => this.frame(t));
     void this.refreshStatus();
+    this.layoutAds(this.adsAt > 0 && performance.now() - this.adsAt > AD_REFRESH_MS);
   }
 
   hide(): void {
@@ -292,6 +308,35 @@ export class StartScreen {
     // The orb's canvas as sharp as the screen shows it (190 px in the column, zoomed, times the pixel ratio)
     const px = Math.min(512, Math.max(190, Math.ceil(190 * k * (window.devicePixelRatio || 1))));
     if (this.preview.width !== px) this.preview.width = this.preview.height = px;
+    this.layoutAds();
+  }
+
+  /**
+   * The side banners: each shows only where it fits between the column and the window's edge (and
+   * under the top bar), centred there; a banner is loaded the first time it shows, and again when `reload`.
+   */
+  private layoutAds(reload = false): void {
+    const allowed = adsAllowed();
+    if (!this.visible && !reload) return;
+    // The column's widest row: the mode cards
+    const col = $('modes').getBoundingClientRect();
+    const side = col.width > 0 ? Math.min(col.left, window.innerWidth - col.right) : 0;
+    const height = window.innerHeight - 64 - 36;
+    let any = false;
+    for (const ad of SIDE_ADS) {
+      const el = $(ad.id);
+      const fits = allowed && side >= ad.width + AD_MARGIN * 2 && height >= ad.height + AD_LABEL;
+      el.hidden = !fits;
+      if (!fits) continue;
+      // Centred in the free side (the sky on the left, the rectangle on the right)
+      el.style.setProperty(ad.slot === 'sky' ? 'left' : 'right', `${Math.round((side - ad.width) / 2)}px`);
+      const frame = el.querySelector<HTMLElement>('.ad-frame')!;
+      if (reload || !frame.firstChild) {
+        mountAd(frame, ad.slot);
+        any = true;
+      }
+    }
+    if (any) this.adsAt = performance.now();
   }
 
   /** One card per game mode (icon, name, one line, how many play it now). */

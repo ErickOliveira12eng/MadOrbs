@@ -54,6 +54,7 @@ export const en = {
   'menu.gameMode': 'Game mode',
   'menu.ranking': 'Ranking',
   'menu.soon': 'Coming soon',
+  'ads.label': 'Advertisement',
   'menu.statsSub': 'Your matches',
   'menu.train': 'Training',
   'menu.offline': 'Play offline',

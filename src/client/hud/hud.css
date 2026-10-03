@@ -2202,11 +2202,37 @@
   transition: width 0.2s;
 }
 
-/* The end of a level */
+/* The end of a level: the panel, and a banner under it (kept at its real size: --hud-k is the stage's scale) */
 .h-campend {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  pointer-events: auto;
+}
+
+.h-campad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  zoom: calc(1 / var(--hud-k, 1));
+  color: rgba(200, 206, 240, 0.5);
+  font: 800 10.5px var(--h-ui);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.h-campad > div {
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(10, 8, 30, 0.55);
+}
+
+.h-campcard {
   min-width: 460px;
   padding: 26px 30px 22px;
   border-radius: 22px;

@@ -9,6 +9,7 @@
 import { starsFor, type CampaignLevel } from '../campaign';
 import type { FeatKind } from '../../sim/feats';
 import { drawMapPreview } from '../mapPreview';
+import { mountAd } from '../ads';
 import { loadMap } from '../../sim/map';
 import './hud.css';
 import {
@@ -308,6 +309,8 @@ export class HudLayer {
     s.height = `${view.h}px`;
     this.stage.style.width = `${view.w / this.k}px`;
     this.stage.style.transform = `scale(${this.k})`;
+    // Things kept at their real size whatever the scale (the banner at the end of a campaign level)
+    this.stage.style.setProperty('--hud-k', String(this.k));
     this.sizeMinimap();
   }
 
@@ -535,9 +538,13 @@ export class HudLayer {
         : `<button type="button" class="primary" data-a="retry"><span class="h-key">Enter</span>${t(e.won ? 'campaign.retry' : 'campaign.tryAgain')}</button>`);
     setHTML(
       this.r.campend,
-      `<div class="t ${e.won ? 'won' : 'lost'}">${t(e.won ? 'campaign.won' : 'campaign.lost')}</div><div class="lvl">${title}</div>${body}<div class="btns">${buttons}</div>`,
+      `<div class="h-campcard"><div class="t ${e.won ? 'won' : 'lost'}">${t(e.won ? 'campaign.won' : 'campaign.lost')}</div><div class="lvl">${title}</div>${body}<div class="btns">${buttons}</div></div>` +
+        `<div class="h-campad" hidden><span>${t('ads.label')}</span><div></div></div>`,
     );
     show(this.r.campend, true);
+    // A banner under the panel (src/client/ads.ts: only when the visitor agreed to ads)
+    const ad = this.r.campend.querySelector<HTMLElement>('.h-campad')!;
+    if (mountAd(ad.lastElementChild as HTMLElement, 'wide')) ad.hidden = false;
     // The system's cursor instead of the game's
     this.cursorFree = true;
     this.root.classList.add('free-cursor');
