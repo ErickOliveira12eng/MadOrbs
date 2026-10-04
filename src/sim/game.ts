@@ -517,6 +517,8 @@ export class Game {
     const map = this.map;
     for (const other of this.players) {
       if (!other || other === p || !other.isAlive) continue;
+      // Bots pass through each other: two bots pushing into each other got stuck (training, campaign)
+      if (p.isBot && other.isBot) continue;
       // Must have been on the field for more than 3 seconds
       if (other.timeAlive > 3 && p.timeAlive > 3) {
         const disSq = distanceSquared(p.currentCF.position, other.currentCF.position);

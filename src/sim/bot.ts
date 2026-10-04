@@ -83,8 +83,11 @@ export class BotController {
   private strafeTimer = 0;
   private aimError = new Vec3();
   private aimErrorTimer = 0;
-  private stuckTimer = 0;
-  private lastPos = new Vec3();
+  /** Unstick: where the bot was a moment ago, for how long it hasn't left it, and a run away from walls. */
+  private anchor = new Vec3();
+  private anchorTime = 0;
+  private escape = new Vec3();
+  private escapeTime = 0;
   private shootHold = 0;
   private reaction = 0;
   private lastTarget: Player | null = null;
@@ -218,26 +221,36 @@ export class BotController {
       while (this.path.length && distance(this.path[0], new Vec3(pos.x, pos.y, 0)) < 0.35) this.path.shift();
       if (this.path.length) moveTo = this.path[0];
     }
+    // Unstick: hardly moved for a second while trying to (a corner, a doorway): run for a moment
+    // towards the most open side, then a new path
+    if (this.escapeTime > 0) {
+      this.escapeTime -= delay;
+      moveTo = pos.add(this.escape);
+    } else if (moveTo) {
+      this.anchorTime += delay;
+      if (distance(pos, this.anchor) > 0.3) {
+        this.anchor.copy(pos);
+        this.anchorTime = 0;
+      } else if (this.anchorTime > 1) {
+        this.escape = this.openDirection();
+        this.escapeTime = randRange(0.4, 0.8);
+        this.path = [];
+        this.repathTimer = 0;
+        this.strafeDir = -this.strafeDir;
+        this.anchor.copy(pos);
+        this.anchorTime = 0;
+      }
+    }
     if (moveTo) {
       const d = moveTo.sub(pos);
-      // Flags are touched within a quarter of a cell: aim finely at the end of the path
-      const t = goal && !duel && this.path.length === 0 ? 0.04 : 0.2;
+      // Flags are touched within a quarter of a cell: aim finely at the end of the path. A big babo
+      // (the campaign's boss) keeps close to the middle of the cells, or it catches on the corners
+      const t = goal && !duel && this.path.length === 0 ? 0.04 : Math.min(0.2, Math.max(0.03, 0.5 - p.radius - 0.02));
       input.right = d.x > t;
       input.left = d.x < -t;
       input.up = d.y > t;
       input.down = d.y < -t;
     }
-    // Unstick
-    if (distance(pos, this.lastPos) < 0.01) {
-      this.stuckTimer += delay;
-      if (this.stuckTimer > 0.6) {
-        this.path = [];
-        this.repathTimer = 0;
-        this.strafeDir = -this.strafeDir;
-        this.stuckTimer = 0;
-      }
-    } else this.stuckTimer = 0;
-    this.lastPos.copy(pos);
 
     // --- Aiming / shooting
     this.aimErrorTimer -= delay;
@@ -275,6 +288,34 @@ export class BotController {
     }
     this.wasShooting = input.shoot;
     input.camPosZ = p.weapon?.weaponID === WEAPON_SNIPER ? 10 : 7;
+  }
+
+  /** The most open of eight directions (free cells along it), a little at random; length 1. */
+  private openDirection(): Vec3 {
+    const map = this.player.game.map;
+    const [w, h] = map.size;
+    const pos = this.player.currentCF.position;
+    const free = (x: number, y: number) => {
+      const cx = Math.floor(x);
+      const cy = Math.floor(y);
+      return cx >= 0 && cy >= 0 && cx < w && cy < h && map.cells[cy * w + cx].passable;
+    };
+    let best = new Vec3(1, 0, 0);
+    let bestScore = -Infinity;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const dir = new Vec3(Math.cos(a), Math.sin(a), 0);
+      let score = Math.random() * 0.5;
+      for (const k of [0.6, 1.2, 1.8, 2.4]) {
+        if (!free(pos.x + dir.x * k, pos.y + dir.y * k)) break;
+        score += 1;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        best = dir;
+      }
+    }
+    return best;
   }
 
   /** A random free cell of the map, or around `near` within `radius` cells. */
