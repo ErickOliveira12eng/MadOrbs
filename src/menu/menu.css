@@ -2187,33 +2187,35 @@ input[type='range'] {
 /* ------------------------------------------------------------------ campaign (src/menu/campaignModal.ts) */
 
 .camp-modal {
-  width: min(960px, 100%);
+  width: min(980px, 100%);
 }
 
 .camp-body {
   display: grid;
-  grid-template-columns: 270px 1fr;
-  gap: 16px;
+  gap: 14px;
   margin-top: 14px;
 }
 
+/* The chapters: a row of tabs, the weapon, the stars won or a lock */
 .camp-chapters {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(84px, 1fr));
+  gap: 7px;
 }
 
 .camp-ch {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 7px 10px;
+  justify-content: center;
+  gap: 2px;
+  height: 76px;
+  padding: 4px;
   border-radius: 12px;
   border: 1px solid var(--card-border);
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
   font: inherit;
-  text-align: left;
   cursor: pointer;
 }
 
@@ -2222,49 +2224,37 @@ input[type='range'] {
 }
 
 .camp-ch.on {
-  border-color: rgba(255, 210, 63, 0.7);
-  background: rgba(255, 210, 63, 0.1);
+  border: 2px solid rgba(255, 210, 63, 0.85);
+  background: rgba(255, 210, 63, 0.12);
+  box-shadow: 0 0 16px rgba(255, 210, 63, 0.25);
 }
 
 .camp-ch.locked {
-  opacity: 0.55;
+  opacity: 0.5;
+}
+
+.camp-ch.locked img {
+  filter: grayscale(1);
 }
 
 .camp-ch img {
-  width: 54px;
-  height: 30px;
+  width: 66px;
+  height: 34px;
   object-fit: contain;
-  flex: none;
 }
 
-.camp-ch span {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-}
-
-.camp-ch small,
-.camp-head small {
+.camp-ch small {
   color: var(--muted);
-  font-size: 11.5px;
-  font-weight: 800;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-}
-
-.camp-ch b {
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .camp-ch em {
   color: var(--gold-1);
   font-style: normal;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 900;
   white-space: nowrap;
 }
@@ -2273,54 +2263,112 @@ input[type='range'] {
   color: var(--muted);
 }
 
-.camp-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 12px;
+.camp-split {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 16px;
 }
 
-.camp-head img {
-  width: 110px;
-  height: 56px;
-  object-fit: contain;
-}
-
-.camp-head div {
+/* The chapter's weapon in the spotlight */
+.camp-hero {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--card-border);
+  background: radial-gradient(240px 150px at 50% 34%, rgba(255, 210, 63, 0.17), transparent 70%), rgba(255, 255, 255, 0.03);
+  text-align: center;
 }
 
-.camp-head b {
-  font: 400 28px var(--font-display);
-  letter-spacing: 0.5px;
-}
-
-.camp-head .note {
+.camp-hero small {
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
 }
 
-.camp-levels {
+.camp-hero b {
+  font: 400 28px/1.05 var(--font-display);
+  letter-spacing: 0.5px;
+  text-wrap: balance;
+}
+
+.camp-hero .weapon {
+  width: 220px;
+  height: 110px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.5));
+}
+
+.camp-hero .ring {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: conic-gradient(var(--gold-1) 0 var(--p, 0deg), rgba(255, 255, 255, 0.1) var(--p, 0deg) 360deg);
+}
+
+.camp-hero .ring span {
+  display: grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: #141a38;
+  color: var(--gold-1);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.camp-hero .boss-line,
+.camp-hero .note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.camp-hero .boss-line {
+  color: #ff9aa8;
+}
+
+.camp-hero .note {
+  color: var(--muted);
+  max-width: 30ch;
+}
+
+.camp-hero .boss-line img,
+.camp-hero .boss-line .face {
+  width: 28px;
+  height: 28px;
+}
+
+/* The levels: a row each */
+.camp-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .camp-lv {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 86px 92px 76px 1fr auto;
   align-items: center;
-  gap: 4px;
-  min-height: 132px;
-  padding: 12px 10px;
-  border-radius: 14px;
+  gap: 10px;
+  min-height: 52px;
+  padding: 6px 10px 6px 16px;
+  border-radius: 12px;
   border: 1.5px solid var(--card-border);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text);
   font: inherit;
-  text-align: center;
+  text-align: left;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
@@ -2330,30 +2378,33 @@ input[type='range'] {
   border-color: rgba(122, 162, 255, 0.5);
 }
 
-.camp-lv.won {
-  border-color: rgba(95, 226, 125, 0.45);
-}
-
 .camp-lv:disabled {
   cursor: default;
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
 .camp-lv .n {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font: 400 19px var(--font-display);
+  letter-spacing: 0.4px;
 }
 
-.camp-lv b {
-  font: 400 21px var(--font-display);
+.camp-lv .bots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.camp-lv .bots i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff9a9a, #d42a3c 60%, #7a0f1d);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .camp-lv .stars {
-  font-size: 22px;
-  letter-spacing: 2px;
+  font-size: 18px;
+  letter-spacing: 1px;
+  white-space: nowrap;
 }
 
 .camp-lv .stars i {
@@ -2368,17 +2419,103 @@ input[type='range'] {
 
 .camp-lv small {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.camp-lv .act,
+.camp-lv .lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.camp-lv .act {
+  padding: 7px 13px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.camp-lv .act.go {
+  border: 0;
+  background: linear-gradient(180deg, #86f59a 0%, #3fd764 46%, #22b347 54%, #2cc553 100%);
+  box-shadow: 0 3px 0 #147a34;
+  color: #fff;
+  font: 400 17px var(--font-display);
+  letter-spacing: 0.6px;
+  text-shadow: 0 2px 0 rgba(10, 80, 30, 0.5);
+}
+
+.camp-lv .act.go .icon {
+  fill: currentColor;
 }
 
 .camp-lv .lock {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+/* The next level to win */
+.camp-lv.next {
+  border: 2px solid #3fd764;
+  background: rgba(63, 215, 100, 0.08);
+}
+
+/* The boss: its face, its name, what makes it different */
+.camp-lv.boss {
+  grid-template-columns: 86px 1fr auto auto;
+  min-height: 64px;
+  border-color: rgba(255, 90, 110, 0.5);
+  background: linear-gradient(90deg, rgba(255, 60, 80, 0.16), rgba(40, 12, 24, 0.4));
+}
+
+.camp-lv.boss.next {
+  border: 2px solid #ff5a6e;
+  box-shadow: 0 0 18px rgba(255, 90, 110, 0.35);
+}
+
+.camp-lv.boss .n {
+  color: #ff9aa8;
+}
+
+.camp-lv .who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.camp-lv .who img,
+.camp-lv .who .face {
+  width: 42px;
+  height: 42px;
+  flex: none;
+}
+
+.camp-lv .who > span {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  margin-top: 6px;
-  color: var(--muted);
+  min-width: 0;
+}
+
+.camp-lv .who b {
+  color: #ffc2c8;
+  font: 400 19px var(--font-display);
+  letter-spacing: 0.4px;
+}
+
+/* Until the boss's picture is drawn */
+.camp-hero .face,
+.camp-lv .face {
+  display: block;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #000 0 18%, #b0122a 20% 60%, #ff8a96 75%);
 }
 
 /* Where the progress is kept, and "Sign in" for guests */
@@ -2415,38 +2552,33 @@ input[type='range'] {
   font-weight: 800;
 }
 
-/* The boss: a whole row */
-.camp-lv.boss {
-  grid-column: 1 / -1;
-  min-height: 0;
-  border-color: rgba(255, 77, 94, 0.55);
-  background: linear-gradient(180deg, rgba(255, 77, 94, 0.14), rgba(255, 255, 255, 0.03));
-}
-
-.camp-lv.boss b {
-  font-size: 26px;
-  color: #ffc2c8;
-}
-
-.camp-lv .hint {
-  max-width: 46ch;
-}
-
-@media (max-width: 720px) {
-  .camp-body {
-    grid-template-columns: 1fr;
-  }
-
+@media (max-width: 760px) {
   .camp-chapters {
-    flex-direction: row;
     overflow-x: auto;
   }
 
-  .camp-ch {
-    flex: none;
+  .camp-split {
+    grid-template-columns: 1fr;
   }
 
-  .camp-levels {
-    grid-template-columns: repeat(2, 1fr);
+  .camp-hero .weapon {
+    height: 80px;
+  }
+
+  .camp-lv {
+    grid-template-columns: 70px 1fr auto;
+  }
+
+  .camp-lv .bots,
+  .camp-lv small {
+    display: none;
+  }
+
+  .camp-lv.boss {
+    grid-template-columns: 70px 1fr auto;
+  }
+
+  .camp-lv.boss .stars {
+    display: none;
   }
 }

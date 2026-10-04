@@ -92,6 +92,7 @@ export class StartScreen {
     $('btnStats').addEventListener('click', () => this.statsModal.open());
     this.campaign = new CampaignModal(
       account,
+      studio,
       (level) => {
         if (!this.settings.name) this.play('offline', false);
         onCampaign(level);
