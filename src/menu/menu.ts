@@ -397,7 +397,7 @@ export class StartScreen {
     this.statusTimer = window.setTimeout(() => void this.refreshStatus(), 5000);
   }
 
-  /** The "online" pill, the count on each mode card, and the line under JOGAR AGORA. */
+  /** The "online" pill, the count on each mode card, and the line under JOGAR AGORA (online, multiplayer). */
   private renderStatus(): void {
     const pill = $('serverStatus');
     const text = pill.querySelector('.status-text')!;
@@ -409,7 +409,7 @@ export class StartScreen {
       count.textContent = room ? t('menu.playing', { n: room.players }) : '';
       b.classList.toggle('closed', this.serverUp === true && !room);
     }
-    sub.textContent = t('menu.quickMatch');
+    sub.textContent = t('menu.playOnline');
     if (this.serverUp === null) return;
     if (!this.serverUp) {
       text.textContent = t('menu.serverDown');

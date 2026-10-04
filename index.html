@@ -114,18 +114,22 @@
           <p id="nameHint" class="name-hint" hidden></p>
           <button id="orbCustomize" class="pill-btn" type="button"><span data-icon="palette"></span><span data-i18n="menu.customize">Customize Orb</span></button>
 
-          <button id="play" class="btn-play hero" type="submit">
-            <span class="play-main"><span data-icon="play"></span><span data-i18n="menu.play">PLAY NOW</span></span>
-            <span id="playSub" class="play-sub" data-i18n="menu.quickMatch">Quick match</span>
-          </button>
+          <!-- The two big actions: online (the chosen mode) and the campaign, solo against bots -->
+          <div class="hero-row">
+            <button id="play" class="btn-play hero" type="submit">
+              <span class="play-main"><span data-icon="play"></span><span data-i18n="menu.play">PLAY NOW</span></span>
+              <span id="playSub" class="play-sub" data-i18n="menu.playOnline">Online · Multiplayer</span>
+            </button>
+            <button id="btnCampaign" class="btn-play hero campaign" type="button">
+              <span class="play-main"><span data-icon="swords"></span><span data-i18n="menu.campaign">Campaign</span></span>
+              <span class="play-sub" data-i18n="menu.campaignSolo">Solo · Vs bots</span>
+            </button>
+          </div>
           <div id="message" class="message" role="alert" hidden></div>
 
           <div id="modes" class="modes" role="radiogroup" data-i18n-attr="aria-label=menu.gameMode" aria-label="Game mode"></div>
 
           <div class="shortcuts">
-            <button id="btnCampaign" class="shortcut campaign" type="button">
-              <span class="shortcut-icon" data-icon="swords"></span><span><b data-i18n="menu.campaign">Campaign</b><small data-i18n="menu.campaignSub">Levels vs bots</small></span>
-            </button>
             <button class="shortcut" type="button" disabled>
               <span class="shortcut-icon" data-icon="bars"></span><span><b data-i18n="menu.ranking">Ranking</b><small data-i18n="menu.soon">Coming soon</small></span>
             </button>
