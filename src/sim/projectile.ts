@@ -311,7 +311,7 @@ export class Projectile {
 
     // Life pack pickup
     if (type === PROJECTILE_LIFE_PACK && !this.needToBeDeleted) {
-      const p = game.playerInRadius(new Vec3(cf.position.x, cf.position.y, 0.25), 0.25);
+      const p = game.playerInRadius(new Vec3(cf.position.x, cf.position.y, 0.25), 0.25, -1, (q) => q.takesLifePacks);
       if (p) {
         p.life += 0.5;
         if (p.life > 1) p.life = 1;

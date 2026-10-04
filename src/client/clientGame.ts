@@ -342,6 +342,8 @@ export class ClientGame {
         boss.lives = 1;
         boss.radius = BOSS.radius;
         boss.damageScale = BOSS.damageScale;
+        // No healing: the map's life packs and the ones its guards drop stay for the player
+        boss.takesLifePacks = false;
         // Every boss is the eye (skin14), in the red team's colours
         boss.skin = { ...randomSkin(), skin: 'skin14' };
         this.bots.push(new BotController(boss, Math.min(1, level.skill + 0.1), loadout));

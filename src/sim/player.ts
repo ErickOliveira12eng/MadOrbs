@@ -111,6 +111,8 @@ export class Player {
   radius = 0.25;
   /** Share of the damage taken (the campaign's bosses take less). */
   damageScale = 1;
+  /** Picks up life packs (the campaign's bosses don't: neither the map's nor the ones bots drop). */
+  takesLifePacks = true;
   protection = 0;
   timeDead = 0;
   timeAlive = 0;

@@ -981,10 +981,11 @@ export class Game {
     });
   }
 
-  /** Game::playerInRadius */
-  playerInRadius(position: Vec3, radius: number, ignore = -1): Player | null {
+  /** Game::playerInRadius; `accept` leaves players out (the campaign's boss and the life packs). */
+  playerInRadius(position: Vec3, radius: number, ignore = -1, accept?: (p: Player) => boolean): Player | null {
     for (const p of this.players) {
       if (!p || !p.isAlive || p.playerID === ignore) continue;
+      if (accept && !accept(p)) continue;
       if (distanceSquared(position, p.currentCF.position) <= (radius + p.radius) * (radius + p.radius)) return p;
     }
     return null;
