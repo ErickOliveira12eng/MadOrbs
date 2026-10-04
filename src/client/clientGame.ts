@@ -7,7 +7,10 @@
 //             every 2 frames, the server's snapshots and events drive everything else.
 import * as THREE from 'three';
 import {
+  GAME_BLUE_WIN,
+  GAME_DRAW,
   GAME_PLAYING,
+  GAME_RED_WIN,
   ITEM_GRENADE,
   ITEM_LIFE_PACK,
   ITEM_WEAPON,
@@ -83,6 +86,7 @@ import { HudLayer, type CampaignHud, type HudFrame } from './hud/hudLayer';
 import { ViewOverlay, scopeAlpha } from './ui/viewOverlay';
 import { VIEW_ASPECT, fitView, type ViewRect } from './view';
 import { teamName } from './modes';
+import { track } from './analytics';
 import { t } from '../i18n';
 
 const Z_AXIS = new Vec3(0, 0, 1);
@@ -195,6 +199,7 @@ export class ClientGame {
     menu.onWeaponSelect = (choice) => {
       this.me.nextSpawnWeapon = choice.primary;
       this.me.nextMeleeWeapon = choice.secondary;
+      track('weapon_select', { primary: weaponDefs[choice.primary]?.name ?? String(choice.primary), secondary: weaponDefs[choice.secondary]?.name ?? String(choice.secondary), mode: this.opts.mode, online: this.online });
     };
     menu.onTeamSelect = (team) => this.selectTeam(team);
     this.hud.onVote = (i) => this.castVote(i);
@@ -286,6 +291,12 @@ export class ClientGame {
 
   /** When our own Mission Failed feat was announced (the campaign's loss doesn't say it twice). */
   private missionFailedAt = -1e9;
+  /** Analytics (src/client/analytics.ts): when the match or level began, frames drawn since (the
+   * average fps), the round state seen last, and whether its end was sent. */
+  private matchAt = 0;
+  private frames = 0;
+  private lastRound = GAME_PLAYING;
+  private matchEnded = false;
 
   /** The level being played: its clock, the boss and its guards, and how it ended. */
   private camp: {
@@ -431,6 +442,15 @@ export class ClientGame {
     c.overAt = performance.now();
     const best = loadProgress()[c.level.id];
     const isBest = result === 'won' && saveWin(c.level, c.elapsed);
+    track('campaign_level_end', {
+      ...this.levelInfo(),
+      result,
+      seconds: Math.round(c.elapsed),
+      stars: result === 'won' ? starsFor(c.level, c.elapsed) : 0,
+      new_best: isBest,
+      kills: this.me.kills,
+      fps: this.fps(),
+    });
     if (result === 'won') this.opts.onCampaignWin?.(c.level, c.elapsed);
     const next = nextLevel(c.level);
     // "Mission failed", unless the feat (a streak lost) just said it
@@ -516,6 +536,7 @@ export class ClientGame {
   }
 
   private beginLoop(): void {
+    this.newMatch();
     this.hud.setGameType(this.game.gameType);
     if (this.online) this.hud.setRecord(this.opts.bestKills ?? bestKills(this.opts.mode));
     loadAnnouncer();
@@ -588,6 +609,7 @@ export class ClientGame {
     if (!this.vote || !this.conn || i < 0 || i >= this.vote.maps.length || i === this.myVote) return;
     this.myVote = i;
     this.conn.send({ t: 'vote', i });
+    track('map_vote', { map: this.vote.maps[i], mode: this.opts.mode });
     this.hud.setVote({ ...this.vote, mine: i });
     audio.play(this.sounds.chat, 120);
   }
@@ -638,6 +660,10 @@ export class ClientGame {
 
   quit(reason?: string): void {
     if (!this.running) return;
+    // Left before the end (the menu, a closed connection): how long it lasted
+    const seconds = Math.round((performance.now() - this.matchAt) / 1000);
+    if (this.camp && !this.camp.over) track('campaign_level_quit', { ...this.levelInfo(), seconds });
+    else if (!this.camp && !this.matchEnded) track('match_quit', { ...this.matchInfo(), seconds, kills: this.me.kills, deaths: this.me.deaths, reason: reason ? 'closed' : 'menu' });
     this.running = false;
     if (this.conn) {
       this.conn.onClose = undefined;
@@ -702,11 +728,62 @@ export class ClientGame {
     this.input.enabled = true;
   }
 
+  // ---------------------------------------------------------------- analytics
+
+  /** The mode, online or training, and the map: on every match event. */
+  private matchInfo(): Record<string, string | number | boolean> {
+    return { mode: this.opts.mode, online: this.online, map: this.game.map.name };
+  }
+
+  /** The campaign level being played, for its events. */
+  private levelInfo(): Record<string, string | number | boolean> {
+    const l = this.camp!.level;
+    return { level_id: l.id, chapter: l.chapter.n, level: l.n, boss: l.boss, weapon: l.chapter.weaponKey };
+  }
+
+  private fps(): number {
+    const s = (performance.now() - this.matchAt) / 1000;
+    return s > 1 ? Math.round(this.frames / s) : 0;
+  }
+
+  /** A match (or a campaign level) begins: its start event, and its clock for the end. */
+  private newMatch(map?: string): void {
+    this.matchAt = performance.now();
+    this.frames = 0;
+    this.matchEnded = false;
+    if (this.camp) track('campaign_level_start', this.levelInfo());
+    else track('match_start', { ...this.matchInfo(), ...(map ? { map } : {}), bots: this.online ? 0 : (this.opts.botCount ?? 0) });
+  }
+
+  /** The round ended (time or score limit): how it went for us. */
+  private trackMatchEnd(round: number): void {
+    this.matchEnded = true;
+    const me = this.me;
+    const players = this.game.players.filter((p): p is Player => !!p && p.teamID !== PLAYER_TEAM_SPECTATOR);
+    const place = 1 + players.filter((p) => p !== me && p.score > me.score).length;
+    const won = this.game.isTeamGame
+      ? (round === GAME_BLUE_WIN && me.teamID === PLAYER_TEAM_BLUE) || (round === GAME_RED_WIN && me.teamID === PLAYER_TEAM_RED)
+      : round !== GAME_DRAW && place === 1;
+    track('match_end', {
+      ...this.matchInfo(),
+      kills: me.kills,
+      deaths: me.deaths,
+      score: me.score,
+      place,
+      players: players.length,
+      won,
+      draw: round === GAME_DRAW,
+      minutes: Math.round((performance.now() - this.matchAt) / 6000) / 10,
+      fps: this.fps(),
+    });
+  }
+
   // ---------------------------------------------------------------- loop
 
   private frame(now: number): void {
     if (!this.running) return;
     this.rafId = requestAnimationFrame((t) => this.frame(t));
+    this.frames++;
     let dt = (now - this.lastTime) / 1000;
     this.lastTime = now;
     if (dt > 0.25) dt = 0.25;
@@ -757,6 +834,12 @@ export class ClientGame {
 
     if (this.conn) this.applyServerMessages();
     if (!this.running) return;
+    // The round's end (time or score limit), for analytics; the campaign has its own
+    if (game.roundState !== this.lastRound) {
+      this.lastRound = game.roundState;
+      const over = game.roundState === GAME_BLUE_WIN || game.roundState === GAME_RED_WIN || game.roundState === GAME_DRAW;
+      if (over && !this.camp && !this.matchEnded) this.trackMatchEnd(game.roundState);
+    }
 
     const menuOpen = this.hud.picker.visible;
     if (input.rawPressed(bindings.menuAccess) && !input.locked && !this.chat.active) {
@@ -1276,12 +1359,14 @@ export class ClientGame {
         const who = game.players[e.playerID] ?? null;
         if (who !== me && !isAnnouncedToAll(e.feat)) break;
         const kind = e.feat;
+        if (who === me) track('kill_feat', { feat: kind, n: e.n, ...this.matchInfo() });
         if (kind === 'missionFailed' && who === me) this.missionFailedAt = performance.now();
         this.hud.announce(kind, who, game.players[e.victimID] ?? null, e.n, () => playAnnouncer(kind));
         break;
       }
       case 'mapChange':
         this.announceStart();
+        this.newMatch(e.mapName);
         // The match that just ended may hold a new personal record (online, 30 s played at least)
         if (this.online && me.timePlayedCurGame >= 30 && me.kills > 0) {
           saveBestKills(this.opts.mode, me.kills);

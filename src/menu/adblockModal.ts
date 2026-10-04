@@ -2,6 +2,7 @@
 // blocker is found (src/client/ads.ts adBlocked: only where banners would show and the visitor agreed
 // to ads). It promises what is true: no ads during a match, no pop-ups. Closing it lets the visitor play.
 import { adBlocked } from '../client/ads';
+import { track } from '../client/analytics';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -9,8 +10,15 @@ export class AdblockModal {
   private readonly root = $('adblockModal');
 
   constructor() {
-    for (const el of this.root.querySelectorAll('[data-close]')) el.addEventListener('click', () => this.close());
-    $('adblockReload').addEventListener('click', () => location.reload());
+    for (const el of this.root.querySelectorAll('[data-close]'))
+      el.addEventListener('click', () => {
+        track('adblock_action', { action: 'continue' });
+        this.close();
+      });
+    $('adblockReload').addEventListener('click', () => {
+      track('adblock_action', { action: 'reload' });
+      location.reload();
+    });
     this.root.addEventListener('pointerdown', (e) => {
       if (e.target === this.root) this.close();
     });

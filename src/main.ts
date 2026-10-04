@@ -10,6 +10,7 @@ import type { CampaignLevel } from './client/campaign';
 import { bestKills } from './client/records';
 import { Account } from './menu/account';
 import { AudioPanel } from './menu/audioPanel';
+import { setUserProperty, track } from './client/analytics';
 import { StartScreen, type PlayMode } from './menu/menu';
 import { OrbStudio } from './menu/orbStudio';
 import { trainingMaps } from './menu/training';
@@ -27,6 +28,9 @@ applyAudioSettings(settings);
 const audioPanel = new AudioPanel(settings, () => saveSettings(settings));
 const studio = new OrbStudio();
 const account = new Account();
+// Analytics: events say whether the visitor is signed in
+setUserProperty('signed_in', 'no');
+account.onChange(() => setUserProperty('signed_in', account.signedIn ? 'yes' : 'no'));
 // For the screenshot tools (tools/debug/menushots.mjs fills a signed-in account)
 (window as unknown as { madorbsAccount: Account }).madorbsAccount = account;
 const screen = new StartScreen(
@@ -114,6 +118,7 @@ async function startGame(mode: PlayMode, level?: CampaignLevel): Promise<void> {
     (window as unknown as { madorbs: ClientGame }).madorbs = game;
   } catch (e) {
     console.error(e);
+    track('join_failed', { mode: level ? 'campaign' : settings.mode, online: mode === 'online', reason: String((e as Error).message).slice(0, 100) });
     screen.show(t('menu.joinFailed', { reason: (e as Error).message }));
   } finally {
     loading.hidden = true;

@@ -7,6 +7,8 @@
 // development 127.0.0.1 instead of localhost): the ad's script can't reach this page, its storage or
 // the sign-in session. The sandbox also keeps it from navigating the game away (its links open tabs).
 
+import { track } from './analytics';
+
 export type AdSlot = 'sky' | 'rect' | 'wide';
 
 /** The ad units of madorbs.com: 160x600 (start screen, left), 300x250 (start screen, right), 728x90 (end of a level). */
@@ -102,6 +104,7 @@ const FRAME_SILENCE_MS = 7_000;
 function blockerFound(): void {
   if (blocked) return;
   blocked = true;
+  track('adblock_detected');
   for (const fn of blockListeners) fn();
 }
 

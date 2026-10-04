@@ -21,6 +21,7 @@ import { SKINS, saveSettings, skinInfo, type Settings } from './settings';
 import { TrainingModal } from './training';
 import { versioned } from '../sim/assetVersion';
 import { adsAllowed, mountAd, onAdBlockFound, onAdsAllowed, refreshAd, type AdSlot } from '../client/ads';
+import { track } from '../client/analytics';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -88,6 +89,9 @@ export class StartScreen {
 
     this.accountModal = new AccountModal(account, settings, studio, (name) => this.setName(name));
     $('btnAccount').addEventListener('click', () => this.accountModal.open());
+    // Which windows of the start screen are opened (analytics)
+    const opens: [string, string][] = [['btnAccount', 'account'], ['btnStats', 'stats'], ['btnCampaign', 'campaign'], ['training', 'training'], ['btnControls', 'controls'], ['orbButton', 'orb'], ['orbCustomize', 'orb']];
+    for (const [id, name] of opens) $(id).addEventListener('click', () => track('menu_open', { window: name }));
     this.statsModal = new StatsModal(account, () => this.accountModal.open());
     $('btnStats').addEventListener('click', () => this.statsModal.open());
     this.campaign = new CampaignModal(
@@ -178,6 +182,7 @@ export class StartScreen {
       const l = a.dataset.lang as Lang;
       if (l === lang()) a.setAttribute('aria-current', 'true');
       a.addEventListener('click', () => {
+        if (l !== lang()) track('language_change', { from: lang(), to: l });
         try {
           localStorage.setItem(LANG_KEY, l);
         } catch {
@@ -374,6 +379,7 @@ export class StartScreen {
         `<span class="mode-icon">${icon(MODE_ICONS[mode], 30)}</span><b>${modeName(mode)}</b>` +
         `<small>${modeTagline(mode)}</small><span class="mode-count" hidden></span>`;
       b.addEventListener('click', () => {
+        if (this.settings.mode !== mode) track('select_mode', { mode });
         this.settings.mode = mode;
         saveSettings(this.settings);
         this.markMode();

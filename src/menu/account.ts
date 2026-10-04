@@ -3,6 +3,7 @@
 // database, never changes), the name and the Orb; player_stats the online stats of each game mode,
 // written by the game server. supabase-js and Google's script load only when they are needed:
 // a saved session at startup, or the account window opened.
+import { track } from '../client/analytics';
 import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { lang } from '../i18n';
 import type { RoomMode } from '../net/protocol';
@@ -180,6 +181,7 @@ export class Account {
     const { data, error } = await client.auth.signInWithIdToken({ provider: 'google', token, nonce });
     if (error) throw error;
     this.session = data.session;
+    track('login', { method: 'Google' });
     await this.refreshProfile();
   }
 
