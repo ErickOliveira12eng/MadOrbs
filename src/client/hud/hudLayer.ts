@@ -286,7 +286,7 @@ export class HudLayer {
 </div>
 
 <div class="h-abs h-feat" data-r="feat" hidden></div>
-<div class="h-abs h-campend" data-r="campend" hidden></div>
+<div class="h-abs h-campend" data-r="campend" hidden><div class="h-campcard" data-r="campcard"></div><div class="h-campad" data-r="campad" hidden><span>${t('ads.label')}</span><div></div></div></div>
 <div class="h-abs h-sidead" data-r="sidead" hidden><span>${t('ads.label')}</span><div></div></div>
 <div class="h-abs h-banner" data-r="banner" hidden></div>
 <div class="h-abs h-endside" data-r="endside" hidden>
@@ -524,6 +524,18 @@ export class HudLayer {
   /** The end of a campaign level: the system's cursor, no crosshair. */
   private cursorFree = false;
 
+  /**
+   * A campaign level starts: the banner of its end is loaded now, in its place under the (still
+   * invisible) panel, so it is there when the level ends. Moving an ad's frame would load it again.
+   */
+  preloadCampaignAd(): void {
+    const ad = this.r.campad;
+    if (!mountAd(ad.lastElementChild as HTMLElement, 'wide')) return;
+    ad.hidden = false;
+    this.r.campend.classList.add('preload');
+    show(this.r.campend, true);
+  }
+
   /** The end of a campaign level: won (stars, time) or lost, and what to do next. */
   showCampaignEnd(e: CampaignEnd): void {
     const l = e.level;
@@ -535,24 +547,41 @@ export class HudLayer {
         `<div class="thr">${t('campaign.thresholds', { three: clock(l.stars3), two: clock(l.stars2) })}</div>` +
         (e.guest ? `<div class="save">${t('campaign.saveHint')}</div>` : '')
       : `<div class="sub">${t('campaign.lostText')}</div>`;
+    // A breath before going on (next level, again): the buttons count down; the levels window at once
+    const waitUntil = performance.now() + CAMPAIGN_NEXT_WAIT * 1000;
+    const wait = `<span class="wait">${CAMPAIGN_NEXT_WAIT}</span>`;
     const buttons =
       `<button type="button" data-a="menu"><span class="h-key">Esc</span>${t('campaign.menu')}</button>` +
       (e.won && e.hasNext
-        ? `<button type="button" data-a="retry"><span class="h-key">R</span>${t('campaign.retry')}</button><button type="button" class="primary" data-a="next"><span class="h-key">Enter</span>${t('campaign.next')}</button>`
-        : `<button type="button" class="primary" data-a="retry"><span class="h-key">Enter</span>${t(e.won ? 'campaign.retry' : 'campaign.tryAgain')}</button>`);
+        ? `<button type="button" data-a="retry" disabled><span class="h-key">R</span>${t('campaign.retry')}</button><button type="button" class="primary" data-a="next" disabled><span class="h-key">Enter</span>${t('campaign.next')}${wait}</button>`
+        : `<button type="button" class="primary" data-a="retry" disabled><span class="h-key">Enter</span>${t(e.won ? 'campaign.retry' : 'campaign.tryAgain')}${wait}</button>`);
     setHTML(
-      this.r.campend,
-      `<div class="h-campcard"><div class="t ${e.won ? 'won' : 'lost'}">${t(e.won ? 'campaign.won' : 'campaign.lost')}</div><div class="lvl">${title}</div>${body}<div class="btns">${buttons}</div></div>` +
-        `<div class="h-campad" hidden><span>${t('ads.label')}</span><div></div></div>`,
+      this.r.campcard,
+      `<div class="t ${e.won ? 'won' : 'lost'}">${t(e.won ? 'campaign.won' : 'campaign.lost')}</div><div class="lvl">${title}</div>${body}<div class="btns">${buttons}</div>`,
     );
+    this.r.campend.classList.remove('preload');
     show(this.r.campend, true);
-    // A banner under the panel (src/client/ads.ts: only when the visitor agreed to ads)
-    const ad = this.r.campend.querySelector<HTMLElement>('.h-campad')!;
-    if (mountAd(ad.lastElementChild as HTMLElement, 'wide')) ad.hidden = false;
+    // The banner under the panel: loaded when the level started (preloadCampaignAd), or now
+    const ad = this.r.campad;
+    if (ad.hidden && mountAd(ad.lastElementChild as HTMLElement, 'wide')) ad.hidden = false;
+    const waiting = [...this.r.campcard.querySelectorAll<HTMLButtonElement>('button:disabled')];
+    const count = this.r.campcard.querySelector<HTMLElement>('.wait')!;
+    const tick = () => {
+      const left = Math.ceil((waitUntil - performance.now()) / 1000);
+      if (left > 0) {
+        count.textContent = String(left);
+        setTimeout(tick, 100);
+      } else {
+        count.remove();
+        for (const b of waiting) b.disabled = false;
+      }
+    };
+    tick();
     // The system's cursor instead of the game's
     this.cursorFree = true;
     this.root.classList.add('free-cursor');
     const act = (a: 'next' | 'retry' | 'menu') => {
+      if (a !== 'menu' && performance.now() < waitUntil) return;
       if (this.campEndKeys) window.removeEventListener('keydown', this.campEndKeys, true);
       this.campEndKeys = null;
       e.onAction(a);
@@ -1297,6 +1326,9 @@ export class HudLayer {
     this.root.remove();
   }
 }
+
+/** Seconds before "Next level" / "Try again" work at the end of a campaign level. */
+const CAMPAIGN_NEXT_WAIT = 3;
 
 /** Seconds before the side banner loads a new ad when it shows again. */
 const SIDE_AD_REFRESH = 60;

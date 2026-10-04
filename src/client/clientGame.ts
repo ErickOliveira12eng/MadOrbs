@@ -356,6 +356,8 @@ export class ClientGame {
     this.hud.picker.hide();
     this.game.requestSpawn(this.me);
     for (const b of this.bots) this.game.requestSpawn(b.player);
+    // The banner of the level's end loads now, while it is played
+    this.hud.preloadCampaignAd();
   }
 
   /** Every tick of a campaign level: the clock, the boss's guards, the win and the loss. */
