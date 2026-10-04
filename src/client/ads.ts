@@ -86,19 +86,51 @@ function baitHidden(): Promise<boolean> {
   );
 }
 
+// ------------------------------------------------------------------ what the banners say
+// Each banner page (public/ad-frame.html) says 'ready', then 'filled', 'empty' or 'blocked'. Blockers
+// that only stop the ad's picture (Brave's Shields) or the banner page itself (the lists' rule for
+// "ads." addresses) are seen here: the requests above don't show them.
+
+/** A banner showed its picture: an empty one later is a missing ad, not a blocker. */
+let filledAny = false;
+/** Banner pages that answered. */
+const answered = new WeakSet<object>();
+const blockListeners: (() => void)[] = [];
+/** A banner page that doesn't answer in this long was blocked. */
+const FRAME_SILENCE_MS = 7_000;
+
+function blockerFound(): void {
+  if (blocked) return;
+  blocked = true;
+  for (const fn of blockListeners) fn();
+}
+
+/** Calls `fn` when a blocker is found later, by what the banners say. */
+export function onAdBlockFound(fn: () => void): void {
+  blockListeners.push(fn);
+}
+
+window.addEventListener('message', (e) => {
+  if (!frameOrigin() || e.origin !== frameOrigin() || !e.source) return;
+  const state = (e.data as { madorbsAd?: unknown } | null)?.madorbsAd;
+  if (state === 'ready') answered.add(e.source);
+  else if (state === 'filled') filledAny = true;
+  else if (state === 'blocked' || (state === 'empty' && !filledAny)) blockerFound();
+});
+
 let blockCheck: Promise<boolean> | null = null;
 /**
  * An ad blocker is on: checked once per page, only where banners would show and the visitor agreed to
  * ads (so the requests don't go out before consent). Any of: the bait box hidden, Google's ad script
- * refused, the banners' own origin refused.
+ * refused, the banners' own origin refused; and later what the banners say (onAdBlockFound).
  */
 export function adBlocked(): Promise<boolean> {
   if (!rightHost() || !consented() || !frameOrigin()) return Promise.resolve(false);
   blockCheck ??= Promise.all([baitHidden(), refused(GOOGLE_ADS), frameCheck.then((ok) => !ok)]).then((found) => {
-    blocked = found.some(Boolean);
+    if (found.some(Boolean)) blockerFound();
     return blocked;
   });
-  return blockCheck;
+  return blockCheck.then(() => blocked);
 }
 
 /** Banners may show here and now (agreed to, on madorbs.com, and the frames' origin answers). */
@@ -133,5 +165,9 @@ export function mountAd(host: HTMLElement, slot: AdSlot): boolean {
   frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox');
   frame.src = `${frameOrigin()}/ad-frame.html?key=${u.key}&w=${u.width}&h=${u.height}`;
   host.append(frame);
+  // A banner page that never answers was blocked itself
+  setTimeout(() => {
+    if (frame.isConnected && frame.contentWindow && !answered.has(frame.contentWindow)) blockerFound();
+  }, FRAME_SILENCE_MS);
   return true;
 }

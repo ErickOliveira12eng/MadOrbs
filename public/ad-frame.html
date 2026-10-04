@@ -1,6 +1,9 @@
 <!doctype html>
 <!-- One Adsterra banner, framed by the game page (src/client/ads.ts) from its own origin (ads.madorbs.com):
-     the ad's script can't reach the game's page, its storage or the sign-in session. ?key=<unit>&w=<px>&h=<px> -->
+     the ad's script can't reach the game's page, its storage or the sign-in session. ?key=<unit>&w=<px>&h=<px>
+     It tells the game how the banner went (postMessage { madorbsAd }): 'ready' (this page runs), then
+     'filled' (the ad's picture showed), 'empty' (nothing showed: its picture was blocked, as Brave does)
+     or 'blocked' (the ad's script was refused). A page that never says 'ready' was blocked itself. -->
 <html>
   <head>
     <meta charset="utf-8" />
@@ -18,9 +21,47 @@
         var w = Number(q.get('w'));
         var h = Number(q.get('h'));
         if (!/^[0-9a-f]{32}$/.test(key) || !(w > 0 && w <= 1000) || !(h > 0 && h <= 1000)) return;
+        function tell(state) {
+          try {
+            parent.postMessage({ madorbsAd: state, key: key }, '*');
+          } catch (e) {
+            /* no parent */
+          }
+        }
+        tell('ready');
+        window.madorbsAdFailed = function () {
+          tell('blocked');
+        };
+
+        // The ad's picture: an image in this page or in the ad's own frame (same origin as this page);
+        // a frame from elsewhere that we can't look into counts when it has a size
+        function showing(doc) {
+          var imgs = doc.images;
+          for (var i = 0; i < imgs.length; i++) if (imgs[i].complete && imgs[i].naturalWidth > 2 && imgs[i].naturalHeight > 2) return true;
+          return false;
+        }
+        var tries = 0;
+        function look() {
+          var found = showing(document);
+          var frames = document.getElementsByTagName('iframe');
+          for (var i = 0; i < frames.length && !found; i++) {
+            try {
+              found = showing(frames[i].contentDocument);
+            } catch (e) {
+              found = frames[i].offsetWidth > 50 && frames[i].offsetHeight > 30;
+            }
+          }
+          if (found) tell('filled');
+          else if (++tries < 16) setTimeout(look, 500);
+          else tell('empty');
+        }
+        window.addEventListener('load', function () {
+          setTimeout(look, 500);
+        });
+
         window.atOptions = { key: key, format: 'iframe', height: h, width: w, params: {} };
         // Written while the page is parsed, like the snippet Adsterra gives
-        document.write('<script src="https://bauval.org/22/' + key + '"><\/script>');
+        document.write('<script src="https://bauval.org/22/' + key + '" onerror="madorbsAdFailed()"><\/script>');
       })();
     </script>
   </body>

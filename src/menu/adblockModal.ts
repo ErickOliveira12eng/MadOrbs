@@ -25,7 +25,11 @@ export class AdblockModal {
 
   /** Opens when a blocker is found and `stillWanted()` (the start screen is still showing). */
   async check(stillWanted: () => boolean): Promise<void> {
-    if ((await adBlocked()) && stillWanted()) this.root.hidden = false;
+    if ((await adBlocked()) && stillWanted()) this.open();
+  }
+
+  open(): void {
+    this.root.hidden = false;
   }
 
   close(): void {

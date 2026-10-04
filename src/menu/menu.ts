@@ -20,7 +20,7 @@ import { turning, type OrbStudio } from './orbStudio';
 import { SKINS, saveSettings, skinInfo, type Settings } from './settings';
 import { TrainingModal } from './training';
 import { versioned } from '../sim/assetVersion';
-import { adsAllowed, mountAd, onAdsAllowed, type AdSlot } from '../client/ads';
+import { adsAllowed, mountAd, onAdBlockFound, onAdsAllowed, type AdSlot } from '../client/ads';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -155,6 +155,11 @@ export class StartScreen {
     onAdsAllowed(() => {
       this.layoutAds(true);
       this.checkAdBlock();
+    });
+    // Found later by the banners themselves (Brave): the request now, if the start screen shows
+    onAdBlockFound(() => {
+      this.layoutAds();
+      if (this.visible) this.adblock.open();
     });
     this.embers = matchMedia('(prefers-reduced-motion: reduce)').matches ? null : new Embers($<HTMLCanvasElement>('bgSparks'));
     void this.makeBackground();
