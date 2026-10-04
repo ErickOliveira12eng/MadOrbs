@@ -187,6 +187,8 @@ export class ClientGame {
     this.flagRenderer = new FlagRenderer(this.scene);
     this.overlay = new ViewOverlay(this.renderer.domElement, VIEW_ASPECT);
     this.hud = new HudLayer(container, { orbPicture: opts.orbPicture, online });
+    // The banner of the death screen and the Esc menu loads now (the campaign has its own, at its end)
+    if (!opts.campaign) this.hud.preloadSideAd();
 
     const menu = this.hud.picker;
     menu.serverName = online ? '' : t('pick.offline');

@@ -9,7 +9,7 @@
 import { starsFor, type CampaignLevel } from '../campaign';
 import type { FeatKind } from '../../sim/feats';
 import { drawMapPreview } from '../mapPreview';
-import { adsAllowed, mountAd } from '../ads';
+import { adsAllowed, mountAd, refreshAd } from '../ads';
 import { loadMap } from '../../sim/map';
 import './hud.css';
 import {
@@ -721,16 +721,34 @@ export class HudLayer {
    * every death. In the menu the weapon cards move left to make room.
    */
   private updateSideAd(want: boolean, menu: boolean): void {
+    const host = this.r.sidead.lastElementChild as HTMLElement;
     let on = want && adsAllowed();
-    if (on && !this.sideAdOn && (this.sideAdAt < 0 || this.time - this.sideAdAt > SIDE_AD_REFRESH)) {
-      if (mountAd(this.r.sidead.lastElementChild as HTMLElement, 'rect')) this.sideAdAt = this.time;
-      else on = false;
+    if (on && !this.sideAdOn) {
+      // Loaded at the start of the match (preloadSideAd); a new ad after a while, swapped in once loaded
+      if (!host.firstChild) {
+        if (mountAd(host, 'rect')) this.sideAdAt = this.time;
+        else on = false;
+      } else if (this.time - this.sideAdAt > SIDE_AD_REFRESH) {
+        refreshAd(host, 'rect');
+        this.sideAdAt = this.time;
+      }
     }
     if (on !== this.sideAdOn) {
       this.sideAdOn = on;
-      show(this.r.sidead, on);
+      // Off: kept laid out but unseen while it has an ad, so it is ready for the next time
+      this.r.sidead.classList.toggle('preload', !on);
+      show(this.r.sidead, on || (!!host.firstChild && adsAllowed()));
     }
     this.picker.el.classList.toggle('with-ad', on && menu);
+  }
+
+  /** A match starts: the side banner loads now, unseen, so the first death or Esc shows it ready. */
+  preloadSideAd(): void {
+    const host = this.r.sidead.lastElementChild as HTMLElement;
+    if (!mountAd(host, 'rect')) return;
+    this.sideAdAt = this.time;
+    this.r.sidead.classList.add('preload');
+    show(this.r.sidead, true);
   }
 
   private toStage(x: number, y: number): [number, number] {

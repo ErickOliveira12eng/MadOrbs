@@ -20,7 +20,7 @@ import { turning, type OrbStudio } from './orbStudio';
 import { SKINS, saveSettings, skinInfo, type Settings } from './settings';
 import { TrainingModal } from './training';
 import { versioned } from '../sim/assetVersion';
-import { adsAllowed, mountAd, onAdBlockFound, onAdsAllowed, type AdSlot } from '../client/ads';
+import { adsAllowed, mountAd, onAdBlockFound, onAdsAllowed, refreshAd, type AdSlot } from '../client/ads';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -349,8 +349,12 @@ export class StartScreen {
       // Centred in the free side (the sky on the left, the rectangle on the right)
       el.style.setProperty(ad.slot === 'sky' ? 'left' : 'right', `${Math.round((side - ad.width) / 2)}px`);
       const frame = el.querySelector<HTMLElement>('.ad-frame')!;
-      if (reload || !frame.firstChild) {
+      // A new ad replaces the old one only once it is loaded (refreshAd): no blank moment
+      if (!frame.firstChild) {
         mountAd(frame, ad.slot);
+        any = true;
+      } else if (reload) {
+        refreshAd(frame, ad.slot);
         any = true;
       }
     }

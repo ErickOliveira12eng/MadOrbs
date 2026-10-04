@@ -2229,6 +2229,10 @@
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
 }
 
+.h-sidead.preload {
+  visibility: hidden;
+}
+
 .h-pick.with-ad .h-pickin {
   left: 24px;
   transform: none;

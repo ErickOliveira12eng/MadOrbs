@@ -105,6 +105,9 @@ function blockerFound(): void {
   for (const fn of blockListeners) fn();
 }
 
+/** Banner pages waiting for their answer ('filled', 'empty', 'blocked'): refreshAd swaps on it. */
+const waiting = new Map<object, (state: string) => void>();
+
 /** Calls `fn` when a blocker is found later, by what the banners say. */
 export function onAdBlockFound(fn: () => void): void {
   blockListeners.push(fn);
@@ -116,6 +119,7 @@ window.addEventListener('message', (e) => {
   if (state === 'ready') answered.add(e.source);
   else if (state === 'filled') filledAny = true;
   else if (state === 'blocked' || (state === 'empty' && !filledAny)) blockerFound();
+  if (state === 'filled' || state === 'empty' || state === 'blocked') waiting.get(e.source)?.(state);
 });
 
 let blockCheck: Promise<boolean> | null = null;
@@ -153,6 +157,44 @@ export function onAdsAllowed(fn: () => void): void {
 export function mountAd(host: HTMLElement, slot: AdSlot): boolean {
   host.replaceChildren();
   if (!adsAllowed()) return false;
+  host.append(adFrame(slot));
+  return true;
+}
+
+/** Longest wait for a new banner's picture before swapping anyway (refreshAd). */
+const SWAP_WAIT_MS = 6_000;
+
+/**
+ * A new ad in `host` without a blank moment: the new banner loads under the one showing, invisible,
+ * and takes its place once its picture is there (or after SWAP_WAIT_MS). An empty host gets one at once.
+ */
+export function refreshAd(host: HTMLElement, slot: AdSlot): boolean {
+  const old = host.querySelector('iframe');
+  if (!old) return mountAd(host, slot);
+  if (!adsAllowed()) return false;
+  const frame = adFrame(slot);
+  host.style.position = 'relative';
+  frame.style.position = 'absolute';
+  frame.style.inset = '0';
+  frame.style.visibility = 'hidden';
+  host.append(frame);
+  let done = false;
+  const swap = () => {
+    if (done) return;
+    done = true;
+    if (frame.contentWindow) waiting.delete(frame.contentWindow);
+    for (const f of host.querySelectorAll('iframe')) if (f !== frame) f.remove();
+    frame.style.position = '';
+    frame.style.inset = '';
+    frame.style.visibility = '';
+  };
+  if (frame.contentWindow) waiting.set(frame.contentWindow, swap);
+  setTimeout(swap, SWAP_WAIT_MS);
+  return true;
+}
+
+/** A banner page in its frame. */
+function adFrame(slot: AdSlot): HTMLIFrameElement {
   const u = UNITS[slot];
   const frame = document.createElement('iframe');
   frame.width = String(u.width);
@@ -164,10 +206,9 @@ export function mountAd(host: HTMLElement, slot: AdSlot): boolean {
   // Its own origin keeps it apart from this page; the sandbox adds: no navigating the game away
   frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox');
   frame.src = `${frameOrigin()}/ad-frame.html?key=${u.key}&w=${u.width}&h=${u.height}`;
-  host.append(frame);
   // A banner page that never answers was blocked itself
   setTimeout(() => {
     if (frame.isConnected && frame.contentWindow && !answered.has(frame.contentWindow)) blockerFound();
   }, FRAME_SILENCE_MS);
-  return true;
+  return frame;
 }
