@@ -71,6 +71,10 @@ const TEAM_DECALS: Record<number, Omit<SkinInfo, 'skin'>> = {
   [PLAYER_TEAM_RED]: { redDecal: [1, 0.5, 0.5], greenDecal: [1, 0, 0], blueDecal: [0.5, 0, 0] },
 };
 
+/** The waves' poison and ice shots: how long a hit poisons, and how long it slows. */
+const POISON_SECONDS = 3;
+const CHILL_SECONDS = 1.5;
+
 export class Player {
   readonly game: Game;
   readonly playerID: number;
@@ -118,6 +122,17 @@ export class Player {
   armorBoost = 1;
   speedBoost = 1;
   fireBoost = 1;
+  /**
+   * The waves' poison and ice shots: what this player's hits do (poison: life per second for
+   * POISON_SECONDS; ice: share of speed lost for CHILL_SECONDS), and what this player suffers now.
+   */
+  poisonShot = 0;
+  iceShot = 0;
+  poisonLeft = 0;
+  poisonDps = 0;
+  poisonFrom: Player | null = null;
+  chillLeft = 0;
+  chill = 0;
   protection = 0;
   timeDead = 0;
   timeAlive = 0;
@@ -199,6 +214,7 @@ export class Player {
   /** Player::update */
   update(delay: number): void {
     const game = this.game;
+    if (this.status === PLAYER_STATUS_ALIVE && (this.poisonLeft > 0 || this.chillLeft > 0)) this.updateAilments(delay);
     if (this.teamID !== PLAYER_TEAM_SPECTATOR) this.timeIdle += delay;
     else this.timeIdle = 0;
 
@@ -348,7 +364,9 @@ export class Player {
     const game = this.game;
     this.currentCF.mousePosOnMap.copy(input.mousePosOnMap);
 
-    let accel = 12.5 * this.speedBoost;
+    // The waves: speed power-ups, and the ice shots' chill
+    const pace = this.speedBoost * (1 - this.chill);
+    let accel = 12.5 * pace;
     if (game.map.themeName === 'snow' && sv.sv_slideOnIce && this.onSplatter()) accel = 4.0;
 
     // Absolute movement (scope mode was never enabled in the shipped game)
@@ -407,7 +425,7 @@ export class Player {
 
     // Clamp the velocity ("Upgrade, faster ! haha")
     const size = this.currentCF.vel.length();
-    const top = 3.25 * this.speedBoost;
+    const top = 3.25 * pace;
     if (size > top) this.currentCF.vel.normalizeIn().mulIn(top);
   }
 
@@ -507,6 +525,10 @@ export class Player {
     this.timeAlive = 0;
     this.timeIdle = 0;
     this.spawnRequested = false;
+    this.poisonLeft = 0;
+    this.poisonDps = 0;
+    this.chillLeft = 0;
+    this.chill = 0;
     this.currentCF.position.copy(spawnPoint);
     this.currentCF.vel.set(0, 0, 0);
     this.currentCF.angle = 0;
@@ -697,8 +719,37 @@ export class Player {
         this.dieSV(from, fromWeaponID, false);
         return true;
       }
+      // The waves' poison and ice shots stick to whoever they hurt
+      if (cdamage > 0 && from !== this) {
+        if (from.poisonShot > 0) {
+          this.poisonLeft = POISON_SECONDS;
+          this.poisonDps = Math.max(this.poisonDps, from.poisonShot);
+          this.poisonFrom = from;
+        }
+        if (from.iceShot > 0) {
+          this.chillLeft = CHILL_SECONDS;
+          this.chill = Math.max(this.chill, from.iceShot);
+        }
+      }
     }
     return false;
+  }
+
+  /** The waves' poison (life lost every tick, the poisoner gets the kill) and chill wearing off. */
+  private updateAilments(delay: number): void {
+    if (this.chillLeft > 0) {
+      this.chillLeft -= delay;
+      if (this.chillLeft <= 0) this.chill = 0;
+    }
+    if (this.poisonLeft <= 0) return;
+    this.poisonLeft -= delay;
+    const from = this.poisonFrom;
+    if (this.poisonLeft <= 0 || !from || this.immuneTime > 0.3) {
+      if (this.poisonLeft <= 0) this.poisonDps = 0;
+      return;
+    }
+    this.applyDamage(this.poisonDps * delay * this.damageScale * this.armorBoost, from, from.weapon?.weaponID ?? WEAPON_SMG);
+    if (this.life <= Number.EPSILON) this.dieSV(from, from.weapon?.weaponID ?? WEAPON_SMG, false);
   }
 
   private applyDamage(cdamage: number, from: Player, fromWeaponID: number): void {

@@ -110,6 +110,66 @@ function symbol(g: CanvasRenderingContext2D, kind: PowerKind): void {
       g.bezierCurveTo(98, 22, 114, 66, 64, 100);
       g.fill();
       break;
+    case 'permFire':
+      // A crosshair with an up arrow: fire rate, for good
+      g.lineWidth = 7;
+      g.beginPath();
+      g.arc(56, 70, 22, 0, Math.PI * 2);
+      g.stroke();
+      g.fillRect(53, 40, 6, 14);
+      g.fillRect(53, 86, 6, 14);
+      g.fillRect(26, 67, 14, 6);
+      g.fillRect(72, 67, 14, 6);
+      upArrow(g);
+      break;
+    case 'permDamage':
+      // A blade with an up arrow
+      poly([[30, 92], [72, 50], [80, 42], [84, 46], [76, 58], [36, 98]]);
+      g.fillRect(28, 82, 22, 6);
+      upArrow(g);
+      break;
+    case 'permArmor':
+      poly([[56, 30], [82, 40], [79, 70], [56, 96], [33, 70], [30, 40]]);
+      upArrow(g);
+      break;
+    case 'permSpeed':
+      // Three speed lines and an up arrow
+      g.lineWidth = 8;
+      for (const [y, w] of [[48, 40], [66, 50], [84, 34]]) {
+        g.beginPath();
+        g.moveTo(26, y);
+        g.lineTo(26 + w, y);
+        g.stroke();
+      }
+      upArrow(g);
+      break;
+    case 'poison':
+      // A drop
+      g.beginPath();
+      g.moveTo(64, 26);
+      g.bezierCurveTo(70, 46, 92, 62, 92, 78);
+      g.arc(64, 78, 28, 0, Math.PI, false);
+      g.bezierCurveTo(36, 62, 58, 46, 64, 26);
+      g.fill();
+      g.fillStyle = POWERS.poison.color;
+      g.beginPath();
+      g.arc(56, 82, 8, 0, Math.PI * 2);
+      g.fill();
+      break;
+    case 'ice':
+      // A snowflake
+      g.lineWidth = 7;
+      for (let i = 0; i < 3; i++) {
+        const a = (i * Math.PI) / 3;
+        g.beginPath();
+        g.moveTo(64 - Math.cos(a) * 36, 64 - Math.sin(a) * 36);
+        g.lineTo(64 + Math.cos(a) * 36, 64 + Math.sin(a) * 36);
+        g.stroke();
+      }
+      g.beginPath();
+      g.arc(64, 64, 9, 0, Math.PI * 2);
+      g.fill();
+      break;
     case 'bomb':
       g.beginPath();
       g.arc(58, 74, 28, 0, Math.PI * 2);
@@ -125,4 +185,19 @@ function symbol(g: CanvasRenderingContext2D, kind: PowerKind): void {
       g.fill();
       break;
   }
+}
+
+/** The permanent ones' mark: a small up arrow in the top right corner. */
+function upArrow(g: CanvasRenderingContext2D): void {
+  g.fillStyle = '#fff';
+  g.beginPath();
+  g.moveTo(98, 22);
+  g.lineTo(114, 42);
+  g.lineTo(104, 42);
+  g.lineTo(104, 56);
+  g.lineTo(92, 56);
+  g.lineTo(92, 42);
+  g.lineTo(82, 42);
+  g.closePath();
+  g.fill();
 }

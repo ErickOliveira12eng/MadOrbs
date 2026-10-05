@@ -9,7 +9,7 @@ import type { Player, SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
-import { BOOSTS, POWER_WEAPONS, WAVES, loadWavesRecord, rollPower, saveWavesRun, waveSpec, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, loadWavesRecord, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 
 /** What the HUD shows of a run (HudLayer). */
 export interface WavesHud {
@@ -25,6 +25,8 @@ export interface WavesHud {
   kills: number;
   /** The timed power-ups on, with their seconds left. */
   powers: { kind: PowerKind; left: number }[];
+  /** The permanent ones taken, with their levels. */
+  perms: { kind: PermKind; level: number }[];
   bossLife: { name: string; life: number } | null;
   /** The best wave before this run. */
   record: number | null;
@@ -81,6 +83,8 @@ export class WavesRun {
   private powers: FloorPower[] = [];
   private nextPowerID = 1;
   private timers: Record<TimedPower, number> = { speed: 0, rapid: 0, shield: 0, fury: 0 };
+  /** Levels of the permanent power-ups, for the rest of the run. */
+  private perms: Record<PermKind, number> = { permFire: 0, permDamage: 0, permArmor: 0, permSpeed: 0, poison: 0, ice: 0 };
   private readonly record = loadWavesRecord();
   /** Seconds since the first spawn. */
   elapsed = 0;
@@ -134,12 +138,15 @@ export class WavesRun {
       return true;
     });
 
-    // Timed power-ups
+    // Power-ups: the permanent levels, times the timed ones while they last
     for (const k of Object.keys(this.timers) as TimedPower[]) this.timers[k] = Math.max(0, this.timers[k] - TICK);
-    me.speedBoost = this.timers.speed > 0 ? BOOSTS.speed : 1;
-    me.fireBoost = this.timers.rapid > 0 ? BOOSTS.rapid : 1;
-    me.armorBoost = this.timers.shield > 0 ? BOOSTS.shield : 1;
-    me.damageBoost = this.timers.fury > 0 ? BOOSTS.fury : 1;
+    const perm = this.perms;
+    me.speedBoost = Math.min(2, (1 + PERM_STEP * perm.permSpeed) * (this.timers.speed > 0 ? BOOSTS.speed : 1));
+    me.fireBoost = (1 + PERM_STEP * perm.permFire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1);
+    me.armorBoost = (1 - PERM_STEP) ** perm.permArmor * (this.timers.shield > 0 ? BOOSTS.shield : 1);
+    me.damageBoost = (1 + PERM_STEP * perm.permDamage) * (this.timers.fury > 0 ? BOOSTS.fury : 1);
+    me.poisonShot = POISON_DPS * perm.poison;
+    me.iceShot = Math.min(ICE_MAX, ICE_SLOW * perm.ice);
   }
 
   // ---------------------------------------------------------------- waves
@@ -162,10 +169,10 @@ export class WavesRun {
     // "pressing" to respawn (spawnRequested stays on, the game refuses): it must not count, else
     // the fallen ones filled the wave's limit and nobody came any more (the wave 3 that never began)
     const standing = reds.filter(inWave).length;
-    // Bots join a few at a time, up to the wave's limit at once
+    // Bots join a few each second, all of them (only the game's player slots can hold some back)
     this.spawnWait -= TICK;
-    if (this.spawnWait <= 0 && this.pending > 0 && standing < this.spec.atOnce) {
-      this.spawnWait = WAVES.spawnGap;
+    if (this.spawnWait <= 0 && this.pending > 0) {
+      this.spawnWait = this.spec.spawnGap;
       if (this.spawnBot()) this.pending--;
     }
     // The boss comes after the first bots
@@ -202,6 +209,9 @@ export class WavesRun {
     p.lives = 1;
     p.spawnRequested = false;
     p.timeToSpawn = 0;
+    // Tougher and harder hitting each wave (waveSpec)
+    p.damageScale = this.spec.toughness;
+    p.damageBoost = this.spec.hitBoost;
     bots[i] = new BotController(p, this.spec.skill, loadout);
     game.requestSpawn(p);
     return true;
@@ -224,6 +234,8 @@ export class WavesRun {
     p.lives = 1;
     p.spawnRequested = false;
     p.timeToSpawn = 0;
+    p.damageScale = WAVES.boss.damageScale * this.spec.toughness;
+    p.damageBoost = this.spec.hitBoost;
     const heavy = this.spec.weapons[this.spec.weapons.length - 1];
     const bot = new BotController(p, Math.min(1, this.spec.skill + 0.1), { primary: heavy, secondary: WEAPON_KNIVES });
     const i = bots.findIndex((b) => b.player === p);
@@ -294,7 +306,8 @@ export class WavesRun {
         this.bomb();
         break;
       default:
-        this.timers[kind] = WAVES.powerSeconds;
+        if (POWERS[kind].perm) this.perms[kind as PermKind]++;
+        else this.timers[kind as TimedPower] = WAVES.powerSeconds;
     }
     track('powerup_pick', { kind, wave: this.wave });
     this.ctx.onPower(kind, weaponID);
@@ -342,6 +355,7 @@ export class WavesRun {
       lives: me.lives + (me.isAlive ? 1 : 0),
       kills: me.kills,
       powers: (Object.keys(this.timers) as TimedPower[]).filter((k) => this.timers[k] > 0).map((k) => ({ kind: k, left: this.timers[k] })),
+      perms: PERM_KINDS.filter((k) => this.perms[k] > 0).map((k) => ({ kind: k, level: this.perms[k] })),
       bossLife: boss && this.spec.boss && this.phase === 'fight' && (boss.isAlive || boss.lives > 0) ? { name: boss.name, life: boss.isAlive ? boss.life : 1 } : null,
       record: this.record?.wave ?? null,
       over: this.over,
@@ -354,7 +368,11 @@ export class WavesRun {
   }
 
   render(dt: number, time: number): void {
-    this.renderer.render(this.ctx.game.crates, this.powers, dt, time);
+    // Enemies hit by the poison or ice shots: a ring under them
+    const marks = this.reds()
+      .filter((p) => p.isAlive && (p.poisonLeft > 0 || p.chillLeft > 0))
+      .map((p) => ({ id: p.playerID, x: p.currentCF.position.x, y: p.currentCF.position.y, poison: p.poisonLeft > 0, ice: p.chillLeft > 0 }));
+    this.renderer.render(this.ctx.game.crates, this.powers, marks, dt, time);
   }
 
   dispose(): void {

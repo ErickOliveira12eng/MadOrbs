@@ -2294,6 +2294,30 @@
   background: #fff;
 }
 
+.h-perms {
+  padding: 6px 2px 2px;
+}
+
+.h-perms > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  max-width: 200px;
+  margin-top: 4px;
+}
+
+.h-perms span:not(.h-label) {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font: 800 12.5px var(--h-ui);
+}
+
+.h-perms img {
+  width: 22px;
+  height: 22px;
+}
+
 .h-wbreak,
 .h-wrec {
   padding: 4px 2px 2px;

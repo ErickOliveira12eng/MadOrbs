@@ -6,6 +6,15 @@ import { CRATE_LIFE, type Crate } from '../../sim/crate';
 import { powerIcon } from '../powerIcons';
 import { POWERS, type PowerKind } from '../waves';
 
+/** An enemy under the poison or ice shots (a ring under it, green or icy blue). */
+export interface AilmentMark {
+  id: number;
+  x: number;
+  y: number;
+  poison: boolean;
+  ice: boolean;
+}
+
 /** A power-up on the floor, as the run keeps it. */
 export interface FloorPower {
   id: number;
@@ -84,6 +93,11 @@ export class WavesRenderer {
   private readonly crates = new Map<number, CrateView>();
   private readonly powers = new Map<number, PowerView>();
   private splinters: Splinter[] = [];
+  private readonly markGeometry = new THREE.RingGeometry(0.27, 0.36, 28);
+  private readonly poisonMaterial = new THREE.MeshBasicMaterial({ color: 0x7ed321, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
+  private readonly iceMaterial = new THREE.MeshBasicMaterial({ color: 0x7fd8ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+  /** Rings in use and spare ones, reused frame to frame. */
+  private marks: THREE.Mesh[] = [];
 
   constructor(scene: THREE.Scene) {
     scene.add(this.root);
@@ -110,7 +124,28 @@ export class WavesRenderer {
   }
 
   /** Every frame: the crates and power-ups as they are now, and the splinters flying. */
-  render(crates: readonly Crate[], powers: readonly FloorPower[], dt: number, time: number): void {
+  render(crates: readonly Crate[], powers: readonly FloorPower[], ailments: readonly AilmentMark[], dt: number, time: number): void {
+    // Rings under the poisoned (green) and chilled (icy) enemies
+    let used = 0;
+    const ring = (x: number, y: number, material: THREE.Material, scale: number) => {
+      let m = this.marks[used];
+      if (!m) {
+        m = new THREE.Mesh(this.markGeometry, material);
+        this.root.add(m);
+        this.marks.push(m);
+      }
+      m.material = material;
+      m.visible = true;
+      m.position.set(x, y, 0.03);
+      m.scale.setScalar(scale);
+      used++;
+    };
+    for (const a of ailments) {
+      if (a.poison) ring(a.x, a.y, this.poisonMaterial, 1 + Math.sin(time * 8 + a.id) * 0.08);
+      if (a.ice) ring(a.x, a.y, this.iceMaterial, 1.2);
+    }
+    for (let i = used; i < this.marks.length; i++) this.marks[i].visible = false;
+
     // Crates: new ones appear, broken ones go; a damaged crate darkens
     const seen = new Set<number>();
     for (const crate of crates) {
@@ -207,5 +242,8 @@ export class WavesRenderer {
     this.splinterGeometry.dispose();
     this.splinterMaterial.dispose();
     this.ringGeometry.dispose();
+    this.markGeometry.dispose();
+    this.poisonMaterial.dispose();
+    this.iceMaterial.dispose();
   }
 }

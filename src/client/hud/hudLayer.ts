@@ -666,6 +666,14 @@ export class HudLayer {
       w.phase === 'fight'
         ? `<div class="h-ecount"><b>${w.left}</b><span>/ ${w.total}</span><small>${t('waves.toBeat')}</small></div>`
         : `<div class="h-wbreak">${t('waves.breakHint')}</div>`;
+    // The permanent power-ups taken: +10% a level (poison and ice: their level)
+    if (w.perms.length)
+      html +=
+        `<div class="h-perms"><span class="h-label">${t('waves.upgrades')}</span><div>` +
+        w.perms
+          .map((p) => `<span title="${t(`power.${p.kind}` as Key)}"><img src="${powerIconUrl(p.kind)}" alt="" /><b>${p.kind === 'poison' || p.kind === 'ice' ? `×${p.level}` : `+${p.level * 10}%`}</b></span>`)
+          .join('') +
+        `</div></div>`;
     if (w.record) html += `<div class="h-wrec">${t('waves.record', { n: w.record })}</div>`;
     setHTML(this.r.board, html);
   }
