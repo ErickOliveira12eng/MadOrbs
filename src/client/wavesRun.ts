@@ -43,6 +43,9 @@ export interface WavesEnd {
 
 type TimedPower = 'speed' | 'rapid' | 'shield' | 'fury';
 
+/** A bot still in the wave: standing, or with a life left to spawn. */
+const inWave = (p: Player) => p.isAlive || p.lives > 0;
+
 export interface WavesContext {
   game: Game;
   me: Player;
@@ -155,7 +158,10 @@ export class WavesRun {
 
   private updateFight(): void {
     const reds = this.reds();
-    const standing = reds.filter((p) => p.isAlive || p.spawnRequested).length;
+    // In the wave: standing, or with a life left to spawn. A fallen bot with no life left keeps
+    // "pressing" to respawn (spawnRequested stays on, the game refuses): it must not count, else
+    // the fallen ones filled the wave's limit and nobody came any more (the wave 3 that never began)
+    const standing = reds.filter(inWave).length;
     // Bots join a few at a time, up to the wave's limit at once
     this.spawnWait -= TICK;
     if (this.spawnWait <= 0 && this.pending > 0 && standing < this.spec.atOnce) {
@@ -168,8 +174,7 @@ export class WavesRun {
       this.spawnBoss();
     }
     // Cleared: nobody left to come or standing
-    const alive = reds.filter((p) => p.isAlive || (p.lives > 0 && p.spawnRequested)).length;
-    if (this.pending === 0 && !this.bossPending && alive === 0) {
+    if (this.pending === 0 && !this.bossPending && standing === 0) {
       this.phase = 'break';
       this.breakLeft = WAVES.breakSeconds;
       this.dropCrates(WAVES.crates.perBreak);
@@ -325,7 +330,7 @@ export class WavesRun {
   hud(): WavesHud {
     const me = this.ctx.me;
     const reds = this.reds();
-    const standing = reds.filter((p) => p.isAlive || (p.lives > 0 && p.spawnRequested)).length;
+    const standing = reds.filter(inWave).length;
     const boss = this.boss;
     return {
       wave: Math.max(1, this.wave),
