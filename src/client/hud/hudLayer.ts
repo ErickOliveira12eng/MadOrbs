@@ -10,6 +10,8 @@ import { starsFor, type CampaignLevel } from '../campaign';
 import type { FeatKind } from '../../sim/feats';
 import { drawMapPreview } from '../mapPreview';
 import { adsAllowed, mountAd, refreshAd } from '../ads';
+import type { WavesEnd, WavesHud } from '../wavesRun';
+import { powerIconUrl } from '../powerIcons';
 import { loadMap } from '../../sim/map';
 import './hud.css';
 import {
@@ -91,6 +93,8 @@ export interface HudFrame {
   showScores: boolean;
   /** A campaign level (offline), else null. */
   campaign: CampaignHud | null;
+  /** A run of the waves mode (offline), else null. */
+  waves: WavesHud | null;
   /** The chat line being typed, or null. */
   chatInput: string | null;
   /** Sniper scope opacity: the crosshair fades out behind it. */
@@ -548,31 +552,59 @@ export class HudLayer {
         (e.guest ? `<div class="save">${t('campaign.saveHint')}</div>` : '')
       : `<div class="sub">${t('campaign.lostText')}</div>`;
     // A breath before going on (next level, again): the buttons count down; the levels window at once
-    const waitUntil = performance.now() + CAMPAIGN_NEXT_WAIT * 1000;
     const wait = `<span class="wait">${CAMPAIGN_NEXT_WAIT}</span>`;
     const buttons =
       `<button type="button" data-a="menu"><span class="h-key">Esc</span>${t('campaign.menu')}</button>` +
       (e.won && e.hasNext
         ? `<button type="button" data-a="retry" disabled><span class="h-key">R</span>${t('campaign.retry')}</button><button type="button" class="primary" data-a="next" disabled><span class="h-key">Enter</span>${t('campaign.next')}${wait}</button>`
         : `<button type="button" class="primary" data-a="retry" disabled><span class="h-key">Enter</span>${t(e.won ? 'campaign.retry' : 'campaign.tryAgain')}${wait}</button>`);
-    setHTML(
-      this.r.campcard,
+    this.openEndPanel(
       `<div class="t ${e.won ? 'won' : 'lost'}">${t(e.won ? 'campaign.won' : 'campaign.lost')}</div><div class="lvl">${title}</div>${body}<div class="btns">${buttons}</div>`,
+      e.won && e.hasNext ? 'next' : 'retry',
+      (a) => e.onAction(a as 'next' | 'retry' | 'menu'),
     );
+  }
+
+  /** The end of a waves run: the wave reached, the kills, the record; play again or the menu. */
+  showWavesEnd(e: WavesEnd & { onAction: (action: 'retry' | 'menu') => void }): void {
+    const kills = t(e.kills === 1 ? 'end.oneKill' : 'end.kills', { n: e.kills });
+    const body =
+      `<div class="wave-reached"><span>${t('waves.label')}</span><b>${e.wave}</b></div>` +
+      `<div class="time">${kills} · ${clock(e.seconds)}</div>` +
+      (e.isBest ? `<div class="best new">${t('waves.newBest')}</div>` : e.best ? `<div class="best">${t('waves.record', { n: e.best.wave })}</div>` : '');
+    const wait = `<span class="wait">${CAMPAIGN_NEXT_WAIT}</span>`;
+    const buttons =
+      `<button type="button" data-a="menu"><span class="h-key">Esc</span>${t('waves.menu')}</button>` +
+      `<button type="button" class="primary" data-a="retry" disabled><span class="h-key">Enter</span>${t('waves.retry')}${wait}</button>`;
+    this.openEndPanel(
+      `<div class="t lost">${t('waves.over')}</div><div class="lvl">${t('waves.reached', { n: e.wave })}</div>${body}<div class="btns">${buttons}</div>`,
+      'retry',
+      (a) => e.onAction(a === 'menu' ? 'menu' : 'retry'),
+    );
+  }
+
+  /**
+   * The end panel (a campaign level, a waves run): its card, the banner under it, the buttons that
+   * wait CAMPAIGN_NEXT_WAIT seconds (all but the menu), the keys (Enter: `primary`, R: again, Esc: menu)
+   * and the system's cursor.
+   */
+  private openEndPanel(card: string, primary: string, onAction: (action: string) => void): void {
+    const waitUntil = performance.now() + CAMPAIGN_NEXT_WAIT * 1000;
+    setHTML(this.r.campcard, card);
     this.r.campend.classList.remove('preload');
     show(this.r.campend, true);
     // The banner under the panel: loaded when the level started (preloadCampaignAd), or now
     const ad = this.r.campad;
     if (ad.hidden && mountAd(ad.lastElementChild as HTMLElement, 'wide')) ad.hidden = false;
     const waiting = [...this.r.campcard.querySelectorAll<HTMLButtonElement>('button:disabled')];
-    const count = this.r.campcard.querySelector<HTMLElement>('.wait')!;
+    const count = this.r.campcard.querySelector<HTMLElement>('.wait');
     const tick = () => {
       const left = Math.ceil((waitUntil - performance.now()) / 1000);
       if (left > 0) {
-        count.textContent = String(left);
+        if (count) count.textContent = String(left);
         setTimeout(tick, 100);
       } else {
-        count.remove();
+        count?.remove();
         for (const b of waiting) b.disabled = false;
       }
     };
@@ -580,18 +612,17 @@ export class HudLayer {
     // The system's cursor instead of the game's
     this.cursorFree = true;
     this.root.classList.add('free-cursor');
-    const act = (a: 'next' | 'retry' | 'menu') => {
+    const act = (a: string) => {
       if (a !== 'menu' && performance.now() < waitUntil) return;
       if (this.campEndKeys) window.removeEventListener('keydown', this.campEndKeys, true);
       this.campEndKeys = null;
-      e.onAction(a);
+      onAction(a);
     };
     this.r.campend.onclick = (ev) => {
       const b = (ev.target as HTMLElement).closest<HTMLElement>('[data-a]');
-      if (b) act(b.dataset.a as 'next' | 'retry' | 'menu');
+      if (b) act(b.dataset.a!);
     };
     this.campEndKeys = (ev: KeyboardEvent) => {
-      const primary = e.won && e.hasNext ? 'next' : 'retry';
       const a = ev.code === 'Enter' || ev.code === 'NumpadEnter' ? primary : ev.code === 'KeyR' ? 'retry' : ev.code === 'Escape' ? 'menu' : null;
       if (!a) return;
       ev.preventDefault();
@@ -602,6 +633,41 @@ export class HudLayer {
     setTimeout(() => {
       if (this.campEndKeys) window.addEventListener('keydown', this.campEndKeys, true);
     }, 600);
+  }
+
+  /** A line in the big banner at the top (the waves: a wave starts, is cleared, a power-up taken). */
+  announceText(title: string, sub: string, color: { c1: string; c2: string; glow: string }, dur = 2.2, onShow?: () => void): void {
+    const html = `<div class="ft" style="--c1:${color.c1};--c2:${color.c2};--glow:${color.glow}">${esc(title)}</div>` + (sub ? `<div class="fs">${esc(sub)}</div>` : '');
+    if (this.featQueue.length >= 4) this.featQueue.shift();
+    this.featQueue.push({ html, dur, prio: 9, onShow });
+  }
+
+  /** The waves' header: the wave, what is going on (the break's countdown, the enemies left), the lives, the power-ups on. */
+  private updateWavesHeader(w: WavesHud): void {
+    const hearts = '♥'.repeat(Math.min(6, Math.max(0, w.lives))) + (w.lives > 6 ? `+${w.lives - 6}` : '');
+    const doing = w.phase === 'break' ? t('waves.nextIn', { s: Math.ceil(w.breakLeft) }) : w.left === 1 ? t('waves.leftOne') : t('waves.left', { n: w.left });
+    const powers = w.powers.length
+      ? `<span class="h-powers">` +
+        w.powers.map((p) => `<span title="${t(`power.${p.kind}` as Key)}"><img src="${powerIconUrl(p.kind)}" alt="" /><i style="width:${Math.round((p.left / 15) * 100)}%"></i></span>`).join('') +
+        `</span>`
+      : '';
+    let html =
+      `<div class="h-wave"><span>${t('waves.label')}</span><b>${w.wave}</b></div>` +
+      `<div class="h-mode">${doing}</div>` +
+      `<div class="h-camp"><span class="hearts" title="${t('waves.lives')}">${hearts || '—'}</span><span>${t(w.kills === 1 ? 'end.oneKill' : 'end.kills', { n: w.kills })}</span>${powers}</div>`;
+    if (w.bossLife) html += `<div class="h-boss"><b>${esc(w.bossLife.name)}</b><span><i style="width:${Math.round(Math.max(0, w.bossLife.life) * 100)}%"></i></span></div>`;
+    setHTML(this.r.match, html);
+  }
+
+  /** The waves' corner panel: the enemies of the wave still to beat, the record. */
+  private updateWavesBoard(w: WavesHud): void {
+    let html = `<div class="h-bhead"><span class="h-label">${t('campaign.enemies')}</span><span class="sp"></span></div>`;
+    html +=
+      w.phase === 'fight'
+        ? `<div class="h-ecount"><b>${w.left}</b><span>/ ${w.total}</span><small>${t('waves.toBeat')}</small></div>`
+        : `<div class="h-wbreak">${t('waves.breakHint')}</div>`;
+    if (w.record) html += `<div class="h-wrec">${t('waves.record', { n: w.record })}</div>`;
+    setHTML(this.r.board, html);
   }
 
   /** Our record before this match (online), or null (offline: no record). */
@@ -662,7 +728,7 @@ export class HudLayer {
     const menu = this.picker.visible;
     const table = !menu && (f.showScores || !playing);
     // The campaign has no respawn: its end panel instead of the death screen
-    const deadScreen = !menu && !table && playing && !alive && !spectator && !f.campaign;
+    const deadScreen = !menu && !table && playing && !alive && !spectator && !f.campaign && !f.waves?.over;
     const liveHud = !menu && !table && alive && !spectator;
     this.deadScreen = deadScreen;
 
@@ -678,10 +744,11 @@ export class HudLayer {
     show(r.tags, !menu && !table && !deadScreen);
     show(r.deadCard, deadScreen && !!this.death);
     show(r.respawn, deadScreen);
-    show(r.next, deadScreen && enabledPrimaries().length > 0);
+    // The waves: the same weapons at every spawn, no choice
+    show(r.next, deadScreen && enabledPrimaries().length > 0 && !f.waves);
     show(r.scores, table);
     show(r.banner, !menu && !playing);
-    this.updateFeat(playing, !menu && !table && !f.campaign?.over);
+    this.updateFeat(playing, !menu && !table && !f.campaign?.over && !f.waves?.over);
     // End of a match: our summary, then the map vote, beside the score table
     const endSide = !menu && !playing;
     this.voting = endSide && !!this.vote;
@@ -712,7 +779,7 @@ export class HudLayer {
     if (!menu && !playing) this.updateBanner(f);
     this.updateCursors(f, !menu && alive && !spectator, !menu && deadScreen);
     // A banner on the right, every mode but the campaign: on the death screen and in the Esc menu
-    this.updateSideAd(!f.campaign && (menu || deadScreen), menu);
+    this.updateSideAd(!f.campaign && !f.waves?.over && (menu || deadScreen), menu);
   }
 
   /**
@@ -795,6 +862,10 @@ export class HudLayer {
       this.updateCampaignHeader(f.campaign);
       return;
     }
+    if (f.waves) {
+      this.updateWavesHeader(f.waves);
+      return;
+    }
     const g = f.game;
     const time = sv.sv_gameTimeLimit > 0 ? `<div class="h-clock">${clock(f.timeLeft + 1)}</div>` : '';
     const mode = modeName(modeOfGameType(g.gameType));
@@ -845,6 +916,10 @@ export class HudLayer {
   private updateBoard(f: HudFrame): void {
     if (f.campaign) {
       this.updateEnemies(f.campaign);
+      return;
+    }
+    if (f.waves) {
+      this.updateWavesBoard(f.waves);
       return;
     }
     const g = f.game;

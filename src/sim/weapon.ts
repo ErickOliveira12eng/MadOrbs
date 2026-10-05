@@ -128,7 +128,8 @@ export class Weapon {
       const flashes = this.nuzzleFlashes;
       this.firingNuzzle++;
       if (this.firingNuzzle >= flashes.length) this.firingNuzzle = 0;
-      this.currentFireDelay = this.fireDelay;
+      // The waves' rapid fire power-up shortens the delay
+      this.currentFireDelay = this.fireDelay / owner.fireBoost;
 
       // Shotgun: after 6 shots, full reload
       this.shotInc++;

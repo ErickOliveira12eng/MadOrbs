@@ -41,11 +41,14 @@ import {
   WEAPON_NUCLEAR,
   WEAPON_PHOTON_RIFLE,
   WEAPON_SHOTGUN,
+  WEAPON_SMG,
   WEAPON_SNIPER,
+  WEAPON_DUAL_MACHINE_GUN,
 } from './constants';
 import { EventQueue } from './events';
 import { bazookaDamage, sv, weaponDefs } from './gameVar';
 import { distanceToSegment, segmentToSphere } from './helpers';
+import { CRATE_RADIUS, Crate } from './crate';
 import type { GameMap } from './map';
 import { Player } from './player';
 import { Projectile } from './projectile';
@@ -68,6 +71,8 @@ interface Bullet {
   normal: Vec3;
   /** At most one, except for the weapons that go through (photon rifle, flame thrower). */
   hits: Player[];
+  /** Crates (waves mode) it hit: the one that stopped it, or those a piercing weapon crossed. */
+  crates?: Crate[];
 }
 
 export type GameMode = 'local' | 'server' | 'client';
@@ -108,6 +113,9 @@ const FLAG_DROPPED_REACH = 0.5;
 export class Game {
   map: GameMap;
   players: (Player | null)[] = new Array(MAX_PLAYER).fill(null);
+  /** The waves mode's crates (src/sim/crate.ts); none elsewhere. */
+  crates: Crate[] = [];
+  private nextCrateID = 1;
   projectiles: Projectile[] = [];
   readonly events = new EventQueue();
   readonly gameType: number;
@@ -533,6 +541,24 @@ export class Game {
         }
       }
     }
+    // The waves mode's crates: solid, the babo slides around them
+    for (const crate of this.crates) {
+      const touch = p.radius + CRATE_RADIUS;
+      const dx = p.currentCF.position.x - crate.position.x;
+      const dy = p.currentCF.position.y - crate.position.y;
+      const d = Math.hypot(dx, dy);
+      if (d >= touch) continue;
+      const nx = d > 1e-6 ? dx / d : 1;
+      const ny = d > 1e-6 ? dy / d : 0;
+      p.currentCF.position.x = crate.position.x + nx * (touch + 0.01);
+      p.currentCF.position.y = crate.position.y + ny * (touch + 0.01);
+      // Keep the speed along the crate, lose the part going into it
+      const into = p.currentCF.vel.x * nx + p.currentCF.vel.y * ny;
+      if (into < 0) {
+        p.currentCF.vel.x -= into * nx;
+        p.currentCF.vel.y -= into * ny;
+      }
+    }
     map.performCollision(p.lastCF, p.currentCF, p.radius);
     // Final clip
     map.collisionClip(p.currentCF, p.radius);
@@ -938,6 +964,10 @@ export class Game {
           b.hits.push(other);
         }
       }
+      for (const crate of this.crates) {
+        const end = b.p2.clone();
+        if (segmentToSphere(b.p1, end, crate.position, CRATE_RADIUS)) (b.crates ??= []).push(crate);
+      }
     } else {
       let hit: Player | null = null;
       for (const other of this.players) {
@@ -948,7 +978,17 @@ export class Game {
           b.normal = b.p2.sub(b.p1).normalizeIn();
         }
       }
+      // A crate in front of the babo stops the bullet (same shortening: the last one that hits is the closest)
+      let crate: Crate | null = null;
+      for (const c of this.crates) {
+        if (segmentToSphere(b.p1, b.p2, c.position, CRATE_RADIUS)) {
+          crate = c;
+          hit = null;
+          b.normal = b.p2.sub(b.p1).normalizeIn();
+        }
+      }
       if (hit) b.hits.push(hit);
+      if (crate) b.crates = [crate];
     }
   }
 
@@ -961,9 +1001,11 @@ export class Game {
         player.incShot = 30;
       }
       for (const other of b.hits) other.hitSV(weaponID, player, weaponDefs[weaponID].damage);
+      for (const crate of b.crates ?? []) this.hitCrate(crate, weaponDefs[weaponID].damage * player.damageBoost, player);
       this.events.push({ type: 'shoot', playerID: player.playerID, weaponID, nuzzleID, p1: b.p1.clone(), p2: b.p2.clone(), normal: b.normal.clone(), hitPlayerID: -1 });
       return;
     }
+    if (b.crates?.length) this.hitCrate(b.crates[0], this.bulletDamage(weaponID) * player.damageBoost, player);
     const hit = b.hits[0] ?? null;
     if (hit) {
       // Knockback on the victim (ClientRecv NET_SVCL_PLAYER_SHOOT)
@@ -981,6 +1023,49 @@ export class Game {
       normal: b.normal.clone(),
       hitPlayerID: hit ? hit.playerID : -1,
     });
+  }
+
+  // ---------------------------------------------------------------- crates (waves mode)
+
+  /** A crate on the floor at (x, y). */
+  addCrate(x: number, y: number): Crate {
+    const crate = new Crate(this.nextCrateID++, new Vec3(x, y, 0.25));
+    this.crates.push(crate);
+    return crate;
+  }
+
+  /** Damage to a crate; broken, it goes (the 'crate' event tells the mode, which drops something). */
+  hitCrate(crate: Crate, damage: number, from: Player): void {
+    if (!this.crates.includes(crate) || damage <= 0) return;
+    crate.life -= damage;
+    const broken = crate.life <= 0;
+    if (broken) this.crates.splice(this.crates.indexOf(crate), 1);
+    this.events.push({ type: 'crate', crateID: crate.id, position: crate.position.clone(), broken, fromID: from.playerID });
+  }
+
+  /** A crate within `radius` of a point (the rockets explode on them). */
+  crateInRadius(position: Vec3, radius: number): Crate | null {
+    for (const c of this.crates) if (distanceSquared(position, c.position) <= (radius + CRATE_RADIUS) ** 2) return c;
+    return null;
+  }
+
+  /** A direct bullet's damage, as Player::hitSV picks it (the "Pro" rules' values). */
+  private bulletDamage(weaponID: number): number {
+    if (sv.sv_serverType === SERVER_TYPE_PRO) {
+      switch (weaponID) {
+        case WEAPON_SMG:
+          return sv.sv_smgDamage;
+        case WEAPON_SNIPER:
+          return sv.sv_sniperDamage;
+        case WEAPON_SHOTGUN:
+          return sv.sv_shottyDamage;
+        case WEAPON_DUAL_MACHINE_GUN:
+          return sv.sv_dmgDamage;
+        case WEAPON_CHAIN_GUN:
+          return sv.sv_cgDamage;
+      }
+    }
+    return weaponDefs[weaponID].damage;
   }
 
   /** Game::playerInRadius; `accept` leaves players out (the campaign's boss and the life packs). */
@@ -1009,6 +1094,13 @@ export class Game {
           player.hitSV(weaponID, from, (sameDmg ? 1 : 1 - dis / radius) * weaponDamage);
         }
       }
+    }
+    // The waves mode's crates break the same way (blasts, flames, knives)
+    for (const crate of [...this.crates]) {
+      const dis = distance(crate.position, position);
+      if (dis >= radius + CRATE_RADIUS) continue;
+      if (this.map.rayTest(position.clone(), crate.position.clone(), new Vec3())) continue;
+      this.hitCrate(crate, (sameDmg ? 1 : Math.max(0.2, 1 - dis / radius)) * weaponDamage * from.damageBoost, from);
     }
   }
 

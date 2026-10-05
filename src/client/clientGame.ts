@@ -83,6 +83,9 @@ import { ProjectileRenderer } from './render/projectileRenderer';
 import { gameSounds } from './sounds';
 import type { OrbPictureFn } from './hud/hudArt';
 import { HudLayer, type CampaignHud, type HudFrame } from './hud/hudLayer';
+import { weaponInfo } from './hud/weaponInfo';
+import { WavesRun, type WavesEnd } from './wavesRun';
+import { POWERS, WAVES, type PowerKind } from './waves';
 import { ViewOverlay, scopeAlpha } from './ui/viewOverlay';
 import { VIEW_ASPECT, fitView, type ViewRect } from './view';
 import { teamName } from './modes';
@@ -124,6 +127,10 @@ export interface ClientGameOptions {
   signedIn?: boolean;
   /** The end of a campaign level: what the player chose (next level, again, back to the menu). */
   onCampaignAction?: (action: 'next' | 'retry' | 'menu', level: CampaignLevel) => void;
+  /** The waves mode (offline, src/client/waves.ts) instead of a training match. */
+  waves?: boolean;
+  /** The end of a waves run: what the player chose (again, or back to the menu). */
+  onWavesAction?: (action: 'retry' | 'menu') => void;
 }
 
 export class ClientGame {
@@ -218,11 +225,11 @@ export class ClientGame {
     menu.onQuit = () => this.quit();
     // Pressing Escape while the mouse is captured releases it: open the menu like k_menuAccess.
     this.input.onPointerLockChange = (locked) => {
-      if (!locked && this.running && !menu.visible && !this.camp?.over) menu.show();
+      if (!locked && this.running && !menu.visible && !this.camp?.over && !this.waves?.over) menu.show();
     };
     // Capture the mouse on a click in the arena (also after the menu closes, see onVisibilityChange)
     this.renderer.domElement.addEventListener('mousedown', () => {
-      if (this.running && !menu.visible && !this.input.locked && !this.camp?.over) this.input.requestPointerLock();
+      if (this.running && !menu.visible && !this.input.locked && !this.camp?.over && !this.waves?.over) this.input.requestPointerLock();
     });
     window.addEventListener('keydown', this.onChatKey, true);
 
@@ -273,6 +280,10 @@ export class ClientGame {
       this.startCampaign(map, this.opts.campaign);
       return;
     }
+    if (this.opts.waves) {
+      this.startWaves(map);
+      return;
+    }
     this.game = new Game(map, { gameType: ROOM_GAME_TYPE[this.opts.mode], onMapChangeRequest: () => void this.nextMap() });
     this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
     this.me.skin = this.opts.skin;
@@ -288,6 +299,72 @@ export class ClientGame {
   }
 
   // ---------------------------------------------------------------- campaign
+
+  // ---------------------------------------------------------------- waves
+
+  /** A run of the waves mode, or null. */
+  private waves: WavesRun | null = null;
+
+  /**
+   * The waves mode: Team Deathmatch with us alone on blue (three lives, the SMG) against the waves of
+   * bots on red; no score or time limit, no team balance. WavesRun does the rest.
+   */
+  private startWaves(map: GameMap): void {
+    this.svBackup = { ...sv };
+    sv.sv_scoreLimit = 0;
+    sv.sv_winLimit = 0;
+    sv.sv_gameTimeLimit = 0;
+    sv.sv_autoBalance = false;
+    sv.sv_forceRespawn = false;
+    this.game = new Game(map, { gameType: GAME_TYPE_TDM, onMapChangeRequest: () => {} });
+    this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
+    this.me.skin = this.opts.skin;
+    this.me.teamID = PLAYER_TEAM_BLUE;
+    this.me.lives = WAVES.lives;
+    this.me.damageScale = WAVES.playerDamage;
+    this.me.nextSpawnWeapon = WAVES.primary;
+    this.me.nextMeleeWeapon = WEAPON_KNIVES;
+    const banner = (c1: string, c2: string) => ({ c1, c2, glow: `${c2}77` });
+    this.waves = new WavesRun({
+      game: this.game,
+      me: this.me,
+      bots: this.bots,
+      scene: this.scene,
+      names: [...BOT_NAMES].sort(() => Math.random() - 0.5),
+      bossName: t('waves.bossName'),
+      randomSkin,
+      onWave: (spec) => {
+        this.hud.announceText(t('waves.wave', { n: spec.n }), spec.boss ? t('waves.bossWave') : t('waves.start'), spec.boss ? banner('#ffd0d0', '#d81f3f') : banner('#ffe2b8', '#ff8a1c'), 2.4);
+        audio.play(this.sounds.siren, 200);
+      },
+      onCleared: (n) => {
+        this.hud.announceText(t('waves.cleared', { n }), t('waves.breakHint'), banner('#c8ffd4', '#2fd35c'), 2.6, () => playAnnouncer('objectiveCompleted'));
+      },
+      onPower: (kind: PowerKind, weaponID?: number) => {
+        const sub = kind === 'weapon' && weaponID !== undefined ? t('power.weapon.sub', { weapon: weaponInfo(weaponID).name }) : t(`power.${kind}.sub` as const);
+        this.hud.announceText(t(`power.${kind}` as const), sub, banner('#ffffff', POWERS[kind].color), 1.6);
+        audio.play(kind === 'life' || kind === 'extraLife' ? this.sounds.lifePack : this.sounds.equip, 255);
+      },
+      onBomb: (position) => this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 4),
+      onEnd: (end) => this.endWaves(end),
+    });
+    this.onMapLoaded(map);
+    this.beginLoop();
+    // We start right away, no weapon menu
+    this.hud.picker.hide();
+    this.game.requestSpawn(this.me);
+    // The banner of the end panel loads now
+    this.hud.preloadCampaignAd();
+  }
+
+  private endWaves(end: WavesEnd): void {
+    track('waves_end', { wave: end.wave, kills: end.kills, seconds: Math.round(end.seconds), new_best: end.isBest, fps: this.fps() });
+    if (performance.now() - this.missionFailedAt > 1500) playAnnouncer('missionFailed');
+    // The mouse comes back for the buttons, with the system's cursor
+    this.input.exitPointerLock();
+    this.renderer.domElement.style.cursor = 'auto';
+    this.hud.showWavesEnd({ ...end, onAction: (action) => this.opts.onWavesAction?.(action) });
+  }
 
   /** When our own Mission Failed feat was announced (the campaign's loss doesn't say it twice). */
   private missionFailedAt = -1e9;
@@ -663,7 +740,8 @@ export class ClientGame {
     // Left before the end (the menu, a closed connection): how long it lasted
     const seconds = Math.round((performance.now() - this.matchAt) / 1000);
     if (this.camp && !this.camp.over) track('campaign_level_quit', { ...this.levelInfo(), seconds });
-    else if (!this.camp && !this.matchEnded) track('match_quit', { ...this.matchInfo(), seconds, kills: this.me.kills, deaths: this.me.deaths, reason: reason ? 'closed' : 'menu' });
+    else if (this.waves && !this.waves.over) track('waves_quit', { wave: this.waves.waveNumber, kills: this.me.kills, seconds });
+    else if (!this.camp && !this.waves && !this.matchEnded) track('match_quit', { ...this.matchInfo(), seconds, kills: this.me.kills, deaths: this.me.deaths, reason: reason ? 'closed' : 'menu' });
     this.running = false;
     if (this.conn) {
       this.conn.onClose = undefined;
@@ -681,6 +759,7 @@ export class ClientGame {
     this.babos.clear();
     this.mapRenderer?.dispose();
     this.flagRenderer.dispose();
+    this.waves?.dispose();
     this.effects.dispose();
     this.hud.dispose();
     this.overlay.dispose();
@@ -732,7 +811,7 @@ export class ClientGame {
 
   /** The mode, online or training, and the map: on every match event. */
   private matchInfo(): Record<string, string | number | boolean> {
-    return { mode: this.opts.mode, online: this.online, map: this.game.map.name };
+    return { mode: this.waves ? 'waves' : this.opts.mode, online: this.online, map: this.game.map.name };
   }
 
   /** The campaign level being played, for its events. */
@@ -752,6 +831,7 @@ export class ClientGame {
     this.frames = 0;
     this.matchEnded = false;
     if (this.camp) track('campaign_level_start', this.levelInfo());
+    else if (this.waves) track('waves_start', { map: this.game.map.name });
     else track('match_start', { ...this.matchInfo(), ...(map ? { map } : {}), bots: this.online ? 0 : (this.opts.botCount ?? 0) });
   }
 
@@ -816,6 +896,7 @@ export class ClientGame {
       const v = this.babos.get(id);
       return carrier && carrier.isAlive && v ? { position: v.renderPosition, angle: carrier.currentCF.angle } : null;
     });
+    this.waves?.render(dt, now / 1000);
     this.effects.render(this.cam.camera, alpha);
     this.renderer.setViewport(view.x, h - view.y - view.h, view.w, view.h);
     this.renderer.render(this.scene, this.cam.camera);
@@ -838,7 +919,7 @@ export class ClientGame {
     if (game.roundState !== this.lastRound) {
       this.lastRound = game.roundState;
       const over = game.roundState === GAME_BLUE_WIN || game.roundState === GAME_RED_WIN || game.roundState === GAME_DRAW;
-      if (over && !this.camp && !this.matchEnded) this.trackMatchEnd(game.roundState);
+      if (over && !this.camp && !this.waves && !this.matchEnded) this.trackMatchEnd(game.roundState);
     }
 
     const menuOpen = this.hud.picker.visible;
@@ -878,6 +959,7 @@ export class ClientGame {
     game.update(TICK);
     for (const e of game.events.drain()) this.handleEvent(e, false);
     this.updateCampaign();
+    this.waves?.update();
 
     if (this.conn) {
       // NET_CLSV_SVCL_PLAYER_COORD_FRAME every sv_minSendInterval frames
@@ -1336,10 +1418,15 @@ export class ClientGame {
         if (p?.minibot) audio.play3D(S.weapon[WEAPON_NUCLEAR], 5, p.minibot.currentCF.position, 255);
         break;
       }
+      case 'crate':
+        // The waves mode: a crate hit (it shakes) or broken (splinters, a power-up)
+        this.waves?.onCrate(e.crateID, e.position, e.broken);
+        audio.play3D(this.sounds.grenadeRebond, 6, e.position, e.broken ? 255 : 140);
+        break;
       case 'playerJoin': {
         const p = game.players[e.playerID];
-        // Offline the page says who joined; not in the campaign (the bots are the level itself)
-        if (p && !online && !this.camp) this.hud.addChat(null, t('chat.joined', { name: p.name }));
+        // Offline the page says who joined; not in the campaign or the waves (the bots are the game itself)
+        if (p && !online && !this.camp && !this.waves) this.hud.addChat(null, t('chat.joined', { name: p.name }));
         break;
       }
       case 'chat': {
@@ -1446,6 +1533,7 @@ export class ClientGame {
       mouseY: this.input.mouseY,
       showScores: this.input.isDown(bindings.showScore) && !this.chat.active,
       campaign: this.campaignHud(),
+      waves: this.waves?.hud() ?? null,
       chatInput: this.chat.active ? this.chat.text : null,
       scope,
       // Player::renderName: where a babo is on the screen (its drawn position), and just above it

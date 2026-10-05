@@ -75,6 +75,7 @@ export class StartScreen {
     private readonly onPlay: (mode: PlayMode) => void,
     /** A campaign level chosen (src/menu/campaignModal.ts). */
     onCampaign: (level: CampaignLevel) => void,
+    onWaves: () => void,
   ) {
     for (const el of document.querySelectorAll<HTMLElement>('[data-icon]')) el.innerHTML = icon(el.dataset.icon as IconName, 20);
 
@@ -104,6 +105,11 @@ export class StartScreen {
       () => this.accountModal.open(),
     );
     $('btnCampaign').addEventListener('click', () => this.campaign.open());
+    $('btnWaves').addEventListener('click', () => {
+      track('menu_open', { window: 'waves' });
+      this.play('offline', false);
+      onWaves();
+    });
     account.onChange(() => this.renderAccount());
     this.renderAccount();
 

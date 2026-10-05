@@ -8,6 +8,8 @@ import type { Vec3 } from './vec';
 export type FlagReason = 'took' | 'returned' | 'captured' | 'dropped';
 
 export type GameEvent =
+  /** A crate (waves mode) was hit; `broken`: it is gone, by `fromID`. */
+  | { type: 'crate'; crateID: number; position: Vec3; broken: boolean; fromID: number }
   /** A weapon was fired by `playerID` (nuzzle flash, fire sound, firing smoke, casing). Weapon::shoot. */
   | { type: 'fire'; playerID: number; weaponID: number; nuzzleID: number; origin: Vec3; direction: Vec3 }
   /** Result of one traced shot (one per pellet). NET_SVCL_PLAYER_SHOOT / Weapon::shoot(playerShoot). */

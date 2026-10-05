@@ -2238,6 +2238,92 @@
   transform: none;
 }
 
+/* The waves mode (wavesRun.ts): the wave in the header, the lives, the power-ups on, the corner panel */
+.h-wave {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  font: 400 40px/1 var(--h-display);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
+}
+
+.h-wave span {
+  font-size: 22px;
+  color: var(--h-muted);
+}
+
+.h-wave b {
+  font-weight: 400;
+  color: var(--h-gold-1);
+  text-shadow: 0 3px 0 rgba(120, 60, 0, 0.6), 0 0 14px rgba(255, 190, 40, 0.45);
+}
+
+.h-camp .hearts {
+  color: #ff5d7a;
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px rgba(255, 93, 122, 0.6);
+}
+
+.h-powers {
+  display: inline-flex;
+  gap: 4px;
+  vertical-align: middle;
+}
+
+.h-powers span {
+  position: relative;
+  width: 26px;
+  height: 28px;
+}
+
+.h-powers img {
+  width: 26px;
+  height: 26px;
+}
+
+.h-powers i {
+  position: absolute;
+  left: 2px;
+  bottom: 0;
+  height: 3px;
+  max-width: 22px;
+  border-radius: 2px;
+  background: #fff;
+}
+
+.h-wbreak,
+.h-wrec {
+  padding: 4px 2px 2px;
+  color: var(--h-muted);
+  font: 700 12.5px var(--h-ui);
+  max-width: 190px;
+}
+
+.h-wrec {
+  color: var(--h-gold-1);
+}
+
+.h-campend .wave-reached {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  margin: 12px 0 2px;
+  font: 400 30px var(--h-display);
+  color: var(--h-muted);
+  text-transform: uppercase;
+}
+
+.h-campend .wave-reached b {
+  font-weight: 400;
+  font-size: 64px;
+  color: var(--h-gold-1);
+  text-shadow: 0 0 18px rgba(255, 210, 63, 0.45);
+}
+
 /* The end of a level: the panel, and a banner under it (kept at its real size: --hud-k is the stage's scale) */
 .h-campend {
   left: 50%;

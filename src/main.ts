@@ -11,6 +11,7 @@ import { bestKills } from './client/records';
 import { Account } from './menu/account';
 import { AudioPanel } from './menu/audioPanel';
 import { setUserProperty, track } from './client/analytics';
+import { WAVES_MAP } from './client/waves';
 import { StartScreen, type PlayMode } from './menu/menu';
 import { OrbStudio } from './menu/orbStudio';
 import { trainingMaps } from './menu/training';
@@ -39,6 +40,7 @@ const screen = new StartScreen(
   account,
   (mode) => void startGame(mode),
   (level) => void startGame('offline', level),
+  () => void startGame('offline', undefined, true),
 );
 /** What to do when the game closes, instead of the start screen (a campaign level's buttons). */
 let afterQuit: (() => void) | null = null;
@@ -46,7 +48,7 @@ screen.show();
 void account.restore();
 
 /** `level`: a campaign level (offline, src/client/campaign.ts). */
-async function startGame(mode: PlayMode, level?: CampaignLevel): Promise<void> {
+async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false): Promise<void> {
   audio.unlock();
   // The game music streams while the models and the map load
   audio.prepareMusic(gameSounds().gameMusic);
@@ -83,6 +85,28 @@ async function startGame(mode: PlayMode, level?: CampaignLevel): Promise<void> {
       // The record to beat: this browser's or the account's, the higher
       const record = Math.max(bestKills(settings.mode), account.stats[settings.mode]?.bestKills ?? 0);
       game = await ClientGame.createOnline($('game'), { ...common, authToken: await account.accessToken(), bestKills: record }, onProgress);
+    } else if (waves) {
+      // The waves mode (src/client/waves.ts) on its map
+      game = await ClientGame.create(
+        $('game'),
+        {
+          ...common,
+          mode: 'tdm',
+          mapName: WAVES_MAP,
+          waves: true,
+          onWavesAction: (action) => {
+            afterQuit =
+              action === 'menu'
+                ? () => {
+                    screen.show();
+                    void audio.playMusic(gameSounds().menuMusic, 255);
+                  }
+                : () => void startGame('offline', undefined, true);
+            game.quit();
+          },
+        },
+        onProgress,
+      );
     } else if (level) {
       game = await ClientGame.create(
         $('game'),
@@ -118,7 +142,7 @@ async function startGame(mode: PlayMode, level?: CampaignLevel): Promise<void> {
     (window as unknown as { madorbs: ClientGame }).madorbs = game;
   } catch (e) {
     console.error(e);
-    track('join_failed', { mode: level ? 'campaign' : settings.mode, online: mode === 'online', reason: String((e as Error).message).slice(0, 100) });
+    track('join_failed', { mode: waves ? 'waves' : level ? 'campaign' : settings.mode, online: mode === 'online', reason: String((e as Error).message).slice(0, 100) });
     screen.show(t('menu.joinFailed', { reason: (e as Error).message }));
   } finally {
     loading.hidden = true;

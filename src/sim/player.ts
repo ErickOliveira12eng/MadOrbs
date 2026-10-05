@@ -113,6 +113,11 @@ export class Player {
   damageScale = 1;
   /** Picks up life packs (the campaign's bosses don't: neither the map's nor the ones bots drop). */
   takesLifePacks = true;
+  /** Power-ups of the waves mode (src/client/wavesRun.ts): damage dealt, damage taken, moving and firing. */
+  damageBoost = 1;
+  armorBoost = 1;
+  speedBoost = 1;
+  fireBoost = 1;
   protection = 0;
   timeDead = 0;
   timeAlive = 0;
@@ -343,7 +348,7 @@ export class Player {
     const game = this.game;
     this.currentCF.mousePosOnMap.copy(input.mousePosOnMap);
 
-    let accel = 12.5;
+    let accel = 12.5 * this.speedBoost;
     if (game.map.themeName === 'snow' && sv.sv_slideOnIce && this.onSplatter()) accel = 4.0;
 
     // Absolute movement (scope mode was never enabled in the shipped game)
@@ -402,7 +407,8 @@ export class Player {
 
     // Clamp the velocity ("Upgrade, faster ! haha")
     const size = this.currentCF.vel.length();
-    if (size > 3.25) this.currentCF.vel.normalizeIn().mulIn(3.25);
+    const top = 3.25 * this.speedBoost;
+    if (size > top) this.currentCF.vel.normalizeIn().mulIn(top);
   }
 
   /**
@@ -665,8 +671,9 @@ export class Player {
       cdamage = (1 - distance / sv.sv_ftMaxRange) * cdamage;
     }
 
-    // A tougher babo (the campaign's bosses)
-    cdamage *= this.damageScale;
+    // A tougher babo (the campaign's bosses); the waves' power-ups (fury on the shooter, shield here)
+    cdamage *= this.damageScale * this.armorBoost;
+    if (from !== this) cdamage *= from.damageBoost;
     // Shield protection
     if (this.protection > 0.6) cdamage *= 0.5;
     // Spawn immunity

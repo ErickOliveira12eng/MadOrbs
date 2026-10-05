@@ -257,13 +257,15 @@ export class Projectile {
       const owner = game.players[this.fromID];
       let hit = game.playerInRadius(cf.position, 0.25);
       if (hit && hit.playerID === this.fromID) hit = null;
-      if (hit) {
+      // The waves mode's crates stop a rocket too
+      const crate = hit ? null : game.crateInRadius(cf.position, 0.1);
+      if (hit || crate) {
         if (owner) {
           owner.rocketInAir = false;
           owner.detonateRocket = false;
         }
         this.needToBeDeleted = true;
-        const pos = hit.currentCF.position.clone();
+        const pos = hit ? hit.currentCF.position.clone() : cf.position.clone();
         this.blast(game, pos, new Vec3(0, 0, 1), zookaRadius, this.fromID, zookaRadius, WEAPON_BAZOOKA);
         return;
       }
