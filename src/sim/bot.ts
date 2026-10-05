@@ -97,6 +97,8 @@ export class BotController {
   private readonly defender: boolean;
   private goalAt = new Vec3(-999, -999, 0);
   private guardSpot: Vec3 | null = null;
+  /** Someone to hunt down when nobody is in sight (the waves mode: the player), instead of wandering. */
+  hunt: Player | null = null;
 
   /** `loadout`: always these weapons (the campaign: the chapter's weapon), else picked at random. */
   constructor(
@@ -213,6 +215,14 @@ export class BotController {
       }
       while (this.path.length && distance(this.path[0], new Vec3(pos.x, pos.y, 0)) < 0.35) this.path.shift();
       moveTo = this.path.length ? this.path[0] : new Vec3(goal.at.x, goal.at.y, 0);
+    } else if (this.hunt?.isAlive) {
+      // Hunting: the way to where the prey is now, again every second
+      if (this.path.length === 0 || this.repathTimer <= 0) {
+        this.repathTimer = 1;
+        this.path = findPath(game, pos, this.hunt.currentCF.position.clone());
+      }
+      while (this.path.length && distance(this.path[0], new Vec3(pos.x, pos.y, 0)) < 0.35) this.path.shift();
+      moveTo = this.path.length ? this.path[0] : new Vec3(this.hunt.currentCF.position.x, this.hunt.currentCF.position.y, 0);
     } else {
       if (this.path.length === 0 || this.repathTimer <= 0) {
         this.repathTimer = 6;

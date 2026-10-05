@@ -6,7 +6,7 @@ import { CRATE_LIFE, type Crate } from '../../sim/crate';
 import { powerIcon } from '../powerIcons';
 import { POWERS, type PowerKind } from '../waves';
 
-/** An enemy under the poison or ice shots (a ring under it, green or icy blue). */
+/** An enemy under the poison or ice shots (streaks over it and ripples where it goes, light green or light blue). */
 export interface AilmentMark {
   id: number;
   x: number;
@@ -28,6 +28,12 @@ export interface FloorPower {
 }
 
 const CRATE_SIZE = 0.6;
+/** The poison and ice looks: light green, light blue. */
+const POISON_LOOK = new THREE.Color(0x86ff5c);
+const ICE_LOOK = new THREE.Color(0x7fd4ff);
+const MAX_STREAKS = 400;
+const MAX_RIPPLES = 160;
+const RIPPLE_LIFE = 0.7;
 const CRATE_HEIGHT = 0.5;
 
 /** The crate's sides: planks with dark seams, a darker frame and metal corners. */
@@ -93,14 +99,109 @@ export class WavesRenderer {
   private readonly crates = new Map<number, CrateView>();
   private readonly powers = new Map<number, PowerView>();
   private splinters: Splinter[] = [];
-  private readonly markGeometry = new THREE.RingGeometry(0.27, 0.36, 28);
-  private readonly poisonMaterial = new THREE.MeshBasicMaterial({ color: 0x7ed321, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
-  private readonly iceMaterial = new THREE.MeshBasicMaterial({ color: 0x7fd8ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
-  /** Rings in use and spare ones, reused frame to frame. */
-  private marks: THREE.Mesh[] = [];
+  // The poison and ice shots' look, after the rainy maps' rain (falling streaks) and its ripples on
+  // the floor: over an enemy, light green (poison) or light blue (ice), the ripples left where it goes
+  private readonly streaks: { x: number; y: number; z: number; color: THREE.Color }[] = [];
+  private readonly streakPositions = new Float32Array(MAX_STREAKS * 6);
+  private readonly streakColors = new Float32Array(MAX_STREAKS * 6);
+  private readonly streakGeometry = new THREE.BufferGeometry();
+  private readonly streakLines: THREE.LineSegments;
+  private readonly rippleGeometry = new THREE.RingGeometry(0.05, 0.075, 20);
+  private ripples: { mesh: THREE.Mesh; material: THREE.MeshBasicMaterial; age: number }[] = [];
+  private spareRipples: { mesh: THREE.Mesh; material: THREE.MeshBasicMaterial; age: number }[] = [];
+  /** Per enemy: time to its next streak and next ripple. */
+  private readonly ailmentClock = new Map<number, { streak: number; ripple: number }>();
 
   constructor(scene: THREE.Scene) {
     scene.add(this.root);
+    this.streakGeometry.setAttribute('position', new THREE.BufferAttribute(this.streakPositions, 3));
+    this.streakGeometry.setAttribute('color', new THREE.BufferAttribute(this.streakColors, 3));
+    this.streakLines = new THREE.LineSegments(
+      this.streakGeometry,
+      new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    this.streakLines.frustumCulled = false;
+    this.root.add(this.streakLines);
+  }
+
+  /** Streaks falling over the poisoned or chilled enemies, ripples left on the floor where they go. */
+  private renderAilments(ailments: readonly AilmentMark[], dt: number): void {
+    const seen = new Set<number>();
+    for (const a of ailments) {
+      seen.add(a.id);
+      let clock = this.ailmentClock.get(a.id);
+      if (!clock) this.ailmentClock.set(a.id, (clock = { streak: 0, ripple: 0 }));
+      const colors = [a.poison ? POISON_LOOK : null, a.ice ? ICE_LOOK : null].filter((c): c is THREE.Color => !!c);
+      clock.streak -= dt;
+      while (clock.streak <= 0 && this.streaks.length < MAX_STREAKS) {
+        clock.streak += 0.035;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        this.streaks.push({ x: a.x + (Math.random() - 0.5) * 0.6, y: a.y + (Math.random() - 0.5) * 0.6, z: 0.9 + Math.random() * 0.4, color });
+      }
+      clock.ripple -= dt;
+      if (clock.ripple <= 0) {
+        clock.ripple = 0.12;
+        for (const color of colors) this.addRipple(a.x + (Math.random() - 0.5) * 0.25, a.y + (Math.random() - 0.5) * 0.25, color);
+      }
+    }
+    for (const id of this.ailmentClock.keys()) if (!seen.has(id)) this.ailmentClock.delete(id);
+
+    // Streaks fall like the rain; one landing leaves a ripple now and then
+    let n = 0;
+    for (let i = 0; i < this.streaks.length; i++) {
+      const st = this.streaks[i];
+      st.z -= dt * 5;
+      if (st.z <= 0.03) {
+        if (Math.random() < 0.25) this.addRipple(st.x, st.y, st.color);
+        continue;
+      }
+      this.streaks[n++] = st;
+    }
+    this.streaks.length = n;
+    for (let i = 0; i < MAX_STREAKS; i++) {
+      const st = this.streaks[i];
+      const o = i * 6;
+      if (!st) {
+        this.streakPositions.fill(0, o, o + 6);
+        this.streakColors.fill(0, o, o + 6);
+        continue;
+      }
+      this.streakPositions.set([st.x, st.y, st.z, st.x, st.y, Math.max(0.03, st.z - 0.22)], o);
+      this.streakColors.set([st.color.r, st.color.g, st.color.b, st.color.r * 0.3, st.color.g * 0.3, st.color.b * 0.3], o);
+    }
+    this.streakGeometry.attributes.position.needsUpdate = true;
+    this.streakGeometry.attributes.color.needsUpdate = true;
+    this.streakGeometry.setDrawRange(0, this.streaks.length * 2);
+
+    // Ripples grow and fade
+    this.ripples = this.ripples.filter((r) => {
+      r.age += dt;
+      const k = r.age / RIPPLE_LIFE;
+      if (k >= 1) {
+        r.mesh.visible = false;
+        this.spareRipples.push(r);
+        return false;
+      }
+      r.mesh.scale.setScalar(1 + k * 3.5);
+      r.material.opacity = 0.75 * (1 - k);
+      return true;
+    });
+  }
+
+  private addRipple(x: number, y: number, color: THREE.Color): void {
+    if (this.ripples.length >= MAX_RIPPLES) return;
+    let r = this.spareRipples.pop();
+    if (!r) {
+      const material = new THREE.MeshBasicMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+      const mesh = new THREE.Mesh(this.rippleGeometry, material);
+      this.root.add(mesh);
+      r = { mesh, material, age: 0 };
+    }
+    r.age = 0;
+    r.material.color.copy(color);
+    r.mesh.position.set(x, y, 0.025);
+    r.mesh.visible = true;
+    this.ripples.push(r);
   }
 
   /** A crate was hit: it shakes; broken, it flies apart. */
@@ -125,26 +226,7 @@ export class WavesRenderer {
 
   /** Every frame: the crates and power-ups as they are now, and the splinters flying. */
   render(crates: readonly Crate[], powers: readonly FloorPower[], ailments: readonly AilmentMark[], dt: number, time: number): void {
-    // Rings under the poisoned (green) and chilled (icy) enemies
-    let used = 0;
-    const ring = (x: number, y: number, material: THREE.Material, scale: number) => {
-      let m = this.marks[used];
-      if (!m) {
-        m = new THREE.Mesh(this.markGeometry, material);
-        this.root.add(m);
-        this.marks.push(m);
-      }
-      m.material = material;
-      m.visible = true;
-      m.position.set(x, y, 0.03);
-      m.scale.setScalar(scale);
-      used++;
-    };
-    for (const a of ailments) {
-      if (a.poison) ring(a.x, a.y, this.poisonMaterial, 1 + Math.sin(time * 8 + a.id) * 0.08);
-      if (a.ice) ring(a.x, a.y, this.iceMaterial, 1.2);
-    }
-    for (let i = used; i < this.marks.length; i++) this.marks[i].visible = false;
+    this.renderAilments(ailments, dt);
 
     // Crates: new ones appear, broken ones go; a damaged crate darkens
     const seen = new Set<number>();
@@ -242,8 +324,9 @@ export class WavesRenderer {
     this.splinterGeometry.dispose();
     this.splinterMaterial.dispose();
     this.ringGeometry.dispose();
-    this.markGeometry.dispose();
-    this.poisonMaterial.dispose();
-    this.iceMaterial.dispose();
+    this.streakGeometry.dispose();
+    (this.streakLines.material as THREE.Material).dispose();
+    this.rippleGeometry.dispose();
+    for (const r of [...this.ripples, ...this.spareRipples]) r.material.dispose();
   }
 }

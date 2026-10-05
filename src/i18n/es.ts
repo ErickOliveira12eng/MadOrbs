@@ -263,6 +263,8 @@ export const es: Record<Key, string> = {
   'waves.bossWave': '¡Oleada del jefe!',
   'waves.cleared': 'Oleada {n} superada',
   'waves.breakHint': 'Rompe las cajas para conseguir mejoras',
+  'hud.pickup': 'Tomar: {weapon}',
+  'waves.weaponDrop': 'En el suelo: pulsa F encima para tomarla',
   'waves.nextIn': 'Próxima oleada en {s}',
   'waves.left': 'Quedan {n} enemigos',
   'waves.leftOne': 'Queda 1 enemigo',

@@ -263,6 +263,8 @@ export const pt: Record<Key, string> = {
   'waves.bossWave': 'Onda do chefão!',
   'waves.cleared': 'Onda {n} vencida',
   'waves.breakHint': 'Quebre as caixas para pegar melhorias',
+  'hud.pickup': 'Pegar: {weapon}',
+  'waves.weaponDrop': 'No chão: aperte F em cima dela para pegar',
   'waves.nextIn': 'Próxima onda em {s}',
   'waves.left': '{n} inimigos restantes',
   'waves.leftOne': '1 inimigo restante',

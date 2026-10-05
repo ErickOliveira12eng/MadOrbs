@@ -16,7 +16,7 @@ import { loadMap } from '../../sim/map';
 import './hud.css';
 import {
   FLAG_DROPPED, FLAG_ON_POD, GAME_BLUE_WIN, GAME_DRAW, GAME_PLAYING, GAME_RED_WIN, GAME_TYPE_CTF, GAME_TYPE_DM,
-  PLAYER_TEAM_BLUE, PLAYER_TEAM_RED, PLAYER_TEAM_SPECTATOR, WEAPON_CHAIN_GUN, WEAPON_COCKTAIL_MOLOTOV, WEAPON_GRENADE, WEAPON_SHOTGUN,
+  PLAYER_TEAM_BLUE, PLAYER_TEAM_RED, PLAYER_TEAM_SPECTATOR, PROJECTILE_DROPED_WEAPON, WEAPON_CHAIN_GUN, WEAPON_COCKTAIL_MOLOTOV, WEAPON_GRENADE, WEAPON_SHOTGUN,
 } from '../../sim/constants';
 import type { FlagReason } from '../../sim/events';
 import type { Game } from '../../sim/game';
@@ -266,6 +266,7 @@ export class HudLayer {
 
 <div class="h-abs h-chat" data-r="chat"></div>
 <div class="h-abs h-panel h-minimap" data-r="minimap"><canvas data-r="mini"></canvas></div>
+<div class="h-abs h-pickhint" data-r="pickHint" hidden></div>
 <div class="h-abs h-panel h-health" data-r="health">
   <svg class="plus" viewBox="0 0 24 24" aria-hidden="true"><rect data-r="plus" x="1" y="1" width="22" height="22" rx="7" fill="#47b800"/><path d="M12 6v12M6 12h12" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>
   <b class="h-hp" data-r="hp"></b>
@@ -645,7 +646,10 @@ export class HudLayer {
   /** The waves' header: the wave, what is going on (the break's countdown, the enemies left), the lives, the power-ups on. */
   private updateWavesHeader(w: WavesHud): void {
     const hearts = '♥'.repeat(Math.min(6, Math.max(0, w.lives))) + (w.lives > 6 ? `+${w.lives - 6}` : '');
-    const doing = w.phase === 'break' ? t('waves.nextIn', { s: Math.ceil(w.breakLeft) }) : w.left === 1 ? t('waves.leftOne') : t('waves.left', { n: w.left });
+    const doing =
+      w.phase === 'break'
+        ? t('waves.nextIn', { s: Math.ceil(w.breakLeft) })
+        : `${w.left === 1 ? t('waves.leftOne') : t('waves.left', { n: w.left })} · ${t('waves.nextIn', { s: Math.ceil(w.waveLeft) })}`;
     const powers = w.powers.length
       ? `<span class="h-powers">` +
         w.powers.map((p) => `<span title="${t(`power.${p.kind}` as Key)}"><img src="${powerIconUrl(p.kind)}" alt="" /><i style="width:${Math.round((p.left / 15) * 100)}%"></i></span>`).join('') +
@@ -781,6 +785,7 @@ export class HudLayer {
       this.updateHealth(me);
       this.updateWeapons(me);
     }
+    this.updatePickHint(f, liveHud);
     if (deadScreen) this.updateDeath(f);
     this.updateKiller(f, deadScreen);
     if (table) this.updateTable(f, playing);
@@ -824,6 +829,26 @@ export class HudLayer {
     this.sideAdAt = this.time;
     this.r.sidead.classList.add('preload');
     show(this.r.sidead, true);
+  }
+
+  /** "F · Take the shotgun": over a weapon on the floor (the game takes it within half a cell). */
+  private pickHintFor = -1;
+  private updatePickHint(f: HudFrame, live: boolean): void {
+    let id = -1;
+    if (live) {
+      const pos = f.me.currentCF.position;
+      for (const p of f.game.projectiles) {
+        if (p.projectileType !== PROJECTILE_DROPED_WEAPON || p.needToBeDeleted) continue;
+        if (Math.hypot(p.currentCF.position.x - pos.x, p.currentCF.position.y - pos.y) <= 0.5) {
+          id = p.weaponID;
+          break;
+        }
+      }
+    }
+    if (id === this.pickHintFor) return;
+    this.pickHintFor = id;
+    if (id >= 0) setHTML(this.r.pickHint, `<span class="h-key">F</span>${t('hud.pickup', { weapon: weaponInfo(id).name })}`);
+    show(this.r.pickHint, id >= 0);
   }
 
   private toStage(x: number, y: number): [number, number] {

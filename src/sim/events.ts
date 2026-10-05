@@ -30,7 +30,8 @@ export type GameEvent =
   /** Online client: our own shot touched this babo on our screen (blood and hit marker right away; the server confirms with 'hit'). */
   | { type: 'hitPredicted'; playerID: number; fromID: number; weaponID: number; position: Vec3 }
   /** NET_SVCL_PLAYER_HIT: `life` is the victim's life after the hit, `damage` the amount removed. */
-  | { type: 'hit'; playerID: number; fromID: number; weaponID: number; damage: number; life: number; position: Vec3 }
+  /** `dot`: a tick of a damage over time (the waves' poison), shown by its own effect. */
+  | { type: 'hit'; playerID: number; fromID: number; weaponID: number; damage: number; life: number; position: Vec3; dot?: boolean }
   /** A player died (kill message, death sound, blood). */
   | { type: 'death'; playerID: number; fromID: number; weaponID: number; friendlyFire: boolean; position: Vec3 }
   /** A kill feat of playerID (src/sim/feats.ts); n: the streak (kills without dying); Mission Failed: victimID is the killer (-1: none). */

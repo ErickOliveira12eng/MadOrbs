@@ -748,17 +748,20 @@ export class Player {
       if (this.poisonLeft <= 0) this.poisonDps = 0;
       return;
     }
-    this.applyDamage(this.poisonDps * delay * this.damageScale * this.armorBoost, from, from.weapon?.weaponID ?? WEAPON_SMG);
+    this.applyDamage(this.poisonDps * delay * this.damageScale * this.armorBoost, from, from.weapon?.weaponID ?? WEAPON_SMG, true);
     if (this.life <= Number.EPSILON) this.dieSV(from, from.weapon?.weaponID ?? WEAPON_SMG, false);
   }
 
-  private applyDamage(cdamage: number, from: Player, fromWeaponID: number): void {
+  /** `dot`: a little of a damage over time (the waves' poison): no blood, sound or hit marker for it. */
+  private applyDamage(cdamage: number, from: Player, fromWeaponID: number, dot = false): void {
     if (from !== this) from.dmg += cdamage < this.life ? cdamage : this.life;
     this.life -= cdamage;
-    this.screenHit += cdamage;
-    if (this.screenHit > 1) this.screenHit = 1;
-    if (cdamage > 1) this.screenHit = 0;
-    this.game.events.push({ type: 'hit', playerID: this.playerID, fromID: from.playerID, weaponID: fromWeaponID, damage: cdamage, life: this.life, position: this.currentCF.position.clone() });
+    if (!dot) {
+      this.screenHit += cdamage;
+      if (this.screenHit > 1) this.screenHit = 1;
+      if (cdamage > 1) this.screenHit = 0;
+    }
+    this.game.events.push({ type: 'hit', playerID: this.playerID, fromID: from.playerID, weaponID: fromWeaponID, damage: cdamage, life: this.life, position: this.currentCF.position.clone(), ...(dot ? { dot: true } : {}) });
   }
 
   /** Death on the server: drop life pack, weapon and grenades, update scores (Player::hitSV). */

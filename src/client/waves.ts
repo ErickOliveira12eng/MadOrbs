@@ -19,8 +19,10 @@ export const WAVES_MAP = 'CTF-Invaders';
 export const WAVES = {
   /** Lives: spawns at the start and after each death. */
   lives: 3,
-  /** Share of the damage the player takes: the bots hit half as hard as elsewhere. */
-  playerDamage: 0.5,
+  /** Share of the damage the player takes: the bots hit a quarter as hard as elsewhere. */
+  playerDamage: 0.25,
+  /** The bots' speed (they hunt the player down: a little slower, so there is room to run). */
+  botSpeed: 0.8,
   /** The player's weapons, the same at each spawn (better ones come from the crates). */
   primary: WEAPON_SMG,
   /** Seconds before the first wave, and between waves. */
@@ -44,6 +46,8 @@ export interface WaveSpec {
   total: number;
   /** Seconds between two bots joining. */
   spawnGap: number;
+  /** Seconds the wave lasts: then the next one comes, even with enemies left (they stay). */
+  seconds: number;
   skill: number;
   /** Share of the damage the bots take (they get tougher), and how hard they hit (×). */
   toughness: number;
@@ -74,6 +78,7 @@ export function waveSpec(n: number): WaveSpec {
     // A boss wave: fewer bots around the boss
     total: boss ? Math.ceil(total * 0.6) : total,
     spawnGap: Math.max(0.25, 0.8 - n * 0.02),
+    seconds: Math.min(60, 30 + n),
     skill: 0.95 - 0.75 * Math.exp(-(n - 1) / 10),
     toughness: 1 / (1 + 0.04 * (n - 1)),
     hitBoost: 1 + 0.02 * (n - 1),

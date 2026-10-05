@@ -3,7 +3,7 @@
 // break and now and then), the power-ups they drop and their effects, the lives and the end.
 import * as THREE from 'three';
 import { BotController } from '../sim/bot';
-import { PLAYER_TEAM_RED, TICK, WEAPON_KNIVES, WEAPON_NUCLEAR } from '../sim/constants';
+import { PLAYER_TEAM_RED, PROJECTILE_DROPED_WEAPON, TICK, WEAPON_KNIVES, WEAPON_NUCLEAR } from '../sim/constants';
 import type { Game } from '../sim/game';
 import type { Player, SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
@@ -18,6 +18,8 @@ export interface WavesHud {
   /** 'break': between waves (breakLeft seconds to the next one); 'fight': a wave is on. */
   phase: 'break' | 'fight';
   breakLeft: number;
+  /** Seconds before the next wave comes anyway (during a wave). */
+  waveLeft: number;
   /** Enemies of the wave still to beat (standing or still to come), and how many it had. */
   left: number;
   total: number;
@@ -63,6 +65,8 @@ export interface WavesContext {
   onCleared: (n: number) => void;
   /** A power-up was taken (the sound, the HUD's line); `weaponID` for a new weapon. */
   onPower: (kind: PowerKind, weaponID?: number) => void;
+  /** A crate dropped a weapon on the floor (the player takes it with F, or not). */
+  onWeaponDrop: (weaponID: number) => void;
   /** The bomb's blast, at the player. */
   onBomb: (position: Vec3) => void;
   onEnd: (end: WavesEnd) => void;
@@ -74,6 +78,7 @@ export class WavesRun {
   private spec: WaveSpec = waveSpec(1);
   private phase: 'break' | 'fight' = 'break';
   private breakLeft = WAVES.firstBreak;
+  private waveLeft = 0;
   /** Bots of the wave still to come, and the wait before the next one joins. */
   private pending = 0;
   private spawnWait = 0;
@@ -152,12 +157,16 @@ export class WavesRun {
   // ---------------------------------------------------------------- waves
 
   private startWave(): void {
+    // The bots (and the boss) the last wave still had to send come too
+    const carried = this.pending;
+    const bossLate = this.bossPending;
     this.wave++;
     this.spec = waveSpec(this.wave);
     this.phase = 'fight';
-    this.pending = this.spec.total;
+    this.waveLeft = this.spec.seconds;
+    this.pending = this.spec.total + carried;
     this.spawnWait = 0.5;
-    this.bossPending = this.spec.boss;
+    this.bossPending = this.spec.boss || bossLate;
     this.nextCrate = WAVES.crates.every;
     track('wave_start', { wave: this.wave, boss: this.spec.boss });
     this.ctx.onWave(this.spec);
@@ -181,6 +190,12 @@ export class WavesRun {
       this.spawnBoss();
     }
     // Cleared: nobody left to come or standing
+    // Time's up: the next wave comes, whoever is still standing stays
+    this.waveLeft -= TICK;
+    if (this.waveLeft <= 0) {
+      this.startWave();
+      return;
+    }
     if (this.pending === 0 && !this.bossPending && standing === 0) {
       this.phase = 'break';
       this.breakLeft = WAVES.breakSeconds;
@@ -209,10 +224,13 @@ export class WavesRun {
     p.lives = 1;
     p.spawnRequested = false;
     p.timeToSpawn = 0;
-    // Tougher and harder hitting each wave (waveSpec)
+    // Tougher and harder hitting each wave (waveSpec), a little slower than the player
     p.damageScale = this.spec.toughness;
     p.damageBoost = this.spec.hitBoost;
+    p.speedBoost = WAVES.botSpeed;
     bots[i] = new BotController(p, this.spec.skill, loadout);
+    // They come for the player, wherever they are
+    bots[i].hunt = this.ctx.me;
     game.requestSpawn(p);
     return true;
   }
@@ -237,7 +255,9 @@ export class WavesRun {
     p.damageScale = WAVES.boss.damageScale * this.spec.toughness;
     p.damageBoost = this.spec.hitBoost;
     const heavy = this.spec.weapons[this.spec.weapons.length - 1];
+    p.speedBoost = WAVES.botSpeed;
     const bot = new BotController(p, Math.min(1, this.spec.skill + 0.1), { primary: heavy, secondary: WEAPON_KNIVES });
+    bot.hunt = this.ctx.me;
     const i = bots.findIndex((b) => b.player === p);
     if (i >= 0) bots[i] = bot;
     else bots.push(bot);
@@ -278,6 +298,15 @@ export class WavesRun {
     this.renderer.crateHit(crateID, position.x, position.y, broken);
     if (!broken || this.over) return;
     const kind = rollPower();
+    if (kind === 'weapon') {
+      // A real weapon on the floor: the player takes it (F) or leaves it
+      const options = POWER_WEAPONS.filter((w) => w !== this.ctx.me.weapon?.weaponID);
+      const weaponID = options[Math.floor(Math.random() * options.length)];
+      this.ctx.game.spawnProjectile(position.clone(), new Vec3(0, 0, 2), this.ctx.me.playerID, PROJECTILE_DROPED_WEAPON, weaponID);
+      track('crate_break', { wave: this.wave, drop: 'weapon' });
+      this.ctx.onWeaponDrop(weaponID);
+      return;
+    }
     this.powers.push({ id: this.nextPowerID++, kind, x: position.x, y: position.y, age: 0, life: WAVES.powerOnFloor });
     track('crate_break', { wave: this.wave, drop: kind });
   }
@@ -350,6 +379,7 @@ export class WavesRun {
       boss: this.spec.boss && this.phase === 'fight',
       phase: this.phase,
       breakLeft: Math.max(0, this.breakLeft),
+      waveLeft: Math.max(0, this.waveLeft),
       left: this.phase === 'fight' ? this.pending + standing + (this.bossPending ? 1 : 0) : 0,
       total: this.spec.total + (this.spec.boss ? 1 : 0),
       lives: me.lives + (me.isAlive ? 1 : 0),

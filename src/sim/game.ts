@@ -486,6 +486,8 @@ export class Game {
       const projectile = this.projectiles[i];
       if (!projectile.predicted) {
         projectile.rotation += delay * projectile.rotateVel;
+        // Counted down here too, only for the items' blinking: the server removes them
+        projectile.duration -= delay;
         while (projectile.rotation >= 360) projectile.rotation -= 360;
         while (projectile.rotation < 0) projectile.rotation += 360;
         continue;

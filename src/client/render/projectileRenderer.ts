@@ -15,6 +15,9 @@ import { Vec3, randRange } from '../../sim/vec';
 import { createDkoObject3D } from '../engine/dko';
 import { getModel, getTexture, MODEL_COCKTAIL_MOLOTOV, MODEL_GRENADE, MODEL_LIFE_PACK, MODEL_ROCKET, TEXTURES } from '../assets';
 
+/** The last seconds of an item on the floor, when it blinks. */
+const ITEM_BLINK_SECONDS = 5;
+
 function quad(x0: number, y0: number, x1: number, y1: number): THREE.BufferGeometry {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute([x0, y1, 0, x0, y0, 0, x1, y0, 0, x1, y1, 0], 3));
@@ -164,6 +167,14 @@ class ProjectileVisual {
         h.position.z = z - 0.3;
         h.rotateZ((p.rotation * Math.PI) / 180);
         break;
+    }
+    // Items on the floor (a life pack, a dropped weapon or grenade) blink their last seconds before
+    // they go, faster at the end: they used to vanish without warning
+    if (this.type === PROJECTILE_LIFE_PACK || this.type === PROJECTILE_DROPED_WEAPON || this.type === PROJECTILE_DROPED_GRENADE) {
+      const left = p.duration;
+      const on = !(left < ITEM_BLINK_SECONDS) || Math.floor(performance.now() / (left < 2 ? 70 : 140)) % 2 === 0;
+      h.visible = on;
+      if (this.shadow) this.shadow.visible = on;
     }
   }
 

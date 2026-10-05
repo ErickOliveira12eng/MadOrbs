@@ -340,12 +340,16 @@ export class ClientGame {
         audio.play(this.sounds.siren, 200);
       },
       onCleared: (n) => {
-        this.hud.announceText(t('waves.cleared', { n }), t('waves.breakHint'), banner('#c8ffd4', '#2fd35c'), 2.6, () => playAnnouncer('objectiveCompleted'));
+        this.hud.announceText(t('waves.cleared', { n }), t('waves.breakHint'), banner('#c8ffd4', '#2fd35c'), 2.6);
       },
       onPower: (kind: PowerKind, weaponID?: number) => {
         const sub = kind === 'weapon' && weaponID !== undefined ? t('power.weapon.sub', { weapon: weaponInfo(weaponID).name }) : t(`power.${kind}.sub` as const);
         this.hud.announceText(t(`power.${kind}` as const), sub, banner('#ffffff', POWERS[kind].color), 1.6);
         audio.play(kind === 'life' || kind === 'extraLife' ? this.sounds.lifePack : this.sounds.equip, 255);
+      },
+      onWeaponDrop: (weaponID) => {
+        this.hud.announceText(weaponInfo(weaponID).name, t('waves.weaponDrop'), banner('#ffffff', POWERS.weapon.color), 2);
+        audio.play(this.sounds.equip, 200);
       },
       onBomb: (position) => this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 4),
       onEnd: (end) => this.endWaves(end),
@@ -362,7 +366,6 @@ export class ClientGame {
   private endWaves(end: WavesEnd): void {
     track('waves_end', { wave: end.wave, kills: end.kills, seconds: Math.round(end.seconds), new_best: end.isBest, fps: this.fps() });
     this.opts.onWavesEnd?.(end.wave, end.kills);
-    if (performance.now() - this.missionFailedAt > 1500) playAnnouncer('missionFailed');
     // The mouse comes back for the buttons, with the system's cursor
     this.input.exitPointerLock();
     this.renderer.domElement.style.cursor = 'auto';
@@ -612,7 +615,8 @@ export class ClientGame {
 
   /** A match begins: the announcer's "Start". */
   private announceStart(): void {
-    playAnnouncer('start');
+    // The waves mode has no announcer voice (Erick's call): its banners and the siren say enough
+    if (!this.waves) playAnnouncer('start');
   }
 
   private beginLoop(): void {
@@ -1356,6 +1360,8 @@ export class ClientGame {
       }
       case 'hit': {
         const victim = game.players[e.playerID];
+        // The waves' poison: a little every tick, shown by its own effect (wavesRenderer), silent here
+        if (e.dot) break;
         if (fromServer && victim) {
           victim.life = e.life;
           if (victim === me) {
@@ -1451,7 +1457,8 @@ export class ClientGame {
         const kind = e.feat;
         if (who === me) track('kill_feat', { feat: kind, n: e.n, ...this.matchInfo() });
         if (kind === 'missionFailed' && who === me) this.missionFailedAt = performance.now();
-        this.hud.announce(kind, who, game.players[e.victimID] ?? null, e.n, () => playAnnouncer(kind));
+        // The banner always; the voice, not in the waves mode
+        this.hud.announce(kind, who, game.players[e.victimID] ?? null, e.n, this.waves ? undefined : () => playAnnouncer(kind));
         break;
       }
       case 'mapChange':

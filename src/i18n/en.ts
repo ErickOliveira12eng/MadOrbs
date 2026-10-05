@@ -273,6 +273,8 @@ export const en = {
   'waves.bossWave': 'Boss wave!',
   'waves.cleared': 'Wave {n} cleared',
   'waves.breakHint': 'Break the crates for power-ups',
+  'hud.pickup': 'Take: {weapon}',
+  'waves.weaponDrop': 'On the floor: press F over it to take it',
   'waves.nextIn': 'Next wave in {s}',
   'waves.left': '{n} enemies left',
   'waves.leftOne': '1 enemy left',
