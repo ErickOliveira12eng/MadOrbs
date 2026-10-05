@@ -8,6 +8,7 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { lang } from '../i18n';
 import type { RoomMode } from '../net/protocol';
 import { mergeProgress } from '../client/campaign';
+import { mergeWavesRecord, type WavesRecord } from '../client/waves';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../net/supabase';
 
 /** The Google OAuth client (Web) of madorbs.com: public, it goes in the page. */
@@ -28,6 +29,21 @@ export interface Profile {
 }
 
 /** Online stats of one game mode (player_stats). */
+/** A ranking (leaderboard): its modes, and one row (src/menu/rankingModal.ts). */
+export type RankingMode = 'dm' | 'tdm' | 'ctf' | 'campaign' | 'waves';
+export interface RankingRow {
+  rank: number;
+  tag: string;
+  name: string | null;
+  skin: string;
+  red: string;
+  green: string;
+  blue: string;
+  /** The mode's numbers (supabase/migrations/..._waves_and_leaderboard.sql). */
+  stats: Record<string, number>;
+  is_me: boolean;
+}
+
 export interface ModeStats {
   kills: number;
   deaths: number;
@@ -62,6 +78,8 @@ export class Account {
   profile: Profile | null = null;
   /** The account's stats per game mode (a mode never played has no row). */
   stats: Partial<Record<RoomMode, ModeStats>> = {};
+  /** The account's best waves run (waves_records), or null. */
+  waves: WavesRecord | null = null;
   private client: SupabaseClient | null = null;
   private loading: Promise<SupabaseClient> | null = null;
   private readonly listeners = new Set<() => void>();
@@ -114,6 +132,7 @@ export class Account {
         if (!session) {
           this.profile = null;
           this.stats = {};
+          this.waves = null;
         }
         // No Supabase call inside this callback (it would wait on the auth lock)
         if (session && (userChanged || event === 'USER_UPDATED')) setTimeout(() => void this.refreshProfile(), 0);
@@ -130,11 +149,21 @@ export class Account {
     const client = this.client;
     const id = this.session?.user.id;
     if (!client || !id) return;
-    const [profile, stats, campaign] = await Promise.all([
+    const [profile, stats, campaign, waves] = await Promise.all([
       client.from('profiles').select(PROFILE_COLUMNS).eq('id', id).maybeSingle(),
       client.from('player_stats').select(STATS_COLUMNS).eq('user_id', id),
       client.from('campaign_progress').select('level, best_seconds').eq('user_id', id),
+      client.from('waves_records').select('best_wave, best_kills').eq('user_id', id).maybeSingle(),
     ]);
+    // The waves: the account's best run and this browser's, the better one in both
+    if (waves.error) console.warn('[account] cannot read the waves', waves.error.message);
+    else {
+      const row = waves.data as { best_wave: number; best_kills: number } | null;
+      const remote = row ? { wave: row.best_wave, kills: row.best_kills } : null;
+      const upload = mergeWavesRecord(remote);
+      this.waves = upload ?? remote;
+      if (upload) void this.saveWaves(upload.wave, upload.kills);
+    }
     // The campaign: the account's progress and this browser's, the better time of each level
     if (campaign.error) console.warn('[account] cannot read the campaign', campaign.error.message);
     else {
@@ -233,6 +262,25 @@ export class Account {
   }
 
   /** A campaign level won: its time goes to the account (which keeps the better one). */
+  /** A waves run ended: the account keeps its best one. */
+  async saveWaves(wave: number, kills: number): Promise<void> {
+    if (!this.client || !this.session) return;
+    const { error } = await this.client.rpc('record_waves', { p_wave: wave, p_kills: kills });
+    if (error) console.warn('[account] cannot save the waves', error.message);
+    else if (!this.waves || wave > this.waves.wave || (wave === this.waves.wave && kills > this.waves.kills)) {
+      this.waves = { wave, kills };
+      this.emit();
+    }
+  }
+
+  /** A game mode's ranking (for guests too: Supabase's client loads for it). */
+  async ranking(mode: RankingMode): Promise<RankingRow[]> {
+    const client = await this.load();
+    const { data, error } = await client.rpc('leaderboard', { p_mode: mode, p_limit: 50 });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as RankingRow[];
+  }
+
   async saveCampaign(level: string, seconds: number): Promise<void> {
     if (!this.client || !this.session) return;
     const { error } = await this.client.rpc('record_campaign', { p_level: level, p_seconds: seconds });

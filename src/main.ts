@@ -94,6 +94,7 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false): 
           mode: 'tdm',
           mapName: WAVES_MAP,
           waves: true,
+          onWavesEnd: (wave, kills) => void account.saveWaves(wave, kills),
           onWavesAction: (action) => {
             afterQuit =
               action === 'menu'

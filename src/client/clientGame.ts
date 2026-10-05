@@ -131,6 +131,8 @@ export interface ClientGameOptions {
   waves?: boolean;
   /** The end of a waves run: what the player chose (again, or back to the menu). */
   onWavesAction?: (action: 'retry' | 'menu') => void;
+  /** A waves run ended: the account keeps the best one. */
+  onWavesEnd?: (wave: number, kills: number) => void;
 }
 
 export class ClientGame {
@@ -359,6 +361,7 @@ export class ClientGame {
 
   private endWaves(end: WavesEnd): void {
     track('waves_end', { wave: end.wave, kills: end.kills, seconds: Math.round(end.seconds), new_best: end.isBest, fps: this.fps() });
+    this.opts.onWavesEnd?.(end.wave, end.kills);
     if (performance.now() - this.missionFailedAt > 1500) playAnnouncer('missionFailed');
     // The mouse comes back for the buttons, with the system's cursor
     this.input.exitPointerLock();

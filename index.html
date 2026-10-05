@@ -134,8 +134,8 @@
           <div id="modes" class="modes" role="radiogroup" data-i18n-attr="aria-label=menu.gameMode" aria-label="Game mode"></div>
 
           <div class="shortcuts">
-            <button class="shortcut" type="button" disabled>
-              <span class="shortcut-icon" data-icon="bars"></span><span><b data-i18n="menu.ranking">Ranking</b><small data-i18n="menu.soon">Coming soon</small></span>
+            <button id="btnRanking" class="shortcut" type="button">
+              <span class="shortcut-icon" data-icon="bars"></span><span><b data-i18n="menu.ranking">Ranking</b><small data-i18n="menu.rankingSub">Best players</small></span>
             </button>
             <button id="btnStats" class="shortcut" type="button">
               <span class="shortcut-icon" data-icon="trophy"></span><span><b data-i18n="account.stats">Stats</b><small data-i18n="menu.statsSub">Your matches</small></span>
@@ -294,6 +294,20 @@
           <div id="statsBody" class="stats-body"></div>
           <p class="account-note" data-i18n="account.statsNote">Online matches only: the offline training doesn't count.</p>
         </div>
+      </div>
+    </div>
+
+    <!-- Ranking: src/menu/rankingModal.ts -->
+    <div id="rankingModal" class="modal" hidden>
+      <div class="modal-card ranking-modal" role="dialog" aria-modal="true" aria-labelledby="rankingTitle">
+        <header class="modal-head">
+          <h2 id="rankingTitle" data-i18n="menu.ranking">Ranking</h2>
+          <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>
+        </header>
+        <p class="modal-sub" data-i18n="ranking.sub">The best players with an account, mode by mode.</p>
+        <div id="rankingModes" class="segmented ranking-modes" role="radiogroup" data-i18n-attr="aria-label=menu.ranking" aria-label="Ranking"></div>
+        <div id="rankingBody" class="ranking-body"></div>
+        <div id="rankingSave" class="camp-save" hidden></div>
       </div>
     </div>
 

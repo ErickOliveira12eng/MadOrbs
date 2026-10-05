@@ -168,6 +168,28 @@ export function loadWavesRecord(): WavesRecord | null {
   }
 }
 
+/** Whether run `a` beats run `b` (a higher wave, or the same with more kills). */
+export function betterRun(a: WavesRecord, b: WavesRecord | null): boolean {
+  return !b || a.wave > b.wave || (a.wave === b.wave && a.kills > b.kills);
+}
+
+/**
+ * The account's best run merged into this browser's (the better one stays here). Returns this
+ * browser's when it beats the account's, to send to it; else null.
+ */
+export function mergeWavesRecord(remote: WavesRecord | null): WavesRecord | null {
+  const local = loadWavesRecord();
+  if (remote && betterRun(remote, local)) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(remote));
+    } catch {
+      /* storage unavailable */
+    }
+    return null;
+  }
+  return local && betterRun(local, remote) ? local : null;
+}
+
 /** Saves a run; true when it beats the record (a higher wave, or the same with more kills). */
 export function saveWavesRun(wave: number, kills: number): boolean {
   const best = loadWavesRecord();

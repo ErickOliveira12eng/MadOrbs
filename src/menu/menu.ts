@@ -11,6 +11,7 @@ import { AccountModal } from './accountModal';
 import { StatsModal } from './statsModal';
 import { CampaignModal } from './campaignModal';
 import { AdblockModal } from './adblockModal';
+import { RankingModal } from './rankingModal';
 import type { CampaignLevel } from '../client/campaign';
 import { isOldGeneratedName, randomGuestName } from './guestNames';
 import { Embers } from './embers';
@@ -55,6 +56,7 @@ export class StartScreen {
   private readonly statsModal: StatsModal;
   private readonly campaign: CampaignModal;
   private readonly adblock = new AdblockModal();
+  private readonly ranking: RankingModal;
   /** The account whose Orb was already brought into this page's settings. */
   private orbSyncedFor = '';
   private readonly embers: Embers | null;
@@ -91,10 +93,12 @@ export class StartScreen {
     this.accountModal = new AccountModal(account, settings, studio, (name) => this.setName(name));
     $('btnAccount').addEventListener('click', () => this.accountModal.open());
     // Which windows of the start screen are opened (analytics)
-    const opens: [string, string][] = [['btnAccount', 'account'], ['btnStats', 'stats'], ['btnCampaign', 'campaign'], ['training', 'training'], ['btnControls', 'controls'], ['orbButton', 'orb'], ['orbCustomize', 'orb']];
+    const opens: [string, string][] = [['btnAccount', 'account'], ['btnStats', 'stats'], ['btnRanking', 'ranking'], ['btnCampaign', 'campaign'], ['training', 'training'], ['btnControls', 'controls'], ['orbButton', 'orb'], ['orbCustomize', 'orb']];
     for (const [id, name] of opens) $(id).addEventListener('click', () => track('menu_open', { window: name }));
     this.statsModal = new StatsModal(account, () => this.accountModal.open());
     $('btnStats').addEventListener('click', () => this.statsModal.open());
+    this.ranking = new RankingModal(account, () => this.accountModal.open());
+    $('btnRanking').addEventListener('click', () => this.ranking.open());
     this.campaign = new CampaignModal(
       account,
       studio,
@@ -238,6 +242,7 @@ export class StartScreen {
     this.accountModal.close();
     this.statsModal.close();
     this.campaign.close();
+    this.ranking.close();
     this.adblock.close();
     this.controls.hidden = true;
     cancelAnimationFrame(this.rafId);

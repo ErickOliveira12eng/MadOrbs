@@ -85,8 +85,14 @@ export class StatsModal {
     const all = this.account.stats;
     const mode = this.statsMode;
     const s = mode === 'all' ? sumStats(ROOM_MODES.map((m) => all[m] ?? NO_STATS)) : (all[mode] ?? NO_STATS);
+    // The waves (offline): the best run, under "All"
+    const w = this.account.waves;
+    const waves =
+      mode === 'all' && w
+        ? `<div class="stats-waves"><span>${t('menu.waves')}</span><b>${t('ranking.bestWave', { n: w.wave })}</b><small>${t(w.kills === 1 ? 'end.oneKill' : 'end.kills', { n: w.kills })}</small></div>`
+        : '';
     if (s.matches === 0 && s.kills === 0 && s.deaths === 0) {
-      $('statsBody').innerHTML = `<p class="stats-empty">${t(mode === 'all' ? 'account.noStats' : 'account.noStatsMode')}</p>`;
+      $('statsBody').innerHTML = `<p class="stats-empty">${t(mode === 'all' ? 'account.noStats' : 'account.noStatsMode')}</p>${waves}`;
       return;
     }
     const rate = s.matches ? s.wins / s.matches : 0;
@@ -122,7 +128,7 @@ export class StatsModal {
         }).join('') +
         `</div>`;
     }
-    $('statsBody').innerHTML = hero + tiles + modes;
+    $('statsBody').innerHTML = hero + tiles + modes + waves;
   }
 }
 

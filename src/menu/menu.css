@@ -2220,6 +2220,189 @@ input[type='range'] {
   }
 }
 
+/* ------------------------------------------------------------------ ranking (src/menu/rankingModal.ts) */
+
+.ranking-modal {
+  width: min(860px, 100%);
+}
+
+.ranking-modes {
+  margin-top: 14px;
+}
+
+.ranking-body {
+  margin-top: 12px;
+  max-height: min(56vh, 520px);
+  overflow-y: auto;
+}
+
+.rk-table {
+  display: grid;
+  gap: 4px;
+}
+
+.rk-row {
+  display: grid;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 4px 12px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.rk-row > span:nth-child(n + 3) {
+  text-align: right;
+}
+
+.rk-row .by {
+  color: var(--gold-1);
+}
+
+.rk-row.head {
+  min-height: 30px;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.rk-row.head .by {
+  color: var(--gold-1);
+}
+
+.rk-row.me {
+  background: rgba(95, 226, 125, 0.12);
+  box-shadow: inset 0 0 0 1.5px rgba(95, 226, 125, 0.6);
+}
+
+.rk-row .pos {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.rk-row .pos.m1 {
+  background: linear-gradient(180deg, #ffe066, #e0a400);
+  color: #3a2600;
+}
+
+.rk-row .pos.m2 {
+  background: linear-gradient(180deg, #eef2ff, #a9b3cf);
+  color: #26304d;
+}
+
+.rk-row .pos.m3 {
+  background: linear-gradient(180deg, #ffbf8a, #c26b2c);
+  color: #3a1800;
+}
+
+.rk-row .who {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.rk-row .who .orb {
+  flex: none;
+  align-self: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.35);
+}
+
+.rk-row .who b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 15px;
+}
+
+.rk-row .who small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.rk-row .who em {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(95, 226, 125, 0.2);
+  color: var(--play-1);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.rk-gap {
+  text-align: center;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.ranking-note {
+  margin: 14px 0 4px;
+  color: var(--muted);
+  font-weight: 700;
+  text-align: center;
+}
+
+.ranking-note.small {
+  font-size: 12.5px;
+}
+
+.stats-waves {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 77, 109, 0.1);
+  border: 1px solid rgba(255, 77, 109, 0.3);
+}
+
+.stats-waves span {
+  color: #ffb3c1;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.stats-waves b {
+  font: 400 22px var(--font-display);
+}
+
+.stats-waves small {
+  margin-left: auto;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  .rk-row {
+    font-size: 12.5px;
+    padding: 4px 8px;
+  }
+
+  .rk-row .who small {
+    display: none;
+  }
+}
+
 /* ------------------------------------------------------------------ campaign (src/menu/campaignModal.ts) */
 
 .camp-modal {
