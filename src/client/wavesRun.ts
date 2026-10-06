@@ -98,7 +98,13 @@ export class WavesRun {
   constructor(private readonly ctx: WavesContext) {
     this.renderer = new WavesRenderer(ctx.scene);
     this.dropCrates(WAVES.crates.perBreak);
+    window.addEventListener('pagehide', this.onPageHide);
   }
+
+  /** The page closes mid-run: the wave reached stays in this browser (the account gets it at the next sign-in). */
+  private readonly onPageHide = (): void => {
+    if (!this.over && this.wave > 0) saveWavesRun(this.wave, this.ctx.me.kills);
+  };
 
   /** Every tick. */
   update(): void {
@@ -361,6 +367,18 @@ export class WavesRun {
 
   // ---------------------------------------------------------------- end, HUD, drawing
 
+  /**
+   * The player leaves before the end (the menu, a closed page): the wave being fought counts as
+   * reached, kept here (the record) and returned for the account.
+   */
+  leave(): { wave: number; kills: number; isBest: boolean } | null {
+    if (this.over || this.wave === 0) return null;
+    this.over = true;
+    const wave = this.wave;
+    const kills = this.ctx.me.kills;
+    return { wave, kills, isBest: saveWavesRun(wave, kills) };
+  }
+
   private end(): void {
     this.over = true;
     const kills = this.ctx.me.kills;
@@ -406,6 +424,7 @@ export class WavesRun {
   }
 
   dispose(): void {
+    window.removeEventListener('pagehide', this.onPageHide);
     this.renderer.dispose();
   }
 }

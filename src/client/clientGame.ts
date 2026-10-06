@@ -747,7 +747,12 @@ export class ClientGame {
     // Left before the end (the menu, a closed connection): how long it lasted
     const seconds = Math.round((performance.now() - this.matchAt) / 1000);
     if (this.camp && !this.camp.over) track('campaign_level_quit', { ...this.levelInfo(), seconds });
-    else if (this.waves && !this.waves.over) track('waves_quit', { wave: this.waves.waveNumber, kills: this.me.kills, seconds });
+    else if (this.waves && !this.waves.over) {
+      track('waves_quit', { wave: this.waves.waveNumber, kills: this.me.kills, seconds });
+      // Leaving counts: the wave reached goes to the record and to the account
+      const left = this.waves.leave();
+      if (left) this.opts.onWavesEnd?.(left.wave, left.kills);
+    }
     else if (!this.camp && !this.waves && !this.matchEnded) track('match_quit', { ...this.matchInfo(), seconds, kills: this.me.kills, deaths: this.me.deaths, reason: reason ? 'closed' : 'menu' });
     this.running = false;
     if (this.conn) {
