@@ -39,7 +39,7 @@ import {
   WEAPON_NUCLEAR,
   WEAPON_SNIPER,
 } from '../sim/constants';
-import { BOSS, HEALTH_PACKS, loadProgress, nextLevel, saveWin, starsFor, type CampaignLevel } from './campaign';
+import { BOSS, BOT_SPEED, HEALTH_PACKS, loadProgress, nextLevel, saveWin, starsFor, type CampaignLevel } from './campaign';
 import { bestKills, saveBestKills } from './records';
 import { loadAnnouncer, playAnnouncer } from './featSounds';
 import { applyFeatCounts, isAnnouncedToAll } from '../sim/feats';
@@ -448,6 +448,11 @@ export class ClientGame {
         boss.skin = { ...randomSkin(), skin: 'skin14' };
         this.bots.push(new BotController(boss, Math.min(1, level.skill + 0.1), loadout));
       }
+    }
+    // Like the waves: the bots hunt the player down when nobody is in sight, a little slower than the player
+    for (const b of this.bots) {
+      b.hunt = this.me;
+      b.player.speedBoost = BOT_SPEED;
     }
     this.camp = { level, elapsed: 0, started: false, boss, guards: level.boss ? guards : [], nextGuard: BOSS.guardEvery, over: null, overAt: 0, packs: [], nextPack: -1 };
     this.onMapLoaded(map);

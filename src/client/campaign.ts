@@ -51,6 +51,9 @@ export interface CampaignLevel {
 /** Boss: radius (a babo is 0.25), share of the damage taken, guards at the start, most guards at once, seconds between guards. */
 export const BOSS = { radius: 0.45, damageScale: 0.2, guards: 2, maxGuards: 3, guardEvery: 10 };
 
+/** The bots' speed (they hunt the player down: a little slower, so there is room to run). */
+export const BOT_SPEED = 0.8;
+
 /** Health packs on the map: how many at once, and seconds before a taken one comes back elsewhere. */
 export const HEALTH_PACKS = { count: 2, every: 30 };
 
