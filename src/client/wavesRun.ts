@@ -236,6 +236,8 @@ export class WavesRun {
     p.damageScale = this.spec.toughness;
     p.damageBoost = this.spec.hitBoost;
     p.speedBoost = WAVES.botSpeed;
+    // What lies on the floor (life packs, grenades) is the player's
+    p.takesLifePacks = false;
     bots[i] = new BotController(p, this.spec.skill, loadout);
     // They come for the player, wherever they are
     bots[i].hunt = this.ctx.me;

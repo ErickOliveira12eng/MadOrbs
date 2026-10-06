@@ -453,6 +453,8 @@ export class ClientGame {
     for (const b of this.bots) {
       b.hunt = this.me;
       b.player.speedBoost = BOT_SPEED;
+      // What lies on the floor (the map's life packs, what fallen bots drop) is the player's
+      b.player.takesLifePacks = false;
     }
     this.camp = { level, elapsed: 0, started: false, boss, guards: level.boss ? guards : [], nextGuard: BOSS.guardEvery, over: null, overAt: 0, packs: [], nextPack: -1 };
     this.onMapLoaded(map);

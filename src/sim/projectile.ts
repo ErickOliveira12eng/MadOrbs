@@ -325,7 +325,7 @@ export class Projectile {
 
     // Grenade pickup
     if (type === PROJECTILE_DROPED_GRENADE && !this.needToBeDeleted) {
-      const p = game.playerInRadius(new Vec3(cf.position.x, cf.position.y, 0.25), 0.25);
+      const p = game.playerInRadius(new Vec3(cf.position.x, cf.position.y, 0.25), 0.25, -1, (q) => q.takesLifePacks);
       if (p) {
         p.giveGrenade();
         this.needToBeDeleted = true;

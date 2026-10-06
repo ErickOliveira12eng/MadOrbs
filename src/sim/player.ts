@@ -115,7 +115,10 @@ export class Player {
   radius = 0.25;
   /** Share of the damage taken (the campaign's bosses take less). */
   damageScale = 1;
-  /** Picks up life packs (the campaign's bosses don't: neither the map's nor the ones bots drop). */
+  /**
+   * Picks up what lies on the floor: life packs and dropped grenades. The bots of the campaign and
+   * of the waves don't (the map's packs and what fallen bots drop are the player's).
+   */
   takesLifePacks = true;
   /** Power-ups of the waves mode (src/client/wavesRun.ts): damage dealt, damage taken, moving and firing. */
   damageBoost = 1;
