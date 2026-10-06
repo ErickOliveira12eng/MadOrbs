@@ -1283,7 +1283,7 @@ export class HudLayer {
       html =
         `<div class="h-ringwrap"><svg viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6"/>` +
         `<circle data-ring cx="36" cy="36" r="30" fill="none" stroke="#5fe27d" stroke-width="6" stroke-linecap="round" stroke-dasharray="${RESPAWN_C}"/></svg><b data-num></b></div>` +
-        `<div class="h-rtext"><strong data-title></strong><span>${t('death.pickBelow')}</span></div>`;
+        `<div class="h-rtext"><strong data-title></strong><span>${t(f.waves ? 'waves.deathHint' : 'death.pickBelow')}</span></div>`;
     } else if (mode === 'click') {
       html = `<span class="h-play pulse">${t(first ? 'death.clickJoin' : 'death.clickRespawn')}</span><div class="h-rtext"><span>${t('death.anywhere')}</span></div>`;
     } else {

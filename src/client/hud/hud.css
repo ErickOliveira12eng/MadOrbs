@@ -1700,6 +1700,39 @@
   text-transform: uppercase;
 }
 
+/* The waves' pause screen (weaponPicker pauseOnly): a card in the middle, no weapons */
+.h-pickin.pause {
+  display: grid;
+  place-items: center;
+}
+
+.h-pausecard {
+  width: 460px;
+  padding: 26px 30px 22px;
+  border-radius: 22px;
+  background: var(--h-panel-strong);
+  border: 1px solid var(--h-line-strong);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.h-pausecard h2 {
+  margin: 6px 0 4px;
+  font: 400 52px/1 var(--h-display);
+  letter-spacing: 1.5px;
+}
+
+.h-pausecard .sub {
+  display: block;
+  margin: 0 0 20px;
+  color: var(--h-muted);
+  font: 700 15px var(--h-ui);
+}
+
+.h-pausecard .h-pfoot {
+  justify-content: center;
+}
+
 .h-pfoot {
   margin-top: auto;
   display: flex;

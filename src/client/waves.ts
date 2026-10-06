@@ -25,6 +25,8 @@ export const WAVES = {
   botSpeed: 0.8,
   /** The player's weapons, the same at each spawn (better ones come from the crates). */
   primary: WEAPON_SMG,
+  /** Seconds before the player is back after a death (by itself: no click needed). */
+  respawnSeconds: 5,
   /** Seconds before the first wave, and between waves. */
   firstBreak: 5,
   breakSeconds: 9,

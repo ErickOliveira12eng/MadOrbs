@@ -26,6 +26,8 @@ export class WeaponPicker {
   mapName = '';
   /** The spectator button (offline only: online, the server assigns the teams). */
   canSpectate = false;
+  /** A pause screen instead of the weapons (the waves mode: always the same weapons; the game stops meanwhile). */
+  pauseOnly = false;
   spectating = false;
   /** The player already entered the game once (label of the main button). */
   joined = false;
@@ -106,6 +108,16 @@ export class WeaponPicker {
   }
 
   render(): void {
+    if (this.pauseOnly) {
+      const where = [this.modeName, this.mapName].filter(Boolean).map(esc).join(' · ');
+      this.el.innerHTML =
+        `<div class="h-pickin pause"><div class="h-pausecard"><span class="h-label">${where}</span><h2>${t('pause.title')}</h2>` +
+        `<p class="sub">${t('pause.sub')}</p><div class="h-pfoot">` +
+        `<button type="button" class="h-ghost danger" data-act="quit">${t('pick.quit')}</button>` +
+        `<button type="button" class="h-play" data-act="back">${t('pick.back')} <span class="h-key">Esc</span></button>` +
+        `</div></div></div>`;
+      return;
+    }
     const art = this.art;
     const primaries = enabledPrimaries();
     const secondaries = enabledSecondaries();

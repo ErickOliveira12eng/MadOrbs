@@ -317,7 +317,10 @@ export class ClientGame {
     sv.sv_winLimit = 0;
     sv.sv_gameTimeLimit = 0;
     sv.sv_autoBalance = false;
-    sv.sv_forceRespawn = false;
+    // Back in the fight by itself after the death countdown: waiting dead can't stall the run (the
+    // wave clocks stop meanwhile, and whoever stays still is hunted down and loses the lives)
+    sv.sv_forceRespawn = true;
+    sv.sv_timeToSpawn = WAVES.respawnSeconds;
     this.game = new Game(map, { gameType: GAME_TYPE_TDM, onMapChangeRequest: () => {} });
     this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
     this.me.skin = this.opts.skin;
@@ -356,7 +359,8 @@ export class ClientGame {
     });
     this.onMapLoaded(map);
     this.beginLoop();
-    // We start right away, no weapon menu
+    // We start right away, no weapon menu; Esc is a pause screen (always the same weapons)
+    this.hud.picker.pauseOnly = true;
     this.hud.picker.hide();
     this.game.requestSpawn(this.me);
     // The banner of the end panel loads now
@@ -927,6 +931,11 @@ export class ClientGame {
 
     if (this.conn) this.applyServerMessages();
     if (!this.running) return;
+    // The waves mode stops while its pause screen (Esc) is up
+    if (this.waves && !this.waves.over && this.hud.picker.visible) {
+      input.endTick();
+      return;
+    }
     // The round's end (time or score limit), for analytics; the campaign has its own
     if (game.roundState !== this.lastRound) {
       this.lastRound = game.roundState;

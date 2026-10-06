@@ -122,8 +122,10 @@ export class WavesRun {
       return;
     }
 
+    // The clocks of the break and of the wave stop while the player is dead: dying (and waiting)
+    // doesn't bring the waves on, so it can't climb the record
     if (this.phase === 'break') {
-      this.breakLeft -= TICK;
+      if (me.isAlive) this.breakLeft -= TICK;
       if (this.breakLeft <= 0) this.startWave();
     } else {
       this.updateFight();
@@ -196,8 +198,8 @@ export class WavesRun {
       this.spawnBoss();
     }
     // Cleared: nobody left to come or standing
-    // Time's up: the next wave comes, whoever is still standing stays
-    this.waveLeft -= TICK;
+    // Time's up: the next wave comes, whoever is still standing stays (the clock waits while the player is dead)
+    if (this.ctx.me.isAlive) this.waveLeft -= TICK;
     if (this.waveLeft <= 0) {
       this.startWave();
       return;
