@@ -5,7 +5,7 @@
 import type { SkinInfo } from '../../sim/player';
 import { PROTOCOL_VERSION, roomPath, type ClientMessage, type RoomMode, type ServerMessage } from '../../net/protocol';
 import { decodeServerMessage, encodeClientMessage } from '../../net/wire';
-import { t } from '../../i18n';
+import { lang, t } from '../../i18n';
 
 export type WelcomeMessage = Extract<ServerMessage, { t: 'welcome' }>;
 
@@ -53,8 +53,9 @@ export class Connection {
     ws.onclose = (ev) => {
       if (this.closed) return;
       this.closed = true;
-      // 1001: the server is restarting (GameServer.stop); 4001: the admin removed us (GameServer.kick)
-      this.onClose?.(ev.code === 1001 ? t('net.restarting') : ev.code === 4001 ? t('net.kicked') : t('net.lost'));
+      // 1001: the server is restarting (GameServer.stop); 4001: the admin removed us (GameServer.kick);
+      // 4002: the admin blocked our account (GameServer.dropAccount)
+      this.onClose?.(ev.code === 1001 ? t('net.restarting') : ev.code === 4001 ? t('net.kicked') : ev.code === 4002 ? t('net.banned') : t('net.lost'));
     };
   }
 
@@ -93,7 +94,17 @@ export class Connection {
         conn.queue.splice(conn.queue.indexOf(first), 1);
         clearTimeout(timer);
         if (first.t === 'reject') {
-          fail(first.code === 'version' ? t('net.version') : first.code === 'full' ? t('net.full') : first.reason);
+          fail(
+            first.code === 'version'
+              ? t('net.version')
+              : first.code === 'full'
+                ? t('net.full')
+                : first.code === 'banned'
+                  ? first.until
+                    ? t('net.bannedUntil', { date: new Date(first.until).toLocaleString(lang(), { dateStyle: 'short', timeStyle: 'short' }) })
+                    : t('net.banned')
+                  : first.reason,
+          );
           return;
         }
         settled = true;

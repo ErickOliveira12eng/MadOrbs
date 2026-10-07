@@ -214,6 +214,8 @@ export const pt: Record<Key, string> = {
   'net.cantConnect': 'Não foi possível conectar ao servidor.',
   'net.restarting': 'O servidor está reiniciando. Tente entrar de novo em alguns segundos.',
   'net.kicked': 'O admin tirou você da partida.',
+  'net.banned': 'Você está bloqueado nas partidas online por descumprir os termos de uso.',
+  'net.bannedUntil': 'Você está bloqueado nas partidas online até {date} por descumprir os termos de uso.',
   'net.version': 'Versão diferente do servidor: recarregue a página (Ctrl+F5).',
   'net.full': 'Todas as salas do servidor estão cheias: tente de novo em instantes.',
 

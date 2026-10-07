@@ -11,7 +11,7 @@ import type { GameEvent } from '../sim/events';
 import type { SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 
-export const PROTOCOL_VERSION = 11;
+export const PROTOCOL_VERSION = 12;
 /** The client sends its coordinates every 2 simulation frames (gameVar.sv_minSendInterval). */
 export const CF_SEND_INTERVAL = 2;
 /** The server sends the players' state every 2 frames (15 Hz); events go out every frame. */
@@ -146,8 +146,11 @@ export type ServerMessage =
       /** The map vote, when joining during one. */
       vote?: NetVote;
     }
-  /** code: what the client says in its language; reason: the text for pages older than the codes. */
-  | { t: 'reject'; code?: 'version' | 'full'; reason: string }
+  /**
+   * code: what the client says in its language; reason: the text for pages older than the codes.
+   * 'banned': the account or the address is blocked, until that time (ms since 1970; none: for good).
+   */
+  | { t: 'reject'; code?: 'version' | 'full' | 'banned'; reason: string; until?: number }
   /** Every frame: events; every SNAPSHOT_INTERVAL frames also the players (p), timer (gt) and round state (rs). */
   | { t: 'tick'; f: number; e?: NetEvent[]; pr?: NetProjectileState[]; p?: NetPlayerState[]; gt?: number; rs?: number }
   | { t: 'players'; list: NetPlayerInfo[] }

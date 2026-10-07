@@ -223,6 +223,8 @@ export const en = {
   'net.cantConnect': "Couldn't connect to the server.",
   'net.restarting': 'The server is restarting. Try joining again in a few seconds.',
   'net.kicked': 'The admin removed you from the match.',
+  'net.banned': 'You are blocked from the online matches for breaking the terms of use.',
+  'net.bannedUntil': 'You are blocked from the online matches until {date} for breaking the terms of use.',
   'net.version': 'Different version from the server: reload the page (Ctrl+F5).',
   'net.full': 'Every room on the server is full: try again in a moment.',
 
