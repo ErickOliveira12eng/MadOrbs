@@ -91,7 +91,7 @@ export const en = {
   'menu.onePlayer': '1 player online',
   'menu.players': '{n} players online',
   'menu.modeClosed': '{mode} is closed on this server',
-  'menu.full': 'Match full · {n}/{max}',
+  'menu.full': 'Every room is full',
   'menu.playing': '{n} playing',
   'menu.joinFailed': "Couldn't join: {reason}",
   'menu.loading': 'Loading...',
@@ -224,7 +224,7 @@ export const en = {
   'net.restarting': 'The server is restarting. Try joining again in a few seconds.',
   'net.kicked': 'The admin removed you from the match.',
   'net.version': 'Different version from the server: reload the page (Ctrl+F5).',
-  'net.full': 'Server full.',
+  'net.full': 'Every room on the server is full: try again in a moment.',
 
   // ---- chat and teams
   'chat.joined': '{name} joined the match',

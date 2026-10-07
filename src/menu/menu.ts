@@ -448,7 +448,8 @@ export class StartScreen {
     pill.className = 'online-pill ok';
     const room = this.rooms?.[this.settings.mode];
     if (!room) sub.textContent = t('menu.modeClosed', { mode: modeName(this.settings.mode) });
-    else if (room.maxPlayers && room.players >= room.maxPlayers) sub.textContent = t('menu.full', { n: room.players, max: room.maxPlayers });
+    // maxPlayers counts every free seat of the server (all the rooms of the mode, and the ones it can still open)
+    else if (room.maxPlayers && room.players >= room.maxPlayers) sub.textContent = t('menu.full');
   }
 
   private drawing = false;

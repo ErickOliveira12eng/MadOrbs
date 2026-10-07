@@ -1,4 +1,6 @@
-// Network protocol between the browser clients and the Node game server (JSON over WebSocket).
+// Network protocol between the browser clients and the Node game server (WebSocket). The messages
+// sent many times a second (the server's frame, the client's coordinates and shots) travel in binary
+// (wire.ts); the others in JSON.
 //
 // It follows the original game's split: each client sends its own babo's coordinates (every
 // sv_minSendInterval = 2 frames) and asks the server to shoot / throw / use its secondary weapon;
@@ -9,25 +11,30 @@ import type { GameEvent } from '../sim/events';
 import type { SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 
-export const PROTOCOL_VERSION = 10;
+export const PROTOCOL_VERSION = 11;
 /** The client sends its coordinates every 2 simulation frames (gameVar.sv_minSendInterval). */
 export const CF_SEND_INTERVAL = 2;
 /** The server sends the players' state every 2 frames (15 Hz); events go out every frame. */
 export const SNAPSHOT_INTERVAL = 2;
 export const WS_PATH = '/ws';
 
-/** The server runs one room per game mode; the start screen lets the player choose one. */
+/** The game modes of the online rooms (several rooms per mode); the start screen picks the mode. */
 export const ROOM_MODES = ['dm', 'tdm', 'ctf'] as const;
 export type RoomMode = (typeof ROOM_MODES)[number];
 export const ROOM_GAME_TYPE: Record<RoomMode, number> = { dm: GAME_TYPE_DM, tdm: GAME_TYPE_TDM, ctf: GAME_TYPE_CTF };
 /** WebSocket path of a room ("/ws" alone is the Deathmatch room). */
 export const roomPath = (mode: RoomMode): string => `${WS_PATH}/${mode}`;
 
-/** A room in /health: what the start screen shows for each mode. */
+/**
+ * A mode in /health: what the start screen shows. players: everybody playing the mode; maxPlayers:
+ * the players plus every free seat of the server (no seat left: full); map: of the room you'd join.
+ */
 export interface RoomStatus {
   map: string;
   players: number;
   maxPlayers: number;
+  /** How many rooms of the mode are open. */
+  rooms?: number;
 }
 export const MAX_MESSAGE_BYTES = 8192;
 export const MAX_CHAT_LENGTH = 100;

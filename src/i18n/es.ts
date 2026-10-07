@@ -88,7 +88,7 @@ export const es: Record<Key, string> = {
   'menu.onePlayer': '1 jugador en línea',
   'menu.players': '{n} jugadores en línea',
   'menu.modeClosed': '{mode} cerrado en este servidor',
-  'menu.full': 'Partida llena · {n}/{max}',
+  'menu.full': 'Todas las salas están llenas',
   'menu.playing': '{n} jugando',
   'menu.joinFailed': 'No se pudo entrar: {reason}',
   'menu.loading': 'Cargando...',
@@ -215,7 +215,7 @@ export const es: Record<Key, string> = {
   'net.restarting': 'El servidor se está reiniciando. Intenta entrar de nuevo en unos segundos.',
   'net.kicked': 'El admin te sacó de la partida.',
   'net.version': 'Versión distinta a la del servidor: recarga la página (Ctrl+F5).',
-  'net.full': 'Servidor lleno.',
+  'net.full': 'Todas las salas del servidor están llenas: inténtalo de nuevo en un momento.',
 
   'chat.joined': '{name} entró a la partida',
   'chat.joinedTeam': '{name} entró a la partida en el {team}',

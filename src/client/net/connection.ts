@@ -1,7 +1,10 @@
 // WebSocket link to the game server. Messages are queued and applied by the game loop at the
 // start of each simulation tick; pings are answered right away so the measured latency is real.
+// The frame messages arrive in binary and our coordinates and shots leave in binary
+// (src/net/wire.ts); everything else is JSON.
 import type { SkinInfo } from '../../sim/player';
 import { PROTOCOL_VERSION, roomPath, type ClientMessage, type RoomMode, type ServerMessage } from '../../net/protocol';
+import { decodeServerMessage, encodeClientMessage } from '../../net/wire';
 import { t } from '../../i18n';
 
 export type WelcomeMessage = Extract<ServerMessage, { t: 'welcome' }>;
@@ -25,12 +28,18 @@ export class Connection {
 
   private constructor(ws: WebSocket) {
     this.ws = ws;
+    ws.binaryType = 'arraybuffer';
     ws.onmessage = (ev) => {
-      if (typeof ev.data !== 'string') return;
-      this.bytesIn += ev.data.length;
       let msg: ServerMessage;
       try {
-        msg = JSON.parse(ev.data) as ServerMessage;
+        if (typeof ev.data === 'string') {
+          this.bytesIn += ev.data.length;
+          msg = JSON.parse(ev.data) as ServerMessage;
+        } else {
+          const bytes = new Uint8Array(ev.data as ArrayBuffer);
+          this.bytesIn += bytes.length;
+          msg = decodeServerMessage(bytes);
+        }
       } catch {
         return;
       }
@@ -99,7 +108,8 @@ export class Connection {
   }
 
   send(msg: ClientMessage): void {
-    if (this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
+    if (this.ws.readyState !== WebSocket.OPEN) return;
+    this.ws.send(encodeClientMessage(msg) ?? JSON.stringify(msg));
   }
 
   /** Messages received since the last call. */
