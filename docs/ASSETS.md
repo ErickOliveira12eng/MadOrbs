@@ -1,7 +1,8 @@
 # Assets: where the game data comes from
 
-Everything in `public/assets/` (models, textures, orb skins, sounds, music, maps) is original
-Babo Violent 2 content, except the announcer's voice (`sounds/announcer/`, below).
+Everything in `public/assets/` (models, textures, orb skins, sounds, maps) is original Babo Violent 2
+content, except the announcer's voice (`sounds/announcer/`) and the music (`sounds/Menu.ogg`,
+`sounds/Music.ogg`), below.
 
 ## Announcer voice (CC BY-SA 4.0)
 
@@ -14,6 +15,22 @@ Kill, Dominating, Unstoppable, First Blood, Revenge Kill, Mission Failed, Object
 credit (VoiceBosch, the pack, its link, the license; in this file, in `public/assets/NOTICE.txt`
 and in the Terms of use, "Source code and license"), and that edited versions of these sounds be
 shared under CC BY-SA 4.0 too. Edit a file? Say so in `LICENSE.txt`.
+
+## Music (CC BY 3.0, OGA-BY 3.0)
+
+Both tracks are by **GTDStudio (Palrom)**, from OpenGameArt.org, and replaced the original game's music
+on 2026-10-10 (Erick's choice, to keep the Steam release clear of the original content):
+
+- `sounds/Menu.ogg`: [NИNN (metal)](https://opengameart.org/content/n%D0%B8nn-metal), CC BY 3.0.
+- `sounds/Music.ogg`: Doom, Skirmish and Dirby day from
+  [Triple kill (multiple tracks)](https://opengameart.org/content/triple-kill-multiple-tracks), OGA-BY 3.0,
+  joined in that order into one 3:54 loop (each track is a loop, so they meet at their loop points, with
+  10 ms fades against clicks).
+
+Changes: levelled to the old tracks' loudness (game -13.8 LUFS, menu -18.9 LUFS: the in-game balance with
+the sound effects stays the same), the menu track's first 0.12 s of silence cut, Ogg Vorbis q5. Both licenses
+allow commercial use and ask for credit: in this file, `public/assets/NOTICE.txt` and the Terms of use
+("Source code and license").
 
 ## Original Babo Violent 2 content (GPL v3)
 

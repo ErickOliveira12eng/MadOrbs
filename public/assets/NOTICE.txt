@@ -15,5 +15,14 @@ VoiceBosch, https://voicebosch.itch.io/warlord-announcer-audio-pack, under the C
 Attribution-ShareAlike 4.0 International license (CC BY-SA 4.0); only the file names were changed.
 See sounds/announcer/LICENSE.txt.
 
+Exception: the music is by GTDStudio (Palrom), from OpenGameArt.org:
+- sounds/Menu.ogg: "NИNN (metal)", https://opengameart.org/content/n%D0%B8nn-metal, under the Creative
+  Commons Attribution 3.0 license (CC BY 3.0).
+- sounds/Music.ogg: "Doom", "Skirmish" and "Dirby day" from "Triple kill (multiple tracks)",
+  https://opengameart.org/content/triple-kill-multiple-tracks, under the OGA-BY 3.0 license
+  (https://opengameart.org/content/oga-by-30-faq), played one after the other.
+Changes: the volume was lowered, the three tracks were joined into one loop, the menu track lost its
+first tenth of a second of silence, and both were encoded as Ogg Vorbis.
+
 ORIGINAL-LICENSE.txt is the end-user license that shipped with the 2006 freeware game; it is part
 of the content folder as it was published.
