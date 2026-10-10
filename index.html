@@ -139,16 +139,18 @@
             </div>
           </section>
 
-          <!-- The solo modes with your progress, and the shortcuts -->
-          <nav class="dock" data-i18n-attr="aria-label=menu.more" aria-label="More">
+          <!-- Under each column: the solo modes with your progress under the Orb, the shortcuts under the panel -->
+          <div class="dock dock-solo">
             <button id="btnCampaign" class="dock-card campaign" type="button">
               <img id="campaignArt" class="dock-art weapon" src="/guia/sub-machine-gun.png" alt="" />
-              <span class="dock-text"><b data-i18n="menu.campaign">Campaign</b><small id="campaignLine" data-i18n="menu.campaignSolo">Solo · Vs bots</small><span id="campaignBarBox" class="dock-bar" hidden><i id="campaignBar"></i></span></span>
+              <span class="dock-text"><b data-i18n="menu.campaign">Campaign</b><small id="campaignLine" data-i18n="menu.campaignSolo">Solo · Vs bots</small><span id="campaignBarBox" class="dock-progress" hidden><span class="dock-bar"><i id="campaignBar"></i></span><em id="campaignCount"></em></span></span>
             </button>
             <button id="btnWaves" class="dock-card waves" type="button">
               <img id="wavesArt" class="dock-art orb" alt="" hidden />
               <span class="dock-text"><b data-i18n="menu.waves">Waves</b><small id="wavesLine" data-i18n="menu.wavesSolo">Solo · Survive</small></span>
             </button>
+          </div>
+          <nav class="dock dock-links" data-i18n-attr="aria-label=menu.more" aria-label="More">
             <button id="btnRanking" class="dock-tile" type="button"><span data-icon="bars"></span><span data-i18n="menu.ranking">Ranking</span></button>
             <button id="btnStats" class="dock-tile" type="button"><span data-icon="trophy"></span><span data-i18n="account.stats">Stats</span></button>
             <button id="btnControls" class="dock-tile" type="button"><span data-icon="help"></span><span data-i18n="menu.controls">Controls</span></button>

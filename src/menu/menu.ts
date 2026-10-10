@@ -365,9 +365,8 @@ export class StartScreen {
     const chapter = (CAMPAIGN.find((c) => c.levels.some((l) => progress[l.id] === undefined)) ?? CAMPAIGN[CAMPAIGN.length - 1]).chapter;
     const art = $<HTMLImageElement>('campaignArt');
     if (!art.src.endsWith(`/guia/${chapter.picture}`)) art.src = `/guia/${chapter.picture}`;
-    $('campaignLine').textContent = done
-      ? t('menu.campaignProgress', { n: chapter.n, weapon: t(`w.${chapter.weaponKey}.name`), done, total })
-      : t('menu.campaignSolo');
+    $('campaignLine').textContent = done ? t('menu.campaignProgress', { n: chapter.n, weapon: t(`w.${chapter.weaponKey}.name`) }) : t('menu.campaignSolo');
+    $('campaignCount').textContent = t('menu.campaignLevels', { done, total });
     $('campaignBarBox').hidden = !done;
     $('campaignBar').style.width = `${Math.round((done / total) * 100)}%`;
 
@@ -412,6 +411,8 @@ export class StartScreen {
     if (!account.signedIn) this.orbSyncedFor = '';
     this.renderAvatar();
     this.renderProgress();
+    // The account button's width changed: a narrow window's top bar may wrap differently
+    requestAnimationFrame(() => this.fit());
   }
 
   /** Signed in: the name typed is saved to the account (back to the old one if it can't be). */
@@ -446,6 +447,8 @@ export class StartScreen {
     const h = window.innerHeight;
     const narrow = w < NARROW_WIDTH;
     this.root.classList.toggle('narrow', narrow);
+    // A narrow window's top bar may take two rows: the lobby starts under it
+    if (narrow) document.documentElement.style.setProperty('--top-room', `${Math.ceil(document.querySelector<HTMLElement>('.topbar')!.getBoundingClientRect().bottom) + 18}px`);
     // The skyscraper where the window is tall enough, else the rectangle, never squeezing the lobby too much
     const room = h - TOP_ROOM - BOTTOM_ROOM;
     const fits = (ad: SideAd) => w - (ad.width + AD_MARGIN * 2) >= MIN_LOBBY_W && h >= ad.height + AD_LABEL + AD_CLEAR;
