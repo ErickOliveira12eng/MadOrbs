@@ -27,8 +27,8 @@ export const roomPath = (mode: RoomMode): string => `${WS_PATH}/${mode}`;
 
 // --------------------------------------------------------------------------- private rooms
 //
-// A room made by a player for their friends: the matchmaking never sends anybody there, the link
-// (/r/<code>) or the code does. It begins with a warm-up (nobody's score counts) until its host
+// A room made by a signed-in player for their friends (anybody can join it): the matchmaking never
+// sends anybody there, the link (/r/<code>) or the code does. It begins with a warm-up (nobody's score counts) until its host
 // starts the match; its matches never count for the ranking or the stats. Created with
 // POST /api/rooms, described by GET /api/rooms/<code>, joined at /ws/room/<code>.
 
@@ -63,8 +63,14 @@ export interface PrivateRoomSettings {
   maxPlayers: number;
 }
 
-/** POST /api/rooms: the code, and the key that makes its holder the host (kept in that browser). */
-export type CreateRoomAnswer = { code: string; key: string } | { error: 'full' | 'limit' | 'bad' };
+/**
+ * POST /api/rooms (with the account's session: "Authorization: Bearer <token>"): the code, and the key
+ * that makes its holder the host (kept in that browser). 'signin': only a signed-in player makes rooms.
+ */
+export type CreateRoomAnswer = { code: string; key: string } | { error: 'full' | 'limit' | 'bad' | 'signin' };
+
+/** GET /api/rooms/mine (with the session): the account's private rooms open now, with their keys. */
+export type MyRoom = PrivateRoomInfo & { key: string };
 
 /** GET /api/rooms/<code>: the room as the invitation shows it. */
 export interface PrivateRoomInfo {

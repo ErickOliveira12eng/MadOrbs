@@ -2858,6 +2858,49 @@ input[type='range'] {
   box-sizing: border-box;
 }
 
+.room-signin {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 215, 106, 0.1);
+  border: 1px solid rgba(255, 215, 106, 0.45);
+}
+
+.room-signin > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.room-signin b {
+  color: var(--text);
+  font: 800 15px var(--font-ui);
+}
+
+.room-signin span {
+  color: var(--muted);
+  font: 700 13px/1.4 var(--font-ui);
+}
+
+.room-signin .pill-btn {
+  flex: none;
+}
+
+.room-signin .pill-btn span {
+  color: inherit;
+  font: inherit;
+}
+
+.room-signin .room-signin-icon {
+  flex: none;
+  color: #ffd76a;
+}
+
 .room-mine-empty {
   margin: 4px 0 0;
   color: var(--muted);

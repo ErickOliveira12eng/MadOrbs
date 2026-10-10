@@ -107,6 +107,8 @@ export class StartScreen {
     $('btnRanking').addEventListener('click', () => this.ranking.open());
     this.room = new RoomModal(
       () => this.settings.mode,
+      account,
+      () => this.accountModal.open(),
       (room) => {
         this.play('online', false);
         onPrivate(room);

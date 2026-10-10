@@ -1,8 +1,9 @@
 // The private room window (the start screen's "Private room" button, and the invitation link
 // /r/<code>): make a room for your friends (mode, map or rotation, goal, time, players), join one
-// with its code, or go back to (or close) the rooms this browser made, still open ("My rooms"). The
-// server makes the room (POST /api/rooms) and gives a key that makes this browser its host, kept here
-// so a reload (or coming back) still runs the room.
+// with its code, or go back to (or close) the rooms you made, still open ("My rooms"). Making a room
+// needs an account (a guest who tries is asked to sign in); joining one doesn't. The server makes the
+// room (POST /api/rooms) and gives a key that makes this browser its host, kept here so a reload (or
+// coming back) still runs the room; the account runs it from any device too.
 import { modeName, modeShort } from '../client/modes';
 import { drawMapPreview } from '../client/mapPreview';
 import { trainingMaps } from './training';
@@ -14,11 +15,14 @@ import {
   ROOM_MODES,
   isRoomCode,
   type CreateRoomAnswer,
+  type MyRoom,
   type PrivateRoomInfo,
   type PrivateRoomSettings,
   type RoomMode,
 } from '../net/protocol';
 import { loadMap, type GameMap } from '../sim/map';
+
+import type { Account } from './account';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -104,6 +108,9 @@ export class RoomModal {
   constructor(
     /** The mode chosen on the start screen (a new room starts with it). */
     private readonly currentMode: () => RoomMode,
+    private readonly account: Account,
+    /** "Sign in": opens the account window. */
+    private readonly onSignIn: () => void,
     private readonly onJoin: (room: PrivateRoomJoin) => void,
   ) {
     const saved = readJson<Partial<PrivateRoomSettings>>(SETTINGS_KEY);
@@ -111,6 +118,10 @@ export class RoomModal {
     this.settings = { mode, map: '', maxPlayers: 8, ...DEFAULTS[mode], ...saved };
 
     for (const b of $('roomTabs').querySelectorAll<HTMLButtonElement>('[data-tab]')) b.addEventListener('click', () => this.setTab(b.dataset.tab as Tab));
+    $('roomSigninBtn').addEventListener('click', () => {
+      this.close();
+      this.onSignIn();
+    });
     $('roomMine').addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-room]');
       if (!b) return;
@@ -186,6 +197,7 @@ export class RoomModal {
     $('roomMine').hidden = tab !== 'mine';
     // "My rooms" has a button per room instead of the one below
     $('roomSubmit').hidden = tab === 'mine';
+    $('roomSignin').hidden = true;
     this.showError(error);
     if (tab === 'create') this.fill();
     else if (tab === 'join') {
@@ -195,13 +207,38 @@ export class RoomModal {
     this.updateSubmit();
   }
 
-  /** "My rooms": the rooms this browser made that are still open (the closed ones are forgotten). */
+  /** A guest pressed "Create room": what an account is for, and the button to sign in. */
+  private askSignIn(): void {
+    this.showError('');
+    $('roomSignin').hidden = false;
+    track('private_room_signin', {});
+  }
+
+  /**
+   * "My rooms": the account's rooms still open (from any device; their keys are kept here), and the
+   * ones this browser made (the closed ones are forgotten).
+   */
   private async loadMine(): Promise<void> {
     this.mine = null;
     this.renderMine();
     const found: PrivateRoomInfo[] = [];
+    const token = await this.account.accessToken();
+    if (token) {
+      try {
+        const res = await fetch('/api/rooms/mine', { cache: 'no-store', headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok)
+          for (const r of (await res.json()) as MyRoom[]) {
+            saveRoomKey(r.code, r.key);
+            const { key: _key, ...info } = r;
+            found.push(info);
+          }
+      } catch {
+        /* the ones this browser knows still show */
+      }
+    }
     await Promise.all(
       myRoomCodes().map(async (code) => {
+        if (found.some((r) => r.code === code)) return;
         try {
           const res = await fetch(`/api/rooms/${code}`, { cache: 'no-store' });
           if (res.status === 404) forgetRoomKey(code);
@@ -411,6 +448,12 @@ export class RoomModal {
       this.onJoin({ code, key: roomKey(code), mode: this.info.mode });
       return;
     }
+    // Only a signed-in player makes a room
+    const token = this.account.signedIn ? await this.account.accessToken() : undefined;
+    if (!token) {
+      this.askSignIn();
+      return;
+    }
     this.busy = true;
     this.updateSubmit();
     this.showError('');
@@ -418,7 +461,7 @@ export class RoomModal {
     writeJson(SETTINGS_KEY, s);
     let answer: CreateRoomAnswer;
     try {
-      const res = await fetch('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(s) });
+      const res = await fetch('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(s) });
       answer = (await res.json()) as CreateRoomAnswer;
     } catch {
       answer = { error: 'bad' };
@@ -430,6 +473,7 @@ export class RoomModal {
     if ('error' in answer) {
       // Too many rooms of ours open: the list of them, to go back to one or close one
       if (answer.error === 'limit') this.setTab('mine', t('room.errLimit'));
+      else if (answer.error === 'signin') this.askSignIn();
       else if (!$('roomError').textContent) this.showError(t(answer.error === 'full' ? 'room.errFull' : 'room.errNet'));
       return;
     }
