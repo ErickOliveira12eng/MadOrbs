@@ -391,6 +391,7 @@
         <div id="roomTabs" class="segmented room-tabs" role="radiogroup">
           <button type="button" data-tab="create" data-i18n="room.create">Create a room</button>
           <button type="button" data-tab="join" data-i18n="room.join">Join with a code</button>
+          <button type="button" data-tab="mine" data-i18n="room.mine">My rooms</button>
         </div>
         <div id="roomCreate" class="training-body">
           <canvas id="roomPreview" class="map-preview" width="220" height="220"></canvas>
@@ -410,6 +411,7 @@
           <label class="field"><span data-i18n="room.code">Room code</span><input id="roomCode" class="room-code" maxlength="6" placeholder="K7Q2MX" spellcheck="false" autocapitalize="characters" /></label>
           <div id="roomInfo" class="room-info" hidden></div>
         </div>
+        <div id="roomMine" class="room-mine" hidden></div>
         <p id="roomError" class="room-error" role="alert" hidden></p>
         <footer class="modal-foot">
           <button id="roomSubmit" class="btn-play small" type="submit"><span data-icon="play"></span><span id="roomSubmitText">Create room</span></button>

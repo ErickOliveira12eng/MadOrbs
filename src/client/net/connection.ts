@@ -60,9 +60,9 @@ export class Connection {
       if (this.closed) return;
       this.closed = true;
       // 1001: the server is restarting (GameServer.stop); 4001: the admin removed us (GameServer.kick);
-      // 4002: the admin blocked our account (GameServer.dropAccount); 4003: a private room's host removed us
+      // 4002: the admin blocked our account (GameServer.dropAccount); 4003 / 4004: a private room's host removed us / closed it
       this.onClose?.(
-        ev.code === 1001 ? t('net.restarting') : ev.code === 4001 ? t('net.kicked') : ev.code === 4002 ? t('net.banned') : ev.code === 4003 ? t('net.kickedHost') : t('net.lost'),
+        ev.code === 1001 ? t('net.restarting') : ev.code === 4001 ? t('net.kicked') : ev.code === 4002 ? t('net.banned') : ev.code === 4003 ? t('net.kickedHost') : ev.code === 4004 ? t('net.roomClosed') : t('net.lost'),
       );
     };
   }
