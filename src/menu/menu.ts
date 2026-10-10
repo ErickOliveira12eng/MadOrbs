@@ -1,15 +1,21 @@
-// The start screen: the player's orb on its pedestal (arrows switch the style, "Customize Orb"
-// opens the full picker), the name, play online in the chosen mode, the offline training, the
-// controls, the language, the account (Sign in with Google), and how many play now. The background is a picture of a fight rendered by the game
-// itself (tools/make-menu-bg.mjs), with drifting orbs and sparks on top.
+// The start screen, a lobby (mockup A, approved by Erick): the logo and the page's buttons on top (how
+// many play now, sound, language, full screen, the account); the player's orb big on its pedestal in
+// the middle (arrows switch the style, "Customize Orb" opens the full picker), the name and the online
+// record; on the right the online play (the mode, PLAY NOW, a private room, the offline training);
+// below, the campaign and the waves with the player's progress, the ranking, the stats and the
+// controls; a banner in a gutter on the left. The background is a picture of a fight rendered by the
+// game itself (tools/make-menu-bg.mjs), with drifting orbs and sparks on top.
 import * as THREE from 'three';
-import { modeName, modeTagline } from '../client/modes';
-import { LANG_KEY, lang, t, type Lang } from '../i18n';
+import { modeName, modeShort, modeTagline } from '../client/modes';
+import { CAMPAIGN, LEVELS_PER_CHAPTER, loadProgress } from '../client/campaign';
+import { bestKills } from '../client/records';
+import { loadWavesRecord } from '../client/waves';
+import { LANG_KEY, lang, num, t, type Lang } from '../i18n';
 import { ROOM_MODES, type RoomMode, type RoomStatus } from '../net/protocol';
 import type { Account } from './account';
 import { AccountModal } from './accountModal';
 import { StatsModal } from './statsModal';
-import { CampaignModal } from './campaignModal';
+import { BOSS_SKIN, CampaignModal } from './campaignModal';
 import { AdblockModal } from './adblockModal';
 import { RankingModal } from './rankingModal';
 import { RoomModal, type PrivateRoomJoin } from './roomModal';
@@ -29,18 +35,32 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 
 export type PlayMode = 'online' | 'offline';
 
-const MODE_ICONS: Record<RoomMode, IconName> = { dm: 'skull', tdm: 'team', ctf: 'flag_fill' };
+/** The lobby is laid out at this size (design px) and zoomed into the window. */
+const LOBBY_W = 1240;
+const LOBBY_H = 700;
+/** Room the top bar takes above the lobby, and the footer below it (real px). */
+const TOP_ROOM = 74;
+const BOTTOM_ROOM = 30;
+/** Below this width the lobby stacks in one column (and shows no banner). */
+const NARROW_WIDTH = 980;
+/** The lobby is never squeezed narrower than this to make room for a banner (real px). */
+const MIN_LOBBY_W = 1000;
+/** A banner is centred on the window's height (.ad-slot): this much of it stays clear, above (the top bar) and below. */
+const AD_CLEAR = 132;
+/** The orb on the pedestal is drawn this big (design px: the stage's 190 px, zoomed 1.7 in menu.css). */
+const ORB_PX = 190 * 1.7;
 
-/** The column is laid out for a window this high (top bar included) and zoomed to the real one. */
-const DESIGN_HEIGHT = 960;
-const DESIGN_WIDTH = 1400;
-
-/** The banners beside the column: their element, ad unit and size (with the label above). */
-const SIDE_ADS: { id: string; slot: AdSlot; width: number; height: number }[] = [
-  { id: 'adSky', slot: 'sky', width: 160, height: 600 },
-  { id: 'adRect', slot: 'rect', width: 300, height: 250 },
-];
-/** Room kept around a banner (the gap to the column and to the window's edge), and the label's height. */
+/** The banners of the left gutter: their element, ad unit and size (with the label above). */
+interface SideAd {
+  id: string;
+  slot: AdSlot;
+  width: number;
+  height: number;
+}
+const SKY: SideAd = { id: 'adSky', slot: 'sky', width: 160, height: 600 };
+const RECT: SideAd = { id: 'adRect', slot: 'rect', width: 300, height: 250 };
+const SIDE_ADS = [SKY, RECT];
+/** Room kept around a banner (the gap to the lobby and to the window's edge), and the label's height. */
 const AD_MARGIN = 28;
 const AD_LABEL = 18;
 /** Back on the start screen after this long, the banners load again. */
@@ -71,6 +91,10 @@ export class StartScreen {
   private rafId = 0;
   /** When the side banners were loaded (0: not yet). */
   private adsAt = 0;
+  /** The banner the left gutter holds now (null: none, and no gutter). */
+  private adSlot: SideAd | null = null;
+  /** The Orb drawn in the account button (its skin and colours), not to draw it again. */
+  private avatarKey = '';
   private spin = 0;
   private lastTime = 0;
 
@@ -184,13 +208,19 @@ export class StartScreen {
     this.fit();
     window.addEventListener('resize', () => this.fit());
     onAdsAllowed(() => {
-      this.layoutAds(true);
+      this.fit(true);
       this.checkAdBlock();
     });
     // Found later by the banners themselves (Brave): the request now, if the start screen shows
     onAdBlockFound(() => {
-      this.layoutAds();
+      this.fit();
       if (this.visible) this.adblock.open();
+    });
+    // The waves card's boss: the campaign's eye
+    void studio.picture(BOSS_SKIN, 144, undefined, true).then((src) => {
+      const img = $<HTMLImageElement>('wavesArt');
+      img.src = src;
+      img.hidden = false;
     });
     this.embers = matchMedia('(prefers-reduced-motion: reduce)').matches ? null : new Embers($<HTMLCanvasElement>('bgSparks'));
     void this.makeBackground();
@@ -242,13 +272,14 @@ export class StartScreen {
     cancelAnimationFrame(this.rafId);
     this.rafId = requestAnimationFrame((t) => this.frame(t));
     void this.refreshStatus();
-    this.layoutAds(this.adsAt > 0 && performance.now() - this.adsAt > AD_REFRESH_MS);
+    this.renderProgress();
+    this.fit(this.adsAt > 0 && performance.now() - this.adsAt > AD_REFRESH_MS);
     this.checkAdBlock();
   }
 
   /** Every time the start screen opens: an ad blocker found asks (kindly) to be turned off. */
   private checkAdBlock(): void {
-    void this.adblock.check(() => this.visible).then(() => this.layoutAds());
+    void this.adblock.check(() => this.visible).then(() => this.fit());
   }
 
   hide(): void {
@@ -299,6 +330,49 @@ export class StartScreen {
     saveSettings(this.settings);
     const { skin, red, green, blue } = this.settings;
     if (this.account.signedIn) this.account.saveOrb({ skin, red, green, blue });
+    this.renderAvatar();
+  }
+
+  /** Signed in, the account button shows the player's Orb. */
+  private renderAvatar(): void {
+    const img = $<HTMLImageElement>('accountAvatar');
+    const signed = this.account.signedIn;
+    img.hidden = !signed;
+    $('accountIcon').hidden = signed;
+    if (!signed) return;
+    const { skin, red, green, blue } = this.settings;
+    const key = [skin, red, green, blue].join();
+    if (key === this.avatarKey) return;
+    this.avatarKey = key;
+    void this.studio.picture(skinInfo(this.settings), 72).then((src) => {
+      if (this.avatarKey === key) img.src = src;
+    });
+  }
+
+  /**
+   * The lobby's numbers, from this browser and the account: the online record of the chosen mode, the
+   * campaign's progress (and the weapon of the chapter being played), the waves' record.
+   */
+  private renderProgress(): void {
+    const mode = this.settings.mode;
+    const record = Math.max(bestKills(mode), this.account.stats[mode]?.bestKills ?? 0);
+    $('heroChips').innerHTML = record > 0 ? `<span class="hero-chip">${t('menu.recordChip', { mode: modeShort(mode), n: `<b>${num(record)}</b>` })}</span>` : '';
+
+    const progress = loadProgress();
+    const total = CAMPAIGN.length * LEVELS_PER_CHAPTER;
+    const done = CAMPAIGN.reduce((n, c) => n + c.levels.filter((l) => progress[l.id] !== undefined).length, 0);
+    // The chapter being played: the first one with a level still to win (all won: the last)
+    const chapter = (CAMPAIGN.find((c) => c.levels.some((l) => progress[l.id] === undefined)) ?? CAMPAIGN[CAMPAIGN.length - 1]).chapter;
+    const art = $<HTMLImageElement>('campaignArt');
+    if (!art.src.endsWith(`/guia/${chapter.picture}`)) art.src = `/guia/${chapter.picture}`;
+    $('campaignLine').textContent = done
+      ? t('menu.campaignProgress', { n: chapter.n, weapon: t(`w.${chapter.weaponKey}.name`), done, total })
+      : t('menu.campaignSolo');
+    $('campaignBarBox').hidden = !done;
+    $('campaignBar').style.width = `${Math.round((done / total) * 100)}%`;
+
+    const waves = loadWavesRecord();
+    $('wavesLine').textContent = waves ? t('menu.wavesRecord', { n: waves.wave }) : t('menu.wavesSolo');
   }
 
   private setName(name: string): void {
@@ -319,6 +393,13 @@ export class StartScreen {
     button.classList.toggle('signed-in', account.signedIn);
     label.textContent = account.signedIn ? (p?.name ?? t('account.mine')) : t('account.signIn');
     button.title = account.signedIn ? t('account.mine') : t('account.signIn');
+    // The account's player ID: in the button and beside the name under the Orb
+    const tag = account.signedIn && p?.tag ? `#${p.tag}` : '';
+    for (const id of ['accountChipTag', 'playerTag']) {
+      const el = $(id);
+      el.textContent = tag;
+      el.hidden = !tag;
+    }
     const id = account.session?.user.id ?? '';
     if (p && id && this.orbSyncedFor !== id) {
       this.orbSyncedFor = id;
@@ -329,6 +410,8 @@ export class StartScreen {
       } else account.saveOrb({ skin, red, green, blue }, true);
     }
     if (!account.signedIn) this.orbSyncedFor = '';
+    this.renderAvatar();
+    this.renderProgress();
   }
 
   /** Signed in: the name typed is saved to the account (back to the old one if it can't be). */
@@ -353,38 +436,39 @@ export class StartScreen {
     hint.hidden = !text;
   }
 
-  /** Zoom of the centre column: laid out for DESIGN_HEIGHT, it fills the window's height. */
-  private fit(): void {
+  /**
+   * The lobby (LOBBY_W x LOBBY_H design px) zoomed into the window under the top bar, beside the
+   * banner's gutter on the left; below NARROW_WIDTH it stacks in one column, zoomed by the width. Then
+   * the banner: loaded the first time it shows, and again when `reloadAds`.
+   */
+  private fit(reloadAds = false): void {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    // Narrow screens scroll: then the width decides
-    const k = w < 760 ? Math.max(0.5, Math.min(1, w / 720)) : Math.max(0.6, Math.min(1.4, h / DESIGN_HEIGHT, w / DESIGN_WIDTH));
+    const narrow = w < NARROW_WIDTH;
+    this.root.classList.toggle('narrow', narrow);
+    // The skyscraper where the window is tall enough, else the rectangle, never squeezing the lobby too much
+    const room = h - TOP_ROOM - BOTTOM_ROOM;
+    const fits = (ad: SideAd) => w - (ad.width + AD_MARGIN * 2) >= MIN_LOBBY_W && h >= ad.height + AD_LABEL + AD_CLEAR;
+    this.adSlot = narrow || !adsAllowed() ? null : fits(SKY) ? SKY : fits(RECT) ? RECT : null;
+    const gutter = this.adSlot ? this.adSlot.width + AD_MARGIN * 2 : 0;
+    document.documentElement.style.setProperty('--ad-gutter', `${gutter}px`);
+    const k = narrow ? Math.max(0.5, Math.min(1, (w - 24) / 560)) : Math.max(0.55, Math.min(1.5, room / LOBBY_H, (w - gutter - 32) / LOBBY_W));
     document.documentElement.style.setProperty('--menu-k', k.toFixed(3));
-    // The orb's canvas as sharp as the screen shows it (190 px in the column, zoomed, times the pixel ratio)
-    const px = Math.min(512, Math.max(190, Math.ceil(190 * k * (window.devicePixelRatio || 1))));
+    // The orb's canvas as sharp as the screen shows it (zoomed, times the pixel ratio)
+    const px = Math.min(768, Math.max(190, Math.ceil(ORB_PX * k * (window.devicePixelRatio || 1))));
     if (this.preview.width !== px) this.preview.width = this.preview.height = px;
-    this.layoutAds();
+    this.placeAds(reloadAds);
   }
 
-  /**
-   * The side banners: each shows only where it fits between the column and the window's edge (and
-   * under the top bar), centred there; a banner is loaded the first time it shows, and again when `reload`.
-   */
-  private layoutAds(reload = false): void {
-    const allowed = adsAllowed();
+  /** The banner in the left gutter (fit chose it): shown and loaded, the other one hidden. */
+  private placeAds(reload = false): void {
     if (!this.visible && !reload) return;
-    // The column's widest row: the mode cards
-    const col = $('modes').getBoundingClientRect();
-    const side = col.width > 0 ? Math.min(col.left, window.innerWidth - col.right) : 0;
-    const height = window.innerHeight - 64 - 36;
     let any = false;
     for (const ad of SIDE_ADS) {
       const el = $(ad.id);
-      const fits = allowed && side >= ad.width + AD_MARGIN * 2 && height >= ad.height + AD_LABEL;
-      el.hidden = !fits;
-      if (!fits) continue;
-      // Centred in the free side (the sky on the left, the rectangle on the right)
-      el.style.setProperty(ad.slot === 'sky' ? 'left' : 'right', `${Math.round((side - ad.width) / 2)}px`);
+      const on = this.adSlot === ad;
+      el.hidden = !on;
+      if (!on) continue;
       const frame = el.querySelector<HTMLElement>('.ad-frame')!;
       // A new ad replaces the old one only once it is loaded (refreshAd): no blank moment
       if (!frame.firstChild) {
@@ -398,7 +482,7 @@ export class StartScreen {
     if (any) this.adsAt = performance.now();
   }
 
-  /** One card per game mode (icon, name, one line, how many play it now). */
+  /** One row per game mode (a moment of a match, name, one line, how many play it now). */
   private buildModes(): void {
     const box = $('modes');
     for (const mode of ROOM_MODES) {
@@ -408,8 +492,8 @@ export class StartScreen {
       b.dataset.mode = mode;
       b.setAttribute('role', 'radio');
       b.innerHTML =
-        `<span class="mode-icon">${icon(MODE_ICONS[mode], 30)}</span><b>${modeName(mode)}</b>` +
-        `<small>${modeTagline(mode)}</small><span class="mode-count" hidden></span>`;
+        `<span class="mode-thumb" style="background-image: url('${versioned(`/menu/mode-${mode}.webp`)}')"></span>` +
+        `<span class="mode-text"><b>${modeName(mode)}</b><small>${modeTagline(mode)}</small></span><span class="mode-count" hidden></span>`;
       b.addEventListener('click', () => {
         if (this.settings.mode !== mode) track('select_mode', { mode });
         this.settings.mode = mode;
@@ -424,6 +508,7 @@ export class StartScreen {
   private markMode(): void {
     for (const b of $('modes').querySelectorAll<HTMLElement>('[data-mode]')) b.setAttribute('aria-checked', String(b.dataset.mode === this.settings.mode));
     this.renderStatus();
+    this.renderProgress();
   }
 
   /** The game server of this page: is it up, and who plays in each mode. */
@@ -458,7 +543,7 @@ export class StartScreen {
       count.textContent = room ? t('menu.playing', { n: room.players }) : '';
       b.classList.toggle('closed', this.serverUp === true && !room);
     }
-    sub.textContent = t('menu.playOnline');
+    sub.textContent = t('menu.playMode', { mode: modeName(this.settings.mode) });
     if (this.serverUp === null) return;
     if (!this.serverUp) {
       text.textContent = t('menu.serverDown');

@@ -15,7 +15,7 @@ const stars = (n: number) => [1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : '
 const bots = (n: number) => `<span class="bots" title="${n === 1 ? t('campaign.oneBot') : t('campaign.bots', { n })}">${'<i></i>'.repeat(n)}</span>`;
 
 /** The bosses' look in the game: the eye (skin14) in the red team's colours. */
-const BOSS_SKIN: SkinInfo = { skin: 'skin14', redDecal: [1, 0.5, 0.5], greenDecal: [1, 0, 0], blueDecal: [0.5, 0, 0] };
+export const BOSS_SKIN: SkinInfo = { skin: 'skin14', redDecal: [1, 0.5, 0.5], greenDecal: [1, 0, 0], blueDecal: [0.5, 0, 0] };
 
 export class CampaignModal {
   private readonly root = $('campaignModal');

@@ -81,77 +81,78 @@
         <canvas id="bgSparks" class="bg-sparks"></canvas>
       </div>
 
-      <div class="topbar">
-        <div id="serverStatus" class="online-pill"><span class="dot"></span><span data-icon="users"></span><span class="status-text" data-i18n="menu.searching">Looking for the server...</span></div>
-        <button id="btnAudio" class="icon-btn" type="button" data-i18n-attr="title=menu.sound;aria-label=menu.soundAria" title="Sound" aria-label="Sound: on, off and volumes" aria-haspopup="true"></button>
-        <button id="btnLang" class="icon-btn lang-btn" type="button" data-i18n-attr="title=menu.language;aria-label=menu.language" title="Language" aria-label="Language" aria-haspopup="true"><span data-icon="globe"></span><span id="langCode" class="lang-code">EN</span></button>
-        <button id="btnFullscreen" class="icon-btn" type="button" data-i18n-attr="title=menu.fullscreen;aria-label=menu.fullscreen" title="Full screen" aria-label="Full screen"></button>
-        <button id="btnAccount" class="icon-btn account-btn" type="button" aria-haspopup="dialog"><span data-icon="user"></span><span id="accountLabel" class="account-label" data-i18n="account.signIn">Sign in</span></button>
-      </div>
+      <!-- The lobby (mockup A, approved by Erick): the logo and the buttons of the page on top; your Orb in the
+           middle; the online play on the right; the solo modes and the shortcuts below; a banner on the left -->
+      <header class="topbar">
+        <div class="brand">
+          <h1 class="logo" aria-label="Mad Orbs"><span class="logo-mad" data-text="MAD">MAD</span><span class="logo-orbs" data-text="ORBS">ORBS</span></h1>
+          <p class="tagline" data-i18n="menu.tagline">Orb deathmatch in your browser</p>
+        </div>
+        <div class="topbar-right">
+          <div id="serverStatus" class="online-pill"><span class="dot"></span><span data-icon="users"></span><span class="status-text" data-i18n="menu.searching">Looking for the server...</span></div>
+          <button id="btnAudio" class="icon-btn" type="button" data-i18n-attr="title=menu.sound;aria-label=menu.soundAria" title="Sound" aria-label="Sound: on, off and volumes" aria-haspopup="true"></button>
+          <button id="btnLang" class="icon-btn lang-btn" type="button" data-i18n-attr="title=menu.language;aria-label=menu.language" title="Language" aria-label="Language" aria-haspopup="true"><span data-icon="globe"></span><span id="langCode" class="lang-code">EN</span></button>
+          <button id="btnFullscreen" class="icon-btn" type="button" data-i18n-attr="title=menu.fullscreen;aria-label=menu.fullscreen" title="Full screen" aria-label="Full screen"></button>
+          <button id="btnAccount" class="icon-btn account-btn" type="button" aria-haspopup="dialog"><img id="accountAvatar" class="account-avatar" alt="" hidden /><span id="accountIcon" data-icon="user"></span><span class="account-text"><span id="accountLabel" class="account-label" data-i18n="account.signIn">Sign in</span><small id="accountChipTag" class="account-chip-tag" hidden></small></span></button>
+        </div>
+      </header>
       <nav id="langMenu" class="popover lang-menu" hidden data-i18n-attr="aria-label=menu.language" aria-label="Language">
         <a href="/" hreflang="en" lang="en" data-lang="en">English</a>
         <a href="/pt/" hreflang="pt" lang="pt-BR" data-lang="pt">Português</a>
         <a href="/es/" hreflang="es" lang="es" data-lang="es">Español</a>
       </nav>
 
-      <main class="menu">
-        <h1 class="logo" aria-label="Mad Orbs">
-          <span class="logo-mad" data-text="MAD">MAD</span><span class="logo-orbs" data-text="ORBS">ORBS</span>
-          <span class="logo-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-        </h1>
-        <p class="slogan" data-i18n="menu.slogan">ROLL. SHOOT. DESTROY.</p>
-        <p class="tagline" data-i18n="menu.tagline">Orb deathmatch in your browser</p>
+      <main class="lobby">
+        <form id="startForm" class="lobby-grid" autocomplete="off">
+          <!-- Your Orb on its pedestal: the arrows switch the style, a click (or Customize) opens the picker -->
+          <section class="hero">
+            <div class="orb-row">
+              <button id="orbPrev" class="orb-arrow" type="button" data-i18n-attr="title=menu.prevStyle;aria-label=menu.prevStyle" title="Previous style" aria-label="Previous style"><span data-icon="chevron_left"></span></button>
+              <button id="orbButton" class="orb-stage" type="button" data-i18n-attr="title=menu.customize" title="Customize Orb">
+                <span class="pedestal"></span>
+                <span class="orb-shadow"></span>
+                <canvas id="orbPreview" width="360" height="360"></canvas>
+              </button>
+              <button id="orbNext" class="orb-arrow" type="button" data-i18n-attr="title=menu.nextStyle;aria-label=menu.nextStyle" title="Next style" aria-label="Next style"><span data-icon="chevron_right"></span></button>
+            </div>
+            <div class="name-row">
+              <input id="name" class="name-input" type="text" maxlength="31" data-i18n-attr="placeholder=menu.yourName;aria-label=menu.yourName" placeholder="Your name" spellcheck="false" aria-label="Your name" />
+              <span id="playerTag" class="player-tag" hidden></span>
+            </div>
+            <p id="nameHint" class="name-hint" hidden></p>
+            <button id="orbCustomize" class="pill-btn" type="button"><span data-icon="palette"></span><span data-i18n="menu.customize">Customize Orb</span></button>
+            <div id="heroChips" class="hero-chips"></div>
+          </section>
 
-        <form id="startForm" class="play-area" autocomplete="off">
-          <div class="orb-row">
-            <button id="orbPrev" class="orb-arrow" type="button" data-i18n-attr="title=menu.prevStyle;aria-label=menu.prevStyle" title="Previous style" aria-label="Previous style"><span data-icon="chevron_left"></span></button>
-            <button id="orbButton" class="orb-stage" type="button" data-i18n-attr="title=menu.customize" title="Customize Orb">
-              <span class="pedestal"></span>
-              <span class="orb-shadow"></span>
-              <canvas id="orbPreview" width="360" height="360"></canvas>
-            </button>
-            <button id="orbNext" class="orb-arrow" type="button" data-i18n-attr="title=menu.nextStyle;aria-label=menu.nextStyle" title="Next style" aria-label="Next style"><span data-icon="chevron_right"></span></button>
-          </div>
-          <input id="name" class="name-input" type="text" maxlength="31" data-i18n-attr="placeholder=menu.yourName;aria-label=menu.yourName" placeholder="Your name" spellcheck="false" aria-label="Your name" />
-          <p id="nameHint" class="name-hint" hidden></p>
-          <button id="orbCustomize" class="pill-btn" type="button"><span data-icon="palette"></span><span data-i18n="menu.customize">Customize Orb</span></button>
-
-          <!-- The two big actions: online (the chosen mode) and the campaign, solo against bots -->
-          <div class="hero-row">
+          <!-- Online: the mode, then PLAY NOW; a private room and the offline training under it -->
+          <section class="play-panel">
+            <span class="panel-label" data-i18n="menu.gameMode">Game mode</span>
+            <div id="modes" class="modes" role="radiogroup" data-i18n-attr="aria-label=menu.gameMode" aria-label="Game mode"></div>
             <button id="play" class="btn-play hero" type="submit">
               <span class="play-main"><span data-icon="play"></span><span data-i18n="menu.play">PLAY NOW</span></span>
               <span id="playSub" class="play-sub" data-i18n="menu.playOnline">Online · Multiplayer</span>
             </button>
-            <button id="btnCampaign" class="btn-play hero campaign" type="button">
-              <span class="play-main"><span data-icon="swords"></span><span data-i18n="menu.campaign">Campaign</span></span>
-              <span class="play-sub" data-i18n="menu.campaignSolo">Solo · Vs bots</span>
-            </button>
-            <button id="btnWaves" class="btn-play hero waves" type="button">
-              <span class="play-main"><span data-icon="waves"></span><span data-i18n="menu.waves">Waves</span></span>
-              <span class="play-sub" data-i18n="menu.wavesSolo">Solo · Survive</span>
-            </button>
-          </div>
-          <div id="message" class="message" role="alert" hidden></div>
+            <div id="message" class="message" role="alert" hidden></div>
+            <div class="panel-row">
+              <button id="btnPrivate" class="panel-btn private" type="button"><span data-icon="padlock"></span><span data-i18n="menu.private">Private room</span></button>
+              <button id="training" class="panel-btn" type="button"><span data-icon="gamepad"></span><span data-i18n="menu.train">Training</span></button>
+            </div>
+          </section>
 
-          <div id="modes" class="modes" role="radiogroup" data-i18n-attr="aria-label=menu.gameMode" aria-label="Game mode"></div>
-
-          <div class="shortcuts">
-            <button id="btnPrivate" class="shortcut private" type="button">
-              <span class="shortcut-icon" data-icon="padlock"></span><span><b data-i18n="menu.private">Private room</b><small data-i18n="menu.privateSub">With friends</small></span>
+          <!-- The solo modes with your progress, and the shortcuts -->
+          <nav class="dock" data-i18n-attr="aria-label=menu.more" aria-label="More">
+            <button id="btnCampaign" class="dock-card campaign" type="button">
+              <img id="campaignArt" class="dock-art weapon" src="/guia/sub-machine-gun.png" alt="" />
+              <span class="dock-text"><b data-i18n="menu.campaign">Campaign</b><small id="campaignLine" data-i18n="menu.campaignSolo">Solo · Vs bots</small><span id="campaignBarBox" class="dock-bar" hidden><i id="campaignBar"></i></span></span>
             </button>
-            <button id="btnRanking" class="shortcut" type="button">
-              <span class="shortcut-icon" data-icon="bars"></span><span><b data-i18n="menu.ranking">Ranking</b><small data-i18n="menu.rankingSub">Best players</small></span>
+            <button id="btnWaves" class="dock-card waves" type="button">
+              <img id="wavesArt" class="dock-art orb" alt="" hidden />
+              <span class="dock-text"><b data-i18n="menu.waves">Waves</b><small id="wavesLine" data-i18n="menu.wavesSolo">Solo · Survive</small></span>
             </button>
-            <button id="btnStats" class="shortcut" type="button">
-              <span class="shortcut-icon" data-icon="trophy"></span><span><b data-i18n="account.stats">Stats</b><small data-i18n="menu.statsSub">Your matches</small></span>
-            </button>
-            <button id="training" class="shortcut" type="button">
-              <span class="shortcut-icon" data-icon="gamepad"></span><span><b data-i18n="menu.train">Training</b><small data-i18n="menu.offline">Play offline</small></span>
-            </button>
-            <button id="btnControls" class="shortcut" type="button">
-              <span class="shortcut-icon" data-icon="help"></span><span><b data-i18n="menu.controls">Controls</b><small data-i18n="menu.controlsSub">WASD + Mouse</small></span>
-            </button>
-          </div>
+            <button id="btnRanking" class="dock-tile" type="button"><span data-icon="bars"></span><span data-i18n="menu.ranking">Ranking</span></button>
+            <button id="btnStats" class="dock-tile" type="button"><span data-icon="trophy"></span><span data-i18n="account.stats">Stats</span></button>
+            <button id="btnControls" class="dock-tile" type="button"><span data-icon="help"></span><span data-i18n="menu.controls">Controls</span></button>
+          </nav>
         </form>
         <p id="touchNotice" class="touch-notice" hidden data-i18n="menu.touch">Mad Orbs needs a keyboard and a mouse: open it on a computer to play.</p>
       </main>
@@ -165,7 +166,8 @@
         <a href="#" data-cookie-settings data-i18n="footer.cookies">Cookies</a>
       </footer>
 
-      <!-- Banners beside the column, when the window has room and the visitor agreed (src/client/ads.ts) -->
+      <!-- A banner on the left of the lobby, when the window has room and the visitor agreed (src/client/ads.ts):
+           the skyscraper, or the rectangle when the window is too short for it -->
       <aside id="adSky" class="ad-slot ad-sky" hidden><span class="ad-label" data-i18n="ads.label">Advertisement</span><div class="ad-frame"></div></aside>
       <aside id="adRect" class="ad-slot ad-rect" hidden><span class="ad-label" data-i18n="ads.label">Advertisement</span><div class="ad-frame"></div></aside>
     </div>

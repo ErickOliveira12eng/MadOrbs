@@ -8,7 +8,7 @@ import { defineConfig } from 'vite';
 const gameServer = `localhost:${process.env.PORT || 3000}`;
 
 /**
- * A hash of the game files and the start screen background (src/sim/assetVersion.ts): their
+ * A hash of the game files and the start screen's pictures (src/sim/assetVersion.ts): their
  * addresses carry it, so browsers fetch them again only when they change.
  */
 function assetVersion(): string {
@@ -16,6 +16,7 @@ function assetVersion(): string {
   const files = [
     ...readdirSync('public/assets', { recursive: true, encoding: 'utf8' }).map((f) => join('public/assets', f)),
     'public/menu-bg.webp',
+    ...readdirSync('public/menu', { encoding: 'utf8' }).map((f) => join('public/menu', f)),
   ].sort();
   for (const f of files) {
     if (!statSync(f).isFile()) continue;

@@ -90,7 +90,8 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 34% 60% at 50% 52%, rgba(9, 7, 28, 0.5), rgba(9, 7, 28, 0) 100%),
+    radial-gradient(ellipse 60% 70% at 50% 55%, rgba(9, 7, 28, 0.45), rgba(9, 7, 28, 0) 100%),
+    linear-gradient(0deg, rgba(9, 7, 28, 0.85), rgba(9, 7, 28, 0) 34%),
     linear-gradient(180deg, rgba(12, 9, 36, 0.55), rgba(12, 9, 36, 0) 32%),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97' viewBox='0 0 56 97'%3E%3Cpath d='M28 0l28 16.2v32.4L28 64.8 0 48.6V16.2zM28 64.8v32.4' fill='none' stroke='%23ffffff' stroke-opacity='.045' stroke-width='1.2'/%3E%3C/svg%3E") 0 0 / 56px 97px;
   -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 45%, rgba(0, 0, 0, 0.6) 100%);
@@ -136,12 +137,31 @@
 
 .topbar {
   position: fixed;
-  top: 16px;
+  top: 14px;
+  left: 24px;
   right: 18px;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  pointer-events: none;
+}
+
+.topbar > * {
+  pointer-events: auto;
+}
+
+.topbar-right {
   display: flex;
   align-items: center;
   gap: 10px;
-  z-index: 12;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .icon-btn {
@@ -282,20 +302,334 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
-/* ------------------------------------------------------------------ main column
-   Laid out for a 940 px high window; --menu-k (menu.ts) zooms it to the real one. */
+/* ------------------------------------------------------------------ the lobby (mockup A)
+   A 1240 x 700 layout zoomed (--menu-k, menu.ts) into the window under the top bar, beside the banner's
+   gutter on the left (--ad-gutter). Narrow windows stack it in one column. */
 
-.menu {
+.lobby {
   position: relative;
   z-index: 2;
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* The logo starts under the top bar (64 real px, whatever the zoom) */
-  padding: calc(64px / var(--menu-k, 1)) 16px 18px;
+  justify-content: center;
+  min-height: 100%;
   box-sizing: border-box;
+  padding: 74px 16px 30px calc(16px + var(--ad-gutter, 0px));
+}
+
+.lobby-grid {
   zoom: var(--menu-k, 1);
+  width: 1240px;
+  height: 700px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 476px;
+  grid-template-rows: minmax(0, 1fr) 100px;
+  gap: 22px 28px;
+}
+
+/* Your Orb, big, in a soft blue light */
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 46%;
+  width: 760px;
+  height: 620px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, rgba(70, 95, 255, 0.3), rgba(70, 95, 255, 0));
+  pointer-events: none;
+}
+
+.hero .orb-row {
+  gap: 44px;
+  margin-top: 0;
+}
+
+.hero .orb-row .orb-stage {
+  zoom: 1.7;
+}
+
+.hero .orb-arrow {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  margin-top: -70px;
+}
+
+.name-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.hero .name-input {
+  width: 340px;
+  font: 400 44px/1.1 var(--font-display);
+  letter-spacing: 0.5px;
+  text-shadow: 0 3px 0 rgba(10, 8, 34, 0.7), 0 0 18px rgba(0, 0, 0, 0.5);
+}
+
+/* Signed in: the account's player ID beside the name, and the name field leaves room for it */
+.name-row:has(.player-tag:not([hidden])) .name-input {
+  width: 270px;
+  text-align: right;
+}
+
+.player-tag {
+  color: #c3c7f0;
+  font: 800 16px var(--font-ui);
+  white-space: nowrap;
+}
+
+.hero .pill-btn {
+  margin-top: 12px;
+  padding: 10px 20px 10px 16px;
+}
+
+.hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+  min-height: 32px;
+}
+
+.hero-chip {
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(10, 10, 30, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d6d9f7;
+  font: 800 13px var(--font-ui);
+  white-space: nowrap;
+}
+
+.hero-chip b {
+  color: var(--gold-1);
+}
+
+/* Online: the modes, PLAY NOW, a private room and the training */
+.play-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px;
+  box-sizing: border-box;
+  border-radius: 24px;
+  background: rgba(12, 12, 36, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+.panel-label {
+  color: #a7acd8;
+  font: 900 12px var(--font-ui);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.play-panel .btn-play.hero {
+  width: 100%;
+  height: 96px;
+  margin-top: 6px;
+  flex: none;
+}
+
+.play-panel .message {
+  max-width: none;
+  margin-top: 0;
+}
+
+.panel-row {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.panel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 54px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: 900 15px var(--font-ui);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.panel-btn .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.panel-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.panel-btn.private {
+  border-color: rgba(255, 211, 77, 0.5);
+  background: rgba(255, 211, 77, 0.08);
+  color: #ffe08a;
+}
+
+.panel-btn.private:hover {
+  background: rgba(255, 211, 77, 0.16);
+}
+
+/* The solo modes with their progress, and the shortcuts */
+.dock {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 14px;
+}
+
+.dock-card {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  border-radius: 18px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+}
+
+.dock-card:hover {
+  filter: brightness(1.12);
+}
+
+.dock-card:active {
+  transform: translateY(2px);
+}
+
+.dock-card.campaign {
+  border: 2px solid rgba(255, 196, 58, 0.75);
+  background: linear-gradient(135deg, rgba(126, 76, 0, 0.94), rgba(40, 24, 6, 0.94));
+  box-shadow: 0 0 24px rgba(255, 170, 40, 0.18);
+  color: #fff4d6;
+}
+
+.dock-card.waves {
+  border: 2px solid rgba(255, 95, 110, 0.75);
+  background: linear-gradient(135deg, rgba(126, 18, 36, 0.94), rgba(40, 8, 16, 0.94));
+  box-shadow: 0 0 24px rgba(255, 70, 110, 0.18);
+  color: #ffe3e6;
+}
+
+.dock-art {
+  flex: none;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+}
+
+.dock-art.weapon {
+  width: 96px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.dock-art.orb {
+  width: 72px;
+  height: 72px;
+}
+
+.dock-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dock-text b {
+  font: 400 28px/1 var(--font-display);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.dock-card.campaign b {
+  color: var(--gold-1);
+}
+
+.dock-card.waves b {
+  color: #ff8a96;
+}
+
+.dock-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 800 13.5px var(--font-ui);
+}
+
+.dock-bar {
+  width: min(220px, 100%);
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.dock-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--gold-1);
+}
+
+.dock-tile {
+  flex: none;
+  width: 108px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 12, 36, 0.86);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--text);
+  font: 900 13px var(--font-ui);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.dock-tile .icon {
+  width: 26px;
+  height: 26px;
+  color: #cfcbff;
+}
+
+.dock-tile:hover {
+  background: rgba(40, 44, 96, 0.86);
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
 /* Chunky two-colour letters: a dark outline and a dropped edge behind the gradient fill */
@@ -303,10 +637,10 @@ select:focus-visible {
   position: relative;
   isolation: isolate;
   display: flex;
-  gap: 26px;
+  gap: 10px;
   margin: 0;
-  font: 400 120px/0.92 var(--font-display);
-  letter-spacing: 3px;
+  font: 400 44px/0.95 var(--font-display);
+  letter-spacing: 1px;
   user-select: none;
 }
 
@@ -326,9 +660,9 @@ select:focus-visible {
   z-index: -1;
   padding: 0 4px;
   color: #1a1042;
-  -webkit-text-stroke: 16px #1a1042;
+  -webkit-text-stroke: 7px #1a1042;
   /* No filter on the letters themselves: it would put this layer above the fill */
-  text-shadow: 0 9px 0 #110a2e, 0 18px 26px rgba(0, 0, 0, 0.6), 0 0 40px var(--glow);
+  text-shadow: 0 4px 0 #110a2e, 0 8px 14px rgba(0, 0, 0, 0.6), 0 0 22px var(--glow);
 }
 
 .logo-mad {
@@ -341,66 +675,13 @@ select:focus-visible {
   background-image: linear-gradient(180deg, #fff27d 0%, #ffc526 40%, #ff8f0a 60%, #ffb43d 100%);
 }
 
-/* A few sparks flying off the letters */
-.logo-sparks {
-  position: absolute;
-  inset: -30px -40px;
-  pointer-events: none;
-}
-
-.logo-sparks i {
-  position: absolute;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #ffd36b;
-  box-shadow: 0 0 6px 2px rgba(255, 150, 40, 0.9), 0 0 16px 4px rgba(255, 110, 20, 0.5);
-  animation: spark 2.4s ease-in-out infinite;
-}
-
-.logo-sparks i:nth-child(1) { left: 52%; top: 4%; animation-delay: -0.3s; }
-.logo-sparks i:nth-child(2) { left: 61%; top: 0%; width: 3px; height: 3px; animation-delay: -1.1s; }
-.logo-sparks i:nth-child(3) { left: 78%; top: 2%; animation-delay: -1.7s; }
-.logo-sparks i:nth-child(4) { left: 93%; top: 14%; width: 4px; height: 4px; animation-delay: -0.6s; }
-.logo-sparks i:nth-child(5) { left: 97%; top: 52%; width: 3px; height: 3px; animation-delay: -2s; }
-.logo-sparks i:nth-child(6) { left: 90%; top: 86%; animation-delay: -1.4s; }
-.logo-sparks i:nth-child(7) { left: 55%; top: 92%; width: 3px; height: 3px; animation-delay: -0.9s; }
-.logo-sparks i:nth-child(8) { left: 4%; top: 30%; width: 3px; height: 3px; background: #d9d4ff; box-shadow: 0 0 6px 2px rgba(170, 160, 255, 0.8); animation-delay: -1.9s; }
-.logo-sparks i:nth-child(9) { left: 70%; top: 96%; width: 4px; height: 4px; animation-delay: -0.2s; }
-
-@keyframes spark {
-  0%,
-  100% {
-    opacity: 0.25;
-    transform: scale(0.6) translateY(0);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.15) translateY(-5px);
-  }
-}
-
-.slogan {
-  margin: 10px 0 0;
-  font: 400 32px/1 var(--font-display);
-  letter-spacing: 2px;
-  color: #f3f0ff;
-  text-shadow: 0 3px 0 #1a1042, 0 0 18px rgba(150, 140, 255, 0.35);
-}
-
 .tagline {
-  margin: 8px 0 0;
+  margin: 0;
+  padding-left: 4px;
   color: #9ea3dc;
-  font: 800 13px var(--font-ui);
-  letter-spacing: 3px;
+  font: 800 10.5px var(--font-ui);
+  letter-spacing: 2.4px;
   text-transform: uppercase;
-  text-align: center;
-}
-
-.play-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 }
 
 /* ------------------------------------------------------------------ orb on its pedestal */
@@ -659,15 +940,6 @@ select:focus-visible {
   fill: none;
 }
 
-/* The two big actions side by side, as wide as the three mode cards: JOGAR AGORA (online) and the campaign */
-.hero-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-  width: calc(3 * 214px + 2 * 16px);
-  margin-top: 18px;
-}
-
 /* The big glossy JOGAR AGORA */
 .btn-play.hero {
   position: relative;
@@ -697,78 +969,6 @@ select:focus-visible {
   box-shadow: inset 0 0 0 2px rgba(190, 255, 200, 0.35), 0 3px 0 #147a34, 0 0 30px rgba(60, 235, 110, 0.4);
 }
 
-.hero-row .btn-play.hero {
-  width: 100%;
-  height: 70px;
-  margin-top: 0;
-}
-
-.hero-row .play-main {
-  gap: 8px;
-  font-size: 24px;
-  letter-spacing: 1px;
-  white-space: nowrap;
-}
-
-.hero-row .play-sub {
-  font-size: 11px;
-  letter-spacing: 2.2px;
-}
-
-.hero-row .btn-play.hero .play-main .icon {
-  width: 22px;
-  height: 22px;
-}
-
-/* The waves: red to purple, a fight that grows */
-.btn-play.hero.waves {
-  background: linear-gradient(180deg, #ff8fa8 0%, #ff4d6d 46%, #d92d5a 54%, #e8406a 100%);
-  box-shadow: inset 0 0 0 2px rgba(255, 200, 215, 0.45), 0 7px 0 #8e1638, 0 0 40px rgba(255, 70, 110, 0.4), 0 14px 30px rgba(0, 0, 0, 0.4);
-}
-
-.btn-play.hero.waves:active {
-  box-shadow: inset 0 0 0 2px rgba(255, 200, 215, 0.45), 0 3px 0 #8e1638, 0 0 30px rgba(255, 70, 110, 0.4);
-}
-
-.btn-play.hero.waves .play-main {
-  text-transform: uppercase;
-  text-shadow: 0 3px 0 rgba(110, 10, 40, 0.6);
-}
-
-.btn-play.hero.waves .play-main .icon {
-  fill: none;
-  stroke-width: 2.6;
-  filter: drop-shadow(0 3px 0 rgba(110, 10, 40, 0.6));
-}
-
-.btn-play.hero.waves .play-sub {
-  text-shadow: 0 2px 0 rgba(110, 10, 40, 0.55);
-}
-
-/* The campaign: gold to orange, like ORBS in the logo */
-.btn-play.hero.campaign {
-  background: linear-gradient(180deg, #ffe27a 0%, #ffbf2e 46%, #ff9a10 54%, #ffb43d 100%);
-  box-shadow: inset 0 0 0 2px rgba(255, 240, 190, 0.45), 0 7px 0 #a3530a, 0 0 40px rgba(255, 170, 40, 0.42), 0 14px 30px rgba(0, 0, 0, 0.4);
-}
-
-.btn-play.hero.campaign:active {
-  box-shadow: inset 0 0 0 2px rgba(255, 240, 190, 0.45), 0 3px 0 #a3530a, 0 0 30px rgba(255, 170, 40, 0.4);
-}
-
-.btn-play.hero.campaign .play-main {
-  text-transform: uppercase;
-  text-shadow: 0 3px 0 rgba(120, 55, 0, 0.6);
-}
-
-.btn-play.hero.campaign .play-main .icon {
-  fill: none;
-  stroke-width: 2.4;
-  filter: drop-shadow(0 3px 0 rgba(120, 55, 0, 0.6));
-}
-
-.btn-play.hero.campaign .play-sub {
-  text-shadow: 0 2px 0 rgba(120, 55, 0, 0.55);
-}
 
 .play-main {
   display: flex;
@@ -836,66 +1036,29 @@ select:focus-visible {
   text-align: center;
 }
 
-/* ------------------------------------------------------------------ game modes and shortcuts */
-
-.modes,
-.shortcuts {
-  display: grid;
-  grid-template-columns: repeat(3, 214px);
-  gap: 16px;
-}
+/* ------------------------------------------------------------------ game modes (rows in the play panel) */
 
 .modes {
-  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.shortcuts {
-  margin-top: 18px;
-  /* Five in the width of the three mode cards */
-  width: calc(3 * 214px + 2 * 16px);
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-}
-
-.shortcuts .shortcut {
-  padding: 6px 4px;
-}
-
-.shortcuts .shortcut small {
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.mode,
-.shortcut {
+.mode {
   position: relative;
   box-sizing: border-box;
-  border-radius: 14px;
-  border: 1.5px solid rgba(255, 255, 255, 0.14);
-  background: rgba(14, 16, 42, 0.74);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 12px 9px 9px;
+  border-radius: 16px;
   color: var(--text);
   font: inherit;
+  text-align: left;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 
-.mode {
-  height: 106px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  padding: 8px 6px;
-}
-
-.mode:hover,
-.shortcut:not(:disabled):hover {
-  background: rgba(40, 44, 96, 0.8);
-  border-color: rgba(255, 255, 255, 0.24);
-}
 
 /* Each mode has its colour: the border glows with it, the icon and the line under the name take it */
 .mode-dm {
@@ -914,47 +1077,47 @@ select:focus-visible {
 }
 
 .mode {
-  border: 2px solid rgba(var(--mc), 0.8);
-  background: linear-gradient(180deg, rgba(var(--mc), 0.1), rgba(12, 14, 38, 0.88) 70%);
-  box-shadow: 0 0 16px rgba(var(--mc), 0.32), inset 0 0 20px rgba(var(--mc), 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .mode:hover {
-  border-color: rgb(var(--mc));
-  background: linear-gradient(180deg, rgba(var(--mc), 0.16), rgba(16, 18, 46, 0.88) 70%);
-  box-shadow: 0 0 20px rgba(var(--mc), 0.35), inset 0 0 22px rgba(var(--mc), 0.1);
+  border-color: rgba(var(--mc), 0.6);
+  background: rgba(var(--mc), 0.07);
 }
 
-.mode-icon {
-  display: grid;
-  place-items: center;
-  margin-bottom: 4px;
-  color: rgb(var(--mc));
-  filter: drop-shadow(0 0 8px rgba(var(--mc), 0.55));
+/* A moment of a match in this mode */
+.mode-thumb {
+  flex: none;
+  width: 92px;
+  height: 58px;
+  border-radius: 10px;
+  background: #0a0f24 center / cover no-repeat;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
-.mode-icon .icon {
-  width: 36px;
-  height: 36px;
+.mode-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .mode b {
-  font: 900 15px/1.1 var(--font-ui);
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  text-align: center;
+  font: 900 18px/1.15 var(--font-ui);
 }
 
 .mode small {
-  color: var(--mc-text);
+  color: #c0c4ea;
   font: 700 13px var(--font-ui);
 }
 
-/* The chosen mode: its colour at full strength */
+/* The chosen mode: its colour around it */
 .mode[aria-checked='true'] {
-  border: 2.5px solid rgb(var(--mc));
-  background: linear-gradient(180deg, rgba(var(--mc), 0.22), rgba(20, 18, 42, 0.9) 75%);
-  box-shadow: 0 0 0 1px rgba(var(--mc), 0.9), 0 0 22px rgba(var(--mc), 0.75), 0 0 46px rgba(var(--mc), 0.4), inset 0 0 28px rgba(var(--mc), 0.22);
+  border-color: rgb(var(--mc));
+  background: rgba(var(--mc), 0.12);
+  box-shadow: 0 0 18px rgba(var(--mc), 0.3);
 }
 
 .mode.closed {
@@ -962,49 +1125,10 @@ select:focus-visible {
 }
 
 .mode-count {
-  position: absolute;
-  top: 7px;
-  right: 8px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: rgba(63, 210, 107, 0.16);
-  color: #52e07e;
-  font: 800 11px var(--font-ui);
-  white-space: nowrap;
-}
-
-.shortcut {
-  height: 82px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 6px 8px;
-  text-align: center;
-}
-
-.shortcut b {
-  display: block;
-  font: 800 15px/1.2 var(--font-ui);
-}
-
-.shortcut small {
-  display: block;
-  color: #a4a8d8;
-  font: 700 12.5px var(--font-ui);
-}
-
-.shortcut-icon {
-  display: grid;
-  place-items: center;
   flex: none;
-  color: #cfcbff;
-}
-
-.shortcut-icon .icon {
-  width: 26px;
-  height: 26px;
+  color: #7ff0a0;
+  font: 800 13px var(--font-ui);
+  white-space: nowrap;
 }
 
 .stats-cta {
@@ -1018,10 +1142,6 @@ select:focus-visible {
   padding-inline: 28px;
 }
 
-.shortcut:disabled {
-  cursor: default;
-  opacity: 0.62;
-}
 
 /* ------------------------------------------------------------------ controls window + footer */
 
@@ -1097,12 +1217,13 @@ kbd.mouse .icon {
 .footer {
   position: fixed;
   z-index: 2;
+  left: calc(16px + var(--ad-gutter, 0px));
   right: 16px;
-  bottom: 10px;
+  bottom: 8px;
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 4px 14px;
+  justify-content: center;
+  gap: 4px 16px;
   font-size: 11.5px;
   font-weight: 700;
 }
@@ -1119,7 +1240,7 @@ kbd.mouse .icon {
 }
 
 /* ------------------------------------------------------------------ banners (src/client/ads.ts)
-   Beside the column, centred in the free side of the window (menu.ts places them and shows them where they fit). */
+   In the gutter left of the lobby (menu.ts makes room for it and shows it where it fits). */
 
 .ad-slot {
   position: fixed;
@@ -1132,12 +1253,9 @@ kbd.mouse .icon {
   gap: 4px;
 }
 
-.ad-sky {
-  left: 28px;
-}
-
+.ad-sky,
 .ad-rect {
-  right: 28px;
+  left: 28px;
 }
 
 .ad-label {
@@ -1728,50 +1846,78 @@ input[type='range'] {
   }
 }
 
-@media (max-width: 759px) {
-  .topbar {
-    position: absolute;
+/* Narrow windows (menu.ts: below 980 px): the lobby in one column that scrolls */
+.screen.narrow .topbar {
+  position: absolute;
+  flex-wrap: wrap;
+}
+
+.screen.narrow .lobby {
+  justify-content: flex-start;
+  padding: 92px 12px 16px;
+}
+
+/* A smaller Orb: PLAY NOW within the first screen */
+.screen.narrow .hero .orb-row .orb-stage {
+  zoom: 1.15;
+}
+
+.screen.narrow .hero .orb-arrow {
+  margin-top: -40px;
+}
+
+.screen.narrow .hero .name-input {
+  font-size: 34px;
+}
+
+.screen.narrow .hero-chips {
+  margin-top: 10px;
+}
+
+.screen.narrow .lobby-grid {
+  width: 560px;
+  max-width: 100%;
+  height: auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: none;
+}
+
+.screen.narrow .hero {
+  padding: 10px 0 16px;
+}
+
+.screen.narrow .dock {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.screen.narrow .dock-card {
+  grid-column: 1 / -1;
+  min-height: 92px;
+}
+
+.screen.narrow .dock-tile {
+  width: auto;
+  height: 84px;
+}
+
+.screen.narrow .footer {
+  position: static;
+  padding: 0 16px 14px;
+}
+
+@media (max-width: 520px) {
+  .topbar-right .online-pill {
+    display: none;
   }
-  .logo {
-    font-size: 96px;
-  }
-  .modes,
-  .shortcuts {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    width: min(100%, 680px);
-  }
-  .shortcuts {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .shortcut.private {
-    grid-column: span 2;
-  }
-  .hero-row {
-    width: min(100%, 680px);
-  }
-  .hero-row .play-main {
-    gap: 6px;
-    font-size: 19px;
-  }
-  .hero-row .btn-play.hero .play-main .icon {
-    width: 22px;
-    height: 22px;
-  }
-  .hero-row .play-sub {
-    font-size: 12px;
-    letter-spacing: 2px;
-  }
-  .footer {
-    position: static;
-    justify-content: center;
-    padding: 0 16px 14px;
+  .screen.narrow .lobby {
+    padding-top: 140px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bg-orb,
   .bg-scene,
-  .logo-sparks i,
   .online-pill.ok .dot {
     animation: none;
   }
@@ -1799,6 +1945,38 @@ input[type='range'] {
 
 .icon-btn.account-btn.signed-in .icon {
   color: var(--play-1);
+}
+
+/* Signed in: the player's Orb, the name and the player ID */
+.icon-btn.account-btn.signed-in {
+  height: 48px;
+  padding: 0 16px 0 6px;
+  border-radius: 999px;
+  border-color: rgba(255, 210, 90, 0.45);
+}
+
+.account-avatar {
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+
+.account-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  line-height: 1.1;
+}
+
+.account-btn.signed-in .account-label {
+  font-weight: 900;
+  font-size: 15px;
+}
+
+.account-chip-tag {
+  color: #b9bde6;
+  font: 700 11.5px var(--font-ui);
 }
 
 .name-hint {
@@ -2205,14 +2383,6 @@ input[type='range'] {
 }
 
 @media (max-width: 520px) {
-  .hero-row {
-    grid-template-columns: 1fr;
-  }
-
-  .hero-row .play-main {
-    font-size: 26px;
-  }
-
   .stats-tiles {
     grid-auto-flow: row;
     grid-template-columns: repeat(3, 1fr);
@@ -2905,14 +3075,6 @@ input[type='range'] {
   margin: 4px 0 0;
   color: var(--muted);
   font: 700 13.5px/1.45 var(--font-ui);
-}
-
-.shortcut.private .shortcut-icon {
-  color: #ffd76a;
-}
-
-.shortcut.private {
-  border-color: rgba(255, 215, 106, 0.35);
 }
 
 .room-modal {
