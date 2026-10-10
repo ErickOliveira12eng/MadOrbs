@@ -34,6 +34,7 @@ export default defineConfig(({ isSsrBuild }) => ({
       '/ws': { target: `ws://${gameServer}`, ws: true },
       '/health': `http://${gameServer}`,
       '/admin': `http://${gameServer}`,
+      '/api': `http://${gameServer}`,
     },
   },
   build: isSsrBuild

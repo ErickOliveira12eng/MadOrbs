@@ -261,9 +261,13 @@ export class Game {
 
   // ---------------------------------------------------------------- teams
 
-  /** Moves a player to the other team (Game::assignPlayerTeam): the babo dies and respawns there. */
-  private switchTeam(player: Player, teamID: number): void {
+  /**
+   * Moves a player to the other team (Game::assignPlayerTeam): the babo dies and respawns there. The
+   * auto balance, and a private room's host (src/server/gameServer.ts); a flag carrier drops it.
+   */
+  switchTeam(player: Player, teamID: number): void {
     if (player.teamID === teamID) return;
+    this.dropFlags(player);
     player.kill(true);
     player.timeToSpawn = sv.sv_timeToSpawn;
     player.spawnRequested = false;

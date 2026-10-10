@@ -13,11 +13,13 @@ import { AudioPanel } from './menu/audioPanel';
 import { setUserProperty, track } from './client/analytics';
 import { WAVES_MAP } from './client/waves';
 import { StartScreen, type PlayMode } from './menu/menu';
+import type { PrivateRoomJoin } from './menu/roomModal';
+import { ROOM_LINK_RE } from './net/protocol';
 import { OrbStudio } from './menu/orbStudio';
 import { trainingMaps } from './menu/training';
 import { applyAudioSettings, loadSettings, saveSettings, skinInfo } from './menu/settings';
 import type { SkinInfo } from './sim/player';
-import { t, translateDom } from './i18n';
+import { lang, t, translateDom } from './i18n';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -41,14 +43,21 @@ const screen = new StartScreen(
   (mode) => void startGame(mode),
   (level) => void startGame('offline', level),
   () => void startGame('offline', undefined, true),
+  (room) => void startGame('online', undefined, false, room),
 );
 /** What to do when the game closes, instead of the start screen (a campaign level's buttons). */
 let afterQuit: (() => void) | null = null;
 screen.show();
 void account.restore();
+// A private room's invitation (/r/K7Q2MX): its window, ready to join
+const invite = ROOM_LINK_RE.exec(location.pathname);
+if (invite) screen.openRoom(invite[2].toUpperCase());
 
-/** `level`: a campaign level (offline, src/client/campaign.ts). */
-async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false): Promise<void> {
+/** The start page's address in this page's language ('' for English, at the root). */
+const langRoot = () => (lang() === 'en' ? '' : `/${lang()}`);
+
+/** `level`: a campaign level (offline, src/client/campaign.ts); `room`: a private room (online). */
+async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, room?: PrivateRoomJoin): Promise<void> {
   audio.unlock();
   // The game music streams while the models and the map load
   audio.prepareMusic(gameSounds().gameMusic);
@@ -62,6 +71,8 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false): 
     mode: settings.mode,
     onQuit: (reason?: string) => {
       audioPanel.setInGame(false);
+      // Out of a private room: the address is the start page's again
+      if (ROOM_LINK_RE.test(location.pathname)) history.replaceState(null, '', `${langRoot()}/`);
       // A campaign level's buttons: the next level, the same again, or the levels window
       if (afterQuit) {
         const then = afterQuit;
@@ -81,7 +92,11 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false): 
   };
   try {
     let game: ClientGame;
-    if (mode === 'online') {
+    if (mode === 'online' && room) {
+      game = await ClientGame.createOnline($('game'), { ...common, mode: room.mode, privateRoom: { code: room.code, key: room.key }, authToken: await account.accessToken() }, onProgress);
+      // The address bar holds the invitation while in the room
+      history.replaceState(null, '', `${langRoot()}/r/${room.code}`);
+    } else if (mode === 'online') {
       // The record to beat: this browser's or the account's, the higher
       const record = Math.max(bestKills(settings.mode), account.stats[settings.mode]?.bestKills ?? 0);
       game = await ClientGame.createOnline($('game'), { ...common, authToken: await account.accessToken(), bestKills: record }, onProgress);
@@ -143,7 +158,8 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false): 
     (window as unknown as { madorbs: ClientGame }).madorbs = game;
   } catch (e) {
     console.error(e);
-    track('join_failed', { mode: waves ? 'waves' : level ? 'campaign' : settings.mode, online: mode === 'online', reason: String((e as Error).message).slice(0, 100) });
+    track('join_failed', { mode: waves ? 'waves' : level ? 'campaign' : (room?.mode ?? settings.mode), online: mode === 'online', reason: String((e as Error).message).slice(0, 100), ...(room ? { private_room: true } : {}) });
+    if (ROOM_LINK_RE.test(location.pathname)) history.replaceState(null, '', `${langRoot()}/`);
     screen.show(t('menu.joinFailed', { reason: (e as Error).message }));
   } finally {
     loading.hidden = true;

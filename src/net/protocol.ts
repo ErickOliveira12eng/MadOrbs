@@ -11,7 +11,7 @@ import type { GameEvent } from '../sim/events';
 import type { SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 
-export const PROTOCOL_VERSION = 12;
+export const PROTOCOL_VERSION = 13;
 /** The client sends its coordinates every 2 simulation frames (gameVar.sv_minSendInterval). */
 export const CF_SEND_INTERVAL = 2;
 /** The server sends the players' state every 2 frames (15 Hz); events go out every frame. */
@@ -24,6 +24,81 @@ export type RoomMode = (typeof ROOM_MODES)[number];
 export const ROOM_GAME_TYPE: Record<RoomMode, number> = { dm: GAME_TYPE_DM, tdm: GAME_TYPE_TDM, ctf: GAME_TYPE_CTF };
 /** WebSocket path of a room ("/ws" alone is the Deathmatch room). */
 export const roomPath = (mode: RoomMode): string => `${WS_PATH}/${mode}`;
+
+// --------------------------------------------------------------------------- private rooms
+//
+// A room made by a player for their friends: the matchmaking never sends anybody there, the link
+// (/r/<code>) or the code does. It begins with a warm-up (nobody's score counts) until its host
+// starts the match; its matches never count for the ranking or the stats. Created with
+// POST /api/rooms, described by GET /api/rooms/<code>, joined at /ws/room/<code>.
+
+/** The codes' letters: no look-alikes (0/O, 1/I/L), like the player IDs. */
+export const ROOM_CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+export const ROOM_CODE_LENGTH = 6;
+export const isRoomCode = (s: unknown): s is string => typeof s === 'string' && new RegExp(`^[${ROOM_CODE_ALPHABET}]{${ROOM_CODE_LENGTH}}$`).test(s);
+/** WebSocket path of a private room. */
+export const privateRoomPath = (code: string): string => `${WS_PATH}/room/${code}`;
+/** The page that joins a private room (the invitation link), in a language folder or at the root. */
+export const ROOM_LINK_RE = /^\/(?:(pt|es)\/)?r\/([A-Za-z0-9]{4,12})\/?$/;
+
+/** What a private room can be set to (the choices of the start screen's window). */
+export const PRIVATE_CHOICES = {
+  /** Frags to win (a player in DM, a team in TDM); 0: no limit. */
+  kills: [10, 20, 30, 50, 100, 0],
+  /** CTF captures to win; 0: no limit. */
+  captures: [3, 5, 7, 10, 0],
+  /** Minutes per match; 0: no limit. */
+  minutes: [5, 10, 15, 20, 30, 0],
+  players: [2, 4, 6, 8, 10, 12, 16],
+} as const;
+
+/** The private room asked for (POST /api/rooms). map '': the mode's rotation. */
+export interface PrivateRoomSettings {
+  mode: RoomMode;
+  map: string;
+  /** Kills in DM / TDM, captures in CTF; 0: no limit. */
+  scoreLimit: number;
+  /** Minutes; 0: no limit (not both). */
+  timeLimit: number;
+  maxPlayers: number;
+}
+
+/** POST /api/rooms: the code, and the key that makes its holder the host (kept in that browser). */
+export type CreateRoomAnswer = { code: string; key: string } | { error: 'full' | 'limit' | 'bad' };
+
+/** GET /api/rooms/<code>: the room as the invitation shows it. */
+export interface PrivateRoomInfo {
+  code: string;
+  mode: RoomMode;
+  map: string;
+  players: number;
+  maxPlayers: number;
+  locked: boolean;
+  /** The host's name ('' while nobody is in). */
+  host: string;
+  warmup: boolean;
+}
+
+/** A private room as its players see it (welcome, 'room'). */
+export interface NetRoom {
+  code: string;
+  /** The host's player ID (-1: nobody yet). */
+  host: number;
+  /** Before the host starts the match: nobody's score counts, no limits. */
+  warmup: boolean;
+  /** Nobody else can come in. */
+  locked: boolean;
+  maxPlayers: number;
+  /** The limits of the matches (the rules carry 0 during the warm-up). */
+  scoreLimit: number;
+  timeLimit: number;
+  /** Every map the host can switch to. */
+  maps: string[];
+}
+
+/** What the host of a private room can do. */
+export const HOST_ACTIONS = ['start', 'restart', 'map', 'lock', 'unlock', 'kick', 'team', 'shuffle'] as const;
+export type HostAction = (typeof HOST_ACTIONS)[number];
 
 /**
  * A mode in /health: what the start screen shows. players: everybody playing the mode; maxPlayers:
@@ -47,7 +122,7 @@ export type V2 = [number, number];
 
 export type ClientMessage =
   /** token: the Supabase session of a signed-in player (its player ID is shown, its stats are kept). */
-  | { t: 'hello'; v: number; name: string; skin: SkinInfo; token?: string }
+  | { t: 'hello'; v: number; name: string; skin: SkinInfo; token?: string; key?: string }
   /** Our babo's coordinate frame (NET_CLSV_SVCL_PLAYER_COORD_FRAME). z = camera height (sniper). */
   | { t: 'cf'; f: number; p: V3; v: V3; m: V2; z: number }
   /** A shot traced by the client: b = bullets, each [endX, endY, endZ, ...IDs of the babos it touched]. */
@@ -60,6 +135,8 @@ export type ClientMessage =
   | { t: 'chat'; text: string }
   /** The end-of-match map vote: index of the chosen map in the vote's list. */
   | { t: 'vote'; i: number }
+  /** A private room's host: id = a player (kick, team), team = PLAYER_TEAM_BLUE / RED, map = a map name. */
+  | { t: 'host'; a: HostAction; id?: number; team?: number; map?: string }
   | { t: 'pong'; id: number };
 
 // --------------------------------------------------------------------------- server -> client
@@ -145,15 +222,20 @@ export type ServerMessage =
       flags: [NetFlag, NetFlag];
       /** The map vote, when joining during one. */
       vote?: NetVote;
+      /** A private room (else a public one). */
+      room?: NetRoom;
     }
   /**
    * code: what the client says in its language; reason: the text for pages older than the codes.
    * 'banned': the account or the address is blocked, until that time (ms since 1970; none: for good).
+   * Private rooms: 'noroom' (closed or never was), 'locked' (by its host), 'kicked' (by its host).
    */
-  | { t: 'reject'; code?: 'version' | 'full' | 'banned'; reason: string; until?: number }
+  | { t: 'reject'; code?: 'version' | 'full' | 'banned' | 'noroom' | 'locked' | 'kicked'; reason: string; until?: number }
   /** Every frame: events; every SNAPSHOT_INTERVAL frames also the players (p), timer (gt) and round state (rs). */
   | { t: 'tick'; f: number; e?: NetEvent[]; pr?: NetProjectileState[]; p?: NetPlayerState[]; gt?: number; rs?: number }
   | { t: 'players'; list: NetPlayerInfo[] }
+  /** A private room changed (host, warm-up, lock); rules: the match's new rules (the warm-up ended). */
+  | { t: 'room'; room: NetRoom; rules?: NetRules }
   /** The end-of-match map vote opened or its counts changed (the next mapChange closes it). */
   | ({ t: 'vote' } & NetVote)
   /** s: one NetScore per player; ts: the team scores */

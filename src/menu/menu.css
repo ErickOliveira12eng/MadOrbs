@@ -851,10 +851,19 @@ select:focus-visible {
 
 .shortcuts {
   margin-top: 18px;
-  /* Four in the width of the three mode cards */
+  /* Five in the width of the three mode cards */
   width: calc(3 * 214px + 2 * 16px);
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.shortcuts .shortcut {
+  padding: 6px 4px;
+}
+
+.shortcuts .shortcut small {
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .mode,
@@ -1733,6 +1742,9 @@ input[type='range'] {
   }
   .shortcuts {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .shortcut.private {
+    grid-column: span 2;
   }
   .hero-row {
     width: min(100%, 680px);
@@ -2799,5 +2811,81 @@ input[type='range'] {
 
   .camp-lv.boss .stars {
     display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ private room (src/menu/roomModal.ts) */
+
+.shortcut.private .shortcut-icon {
+  color: #ffd76a;
+}
+
+.shortcut.private {
+  border-color: rgba(255, 215, 106, 0.35);
+}
+
+.room-modal {
+  width: min(600px, 100%);
+}
+
+.room-tabs {
+  margin-top: 14px;
+}
+
+.room-row {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 10px;
+}
+
+.room-join {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.room-code {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--field-border);
+  background: var(--field);
+  color: var(--text);
+  font: 400 30px/1 var(--font-display);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.room-code::placeholder {
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.room-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(63, 210, 107, 0.1);
+  border: 1px solid rgba(63, 210, 107, 0.35);
+  color: var(--muted);
+  font: 700 13.5px var(--font-ui);
+}
+
+.room-info b {
+  color: var(--text);
+  font: 800 16px var(--font-ui);
+}
+
+.room-error {
+  margin: 12px 0 0;
+  color: #ff9a9a;
+  font: 700 13.5px var(--font-ui);
+}
+
+@media (max-width: 520px) {
+  .room-row {
+    grid-template-columns: 1fr 1fr;
   }
 }

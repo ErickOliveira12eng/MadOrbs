@@ -8,10 +8,12 @@
     <!-- Cookie banner (public/consent.js): outside Europe statistics and ads run until refused; in Europe only after the visitor agrees -->
     <script src="/consent.js?v=5" defer></script>
     <script>
-      // At "/", visitors who picked Portuguese or Spanish before (the language button), or whose
-      // browser asks for it first, go to that version before anything shows
+      // At "/" (and at a private room's invitation, "/r/<code>"), visitors who picked Portuguese or
+      // Spanish before (the language button), or whose browser asks for it first, go to that version
+      // before anything shows
       (function () {
-        if (location.pathname !== '/') return;
+        var invite = /^\/r\/[A-Za-z0-9]+\/?$/.test(location.pathname);
+        if (location.pathname !== '/' && !invite) return;
         var l = null;
         try {
           l = localStorage.getItem('madorbs.lang');
@@ -26,7 +28,7 @@
             }
           }
         }
-        if (l === 'pt' || l === 'es') location.replace('/' + l + '/' + location.search + location.hash);
+        if (l === 'pt' || l === 'es') location.replace('/' + l + (invite ? location.pathname : '/') + location.search + location.hash);
       })();
     </script>
     <title data-i18n="meta.title">Mad Orbs: free online shooter in your browser</title>
@@ -134,6 +136,9 @@
           <div id="modes" class="modes" role="radiogroup" data-i18n-attr="aria-label=menu.gameMode" aria-label="Game mode"></div>
 
           <div class="shortcuts">
+            <button id="btnPrivate" class="shortcut private" type="button">
+              <span class="shortcut-icon" data-icon="padlock"></span><span><b data-i18n="menu.private">Private room</b><small data-i18n="menu.privateSub">With friends</small></span>
+            </button>
             <button id="btnRanking" class="shortcut" type="button">
               <span class="shortcut-icon" data-icon="bars"></span><span><b data-i18n="menu.ranking">Ranking</b><small data-i18n="menu.rankingSub">Best players</small></span>
             </button>
@@ -371,6 +376,43 @@
         </div>
         <footer class="modal-foot">
           <button class="btn-play small" type="submit"><span data-icon="swords"></span><span data-i18n="training.start">Start training</span></button>
+        </footer>
+      </form>
+    </div>
+
+    <!-- Private room: make one for friends, or join one with its code or link (src/menu/roomModal.ts) -->
+    <div id="roomModal" class="modal" hidden>
+      <form id="roomForm" class="modal-card training-modal room-modal" role="dialog" aria-modal="true" aria-labelledby="roomTitle" autocomplete="off">
+        <header class="modal-head">
+          <h2 id="roomTitle" data-i18n="room.modalTitle">Private room</h2>
+          <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>
+        </header>
+        <p class="modal-sub" data-i18n="room.modalSub">A match only for your friends: send them the link. You choose the map, the teams and when it starts. It doesn't count for the ranking.</p>
+        <div id="roomTabs" class="segmented room-tabs" role="radiogroup">
+          <button type="button" data-tab="create" data-i18n="room.create">Create a room</button>
+          <button type="button" data-tab="join" data-i18n="room.join">Join with a code</button>
+        </div>
+        <div id="roomCreate" class="training-body">
+          <canvas id="roomPreview" class="map-preview" width="220" height="220"></canvas>
+          <div class="training-fields">
+            <div class="field"><span data-i18n="training.mode">Mode</span>
+              <div id="roomMode" class="segmented" role="radiogroup"></div>
+            </div>
+            <label class="field"><span data-i18n="training.map">Map</span><select id="roomMap"></select></label>
+            <div class="room-row">
+              <label class="field"><span id="roomGoalLabel">Kills to win</span><select id="roomGoal"></select></label>
+              <label class="field"><span data-i18n="room.time">Time</span><select id="roomTime"></select></label>
+              <label class="field"><span data-i18n="room.playersMax">Players</span><select id="roomPlayers"></select></label>
+            </div>
+          </div>
+        </div>
+        <div id="roomJoin" class="room-join" hidden>
+          <label class="field"><span data-i18n="room.code">Room code</span><input id="roomCode" class="room-code" maxlength="6" placeholder="K7Q2MX" spellcheck="false" autocapitalize="characters" /></label>
+          <div id="roomInfo" class="room-info" hidden></div>
+        </div>
+        <p id="roomError" class="room-error" role="alert" hidden></p>
+        <footer class="modal-foot">
+          <button id="roomSubmit" class="btn-play small" type="submit"><span data-icon="play"></span><span id="roomSubmitText">Create room</span></button>
         </footer>
       </form>
     </div>

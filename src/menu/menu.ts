@@ -12,6 +12,7 @@ import { StatsModal } from './statsModal';
 import { CampaignModal } from './campaignModal';
 import { AdblockModal } from './adblockModal';
 import { RankingModal } from './rankingModal';
+import { RoomModal, type PrivateRoomJoin } from './roomModal';
 import type { CampaignLevel } from '../client/campaign';
 import { isOldGeneratedName, randomGuestName } from './guestNames';
 import { Embers } from './embers';
@@ -57,12 +58,15 @@ export class StartScreen {
   private readonly campaign: CampaignModal;
   private readonly adblock = new AdblockModal();
   private readonly ranking: RankingModal;
+  private readonly room: RoomModal;
   /** The account whose Orb was already brought into this page's settings. */
   private orbSyncedFor = '';
   private readonly embers: Embers | null;
   private statusTimer = 0;
   /** The server's rooms (/health), null while unknown or unreachable. */
   private rooms: Partial<Record<RoomMode, RoomStatus>> | null = null;
+  /** Players in private rooms (they count in "who plays now"). */
+  private privatePlayers = 0;
   private serverUp: boolean | null = null;
   private rafId = 0;
   /** When the side banners were loaded (0: not yet). */
@@ -78,6 +82,8 @@ export class StartScreen {
     /** A campaign level chosen (src/menu/campaignModal.ts). */
     onCampaign: (level: CampaignLevel) => void,
     onWaves: () => void,
+    /** A private room to join (made here, or an invitation). */
+    onPrivate: (room: PrivateRoomJoin) => void,
   ) {
     for (const el of document.querySelectorAll<HTMLElement>('[data-icon]')) el.innerHTML = icon(el.dataset.icon as IconName, 20);
 
@@ -93,12 +99,20 @@ export class StartScreen {
     this.accountModal = new AccountModal(account, settings, studio, (name) => this.setName(name));
     $('btnAccount').addEventListener('click', () => this.accountModal.open());
     // Which windows of the start screen are opened (analytics)
-    const opens: [string, string][] = [['btnAccount', 'account'], ['btnStats', 'stats'], ['btnRanking', 'ranking'], ['btnCampaign', 'campaign'], ['training', 'training'], ['btnControls', 'controls'], ['orbButton', 'orb'], ['orbCustomize', 'orb']];
+    const opens: [string, string][] = [['btnAccount', 'account'], ['btnStats', 'stats'], ['btnRanking', 'ranking'], ['btnCampaign', 'campaign'], ['training', 'training'], ['btnControls', 'controls'], ['orbButton', 'orb'], ['orbCustomize', 'orb'], ['btnPrivate', 'private']];
     for (const [id, name] of opens) $(id).addEventListener('click', () => track('menu_open', { window: name }));
     this.statsModal = new StatsModal(account, () => this.accountModal.open());
     $('btnStats').addEventListener('click', () => this.statsModal.open());
     this.ranking = new RankingModal(account, () => this.accountModal.open());
     $('btnRanking').addEventListener('click', () => this.ranking.open());
+    this.room = new RoomModal(
+      () => this.settings.mode,
+      (room) => {
+        this.play('online', false);
+        onPrivate(room);
+      },
+    );
+    $('btnPrivate').addEventListener('click', () => this.room.open());
     this.campaign = new CampaignModal(
       account,
       studio,
@@ -261,6 +275,11 @@ export class StartScreen {
     if (start) this.onPlay(mode);
   }
 
+  /** The private room window: making one, or joining this one (an invitation link). */
+  openRoom(code?: string): void {
+    this.room.open(code);
+  }
+
   /** The campaign window (back from a level: on its chapter). */
   openCampaign(level?: CampaignLevel): void {
     this.campaign.open(level);
@@ -412,7 +431,8 @@ export class StartScreen {
     try {
       const res = await fetch('/health', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
       if (!res.ok) throw new Error(String(res.status));
-      const st = (await res.json()) as RoomStatus & { rooms?: Partial<Record<RoomMode, RoomStatus>> };
+      const st = (await res.json()) as RoomStatus & { rooms?: Partial<Record<RoomMode, RoomStatus>>; privatePlayers?: number };
+      this.privatePlayers = st.privatePlayers ?? 0;
       // An older server has one Deathmatch room only
       this.rooms = st.rooms ?? { dm: { map: st.map, players: st.players, maxPlayers: st.maxPlayers } };
       this.serverUp = true;
@@ -443,7 +463,7 @@ export class StartScreen {
       pill.className = 'online-pill down';
       return;
     }
-    const total = Object.values(this.rooms ?? {}).reduce((n, r) => n + (r?.players ?? 0), 0);
+    const total = Object.values(this.rooms ?? {}).reduce((n, r) => n + (r?.players ?? 0), this.privatePlayers);
     text.textContent = total === 0 ? t('menu.nobody') : total === 1 ? t('menu.onePlayer') : t('menu.players', { n: total });
     pill.className = 'online-pill ok';
     const room = this.rooms?.[this.settings.mode];

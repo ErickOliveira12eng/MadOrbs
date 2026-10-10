@@ -57,9 +57,11 @@ export type GameEvent =
   | { type: 'playerLeave'; playerID: number }
   /**
    * playerID -1: the server's own line. `sys` 'join' / 'leave' (with `text` the player's name and
-   * `team` their team, or -1) are written by each client in its language.
+   * `team` their team, or -1) are written by each client in its language. A private room's own lines:
+   * 'host' (`text` became the host), 'start' (the warm-up ended), 'kick' (the host removed `text`),
+   * 'lock' / 'unlock'.
    */
-  | { type: 'chat'; playerID: number; text: string; sys?: 'join' | 'leave' | 'admin'; team?: number };
+  | { type: 'chat'; playerID: number; text: string; sys?: 'join' | 'leave' | 'admin' | 'host' | 'start' | 'kick' | 'lock' | 'unlock'; team?: number };
 
 export class EventQueue {
   private list: GameEvent[] = [];

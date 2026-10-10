@@ -95,6 +95,8 @@ export interface HudFrame {
   campaign: CampaignHud | null;
   /** A run of the waves mode (offline), else null. */
   waves: WavesHud | null;
+  /** A private room's warm-up (host: we run the room), else null. */
+  warmup: { host: boolean } | null;
   /** The chat line being typed, or null. */
   chatInput: string | null;
   /** Sniper scope opacity: the crosshair fades out behind it. */
@@ -902,9 +904,13 @@ export class HudLayer {
     const g = f.game;
     const time = sv.sv_gameTimeLimit > 0 ? `<div class="h-clock">${clock(f.timeLeft + 1)}</div>` : '';
     const mode = modeName(modeOfGameType(g.gameType));
+    // A private room's warm-up: until its host starts the match
+    const warm = f.warmup
+      ? `<div class="h-warm"><b>${t('room.warmup')}</b><span>${f.warmup.host ? t('room.warmupHost', { esc: '<span class="h-key">Esc</span>' }) : t('room.warmupWait')}</span></div>`
+      : '';
     if (!g.isTeamGame) {
       const goal = sv.sv_scoreLimit > 0 ? ` · <b>${t('hud.firstTo', { n: sv.sv_scoreLimit })}</b>` : '';
-      setHTML(this.r.match, `${time}<div class="h-mode">${mode} · ${esc(this.mapName)}${goal}</div>`);
+      setHTML(this.r.match, `${time}<div class="h-mode">${mode} · ${esc(this.mapName)}${goal}</div>${warm}`);
       return;
     }
     const ctf = g.gameType === GAME_TYPE_CTF;
@@ -933,7 +939,7 @@ export class HudLayer {
       }
       html += '</div>';
     }
-    setHTML(this.r.match, html);
+    setHTML(this.r.match, html + warm);
   }
 
   /** CTF: carrying the enemy flag. */

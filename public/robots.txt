@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /r/
+Disallow: /pt/r/
+Disallow: /es/r/
 
 Sitemap: https://madorbs.com/sitemap.xml

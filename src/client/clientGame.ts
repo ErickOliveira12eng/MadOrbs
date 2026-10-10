@@ -19,6 +19,7 @@ import {
   PLAYER_TEAM_BLUE,
   PLAYER_TEAM_RED,
   PLAYER_TEAM_SPECTATOR,
+  GAME_TYPE_CTF,
   GAME_TYPE_TDM,
   WEAPON_KNIVES,
   PROJECTILE_COCKTAIL_MOLOTOV,
@@ -63,6 +64,7 @@ import {
   type NetPlayerInfo,
   type NetPlayerState,
   type NetProjectile,
+  type NetRoom,
   type NetTeams,
   type NetVote,
   type RoomMode,
@@ -75,7 +77,7 @@ import { createDkoObject3D } from './engine/dko';
 import { addGameLights, createRenderer } from './engine/renderer';
 import { Effects, type BrassEjection } from './fx/effects';
 import { bindings, Input } from './input';
-import { Connection, defaultServerUrl, type WelcomeMessage } from './net/connection';
+import { Connection, defaultServerUrl, privateRoomUrl, type WelcomeMessage } from './net/connection';
 import { MapRenderer } from './render/mapRender';
 import { BaboVisual } from './render/baboRenderer';
 import { FlagRenderer } from './render/flagRenderer';
@@ -84,11 +86,12 @@ import { gameSounds } from './sounds';
 import type { OrbPictureFn } from './hud/hudArt';
 import { HudLayer, type CampaignHud, type HudFrame } from './hud/hudLayer';
 import { weaponInfo } from './hud/weaponInfo';
+import type { RoomView } from './hud/weaponPicker';
 import { WavesRun, type WavesEnd } from './wavesRun';
 import { POWERS, WAVES, type PowerKind } from './waves';
 import { ViewOverlay, scopeAlpha } from './ui/viewOverlay';
 import { VIEW_ASPECT, fitView, type ViewRect } from './view';
-import { teamName } from './modes';
+import { modeName, modeOfGameType, teamName } from './modes';
 import { track } from './analytics';
 import { t } from '../i18n';
 
@@ -119,6 +122,8 @@ export interface ClientGameOptions {
   authToken?: string;
   /** The most kills we made in one online match of this mode, before this game (records.ts, account). */
   bestKills?: number;
+  /** A private room (its code; key: we made it, so we are its host). Its matches set no record. */
+  privateRoom?: { code: string; key?: string };
   // --- campaign (offline)
   /** A campaign level: Team Deathmatch alone against the bots, nobody respawns (src/client/campaign.ts). */
   campaign?: CampaignLevel;
@@ -172,6 +177,8 @@ export class ClientGame {
   private chat = { active: false, text: '' };
   private svBackup: typeof sv | null = null;
   private pendingMap: string | null = null;
+  /** The private room we play in (online), null in a public one. */
+  private room: NetRoom | null = null;
   /** Hits our shots made on our screen, per victim (time), waiting for the server's 'hit'. */
   private predictedHits = new Map<number, number[]>();
   /**
@@ -225,6 +232,8 @@ export class ClientGame {
       this.opts.onMenuVisibility?.(visible);
     };
     menu.onQuit = () => this.quit();
+    menu.room = () => this.roomView();
+    menu.onRoomAction = (a, extra) => this.conn?.send({ t: 'host', a, ...extra });
     // Pressing Escape while the mouse is captured releases it: open the menu like k_menuAccess.
     this.input.onPointerLockChange = (locked) => {
       if (!locked && this.running && !menu.visible && !this.camp?.over && !this.waves?.over) menu.show();
@@ -257,7 +266,8 @@ export class ClientGame {
     onProgress?.(t('loading.assets'));
     await preloadAssets((d, total) => onProgress?.(t('loading.assetsN', { d, t: total })));
     onProgress?.(t('loading.connecting'));
-    const { conn, welcome } = await Connection.open(opts.serverUrl ?? defaultServerUrl(opts.mode), opts.playerName, opts.skin, opts.authToken);
+    const url = opts.privateRoom ? privateRoomUrl(opts.privateRoom.code) : (opts.serverUrl ?? defaultServerUrl(opts.mode));
+    const { conn, welcome } = await Connection.open(url, opts.playerName, opts.skin, opts.authToken, opts.privateRoom?.key);
     try {
       onProgress?.(t('loading.mapName', { map: welcome.map }));
       const map = await loadMap(welcome.map);
@@ -619,6 +629,7 @@ export class ClientGame {
     this.game.roundState = welcome.rs;
     this.game.events.drain(); // join messages of the players already there
     this.hud.picker.serverName = welcome.server;
+    this.room = welcome.room ?? null;
     conn.onClose = (reason) => this.quit(reason);
     this.onMapLoaded(map);
     this.beginLoop();
@@ -633,7 +644,8 @@ export class ClientGame {
   private beginLoop(): void {
     this.newMatch();
     this.hud.setGameType(this.game.gameType);
-    if (this.online) this.hud.setRecord(this.opts.bestKills ?? bestKills(this.opts.mode));
+    // A private room's matches set no record
+    if (this.online) this.hud.setRecord(this.room ? null : (this.opts.bestKills ?? bestKills(this.opts.mode)));
     loadAnnouncer();
     // Offline the match starts now; online only when joining in its first seconds
     if (!this.online || this.game.gameTimeLeft > sv.sv_gameTimeLimit - 5) setTimeout(() => this.announceStart(), 600);
@@ -832,9 +844,38 @@ export class ClientGame {
 
   // ---------------------------------------------------------------- analytics
 
-  /** The mode, online or training, and the map: on every match event. */
+  /** The mode, online or training, and the map: on every match event (and a private room's). */
   private matchInfo(): Record<string, string | number | boolean> {
-    return { mode: this.waves ? 'waves' : this.opts.mode, online: this.online, map: this.game.map.name };
+    return { mode: this.waves ? 'waves' : this.opts.mode, online: this.online, map: this.game.map.name, ...(this.room ? { private_room: true } : {}) };
+  }
+
+  /** The private room's tab of the Esc menu (null in a public room). */
+  private roomView(): RoomView | null {
+    const room = this.room;
+    if (!room || !this.game) return null;
+    const game = this.game;
+    const ctf = game.gameType === GAME_TYPE_CTF;
+    const host = game.players[room.host] ?? null;
+    const players = game.players
+      .filter((p): p is Player => !!p)
+      .map((p) => ({ id: p.playerID, name: p.name, tag: p.tag, team: p.teamID, host: p.playerID === room.host, me: p === this.me }))
+      .sort((a, b) => Number(b.host) - Number(a.host) || a.team - b.team || a.name.localeCompare(b.name));
+    return {
+      code: room.code,
+      link: `${location.origin}/r/${room.code}`,
+      host: host?.name ?? '',
+      isHost: !!host && host === this.me,
+      warmup: room.warmup,
+      locked: room.locked,
+      teams: game.isTeamGame,
+      mode: modeName(modeOfGameType(game.gameType)),
+      map: game.map.name,
+      maps: room.maps,
+      goal: room.scoreLimit > 0 ? t(ctf ? 'room.goalCaptures' : 'room.goalKills', { n: room.scoreLimit }) : t('room.noLimit'),
+      time: room.timeLimit > 0 ? t('room.minutes', { n: room.timeLimit }) : t('room.noLimit'),
+      maxPlayers: room.maxPlayers,
+      players,
+    };
   }
 
   /** The campaign level being played, for its events. */
@@ -1045,6 +1086,17 @@ export class ClientGame {
           break;
         case 'players':
           this.applyPlayers(msg.list);
+          this.hud.picker.refreshRoom();
+          break;
+        case 'room':
+          this.room = msg.room;
+          // The warm-up ended: the match's limits
+          if (msg.rules) {
+            sv.sv_scoreLimit = msg.rules.scoreLimit;
+            sv.sv_winLimit = msg.rules.winLimit;
+            sv.sv_gameTimeLimit = msg.rules.gameTimeLimit;
+          }
+          this.hud.picker.refreshRoom();
           break;
         case 'vote':
           this.setVote(msg);
@@ -1465,6 +1517,10 @@ export class ClientGame {
         if (e.sys === 'join') this.hud.addChat(null, e.team !== undefined && e.team >= 0 ? t('chat.joinedTeam', { name: e.text, team: teamName(e.team) }) : t('chat.joined', { name: e.text }));
         else if (e.sys === 'leave') this.hud.addChat(null, t('chat.left', { name: e.text }));
         else if (e.sys === 'admin') this.hud.addChat(t('chat.admin'), e.text, 'admin');
+        else if (e.sys === 'host') this.hud.addChat(null, t('chat.host', { name: e.text }));
+        else if (e.sys === 'start') this.hud.addChat(null, t('chat.start'));
+        else if (e.sys === 'kick') this.hud.addChat(null, t('chat.kick', { name: e.text }));
+        else if (e.sys === 'lock' || e.sys === 'unlock') this.hud.addChat(null, t(e.sys === 'lock' ? 'chat.lock' : 'chat.unlock'));
         else this.hud.addChat(p ? p.name : null, e.text);
         audio.play(S.chat, 150);
         break;
@@ -1485,8 +1541,8 @@ export class ClientGame {
       case 'mapChange':
         this.announceStart();
         this.newMatch(e.mapName);
-        // The match that just ended may hold a new personal record (online, 30 s played at least)
-        if (this.online && me.timePlayedCurGame >= 30 && me.kills > 0) {
+        // The match that just ended may hold a new personal record (online, 30 s played at least; not in a private room)
+        if (this.online && !this.room && me.timePlayedCurGame >= 30 && me.kills > 0) {
           saveBestKills(this.opts.mode, me.kills);
           this.hud.setRecord(Math.max(this.opts.bestKills ?? 0, bestKills(this.opts.mode)));
         }
@@ -1565,6 +1621,7 @@ export class ClientGame {
       showScores: this.input.isDown(bindings.showScore) && !this.chat.active,
       campaign: this.campaignHud(),
       waves: this.waves?.hud() ?? null,
+      warmup: this.room?.warmup ? { host: this.room.host === this.me.playerID } : null,
       chatInput: this.chat.active ? this.chat.text : null,
       scope,
       // Player::renderName: where a babo is on the screen (its drawn position), and just above it
