@@ -601,8 +601,17 @@ export class HudLayer {
     const prizeArt = (m: (typeof MILESTONES)[number]) =>
       'weapon' in m ? `<img class="w" src="${weaponLook(m.weapon).picture}" alt="" />` : `<img class="o" data-orb="${m.skin}" alt="" />`;
     let side = '';
-    for (const m of e.unlocked)
+    // One prize: a card; several (a first long run): small chips, two a row, so the panel stays on screen
+    if (e.unlocked.length === 1) {
+      const m = e.unlocked[0];
       side += `<div class="wu-got">${prizeArt(m)}<span><small>${t('wend.unlocked')}</small><b>${'skin' in m ? orbName(m.skin) : prizeText(m)}</b><em>${t('wend.atWave', { n: m.wave })}</em></span></div>`;
+    } else if (e.unlocked.length > 1)
+      side +=
+        `<div class="wu-gots"><small>${t('wend.unlocked')}</small><div>` +
+        e.unlocked
+          .map((m) => `<span class="wu-chip">${prizeArt(m)}<span><b>${'skin' in m ? orbName(m.skin) : weaponLook(m.weapon).name}</b><em>${t('workshop.atWave', { n: m.wave })}</em></span></span>`)
+          .join('') +
+        `</div></div>`;
     const record = Math.max(e.wave, e.recordBefore);
     const newCheckpoint = checkpoints(e.wave).filter((w) => w > 1 && w > e.recordBefore).pop();
     const next = nextMilestone(record);
@@ -614,7 +623,8 @@ export class HudLayer {
         `<em>${t(next.wave - record === 1 ? 'wend.nextOne' : 'wend.nextLeft', { n: next.wave, left: next.wave - record })}</em></span></div>` +
         `<span class="wu-bar"><i style="width:${Math.round(share * 100)}%"></i></span></div>`;
     }
-    if (newCheckpoint) side += `<div class="wu-cp">${t('wend.checkpoint', { n: newCheckpoint })}</div>`;
+    // A new checkpoint: under the Cores (the left column has the room)
+    const checkpoint = newCheckpoint ? `<div class="wu-cp">${t('wend.checkpoint', { n: newCheckpoint })}</div>` : '';
 
     const wait = `<span class="wait">${CAMPAIGN_NEXT_WAIT}</span>`;
     const buttons =
@@ -623,7 +633,7 @@ export class HudLayer {
       `<button type="button" class="primary" data-a="retry" disabled><span class="h-key">Enter</span>${t('waves.retry')}${wait}</button>`;
     this.openEndPanel(
       `<div class="t lost">${t('waves.over')}</div><div class="lvl">${t('waves.reached', { n: e.wave })}</div>${head}` +
-        `<div class="wend-split">${cores}<div class="wu-side">${side}</div></div><div class="btns">${buttons}</div>`,
+        `<div class="wend-split"><div class="wu-side">${cores}${checkpoint}</div><div class="wu-side">${side}</div></div><div class="btns">${buttons}</div>`,
       'retry',
       (a) => e.onAction(a === 'menu' ? 'menu' : a === 'shop' ? 'shop' : 'retry'),
       { KeyW: 'shop' },
