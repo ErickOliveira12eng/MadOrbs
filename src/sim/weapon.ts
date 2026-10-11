@@ -16,6 +16,7 @@ import {
 import { sv, weaponDefs, type WeaponDef } from './gameVar';
 import { Vec3, rotateAboutAxis } from './vec';
 import { weaponDummies, type WeaponDummy } from './weaponDummies';
+import { throwPower } from './projectile';
 import type { Player } from './player';
 
 const Z_AXIS = new Vec3(0, 0, 1);
@@ -149,7 +150,9 @@ export class Weapon {
         if (playSound) owner.fireFrameDelay = 2;
         owner.shootShakeDis = direction.mul(-this.reculVel * 0.5);
         game.events.push({ type: 'fire', playerID: owner.playerID, weaponID: this.weaponID, nuzzleID: this.firingNuzzle, origin, direction });
-        game.shoot(origin, direction, 0, this.damage, owner, this.projectileType);
+        // A grenade or molotov lands where the mouse is, up to its full throw (throwPower)
+        const power = throwPower(this.projectileType, origin, owner.currentCF.mousePosOnMap);
+        game.shoot(origin, power < 1 ? direction.mul(power) : direction, 0, this.damage, owner, this.projectileType);
       }
     }
   }

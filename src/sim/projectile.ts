@@ -20,6 +20,35 @@ import { angleFromDir, reflect } from './helpers';
 import { Vec3, randRange, randVec } from './vec';
 import type { Game } from './game';
 
+/**
+ * A throw's launch (GameProjectile.cpp): the aim times `speed` across the floor, plus `up` upwards.
+ * Grenades: 5 and 5; molotovs: 6 and 2.
+ */
+const THROW_LAUNCH: Record<number, { speed: number; up: number }> = {
+  [PROJECTILE_GRENADE]: { speed: 5, up: 5 },
+  [PROJECTILE_COCKTAIL_MOLOTOV]: { speed: 6, up: 2 },
+};
+const GRAVITY = 9.8;
+/** The shortest throw: a share of the full one (never right at our feet). */
+export const MIN_THROW = 0.15;
+
+/**
+ * How hard a grenade or molotov is thrown to land where the mouse is (Mad Orbs: the original always
+ * threw as far as it could): the distance to the mouse over the full throw's reach, from MIN_THROW to
+ * 1 (the mouse further than that: a full throw, as before). The aim is scaled by it; the arc keeps its
+ * height, so it lands that much nearer. 1 for anything else.
+ */
+export function throwPower(projectileType: number, origin: Vec3, target: Vec3): number {
+  const launch = THROW_LAUNCH[projectileType];
+  if (!launch) return 1;
+  // Where the full throw first touches the floor: up and down from the hand's height
+  const z0 = Math.max(0, origin.z);
+  const flight = (launch.up + Math.sqrt(launch.up * launch.up + 2 * GRAVITY * z0)) / GRAVITY;
+  const reach = launch.speed * flight;
+  const distance = Math.hypot(target.x - origin.x, target.y - origin.y);
+  return Math.max(MIN_THROW, Math.min(1, distance / reach));
+}
+
 export class Projectile {
   readonly uniqueID: number;
   readonly projectileType: number;
@@ -68,14 +97,14 @@ export class Projectile {
       case PROJECTILE_GRENADE:
         this.rotateVel = 360;
         this.duration = 2;
-        this.currentCF.vel.mulIn(5);
-        this.currentCF.vel.z += 5; // not too steep, we want to hit walls
+        this.currentCF.vel.mulIn(THROW_LAUNCH[PROJECTILE_GRENADE].speed);
+        this.currentCF.vel.z += THROW_LAUNCH[PROJECTILE_GRENADE].up; // not too steep, we want to hit walls
         break;
       case PROJECTILE_COCKTAIL_MOLOTOV:
         this.rotateVel = 360;
         this.duration = 10;
-        this.currentCF.vel.mulIn(6);
-        this.currentCF.vel.z += 2;
+        this.currentCF.vel.mulIn(THROW_LAUNCH[PROJECTILE_COCKTAIL_MOLOTOV].speed);
+        this.currentCF.vel.z += THROW_LAUNCH[PROJECTILE_COCKTAIL_MOLOTOV].up;
         break;
       case PROJECTILE_LIFE_PACK:
         this.rotateVel = randRange(-90, 90);

@@ -51,7 +51,7 @@ import { distanceToSegment, segmentToSphere } from './helpers';
 import { CRATE_RADIUS, Crate } from './crate';
 import type { GameMap } from './map';
 import { Player } from './player';
-import { Projectile } from './projectile';
+import { MIN_THROW, Projectile } from './projectile';
 import { Vec3, distance, distanceSquared, randRange, rotateAboutAxis } from './vec';
 
 const Z_AXIS = new Vec3(0, 0, 1);
@@ -808,7 +808,8 @@ export class Game {
     let dir = direction;
     if (validate) {
       if (!this.validShotOrigin(from, origin)) return;
-      dir = sanitizeDirection(direction);
+      // A throw keeps how hard it was thrown (where the mouse was: throwPower); a rocket goes full speed
+      dir = sanitizeDirection(direction, projectileType === PROJECTILE_GRENADE || projectileType === PROJECTILE_COCKTAIL_MOLOTOV);
     }
     if (projectileType === PROJECTILE_COCKTAIL_MOLOTOV && !sv.sv_enableMolotov) return;
     if (projectileType === PROJECTILE_ROCKET) {
@@ -1176,8 +1177,9 @@ export class Game {
 }
 
 /** Normalized horizontal-ish direction from a network message (falls back to +Y). */
-function sanitizeDirection(d: Vec3): Vec3 {
+function sanitizeDirection(d: Vec3, keepPower = false): Vec3 {
   const v = new Vec3(Number.isFinite(d.x) ? d.x : 0, Number.isFinite(d.y) ? d.y : 0, Number.isFinite(d.z) ? Math.max(-1, Math.min(1, d.z)) : 0);
   if (v.lengthSq() < 1e-8) return new Vec3(0, 1, 0);
-  return v.normalizeIn();
+  const power = keepPower ? Math.max(MIN_THROW, Math.min(1, v.length())) : 1;
+  return v.normalizeIn().mulIn(power);
 }
