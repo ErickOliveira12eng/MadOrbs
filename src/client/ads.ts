@@ -101,8 +101,14 @@ const blockListeners: (() => void)[] = [];
 /** A banner page that doesn't answer in this long was blocked. */
 const FRAME_SILENCE_MS = 7_000;
 
+/**
+ * Search engines' and the ad networks' crawlers (Googlebot, the AdSense one...): the ad networks send
+ * them no ad, which looks like an ad blocker; they must see the page, never the request to turn one off.
+ */
+const CRAWLER = /bot\/|crawler|spider|googlebot|mediapartners-google|adsbot|google-inspectiontool|chrome-lighthouse|bingbot|duckduckbot|yandex|baiduspider|slurp|facebookexternalhit/i.test(navigator.userAgent);
+
 function blockerFound(): void {
-  if (blocked) return;
+  if (blocked || CRAWLER) return;
   blocked = true;
   track('adblock_detected');
   for (const fn of blockListeners) fn();
@@ -132,7 +138,7 @@ let blockCheck: Promise<boolean> | null = null;
  * refused, the banners' own origin refused; and later what the banners say (onAdBlockFound).
  */
 export function adBlocked(): Promise<boolean> {
-  if (!rightHost() || !consented() || !frameOrigin()) return Promise.resolve(false);
+  if (CRAWLER || !rightHost() || !consented() || !frameOrigin()) return Promise.resolve(false);
   blockCheck ??= Promise.all([baitHidden(), refused(GOOGLE_ADS), frameCheck.then((ok) => !ok)]).then((found) => {
     if (found.some(Boolean)) blockerFound();
     return blocked;
