@@ -160,6 +160,7 @@
       </main>
 
       <footer class="footer">
+        <a href="#about" data-i18n="footer.about">About the game</a>
         <a data-i18n-attr="href=link.howToPlay" href="/how-to-play" target="_blank" rel="noopener" data-i18n="footer.howToPlay">How to play</a>
         <a data-i18n-attr="href=link.weapons" href="/weapons" target="_blank" rel="noopener" data-i18n="footer.weapons">Weapons</a>
         <a data-i18n-attr="href=link.modes" href="/modes" target="_blank" rel="noopener" data-i18n="footer.modes">Game modes</a>
@@ -167,6 +168,86 @@
         <a data-i18n-attr="href=link.terms" href="/terms" target="_blank" rel="noopener" data-i18n="footer.terms">Terms of use</a>
         <a href="#" data-cookie-settings data-i18n="footer.cookies">Cookies</a>
       </footer>
+
+      <!-- Below the lobby, seen only when scrolling (the lobby keeps the whole first screen): about the game, how
+           to play, the modes, what's new, questions and the guides, for people who want to know more and for search
+           engines. Plain text in the page, translated like the rest (data-i18n). -->
+      <section id="about" class="home-info" aria-labelledby="aboutTitle">
+        <div class="info-wrap">
+          <section class="info-block">
+            <h2 id="aboutTitle" data-i18n="home.aboutTitle">About Mad Orbs</h2>
+            <p data-i18n="home.about1">Mad Orbs is a free online shooter that runs in your browser. You roll an armed Orb around an arena seen from above and fight other players in real time: up to 16 per match, in Deathmatch, Team Deathmatch or Capture the Flag. There is nothing to download or install, and you can play as a guest or sign in with Google to keep your name, your player ID, your stats and your place in the ranking.</p>
+            <p data-i18n="home.about2">It is a remake of Babo Violent 2, a cult indie shooter released by RndLabs in 2006. The physics, the inertia of the Orbs, the counterweight aiming, the weapons and their damage come from the original source code, which its creators released as free software. On top of that classic core, Mad Orbs adds a modern interface, a solo campaign with bosses, an endless waves mode, private rooms for friends and the game in English, Portuguese and Spanish.</p>
+          </section>
+
+          <section class="info-block">
+            <h2 data-i18n="home.howTitle">How to play</h2>
+            <ol class="info-steps">
+              <li><b data-i18n="home.step1Title">Choose your Orb</b><span data-i18n="home.step1">Pick a style and three colours, then type your name. Your Orb is kept in this browser and, if you sign in, in your account.</span></li>
+              <li><b data-i18n="home.step2Title">Pick a mode and press Play now</b><span data-i18n="home.step2">You join the online match of that mode with whoever is playing. When the rooms fill up, another one opens by itself.</span></li>
+              <li><b data-i18n="home.step3Title">Move and shoot</b><span data-i18n="home.step3">W, A, S and D roll the Orb, which keeps its momentum; the mouse aims and the left button shoots. The right button throws a grenade, the middle one a molotov, and Space uses your secondary weapon: knives, the nuke bot or the shield.</span></li>
+              <li><b data-i18n="home.step4Title">Choose your weapons</b><span data-i18n="home.step4">Esc opens the weapon menu: sub machine gun, shotgun, sniper rifle, dual machine gun, chain gun, bazooka, photon rifle or flame thrower. The choice applies the next time you respawn, and F swaps your weapon for one lying on the floor.</span></li>
+              <li><b data-i18n="home.step5Title">Keep an eye on the match</b><span data-i18n="home.step5">Tab shows the scoreboard, T opens the chat and the minimap in the corner shows the walls and where the fight is. Kill streaks are announced: Double Kill, Triple Kill, Dominating...</span></li>
+            </ol>
+            <a class="info-more" data-i18n-attr="href=link.howToPlay" href="/how-to-play" data-i18n="home.howMore">Read the full guide: controls, weapons and tips</a>
+          </section>
+
+          <section class="info-block">
+            <h2 data-i18n="home.modesTitle">Game modes</h2>
+            <div class="info-modes">
+              <article class="info-mode"><img src="/menu/mode-dm.webp" alt="" width="288" height="182" loading="lazy" /><h3 data-i18n="mode.dm.name">Deathmatch</h3><p data-i18n="home.modeDm">Everyone against everyone. Each kill is a point, and the first to reach the goal wins the match. The best mode to learn the weapons and the movement.</p></article>
+              <article class="info-mode"><img src="/menu/mode-tdm.webp" alt="" width="288" height="182" loading="lazy" /><h3 data-i18n="mode.tdm.name">Team Deathmatch</h3><p data-i18n="home.modeTdm">Blue team against red team, balanced by the game. Every kill counts for your team, and you can't hurt your teammates.</p></article>
+              <article class="info-mode"><img src="/menu/mode-ctf.webp" alt="" width="288" height="182" loading="lazy" /><h3 data-i18n="mode.ctf.name">Capture the Flag</h3><p data-i18n="home.modeCtf">Each team has a flag at its base. Grab the enemy flag and carry it to your own base, with yours at home, to score a capture. A carrier who dies drops it, and its team returns it by touching it.</p></article>
+              <article class="info-mode solo"><h3 data-i18n="menu.campaign">Campaign</h3><p data-i18n="home.modeCampaign">Eight chapters against bots, one weapon each, five levels and a boss per chapter. Nobody respawns, you included, and each level is worth up to three stars by time.</p></article>
+              <article class="info-mode solo"><h3 data-i18n="menu.waves">Waves</h3><p data-i18n="home.modeWaves">Survive endless waves of bots that hunt you down. Break crates for power-ups, stack the permanent upgrades and face a boss every ten waves.</p></article>
+              <article class="info-mode solo"><h3 data-i18n="menu.train">Training</h3><p data-i18n="home.modeTraining">You and the bots, on any map and in any mode, with no internet needed. Choose how many bots and how well they play.</p></article>
+            </div>
+            <a class="info-more" data-i18n-attr="href=link.modes" href="/modes" data-i18n="home.modesMore">More about the game modes</a>
+          </section>
+
+          <div class="info-cols">
+            <section class="info-block">
+              <h2 data-i18n="home.newsTitle">What's new</h2>
+              <ul class="info-news">
+                <li><time datetime="2026-10-10" data-i18n="home.news1Date">October 10, 2026</time><b data-i18n="home.news1Title">A new start screen</b><span data-i18n="home.news1">Your Orb takes the centre of the lobby, the modes show a moment of a match, and the campaign and the waves show your progress.</span></li>
+                <li><time datetime="2026-10-10" data-i18n="home.news2Date">October 10, 2026</time><b data-i18n="home.news2Title">Private rooms</b><span data-i18n="home.news2">Make a match only for your friends and send them the link: you choose the mode, the map, the goal and when it starts, and you can move players between the teams. It doesn't count for the ranking.</span></li>
+                <li><time datetime="2026-10-10" data-i18n="home.news3Date">October 10, 2026</time><b data-i18n="home.news3Title">A new soundtrack</b><span data-i18n="home.news3">Metal tracks by GTDStudio in the menu and in the matches.</span></li>
+                <li><time datetime="2026-10-06" data-i18n="home.news4Date">October 6, 2026</time><b data-i18n="home.news4Title">A lighter connection</b><span data-i18n="home.news4">Matches send 3 times less data, and new rooms open by themselves when the others fill up.</span></li>
+                <li><time datetime="2026-10-05" data-i18n="home.news5Date">October 5, 2026</time><b data-i18n="home.news5Title">Waves mode and ranking</b><span data-i18n="home.news5">Survive waves of bots with power-ups and bosses. The ranking shows the best players of each mode, of the campaign and of the waves.</span></li>
+                <li><time datetime="2026-10-03" data-i18n="home.news6Date">October 3, 2026</time><b data-i18n="home.news6Title">Campaign, accounts and an announcer</b><span data-i18n="home.news6">The solo campaign arrives with eight chapters and bosses; sign in with Google to keep your stats; an announcer calls First Blood, Double Kill and the other streaks; and the next map is chosen by vote.</span></li>
+                <li><time datetime="2026-10-02" data-i18n="home.news7Date">October 2, 2026</time><b data-i18n="home.news7Title">Three languages</b><span data-i18n="home.news7">The game and the site in English, Portuguese and Spanish.</span></li>
+              </ul>
+            </section>
+            <section class="info-block">
+              <h2 data-i18n="home.faqTitle">Questions</h2>
+              <dl class="info-faq">
+                <dt data-i18n="home.q1">Is Mad Orbs free?</dt>
+                <dd data-i18n="home.a1">Yes. Everything is free, online and offline. The game shows a few ads on the start screen and in the pauses, never while your Orb is alive in a match.</dd>
+                <dt data-i18n="home.q2">Do I need to download anything?</dt>
+                <dd data-i18n="home.a2">No. Mad Orbs runs in the browser, on Windows, Mac and Linux. It works in Chrome, Edge, Firefox and Safari.</dd>
+                <dt data-i18n="home.q3">Does it work on phones?</dt>
+                <dd data-i18n="home.a3">Not yet: the game needs a keyboard and a mouse. Open madorbs.com on a computer to play.</dd>
+                <dt data-i18n="home.q4">How do I play with my friends?</dt>
+                <dd data-i18n="home.a4">Create a private room, choose the mode and the map, and send the link or the six-letter code. You need an account to create a room; your friends can join as guests.</dd>
+                <dt data-i18n="home.q5">Do I need an account?</dt>
+                <dd data-i18n="home.a5">No, guests play every mode. With an account (Sign in, with Google) you keep a permanent player ID, your Orb, your stats in each mode, your campaign progress and your place in the ranking.</dd>
+                <dt data-i18n="home.q6">What is Babo Violent 2?</dt>
+                <dd data-i18n="home.a6">A multiplayer shooter seen from above, released in 2006 by RndLabs and remembered for its fast matches and its peculiar physics. Its creators later published the source code, and Mad Orbs was rebuilt from it to bring the game back, now in the browser.</dd>
+              </dl>
+            </section>
+          </div>
+
+          <nav class="info-guides" aria-labelledby="guidesTitle">
+            <h2 id="guidesTitle" data-i18n="home.guidesTitle">Guides</h2>
+            <a data-i18n-attr="href=link.howToPlay" href="/how-to-play" data-i18n="footer.howToPlay">How to play</a>
+            <a data-i18n-attr="href=link.weapons" href="/weapons" data-i18n="footer.weapons">Weapons</a>
+            <a data-i18n-attr="href=link.modes" href="/modes" data-i18n="footer.modes">Game modes</a>
+            <a data-i18n-attr="href=link.campaign" href="/campaign" data-i18n="footer.campaign">Campaign</a>
+            <a data-i18n-attr="href=link.privacy" href="/privacy" data-i18n="footer.privacy">Privacy</a>
+            <a data-i18n-attr="href=link.terms" href="/terms" data-i18n="footer.terms">Terms of use</a>
+          </nav>
+        </div>
+      </section>
 
       <!-- A banner on the left of the lobby, when the window has room and the visitor agreed (src/client/ads.ts):
            the skyscraper, or the rectangle when the window is too short for it -->

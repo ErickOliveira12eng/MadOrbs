@@ -135,8 +135,9 @@
 
 /* ------------------------------------------------------------------ top bar */
 
+/* In the start screen's scrolling box: it goes away with the lobby when scrolling to the text below */
 .topbar {
-  position: fixed;
+  position: absolute;
   top: 14px;
   left: 24px;
   right: 18px;
@@ -1231,7 +1232,7 @@ kbd.mouse .icon {
 }
 
 .footer {
-  position: fixed;
+  position: absolute;
   z-index: 2;
   left: calc(16px + var(--ad-gutter, 0px));
   right: 16px;
@@ -1259,7 +1260,7 @@ kbd.mouse .icon {
    In the gutter left of the lobby (menu.ts makes room for it and shows it where it fits). */
 
 .ad-slot {
-  position: fixed;
+  position: absolute;
   z-index: 2;
   top: calc(50% + 14px);
   transform: translateY(-50%);
@@ -3153,5 +3154,229 @@ input[type='range'] {
 @media (max-width: 520px) {
   .room-row {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ------------------------------------------------------------------ below the lobby (index.html #about)
+   Only seen when scrolling: the lobby keeps the whole first screen. */
+
+@media (prefers-reduced-motion: no-preference) {
+  #start {
+    scroll-behavior: smooth;
+  }
+}
+
+.home-info {
+  position: relative;
+  z-index: 2;
+  padding: 140px 24px 72px;
+  background: linear-gradient(180deg, rgba(12, 10, 36, 0) 0, rgba(12, 10, 36, 0.94) 110px, #0c0a24 220px);
+  color: #cfd3f3;
+  font: 600 16px/1.65 var(--font-ui);
+}
+
+.info-wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+}
+
+.info-block h2 {
+  margin: 0 0 18px;
+  color: #fff;
+  font: 400 36px/1.1 var(--font-display);
+  letter-spacing: 0.5px;
+}
+
+.info-block h3 {
+  margin: 0 0 6px;
+  color: #fff;
+  font: 900 18px/1.3 var(--font-ui);
+}
+
+.info-block p {
+  max-width: 76ch;
+  margin: 0 0 14px;
+}
+
+.info-steps {
+  counter-reset: step;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.info-steps li {
+  counter-increment: step;
+  padding: 18px 16px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.info-steps li::before {
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 10px;
+  border-radius: 50%;
+  background: var(--gold-1);
+  color: #231800;
+  font: 900 15px var(--font-ui);
+}
+
+.info-steps b,
+.info-news b {
+  display: block;
+  margin-bottom: 4px;
+  color: #fff;
+  font: 900 16px/1.3 var(--font-ui);
+}
+
+.info-steps span,
+.info-news span,
+.info-mode p,
+.info-faq dd {
+  display: block;
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.info-more {
+  display: inline-block;
+  margin-top: 18px;
+  color: #ffd76a;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.info-more:hover,
+.info-more:focus-visible {
+  text-decoration: underline;
+}
+
+.info-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.info-mode {
+  padding-bottom: 16px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.info-mode img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 288 / 182;
+  object-fit: cover;
+}
+
+.info-mode h3 {
+  margin: 14px 16px 6px;
+}
+
+.info-mode p {
+  max-width: none;
+  margin: 0 16px;
+}
+
+.info-mode.solo {
+  padding-top: 2px;
+}
+
+.info-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 48px;
+}
+
+.info-news {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.info-news time {
+  display: block;
+  margin-bottom: 2px;
+  color: #ffd76a;
+  font: 800 12.5px var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.info-faq {
+  margin: 0;
+}
+
+.info-faq dt {
+  margin-top: 18px;
+  color: #fff;
+  font: 900 16px/1.35 var(--font-ui);
+}
+
+.info-faq dt:first-child {
+  margin-top: 0;
+}
+
+.info-faq dd {
+  margin: 4px 0 0;
+}
+
+.info-guides {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.info-guides h2 {
+  margin: 0 8px 0 0;
+  color: #fff;
+  font: 400 24px var(--font-display);
+}
+
+.info-guides a {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #e3e6ff;
+  font: 800 14px var(--font-ui);
+  text-decoration: none;
+}
+
+.info-guides a:hover,
+.info-guides a:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 760px) {
+  .home-info {
+    padding: 80px 16px 48px;
+  }
+  .info-block h2 {
+    font-size: 30px;
+  }
+  .info-modes,
+  .info-cols {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

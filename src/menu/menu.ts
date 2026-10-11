@@ -265,6 +265,8 @@ export class StartScreen {
 
   show(message = ''): void {
     this.root.hidden = false;
+    // Always the lobby first (not the text below it, where the page may have been scrolled)
+    this.root.scrollTop = 0;
     const box = $('message');
     box.textContent = message;
     box.hidden = !message;
