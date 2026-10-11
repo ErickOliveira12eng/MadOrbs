@@ -23,7 +23,7 @@ export const WAVES = {
   /** Share of the damage the player takes: the bots hit a quarter as hard as elsewhere. */
   playerDamage: 0.25,
   /** The bots' speed (they hunt the player down: a little slower, so there is room to run). */
-  botSpeed: 0.8,
+  botSpeed: 0.7,
   /** The player's weapons, the same at each spawn (better ones come from the crates). */
   primary: WEAPON_SMG,
   /** Seconds before the player is back after a death (by itself: no click needed). */
