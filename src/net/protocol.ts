@@ -119,7 +119,94 @@ export interface RoomStatus {
 }
 export const MAX_MESSAGE_BYTES = 8192;
 export const MAX_CHAT_LENGTH = 100;
-export const MAX_NAME_LENGTH = 31;
+/** A player's name: at most this many characters (accents on a letter don't count). */
+export const MAX_NAME_LENGTH = 16;
+
+/**
+ * What a name never keeps: control characters (the original's colour codes \x01..\x09 too), the
+ * invisible ones (zero-width spaces and joiners, word joiners, the Hangul fillers, the braille blank:
+ * names that look empty or like someone else's), the ones that flip the text's direction (they turn
+ * the kill feed around), and '#' (the player IDs, #K7Q2MX: a name must not pass for one).
+ * supabase/migrations/..._name_rules.sql refuses the same in the account names.
+ */
+const NAME_DROP = /[\u0000-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\u2800\u3164\ufeff\uffa0#]/g;
+const MARK = /\p{M}/u;
+const SPACE = /\s/u;
+const LETTER_OR_DIGIT = /[\p{L}\p{N}]/u;
+
+/**
+ * A name as it may be used: without what NAME_DROP lists, at most 2 accents on a letter (no "zalgo"
+ * text running over the HUD), spaces collapsed into one, trimmed, at most MAX_NAME_LENGTH characters;
+ * '' when no letter or digit is left. The same in the page and on the server (which has the last word).
+ */
+export function cleanName(raw: unknown): string {
+  if (typeof raw !== 'string') return '';
+  let out = '';
+  let count = 0;
+  let marks = 0;
+  for (const ch of raw.normalize('NFC').replace(NAME_DROP, '')) {
+    if (MARK.test(ch)) {
+      if (count === 0 || ++marks > 2) continue;
+      out += ch;
+      continue;
+    }
+    if (count >= MAX_NAME_LENGTH) break;
+    marks = 0;
+    if (SPACE.test(ch)) {
+      if (out === '' || out.endsWith(' ')) continue;
+      out += ' ';
+    } else out += ch;
+    count++;
+  }
+  out = out.trim();
+  return LETTER_OR_DIGIT.test(out) ? out : '';
+}
+
+/**
+ * A name field's text cut at MAX_NAME_LENGTH characters as it is typed (an emoji is one, accents
+ * don't count); the same text when shorter. The input's maxlength counts UTF-16 units, so it can't.
+ */
+export function limitNameInput(value: string): string {
+  // What cleanName drops or merges isn't counted: accents, invisible characters, extra spaces
+  const dropped = new RegExp(NAME_DROP.source);
+  let count = 0;
+  let lastSpace = true;
+  let out = '';
+  for (const ch of value) {
+    const space = SPACE.test(ch);
+    if (!MARK.test(ch) && !dropped.test(ch) && !(space && lastSpace)) {
+      if (count >= MAX_NAME_LENGTH) break;
+      count++;
+      lastSpace = space;
+    }
+    out += ch;
+  }
+  return out;
+}
+
+/**
+ * A name reduced to plain letters for the word checks: lower case, no accents, fancy and full-width
+ * letters read as plain ones (NFKD: 𝐀𝐝𝐦𝐢𝐧, Ａｄｍｉｎ), the usual digit and symbol stand-ins read as
+ * letters (4dm1n), everything else dropped.
+ */
+export function nameKey(name: string): string {
+  const leet: Record<string, string> = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '8': 'b', '@': 'a', $: 's' };
+  return name
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[0134578@$]/g, (c) => leet[c])
+    .replace(/[^a-z]/g, '');
+}
+
+/** Names that would pass for the game itself or its staff (the admin's notices show in the chat). */
+const RESERVED_IN = ['admin', 'moderador', 'moderator', 'madorbs', 'servidor', 'sistema', 'oficial', 'official', 'suporte', 'soporte'];
+const RESERVED_IS = ['mod', 'mods', 'server', 'system', 'staff', 'support', 'gm', 'dev', 'developer', 'desenvolvedor', 'desarrollador'];
+
+export function isReservedName(name: string): boolean {
+  const key = nameKey(name);
+  return RESERVED_IS.includes(key) || RESERVED_IN.some((w) => key.includes(w));
+}
 
 export type V3 = [number, number, number];
 export type V2 = [number, number];

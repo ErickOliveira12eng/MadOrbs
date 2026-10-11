@@ -1,6 +1,7 @@
 // The account window: signed out, what an account gives and Google's button; signed in, the
 // name, the player ID, sign out and delete the account. The stats have their own window (statsModal.ts).
 import { t } from '../i18n';
+import { MAX_NAME_LENGTH, cleanName, isReservedName, limitNameInput } from '../net/protocol';
 import type { Account, SaveError } from './account';
 import type { OrbStudio } from './orbStudio';
 import { skinInfo, type Settings } from './settings';
@@ -28,6 +29,12 @@ export class AccountModal {
       if (e.key === 'Escape' && this.isOpen) this.close();
     });
 
+    // At most MAX_NAME_LENGTH characters (an emoji is one: the maxlength counts UTF-16 units)
+    this.nameInput.maxLength = MAX_NAME_LENGTH * 2;
+    this.nameInput.addEventListener('input', () => {
+      const typed = limitNameInput(this.nameInput.value);
+      if (typed !== this.nameInput.value) this.nameInput.value = typed;
+    });
     $<HTMLFormElement>('accountNameForm').addEventListener('submit', (e) => {
       e.preventDefault();
       void this.saveName(this.nameInput.value);
@@ -55,8 +62,12 @@ export class AccountModal {
 
   /** Saves the account's name; `quiet` leaves no message when it works (at sign-in). */
   async saveName(raw: string, quiet = false): Promise<SaveError | null> {
-    const name = raw.trim().slice(0, 31);
+    const name = cleanName(raw);
     if (!name) return 'invalid';
+    if (isReservedName(name)) {
+      this.showNameMessage(t('name.reserved'), true);
+      return 'invalid';
+    }
     if (name === this.account.profile?.name) return null;
     const err = await this.account.saveName(name);
     if (err) this.showNameMessage(t(err === 'taken' ? 'account.taken' : err === 'invalid' ? 'account.invalid' : 'account.error'), true);

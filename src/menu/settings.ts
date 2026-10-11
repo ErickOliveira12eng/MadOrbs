@@ -1,6 +1,6 @@
 // What the player chose on the start screen, remembered in this browser.
 import { audio } from '../client/audio/audio';
-import { ROOM_MODES, type RoomMode } from '../net/protocol';
+import { ROOM_MODES, cleanName, isReservedName, type RoomMode } from '../net/protocol';
 import type { SkinInfo } from '../sim/player';
 import { loadWavesRecord } from '../client/waves';
 import { WAVES_SKINS, skinUnlocked } from '../client/wavesProgress';
@@ -101,7 +101,11 @@ export function loadSettings(): Settings {
       return s;
     }
     const raw = JSON.parse(saved) as Record<string, unknown>;
-    if (typeof raw.name === 'string') s.name = raw.name.slice(0, 31);
+    // The name's rules (src/net/protocol.ts): saved before them, it may need cleaning
+    if (typeof raw.name === 'string') {
+      const name = cleanName(raw.name);
+      s.name = isReservedName(name) ? '' : name;
+    }
     if (typeof raw.skin === 'string' && SKINS.includes(raw.skin)) s.skin = raw.skin;
     if (isHex(raw.red)) s.red = raw.red;
     if (isHex(raw.green)) s.green = raw.green;

@@ -12,7 +12,7 @@ import { bestKills } from '../client/records';
 import { loadWavesRecord } from '../client/waves';
 import { affordable, balance, loadProgress as loadWavesProgress } from '../client/wavesProgress';
 import { LANG_KEY, bigNum, lang, num, t, type Lang } from '../i18n';
-import { ROOM_MODES, type RoomMode, type RoomStatus } from '../net/protocol';
+import { MAX_NAME_LENGTH, ROOM_MODES, cleanName, isReservedName, limitNameInput, type RoomMode, type RoomStatus } from '../net/protocol';
 import type { Account } from './account';
 import { AccountModal } from './accountModal';
 import { StatsModal } from './statsModal';
@@ -115,13 +115,23 @@ export class StartScreen {
     for (const el of document.querySelectorAll<HTMLElement>('[data-icon]')) el.innerHTML = icon(el.dataset.icon as IconName, 20);
 
     this.nameInput.value = settings.name;
+    this.nameInput.maxLength = MAX_NAME_LENGTH * 2;
+    // The name's rules (cleanName): what is kept as it is typed; a name that would pass for the game's
+    // staff isn't (the hint says why)
     this.nameInput.addEventListener('input', () => {
-      settings.name = this.nameInput.value.trim().slice(0, 31);
+      const typed = limitNameInput(this.nameInput.value);
+      if (typed !== this.nameInput.value) this.nameInput.value = typed;
+      const name = cleanName(typed);
+      const reserved = isReservedName(name);
+      settings.name = reserved ? '' : name;
       saveSettings(settings);
-      this.showNameHint('');
+      this.showNameHint(reserved ? t('name.reserved') : '');
     });
-    // Signed in, the name is saved to the account when the field is left
-    this.nameInput.addEventListener('change', () => void this.claimName());
+    // Left: the field shows the name as it will be used; signed in, it is saved to the account
+    this.nameInput.addEventListener('change', () => {
+      if (!isReservedName(cleanName(this.nameInput.value))) this.nameInput.value = this.settings.name;
+      void this.claimName();
+    });
 
     this.accountModal = new AccountModal(account, settings, studio, (name) => this.setName(name));
     $('btnAccount').addEventListener('click', () => this.accountModal.open());
@@ -449,7 +459,7 @@ export class StartScreen {
   private async claimName(): Promise<void> {
     const p = this.account.profile;
     if (!this.account.signedIn || !p) return;
-    const name = this.nameInput.value.trim();
+    const name = this.settings.name;
     if (!name || name === p.name) {
       if (p.name) this.setName(p.name);
       return;
