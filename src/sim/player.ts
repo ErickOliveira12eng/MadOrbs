@@ -131,6 +131,8 @@ export class Player {
    */
   poisonShot = 0;
   iceShot = 0;
+  /** The waves' second wind: blows that would kill that leave half the life instead (each one used up). */
+  secondWind = 0;
   poisonLeft = 0;
   poisonDps = 0;
   poisonFrom: Player | null = null;
@@ -718,7 +720,7 @@ export class Player {
       }
     } else {
       this.applyDamage(cdamage, from, fromWeaponID);
-      if (this.life <= Number.EPSILON) {
+      if (this.life <= Number.EPSILON && !this.secondChance()) {
         this.dieSV(from, fromWeaponID, false);
         return true;
       }
@@ -752,7 +754,16 @@ export class Player {
       return;
     }
     this.applyDamage(this.poisonDps * delay * this.damageScale * this.armorBoost, from, from.weapon?.weaponID ?? WEAPON_SMG, true);
-    if (this.life <= Number.EPSILON) this.dieSV(from, from.weapon?.weaponID ?? WEAPON_SMG, false);
+    if (this.life <= Number.EPSILON && !this.secondChance()) this.dieSV(from, from.weapon?.weaponID ?? WEAPON_SMG, false);
+  }
+
+  /** A blow that would kill, with a second wind left: half the life back and a moment of immunity instead. */
+  private secondChance(): boolean {
+    if (this.secondWind <= 0) return false;
+    this.secondWind--;
+    this.life = 0.5;
+    this.immuneTime = Math.max(this.immuneTime, 1.5);
+    return true;
   }
 
   /** `dot`: a little of a damage over time (the waves' poison): no blood, sound or hit marker for it. */

@@ -11,6 +11,8 @@ import type { FeatKind } from '../../sim/feats';
 import { drawMapPreview } from '../mapPreview';
 import { adsAllowed, mountAd, refreshAd } from '../ads';
 import type { WavesEnd, WavesHud } from '../wavesRun';
+import { MILESTONES, affordable, balance, checkpoints, nextMilestone } from '../wavesProgress';
+import { orbName, prizeText, weaponLook } from '../wavesPrize';
 import { powerIconUrl } from '../powerIcons';
 import { loadMap } from '../../sim/map';
 import './hud.css';
@@ -568,22 +570,75 @@ export class HudLayer {
     );
   }
 
-  /** The end of a waves run: the wave reached, the kills, the record; play again or the menu. */
-  showWavesEnd(e: WavesEnd & { onAction: (action: 'retry' | 'menu') => void }): void {
+  /**
+   * The end of a waves run: the wave reached, the kills, the record; the Cores it earned (and what
+   * they buy now), the milestones reached, the next one; the Workshop, play again or the menu.
+   */
+  showWavesEnd(e: WavesEnd & { skin: SkinInfo; onAction: (action: 'retry' | 'shop' | 'menu') => void }): void {
     const kills = t(e.kills === 1 ? 'end.oneKill' : 'end.kills', { n: e.kills });
-    const body =
+    const head =
       `<div class="wave-reached"><span>${t('waves.label')}</span><b>${e.wave}</b></div>` +
       `<div class="time">${kills} · ${clock(e.seconds)}</div>` +
       (e.isBest ? `<div class="best new">${t('waves.newBest')}</div>` : e.best ? `<div class="best">${t('waves.record', { n: e.best.wave })}</div>` : '');
+
+    // The Cores: where they came from, the total, the balance
+    const c = e.cores;
+    const row = (label: string, n: number) => `<div class="wc-row"><span>${label}</span><b>+${bigNum(n)}</b></div>`;
+    const canBuy = affordable(e.progress);
+    const cores =
+      `<div class="wc-box"><div class="wc-head"><span class="wc-ico"></span>${t('wend.cores')}</div>` +
+      row(t('wend.waves', { n: c.waves }), c.waveCores) +
+      row(t('wend.kills', { n: c.kills }), c.killCores) +
+      (c.bosses ? row(t(c.bosses === 1 ? 'wend.boss' : 'wend.bosses', { n: c.bosses }), c.bossCores) : '') +
+      (c.recordCores ? row(t('wend.record'), c.recordCores) : '') +
+      `<div class="wc-total"><span>${t('wend.total')}</span><b>+${bigNum(c.total)}</b></div>` +
+      `<div class="wc-bal">${t('wend.balance', { n: bigNum(balance(e.progress)) })}${canBuy ? ` · <b>${t(canBuy === 1 ? 'wend.canBuyOne' : 'wend.canBuy', { n: canBuy })}</b>` : ''}</div></div>`;
+
+    // The milestones: those reached now, the next one with how far it is
+    const prizeArt = (m: (typeof MILESTONES)[number]) =>
+      'weapon' in m ? `<img class="w" src="${weaponLook(m.weapon).picture}" alt="" />` : `<img class="o" data-orb="${m.skin}" alt="" />`;
+    let side = '';
+    for (const m of e.unlocked)
+      side += `<div class="wu-got">${prizeArt(m)}<span><small>${t('wend.unlocked')}</small><b>${'skin' in m ? orbName(m.skin) : prizeText(m)}</b><em>${t('wend.atWave', { n: m.wave })}</em></span></div>`;
+    const record = Math.max(e.wave, e.recordBefore);
+    const newCheckpoint = checkpoints(e.wave).filter((w) => w > 1 && w > e.recordBefore).pop();
+    const next = nextMilestone(record);
+    if (next) {
+      const prev = [...MILESTONES].reverse().find((m) => m.wave < next.wave)?.wave ?? 0;
+      const share = Math.max(0, Math.min(1, (record - prev) / (next.wave - prev)));
+      side +=
+        `<div class="wu-next"><small>${t('wend.next')}</small><div class="wu-line">${prizeArt(next)}<span><b>${prizeText(next)}</b>` +
+        `<em>${t(next.wave - record === 1 ? 'wend.nextOne' : 'wend.nextLeft', { n: next.wave, left: next.wave - record })}</em></span></div>` +
+        `<span class="wu-bar"><i style="width:${Math.round(share * 100)}%"></i></span></div>`;
+    }
+    if (newCheckpoint) side += `<div class="wu-cp">${t('wend.checkpoint', { n: newCheckpoint })}</div>`;
+
     const wait = `<span class="wait">${CAMPAIGN_NEXT_WAIT}</span>`;
     const buttons =
       `<button type="button" data-a="menu"><span class="h-key">Esc</span>${t('waves.menu')}</button>` +
+      `<button type="button" class="shop" data-a="shop"><span class="h-key">W</span>${t('waves.shop')}</button>` +
       `<button type="button" class="primary" data-a="retry" disabled><span class="h-key">Enter</span>${t('waves.retry')}${wait}</button>`;
     this.openEndPanel(
-      `<div class="t lost">${t('waves.over')}</div><div class="lvl">${t('waves.reached', { n: e.wave })}</div>${body}<div class="btns">${buttons}</div>`,
+      `<div class="t lost">${t('waves.over')}</div><div class="lvl">${t('waves.reached', { n: e.wave })}</div>${head}` +
+        `<div class="wend-split">${cores}<div class="wu-side">${side}</div></div><div class="btns">${buttons}</div>`,
       'retry',
-      (a) => e.onAction(a === 'menu' ? 'menu' : 'retry'),
+      (a) => e.onAction(a === 'menu' ? 'menu' : a === 'shop' ? 'shop' : 'retry'),
+      { KeyW: 'shop' },
     );
+    this.r.campcard.classList.add('waves');
+    // The Core's icon, and the exclusive Orbs in the player's colours (drawn on demand: asked again a moment later)
+    for (const el of this.r.campcard.querySelectorAll<HTMLElement>('.wc-ico')) el.innerHTML = CORE_SVG;
+    const fill = () => {
+      let missing = false;
+      for (const img of this.r.campcard.querySelectorAll<HTMLImageElement>('img[data-orb]')) {
+        if (img.src) continue;
+        const url = this.art.orb({ ...e.skin, skin: img.dataset.orb! });
+        if (url) img.src = url;
+        else missing = true;
+      }
+      if (missing) setTimeout(fill, 250);
+    };
+    fill();
   }
 
   /**
@@ -591,9 +646,10 @@ export class HudLayer {
    * wait CAMPAIGN_NEXT_WAIT seconds (all but the menu), the keys (Enter: `primary`, R: again, Esc: menu)
    * and the system's cursor.
    */
-  private openEndPanel(card: string, primary: string, onAction: (action: string) => void): void {
+  private openEndPanel(card: string, primary: string, onAction: (action: string) => void, keys: Record<string, string> = {}): void {
     const waitUntil = performance.now() + CAMPAIGN_NEXT_WAIT * 1000;
     setHTML(this.r.campcard, card);
+    this.r.campcard.classList.remove('waves');
     this.r.campend.classList.remove('preload');
     show(this.r.campend, true);
     // The banner under the panel: loaded when the level started (preloadCampaignAd), or now
@@ -616,7 +672,7 @@ export class HudLayer {
     this.cursorFree = true;
     this.root.classList.add('free-cursor');
     const act = (a: string) => {
-      if (a !== 'menu' && performance.now() < waitUntil) return;
+      if (a !== 'menu' && a !== 'shop' && performance.now() < waitUntil) return;
       if (this.campEndKeys) window.removeEventListener('keydown', this.campEndKeys, true);
       this.campEndKeys = null;
       onAction(a);
@@ -626,7 +682,7 @@ export class HudLayer {
       if (b) act(b.dataset.a!);
     };
     this.campEndKeys = (ev: KeyboardEvent) => {
-      const a = ev.code === 'Enter' || ev.code === 'NumpadEnter' ? primary : ev.code === 'KeyR' ? 'retry' : ev.code === 'Escape' ? 'menu' : null;
+      const a = ev.code === 'Enter' || ev.code === 'NumpadEnter' ? primary : ev.code === 'KeyR' ? 'retry' : ev.code === 'Escape' ? 'menu' : (keys[ev.code] ?? null);
       if (!a) return;
       ev.preventDefault();
       ev.stopPropagation();
@@ -681,6 +737,7 @@ export class HudLayer {
           .join('') +
         `</div></div>`;
     if (w.record) html += `<div class="h-wrec">${t('waves.record', { n: w.record })}</div>`;
+    if (w.cores) html += `<div class="h-wcores">${CORE_SVG}${t('waves.coresRun', { n: bigNum(w.cores) })}</div>`;
     setHTML(this.r.board, html);
   }
 
@@ -1460,6 +1517,9 @@ export class HudLayer {
 }
 
 /** Seconds before "Next level" / "Try again" work at the end of a campaign level. */
+/** A Core, the waves' currency (as src/menu/icons.ts draws it). */
+const CORE_SVG =
+  '<svg class="h-core" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".45"/><circle cx="12" cy="12" r="7" fill="currentColor"/><circle cx="9.8" cy="9.6" r="2.4" fill="#fff" opacity=".75"/></svg>';
 const CAMPAIGN_NEXT_WAIT = 3;
 
 /** Seconds before the side banner loads a new ad when it shows again. */

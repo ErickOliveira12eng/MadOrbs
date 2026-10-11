@@ -306,7 +306,7 @@ export function sanitizeSkin(skin: unknown): SkinInfo {
   const col = (c: unknown, d: [number, number, number]): [number, number, number] =>
     Array.isArray(c) && c.length === 3 && c.every(isNum) ? (c.map((x: number) => Math.max(0, Math.min(1, x))) as [number, number, number]) : d;
   return {
-    skin: typeof s.skin === 'string' && /^skin\d{2}$/.test(s.skin) && +s.skin.slice(4) >= 1 && +s.skin.slice(4) <= 23 ? s.skin : def.skin,
+    skin: typeof s.skin === 'string' && /^skin\d{2}$/.test(s.skin) && +s.skin.slice(4) >= 1 && +s.skin.slice(4) <= 26 ? s.skin : def.skin,
     redDecal: col(s.redDecal, def.redDecal),
     greenDecal: col(s.greenDecal, def.greenDecal),
     blueDecal: col(s.blueDecal, def.blueDecal),

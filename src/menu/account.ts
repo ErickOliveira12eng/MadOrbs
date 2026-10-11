@@ -9,6 +9,7 @@ import { lang } from '../i18n';
 import type { RoomMode } from '../net/protocol';
 import { mergeProgress } from '../client/campaign';
 import { mergeWavesRecord, type WavesRecord } from '../client/waves';
+import { cleanLevels, loadProgress as loadWavesProgress, mergeProgress as mergeWavesProgress } from '../client/wavesProgress';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../net/supabase';
 
 /** The Google OAuth client (Web) of madorbs.com: public, it goes in the page. */
@@ -149,12 +150,20 @@ export class Account {
     const client = this.client;
     const id = this.session?.user.id;
     if (!client || !id) return;
-    const [profile, stats, campaign, waves] = await Promise.all([
+    const [profile, stats, campaign, waves, wavesProgress] = await Promise.all([
       client.from('profiles').select(PROFILE_COLUMNS).eq('id', id).maybeSingle(),
       client.from('player_stats').select(STATS_COLUMNS).eq('user_id', id),
       client.from('campaign_progress').select('level, best_seconds').eq('user_id', id),
       client.from('waves_records').select('best_wave, best_kills').eq('user_id', id).maybeSingle(),
+      client.from('waves_progress').select('earned, levels').eq('user_id', id).maybeSingle(),
     ]);
+    // The waves' Cores and Workshop levels: the account's and this browser's, the most of each in both
+    if (wavesProgress.error) console.warn('[account] cannot read the waves progress', wavesProgress.error.message);
+    else {
+      const row = wavesProgress.data as { earned: number; levels: unknown } | null;
+      const { upload } = mergeWavesProgress(row ? { earned: row.earned, levels: cleanLevels(row.levels) } : null);
+      if (upload) void this.saveWavesProgress();
+    }
     // The waves: the account's best run and this browser's, the better one in both
     if (waves.error) console.warn('[account] cannot read the waves', waves.error.message);
     else {
@@ -271,6 +280,14 @@ export class Account {
       this.waves = { wave, kills };
       this.emit();
     }
+  }
+
+  /** The waves' Cores or Workshop levels changed: the account keeps the most of each (waves_progress). */
+  async saveWavesProgress(): Promise<void> {
+    if (!this.client || !this.session) return;
+    const p = loadWavesProgress();
+    const { error } = await this.client.rpc('record_waves_progress', { p_earned: p.earned, p_levels: p.levels });
+    if (error) console.warn('[account] cannot save the waves progress', error.message);
   }
 
   /** A game mode's ranking (for guests too: Supabase's client loads for it). */

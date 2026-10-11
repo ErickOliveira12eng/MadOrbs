@@ -2,14 +2,25 @@
 import { audio } from '../client/audio/audio';
 import { ROOM_MODES, type RoomMode } from '../net/protocol';
 import type { SkinInfo } from '../sim/player';
+import { loadWavesRecord } from '../client/waves';
+import { WAVES_SKINS, skinUnlocked } from '../client/wavesProgress';
 
 const KEY = 'madorbs.settings';
 
-export const SKINS = Array.from({ length: 23 }, (_, i) => `skin${String(i + 1).padStart(2, '0')}`);
+/** Every Orb style: the original game's 23, then the waves' exclusive ones (skin24..skin26). */
+export const SKINS = Array.from({ length: 26 }, (_, i) => `skin${String(i + 1).padStart(2, '0')}`);
+/** The styles anyone can pick (the waves' milestones give the others). */
+export const FREE_SKINS = SKINS.filter((s) => !WAVES_SKINS.includes(s));
+
+/** The styles this player can pick: the free ones and the exclusive ones won. */
+export function availableSkins(): string[] {
+  const record = loadWavesRecord()?.wave ?? 0;
+  return SKINS.filter((s) => skinUnlocked(s, record));
+}
 
 export interface Settings {
   name: string;
-  /** skin01..skin23 */
+  /** skin01..skin26 */
   skin: string;
   /** The skin's three decal colours (#rrggbb). */
   red: string;
@@ -63,7 +74,7 @@ const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFin
 export function randomOrb(): Pick<Settings, 'skin' | 'red' | 'green' | 'blue'> {
   const hue = Math.random() * 360;
   return {
-    skin: SKINS[Math.floor(Math.random() * SKINS.length)],
+    skin: FREE_SKINS[Math.floor(Math.random() * FREE_SKINS.length)],
     red: hslHex(hue, 0.9, 0.75),
     green: hslHex(hue, 0.85, 0.5),
     blue: hslHex(hue, 0.9, 0.25),

@@ -44,6 +44,17 @@ const ICONS = {
   trophy: '<path fill="currentColor" stroke="none" d="M7 2.5h10a1 1 0 0 1 1 1V4h2.5a1 1 0 0 1 1 1v1.5a5 5 0 0 1-4.2 4.9A6 6 0 0 1 13 14.9V18h3a1.5 1.5 0 0 1 1.5 1.5V21h-11v-1.5A1.5 1.5 0 0 1 8 18h3v-3.1a6 6 0 0 1-4.3-3.5A5 5 0 0 1 2.5 6.5V5a1 1 0 0 1 1-1H6v-.5a1 1 0 0 1 1-1zM4.5 6v.5a3 3 0 0 0 1.7 2.7A9 9 0 0 1 6 7.4V6zm15 0H18v1.4a9 9 0 0 1-.2 1.8 3 3 0 0 0 1.7-2.7z" /> <path d="M10.2 7.2 12 5.8l1.8 1.4-.7 2.1h-2.2z" fill="#171236" stroke="none" />',
   padlock: '<path fill="currentColor" stroke="none" fill-rule="evenodd" d="M6.6 10V7.6a5.4 5.4 0 0 1 10.8 0V10h.3A2.3 2.3 0 0 1 20 12.3v6.4a2.3 2.3 0 0 1-2.3 2.3H6.3A2.3 2.3 0 0 1 4 18.7v-6.4A2.3 2.3 0 0 1 6.3 10zm2.8 0h5.2V7.6a2.6 2.6 0 0 0-5.2 0zM12 13a1.7 1.7 0 0 0-.9 3.15V18h1.8v-1.85A1.7 1.7 0 0 0 12 13z" />',
   help: '<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" /> <path d="M9.3 9.2a2.8 2.8 0 0 1 5.4 1c0 1.9-2.7 2.7-2.7 2.7" stroke="#171236" stroke-width="2.4" /> <path d="M12 17.2h.01" stroke="#171236" stroke-width="3" />',
+  // The waves' Workshop (src/menu/wavesModal.ts)
+  zap: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />',
+  gauge: '<path d="m12 14 4-4" /> <path d="M3.34 19a10 10 0 1 1 17.32 0" />',
+  bomb: '<circle cx="11" cy="13" r="9" /> <path d="M14.35 4.65 16.3 2.7a2.41 2.41 0 0 1 3.4 0l1.6 1.6a2.4 2.4 0 0 1 0 3.4l-1.95 1.95" /> <path d="m22 2-1.5 1.5" />',
+  package: '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" /> <path d="M12 22V12" /> <path d="m3.3 7 8.7 5 8.7-5" />',
+  heartPulse: '<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" /> <path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27" />',
+  rotate: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /> <path d="M3 3v5h5" />',
+  wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />',
+  // Own pictograms: two orbs (lives), a Core (the waves' currency)
+  orbs: '<circle cx="9" cy="12" r="6" /> <path d="M15 6.5a6 6 0 1 1 0 11" />',
+  core: '<circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".45" /> <circle cx="12" cy="12" r="7" fill="currentColor" stroke="none" /> <circle cx="9.8" cy="9.6" r="2.4" fill="#fff" stroke="none" opacity=".75" />',
 } as const;
 
 export type IconName = keyof typeof ICONS;

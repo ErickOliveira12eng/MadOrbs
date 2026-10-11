@@ -2907,3 +2907,201 @@
   letter-spacing: 0.12em;
   color: var(--h-gold-1);
 }
+
+/* The end of a waves run: the Cores earned beside the milestones (HudLayer.showWavesEnd) */
+.h-campcard.waves {
+  width: 720px;
+}
+
+.h-campcard.waves .wave-reached {
+  margin-top: 6px;
+}
+
+.h-core {
+  flex: none;
+  color: #5ff0e0;
+  filter: drop-shadow(0 0 5px rgba(95, 240, 224, 0.55));
+}
+
+.wend-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 12px;
+  align-items: start;
+  margin-top: 16px;
+  text-align: left;
+}
+
+.wc-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(95, 240, 224, 0.45);
+  background: linear-gradient(180deg, rgba(14, 44, 54, 0.9), rgba(12, 22, 44, 0.9));
+}
+
+.wc-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  font: 400 21px var(--h-display);
+  letter-spacing: 0.5px;
+}
+
+.wc-ico {
+  display: inline-flex;
+}
+
+.wc-ico .h-core {
+  width: 24px;
+  height: 24px;
+}
+
+.wc-row {
+  display: flex;
+  justify-content: space-between;
+  color: #d6d9f7;
+  font: 700 14.5px var(--h-ui);
+}
+
+.wc-row b,
+.wc-total b {
+  color: #9ff6ec;
+}
+
+.wc-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(95, 240, 224, 0.25);
+  font: 900 15px var(--h-ui);
+}
+
+.wc-total b {
+  color: #5ff0e0;
+  font: 400 34px/1 var(--h-display);
+}
+
+.wc-bal {
+  color: var(--h-muted);
+  font: 700 13px var(--h-ui);
+}
+
+.wc-bal b {
+  color: #ffd34d;
+}
+
+.wu-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wu-got,
+.wu-next,
+.wu-cp {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--h-line-strong);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.wu-got {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1.5px solid rgba(255, 194, 58, 0.55);
+  background: rgba(60, 46, 10, 0.75);
+}
+
+.wu-got span,
+.wu-line span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.wu-got small,
+.wu-next small {
+  color: #ffc23a;
+  font: 900 11.5px var(--h-ui);
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+}
+
+.wu-next small {
+  color: var(--h-muted);
+}
+
+.wu-got b,
+.wu-line b {
+  font: 400 19px/1.15 var(--h-display);
+}
+
+.wu-got em,
+.wu-line em {
+  color: var(--h-muted);
+  font: 700 12.5px var(--h-ui);
+  font-style: normal;
+}
+
+.wu-got img.o,
+.wu-line img.o {
+  width: 56px;
+  height: 56px;
+  flex: none;
+}
+
+.wu-got img.w,
+.wu-line img.w {
+  width: 64px;
+  height: 38px;
+  flex: none;
+  object-fit: contain;
+}
+
+.wu-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 8px;
+}
+
+.wu-bar {
+  display: block;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.wu-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ffc23a, #ff8a3a);
+}
+
+.wu-cp {
+  color: #c8ffd4;
+  font: 800 13px var(--h-ui);
+}
+
+.h-campend button.shop {
+  border-color: rgba(95, 240, 224, 0.6);
+  background: rgba(95, 240, 224, 0.14);
+}
+
+/* The waves' corner panel: the Cores of the run so far */
+.h-wcores {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 2px;
+  color: #9ff6ec;
+  font: 900 13.5px var(--h-ui);
+}

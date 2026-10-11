@@ -12,6 +12,8 @@ import { Account } from './menu/account';
 import { AudioPanel } from './menu/audioPanel';
 import { setUserProperty, track } from './client/analytics';
 import { WAVES_MAP } from './client/waves';
+import { loadProgress as loadWavesProgress } from './client/wavesProgress';
+import { WavesModal } from './menu/wavesModal';
 import { StartScreen, type PlayMode } from './menu/menu';
 import type { PrivateRoomJoin } from './menu/roomModal';
 import { ROOM_LINK_RE } from './net/protocol';
@@ -108,16 +110,21 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
           ...common,
           mode: 'tdm',
           mapName: WAVES_MAP,
-          waves: true,
-          onWavesEnd: (wave, kills) => void account.saveWaves(wave, kills),
+          // The Workshop's choices (a checkpoint, a weapon) and levels (src/client/wavesProgress.ts)
+          waves: { ...WavesModal.startChoice(), levels: loadWavesProgress().levels },
+          onWavesEnd: (end) => {
+            void account.saveWaves(end.wave, end.kills);
+            void account.saveWavesProgress();
+          },
           onWavesAction: (action) => {
             afterQuit =
-              action === 'menu'
-                ? () => {
+              action === 'retry'
+                ? () => void startGame('offline', undefined, true)
+                : () => {
                     screen.show();
                     void audio.playMusic(gameSounds().menuMusic, 255);
-                  }
-                : () => void startGame('offline', undefined, true);
+                    if (action === 'shop') screen.openWaves();
+                  };
             game.quit();
           },
         },

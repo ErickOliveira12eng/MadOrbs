@@ -9,7 +9,8 @@ import type { Player, SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
-import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, loadWavesRecord, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, loadWavesRecord, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { BREATHER, MILESTONES, UPGRADE_STEP, addCores, headStartPowers, runCores, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
 export interface WavesHud {
@@ -32,6 +33,8 @@ export interface WavesHud {
   bossLife: { name: string; life: number } | null;
   /** The best wave before this run. */
   record: number | null;
+  /** Cores earned so far (the waves survived, the kills, the bosses; a new record adds more at the end). */
+  cores: number;
   over: boolean;
 }
 
@@ -43,6 +46,14 @@ export interface WavesEnd {
   isBest: boolean;
   /** The record before this run (when this one isn't better). */
   best: WavesRecord | null;
+  /** The wave the run began on (1, or a checkpoint), and the record before it (0: none). */
+  startWave: number;
+  recordBefore: number;
+  /** The Cores it earned, and the progress with them added. */
+  cores: RunCores;
+  progress: WavesProgress;
+  /** Milestones reached for the first time. */
+  unlocked: Milestone[];
 }
 
 type TimedPower = 'speed' | 'rapid' | 'shield' | 'fury';
@@ -69,7 +80,13 @@ export interface WavesContext {
   onWeaponDrop: (weaponID: number) => void;
   /** The bomb's blast, at the player. */
   onBomb: (position: Vec3) => void;
+  /** The Workshop's second wind saved the player. */
+  onSecondWind: () => void;
   onEnd: (end: WavesEnd) => void;
+  /** The wave to begin on (1, or a checkpoint reached), the weapon to spawn with, the Workshop's levels. */
+  startWave: number;
+  startWeapon: number;
+  levels: Levels;
 }
 
 export class WavesRun {
@@ -91,19 +108,31 @@ export class WavesRun {
   /** Levels of the permanent power-ups, for the rest of the run. */
   private perms: Record<PermKind, number> = { permFire: 0, permDamage: 0, permArmor: 0, permSpeed: 0, poison: 0, ice: 0 };
   private readonly record = loadWavesRecord();
+  /** Bosses beaten, and whether the boss was standing last tick. */
+  private bosses = 0;
+  private bossUp = false;
+  /** Whether the player was alive last tick (a spawn: the Workshop's grenades), the second winds left. */
+  private wasAlive = false;
+  private windLeft: number;
   /** Seconds since the first spawn. */
   elapsed = 0;
   over = false;
 
   constructor(private readonly ctx: WavesContext) {
     this.renderer = new WavesRenderer(ctx.scene);
+    // A run from a checkpoint: the wave before it counts as done, and a head start of power-ups
+    this.wave = ctx.startWave - 1;
+    this.spec = waveSpec(ctx.startWave);
+    for (let i = 0; i < headStartPowers(ctx.startWave); i++) this.perms[rollPerm()]++;
+    ctx.me.secondWind = ctx.levels.secondWind;
+    this.windLeft = ctx.levels.secondWind;
     this.dropCrates(WAVES.crates.perBreak);
     window.addEventListener('pagehide', this.onPageHide);
   }
 
-  /** The page closes mid-run: the wave reached stays in this browser (the account gets it at the next sign-in). */
+  /** The page closes mid-run: the wave reached and the Cores stay in this browser (the account gets them at the next sign-in). */
   private readonly onPageHide = (): void => {
-    if (!this.over && this.wave > 0) saveWavesRun(this.wave, this.ctx.me.kills);
+    if (!this.over) this.leave();
   };
 
   /** Every tick. */
@@ -113,9 +142,21 @@ export class WavesRun {
     if (me.isAlive || this.elapsed > 0) this.elapsed += TICK;
     // The same weapons at every spawn (the menu can't change them; a new weapon lasts one life)
     if (!me.isAlive) {
-      me.nextSpawnWeapon = WAVES.primary;
+      me.nextSpawnWeapon = this.ctx.startWeapon;
       me.nextMeleeWeapon = WEAPON_KNIVES;
     }
+    // A spawn: the Workshop's grenades on top of the usual ones
+    if (me.isAlive && !this.wasAlive && this.ctx.levels.grenades > 0) me.nbGrenadeLeft = Math.min(5, me.nbGrenadeLeft + this.ctx.levels.grenades);
+    this.wasAlive = me.isAlive;
+    // The second wind saved the player
+    if (me.secondWind < this.windLeft) {
+      this.windLeft = me.secondWind;
+      this.ctx.onSecondWind();
+    }
+    // A boss beaten
+    const bossUp = !!this.boss?.isAlive;
+    if (this.bossUp && !bossUp && this.boss && this.boss.lives <= 0) this.bosses++;
+    this.bossUp = bossUp;
     // Out of lives: the end
     if (!me.isAlive && me.lives <= 0 && this.elapsed > 0) {
       this.end();
@@ -153,11 +194,13 @@ export class WavesRun {
 
     // Power-ups: the permanent levels, times the timed ones while they last
     for (const k of Object.keys(this.timers) as TimedPower[]) this.timers[k] = Math.max(0, this.timers[k] - TICK);
+    // and the Workshop's levels under them all
     const perm = this.perms;
-    me.speedBoost = Math.min(2, (1 + PERM_STEP * perm.permSpeed) * (this.timers.speed > 0 ? BOOSTS.speed : 1));
-    me.fireBoost = (1 + PERM_STEP * perm.permFire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1);
-    me.armorBoost = (1 - PERM_STEP) ** perm.permArmor * (this.timers.shield > 0 ? BOOSTS.shield : 1);
-    me.damageBoost = (1 + PERM_STEP * perm.permDamage) * (this.timers.fury > 0 ? BOOSTS.fury : 1);
+    const lv = this.ctx.levels;
+    me.speedBoost = Math.min(2, (1 + UPGRADE_STEP.speed * lv.speed) * (1 + PERM_STEP * perm.permSpeed) * (this.timers.speed > 0 ? BOOSTS.speed : 1));
+    me.fireBoost = (1 + UPGRADE_STEP.fire * lv.fire) * (1 + PERM_STEP * perm.permFire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1);
+    me.armorBoost = ((1 - PERM_STEP) ** perm.permArmor * (this.timers.shield > 0 ? BOOSTS.shield : 1)) / (1 + UPGRADE_STEP.life * lv.life);
+    me.damageBoost = (1 + UPGRADE_STEP.damage * lv.damage) * (1 + PERM_STEP * perm.permDamage) * (this.timers.fury > 0 ? BOOSTS.fury : 1);
     me.poisonShot = POISON_DPS * perm.poison;
     me.iceShot = Math.min(ICE_MAX, ICE_SLOW * perm.ice);
   }
@@ -208,6 +251,9 @@ export class WavesRun {
       this.phase = 'break';
       this.breakLeft = WAVES.breakSeconds;
       this.dropCrates(WAVES.crates.perBreak);
+      // The Workshop's breather: some life back
+      const me = this.ctx.me;
+      if (me.isAlive) me.life = Math.min(1, me.life + BREATHER[this.ctx.levels.breather]);
       this.ctx.onCleared(this.wave);
     }
   }
@@ -307,7 +353,9 @@ export class WavesRun {
   onCrate(crateID: number, position: Vec3, broken: boolean): void {
     this.renderer.crateHit(crateID, position.x, position.y, broken);
     if (!broken || this.over) return;
-    const kind = rollPower();
+    let kind = rollPower();
+    // The Workshop's crate luck: a better chance of a permanent one
+    if (!POWERS[kind].perm && Math.random() < UPGRADE_STEP.luck * this.ctx.levels.luck) kind = rollPerm();
     if (kind === 'weapon') {
       // A real weapon on the floor: the player takes it (F) or leaves it
       const options = POWER_WEAPONS.filter((w) => w !== this.ctx.me.weapon?.weaponID);
@@ -373,22 +421,37 @@ export class WavesRun {
 
   /**
    * The player leaves before the end (the menu, a closed page): the wave being fought counts as
-   * reached, kept here (the record) and returned for the account.
+   * reached, kept here (the record, the Cores) and returned for the account.
    */
-  leave(): { wave: number; kills: number; isBest: boolean } | null {
-    if (this.over || this.wave === 0) return null;
-    this.over = true;
-    const wave = this.wave;
-    const kills = this.ctx.me.kills;
-    return { wave, kills, isBest: saveWavesRun(wave, kills) };
+  leave(): WavesEnd | null {
+    if (this.over || this.wave < this.ctx.startWave) return null;
+    return this.finish();
   }
 
   private end(): void {
+    this.ctx.onEnd(this.finish());
+  }
+
+  /** The run is over: the record and the Cores are saved. */
+  private finish(): WavesEnd {
     this.over = true;
     const kills = this.ctx.me.kills;
-    const wave = Math.max(1, this.wave);
+    const wave = Math.max(this.ctx.startWave, this.wave);
     const isBest = saveWavesRun(wave, kills);
-    this.ctx.onEnd({ wave, kills, seconds: this.elapsed, isBest, best: isBest ? null : this.record });
+    const cores = runCores(this.ctx.startWave, wave, kills, this.bosses, isBest);
+    const before = this.record?.wave ?? 0;
+    return {
+      wave,
+      kills,
+      seconds: this.elapsed,
+      isBest,
+      best: isBest ? null : this.record,
+      startWave: this.ctx.startWave,
+      recordBefore: before,
+      cores,
+      progress: addCores(cores.total),
+      unlocked: MILESTONES.filter((m) => m.wave > before && m.wave <= wave),
+    };
   }
 
   hud(): WavesHud {
@@ -397,7 +460,7 @@ export class WavesRun {
     const standing = reds.filter(inWave).length;
     const boss = this.boss;
     return {
-      wave: Math.max(1, this.wave),
+      wave: Math.max(this.ctx.startWave, this.wave),
       boss: this.spec.boss && this.phase === 'fight',
       phase: this.phase,
       breakLeft: Math.max(0, this.breakLeft),
@@ -410,13 +473,14 @@ export class WavesRun {
       perms: PERM_KINDS.filter((k) => this.perms[k] > 0).map((k) => ({ kind: k, level: this.perms[k] })),
       bossLife: boss && this.spec.boss && this.phase === 'fight' && (boss.isAlive || boss.lives > 0) ? { name: boss.name, life: boss.isAlive ? boss.life : 1 } : null,
       record: this.record?.wave ?? null,
+      cores: runCores(this.ctx.startWave, Math.max(this.ctx.startWave, this.wave), me.kills, this.bosses, false).total,
       over: this.over,
     };
   }
 
   /** The wave being fought, for analytics. */
   get waveNumber(): number {
-    return Math.max(1, this.wave);
+    return Math.max(this.ctx.startWave, this.wave);
   }
 
   render(dt: number, time: number): void {

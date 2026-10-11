@@ -1,7 +1,8 @@
 // The waves mode: alone (blue) against waves of bots (red) that grow and get better without end;
 // between waves a short break, and crates (src/sim/crate.ts) that drop power-ups when broken, some of
 // them for the rest of the run. Three lives; the result is the wave reached (a record in this browser).
-// The run itself is src/client/wavesRun.ts.
+// The run itself is src/client/wavesRun.ts; what lasts between runs (Cores, the Workshop's upgrades,
+// milestones, checkpoints) is src/client/wavesProgress.ts.
 import {
   WEAPON_BAZOOKA,
   WEAPON_CHAIN_GUN,
@@ -60,30 +61,33 @@ export interface WaveSpec {
 
 /**
  * Wave n, with no last wave: every number grows without end, the ones that can't (the bots' skill)
- * close in on a ceiling. Bots: 2 + 1.2 n + n²/50 (3, 5, 16 on wave 10, 34 on 20, 80 on 40); their
- * skill 0.95 - 0.75 e^(-(n-1)/10); they take 1/(1 + 0.04 (n-1)) of the damage (35% tougher on wave
- * 10, twice on 26) and hit 1 + 0.02 (n-1) as hard (on top of WAVES.playerDamage). The permanent
- * power-ups keep the player in the race for a while; sooner or later the waves win.
+ * close in on a ceiling. A gentle start and a steady climb (the first version was hard from the start
+ * and too hard soon after; the Workshop's upgrades, src/client/wavesProgress.ts, now carry the player
+ * further run after run). Bots: 2 + 0.9 n + n²/80 (3, 7 on wave 5, 12 on 10, 25 on 20, 40 on 30); their
+ * skill 0.92 - 0.77 e^(-(n-1)/18) (0.15, 0.27, 0.42, 0.66 on 20); they take 1/(1 + 0.035 (n-1)) of the
+ * damage (31% tougher on wave 10, twice on 30) and hit 1 + 0.015 (n-1) as hard (on top of
+ * WAVES.playerDamage). The better weapons come a few waves later than they used to.
  */
 export function waveSpec(n: number): WaveSpec {
   const boss = n % WAVES.bossEvery === 0;
   const weapons = [WEAPON_SMG];
-  if (n >= 3) weapons.push(WEAPON_SHOTGUN);
-  if (n >= 5) weapons.push(WEAPON_DUAL_MACHINE_GUN);
-  if (n >= 7) weapons.push(WEAPON_CHAIN_GUN, WEAPON_SNIPER);
-  if (n >= 9) weapons.push(WEAPON_BAZOOKA);
-  if (n >= 12) weapons.push(WEAPON_FLAME_THROWER, WEAPON_PHOTON_RIFLE);
-  const total = Math.round(2 + 1.2 * n + (n * n) / 50);
+  if (n >= 4) weapons.push(WEAPON_SHOTGUN);
+  if (n >= 7) weapons.push(WEAPON_DUAL_MACHINE_GUN);
+  if (n >= 10) weapons.push(WEAPON_CHAIN_GUN);
+  if (n >= 13) weapons.push(WEAPON_SNIPER);
+  if (n >= 16) weapons.push(WEAPON_BAZOOKA);
+  if (n >= 20) weapons.push(WEAPON_FLAME_THROWER, WEAPON_PHOTON_RIFLE);
+  const total = Math.round(2 + 0.9 * n + (n * n) / 80);
   return {
     n,
     boss,
     // A boss wave: fewer bots around the boss
     total: boss ? Math.ceil(total * 0.6) : total,
-    spawnGap: Math.max(0.25, 0.8 - n * 0.02),
+    spawnGap: Math.max(0.25, 0.9 - n * 0.02),
     seconds: Math.min(60, 30 + n),
-    skill: 0.95 - 0.75 * Math.exp(-(n - 1) / 10),
-    toughness: 1 / (1 + 0.04 * (n - 1)),
-    hitBoost: 1 + 0.02 * (n - 1),
+    skill: 0.92 - 0.77 * Math.exp(-(n - 1) / 18),
+    toughness: 1 / (1 + 0.035 * (n - 1)),
+    hitBoost: 1 + 0.015 * (n - 1),
     weapons,
   };
 }
@@ -145,6 +149,16 @@ export const ICE_MAX = 0.6;
 
 /** Weapons a "new weapon" power-up can give (better than the SMG). */
 export const POWER_WEAPONS = [WEAPON_DUAL_MACHINE_GUN, WEAPON_CHAIN_GUN, WEAPON_SHOTGUN, WEAPON_BAZOOKA, WEAPON_PHOTON_RIFLE, WEAPON_FLAME_THROWER, WEAPON_SNIPER];
+
+/** One of the permanent power-ups, by their weights (the Workshop's crate luck, a head start). */
+export function rollPerm(): PermKind {
+  let r = Math.random() * PERM_KINDS.reduce((s, k) => s + POWERS[k].weight, 0);
+  for (const k of PERM_KINDS) {
+    r -= POWERS[k].weight;
+    if (r <= 0) return k;
+  }
+  return 'permDamage';
+}
 
 export function rollPower(): PowerKind {
   const kinds = Object.keys(POWERS) as PowerKind[];

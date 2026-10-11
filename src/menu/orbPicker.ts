@@ -2,7 +2,9 @@
 // ready-made colour sets and a big preview that rolls.
 import * as THREE from 'three';
 import { frontFor, turning, type OrbStudio } from './orbStudio';
-import { SKINS, randomOrb, skinInfo, type Settings } from './settings';
+import { SKINS, availableSkins, randomOrb, skinInfo, type Settings } from './settings';
+import { skinWave } from '../client/wavesProgress';
+import { icon } from './icons';
 import { t } from '../i18n';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -45,11 +47,18 @@ export class OrbPicker {
       const b = document.createElement('button');
       b.type = 'button';
       b.setAttribute('role', 'option');
-      b.title = t('orb.styleN', { n: +skin.slice(4) });
+      const wave = skinWave(skin);
+      b.title = wave ? t(`orb.${skin}` as 'orb.skin24') : t('orb.styleN', { n: +skin.slice(4) });
       const c = document.createElement('canvas');
       c.width = c.height = THUMB;
       b.appendChild(c);
+      // The waves' exclusive Orbs: a badge, and a lock until their milestone
+      if (wave) {
+        b.classList.add('exclusive');
+        b.insertAdjacentHTML('beforeend', `<span class="orb-lock">${icon('lock', 14)}${t('orb.atWave', { n: wave })}</span>`);
+      }
       b.addEventListener('click', () => {
+        if (b.classList.contains('locked')) return;
         this.settings.skin = skin;
         this.changed(false);
       });
@@ -93,6 +102,14 @@ export class OrbPicker {
     this.colorInputs[2].value = s.blue;
     this.modal.hidden = false;
     this.thumbsDirty = true;
+    // The exclusive Orbs won so far
+    const open = availableSkins();
+    for (const [skin, canvas] of this.thumbs) {
+      const b = canvas.parentElement!;
+      const locked = !open.includes(skin);
+      b.classList.toggle('locked', locked);
+      if (skinWave(skin)) b.title = locked ? t('orb.lockedTitle', { name: t(`orb.${skin}` as 'orb.skin24'), n: skinWave(skin)! }) : t(`orb.${skin}` as 'orb.skin24');
+    }
     this.markSelected();
     this.lastTime = performance.now();
     this.rafId = requestAnimationFrame((t) => this.frame(t));

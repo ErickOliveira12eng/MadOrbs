@@ -89,6 +89,7 @@ import { weaponInfo } from './hud/weaponInfo';
 import type { RoomView } from './hud/weaponPicker';
 import { WavesRun, type WavesEnd } from './wavesRun';
 import { POWERS, WAVES, type PowerKind } from './waves';
+import type { Levels } from './wavesProgress';
 import { ViewOverlay, scopeAlpha } from './ui/viewOverlay';
 import { VIEW_ASPECT, fitView, type ViewRect } from './view';
 import { modeName, modeOfGameType, teamName } from './modes';
@@ -132,12 +133,15 @@ export interface ClientGameOptions {
   signedIn?: boolean;
   /** The end of a campaign level: what the player chose (next level, again, back to the menu). */
   onCampaignAction?: (action: 'next' | 'retry' | 'menu', level: CampaignLevel) => void;
-  /** The waves mode (offline, src/client/waves.ts) instead of a training match. */
-  waves?: boolean;
-  /** The end of a waves run: what the player chose (again, or back to the menu). */
-  onWavesAction?: (action: 'retry' | 'menu') => void;
-  /** A waves run ended: the account keeps the best one. */
-  onWavesEnd?: (wave: number, kills: number) => void;
+  /**
+   * The waves mode (offline, src/client/waves.ts) instead of a training match: the wave to begin on,
+   * the weapon to spawn with, the Workshop's levels (src/client/wavesProgress.ts).
+   */
+  waves?: { startWave: number; startWeapon: number; levels: Levels };
+  /** The end of a waves run: what the player chose (again, the Workshop, or back to the menu). */
+  onWavesAction?: (action: 'retry' | 'shop' | 'menu') => void;
+  /** A waves run ended (or was left): the account keeps the best one and the Cores. */
+  onWavesEnd?: (end: WavesEnd) => void;
 }
 
 export class ClientGame {
@@ -293,7 +297,7 @@ export class ClientGame {
       return;
     }
     if (this.opts.waves) {
-      this.startWaves(map);
+      this.startWaves(map, this.opts.waves);
       return;
     }
     this.game = new Game(map, { gameType: ROOM_GAME_TYPE[this.opts.mode], onMapChangeRequest: () => void this.nextMap() });
@@ -318,10 +322,11 @@ export class ClientGame {
   private waves: WavesRun | null = null;
 
   /**
-   * The waves mode: Team Deathmatch with us alone on blue (three lives, the SMG) against the waves of
-   * bots on red; no score or time limit, no team balance. WavesRun does the rest.
+   * The waves mode: Team Deathmatch with us alone on blue (three lives and the SMG, more with the
+   * Workshop) against the waves of bots on red; no score or time limit, no team balance. WavesRun
+   * does the rest.
    */
-  private startWaves(map: GameMap): void {
+  private startWaves(map: GameMap, setup: NonNullable<ClientGameOptions['waves']>): void {
     this.svBackup = { ...sv };
     sv.sv_scoreLimit = 0;
     sv.sv_winLimit = 0;
@@ -335,9 +340,9 @@ export class ClientGame {
     this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
     this.me.skin = this.opts.skin;
     this.me.teamID = PLAYER_TEAM_BLUE;
-    this.me.lives = WAVES.lives;
+    this.me.lives = WAVES.lives + setup.levels.lives;
     this.me.damageScale = WAVES.playerDamage;
-    this.me.nextSpawnWeapon = WAVES.primary;
+    this.me.nextSpawnWeapon = setup.startWeapon;
     this.me.nextMeleeWeapon = WEAPON_KNIVES;
     const banner = (c1: string, c2: string) => ({ c1, c2, glow: `${c2}77` });
     this.waves = new WavesRun({
@@ -365,7 +370,12 @@ export class ClientGame {
         audio.play(this.sounds.equip, 200);
       },
       onBomb: (position) => this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 4),
+      onSecondWind: () => {
+        this.hud.announceText(t('waves.secondWind'), t('waves.secondWindSub'), banner('#e2ffe9', '#2fd35c'), 2.2);
+        audio.play(this.sounds.lifePack, 255);
+      },
       onEnd: (end) => this.endWaves(end),
+      ...setup,
     });
     this.onMapLoaded(map);
     this.beginLoop();
@@ -378,12 +388,12 @@ export class ClientGame {
   }
 
   private endWaves(end: WavesEnd): void {
-    track('waves_end', { wave: end.wave, kills: end.kills, seconds: Math.round(end.seconds), new_best: end.isBest, fps: this.fps() });
-    this.opts.onWavesEnd?.(end.wave, end.kills);
+    track('waves_end', { wave: end.wave, kills: end.kills, seconds: Math.round(end.seconds), new_best: end.isBest, start_wave: end.startWave, cores: end.cores.total, fps: this.fps() });
+    this.opts.onWavesEnd?.(end);
     // The mouse comes back for the buttons, with the system's cursor
     this.input.exitPointerLock();
     this.renderer.domElement.style.cursor = 'auto';
-    this.hud.showWavesEnd({ ...end, onAction: (action) => this.opts.onWavesAction?.(action) });
+    this.hud.showWavesEnd({ ...end, skin: this.me.skin, onAction: (action) => this.opts.onWavesAction?.(action) });
   }
 
   /** When our own Mission Failed feat was announced (the campaign's loss doesn't say it twice). */
@@ -774,7 +784,7 @@ export class ClientGame {
       track('waves_quit', { wave: this.waves.waveNumber, kills: this.me.kills, seconds });
       // Leaving counts: the wave reached goes to the record and to the account
       const left = this.waves.leave();
-      if (left) this.opts.onWavesEnd?.(left.wave, left.kills);
+      if (left) this.opts.onWavesEnd?.(left);
     }
     else if (!this.camp && !this.waves && !this.matchEnded) track('match_quit', { ...this.matchInfo(), seconds, kills: this.me.kills, deaths: this.me.deaths, reason: reason ? 'closed' : 'menu' });
     this.running = false;
@@ -895,7 +905,7 @@ export class ClientGame {
     this.frames = 0;
     this.matchEnded = false;
     if (this.camp) track('campaign_level_start', this.levelInfo());
-    else if (this.waves) track('waves_start', { map: this.game.map.name });
+    else if (this.waves && this.opts.waves) track('waves_start', { map: this.game.map.name, start_wave: this.opts.waves.startWave, weapon: this.opts.waves.startWeapon });
     else track('match_start', { ...this.matchInfo(), ...(map ? { map } : {}), bots: this.online ? 0 : (this.opts.botCount ?? 0) });
   }
 

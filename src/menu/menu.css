@@ -1517,6 +1517,45 @@ kbd.mouse .icon {
   display: block;
 }
 
+/* The waves' exclusive Orbs: a cyan edge; locked, dark with the wave that gives them */
+.orb-grid button.exclusive {
+  border-color: rgba(95, 240, 224, 0.45);
+}
+
+.orb-grid button.exclusive[aria-selected='true'] {
+  border-color: var(--gold-1);
+}
+
+.orb-lock {
+  display: none;
+}
+
+.orb-grid button.locked {
+  cursor: default;
+}
+
+.orb-grid button.locked:hover {
+  transform: none;
+}
+
+.orb-grid button.locked canvas {
+  filter: grayscale(0.7) brightness(0.4);
+}
+
+.orb-grid button.locked .orb-lock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: #c9fff8;
+  font: 900 10.5px/1.1 var(--font-ui);
+  text-align: center;
+  text-shadow: 0 1px 3px #000;
+}
+
 .orb-colors {
   display: flex;
   gap: 14px;
@@ -3379,4 +3418,529 @@ input[type='range'] {
   .info-cols {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* ------------------------------------------------------------------ the waves' Workshop (src/menu/wavesModal.ts) */
+
+.waves-modal {
+  width: min(1180px, 100%);
+}
+
+.waves-modal .modal-head h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-right: auto;
+}
+
+.wv-mode {
+  color: #ff6f7d;
+}
+
+.wv-chips {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wv-record {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.wv-record .icon {
+  color: #ff8a80;
+}
+
+/* A Core: the waves' currency, a cyan glowing ball */
+.core-ico {
+  display: inline-flex;
+  color: #5ff0e0;
+  filter: drop-shadow(0 0 5px rgba(95, 240, 224, 0.55));
+}
+
+.wv-cores {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 46px;
+  padding: 0 18px 0 10px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(95, 240, 224, 0.55);
+  background: linear-gradient(180deg, rgba(20, 60, 70, 0.9), rgba(10, 30, 40, 0.9));
+  box-shadow: 0 0 22px rgba(95, 240, 224, 0.22);
+  white-space: nowrap;
+}
+
+.wv-cores b {
+  font: 400 26px/1 var(--font-display);
+  letter-spacing: 0.5px;
+}
+
+.wv-cores span:last-child {
+  color: #9ff6ec;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.wv-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 18px;
+  margin-top: 8px;
+}
+
+.waves-modal h3 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 8px;
+}
+
+.waves-modal h3 small {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: none;
+}
+
+/* The upgrade cards */
+.wv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.wv-card {
+  --tone: 255, 194, 58;
+  --tone-text: #ffc23a;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.wv-card.red {
+  --tone: 255, 90, 78;
+  --tone-text: #ff7a6e;
+}
+
+.wv-card.blue {
+  --tone: 140, 150, 255;
+  --tone-text: #aab2ff;
+}
+
+.wv-card.green {
+  --tone: 75, 224, 122;
+  --tone-text: #6be894;
+}
+
+.wv-card.maxed {
+  border-color: rgba(255, 194, 58, 0.45);
+  background: rgba(255, 194, 58, 0.07);
+}
+
+.wv-card.bought {
+  animation: wv-bought 0.6s ease-out;
+}
+
+@keyframes wv-bought {
+  from {
+    box-shadow: 0 0 0 3px rgba(95, 240, 224, 0.8), 0 0 30px rgba(95, 240, 224, 0.5);
+  }
+}
+
+.wv-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wv-card-head > span:last-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.wv-card-head b {
+  font-weight: 900;
+  font-size: 16px;
+}
+
+.wv-card-head small {
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+.wv-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: rgba(var(--tone), 0.16);
+  color: var(--tone-text);
+}
+
+.wv-pips {
+  display: flex;
+  gap: 4px;
+}
+
+.wv-pips i {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.wv-pips i.on {
+  background: #ffc23a;
+}
+
+.wv-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.wv-value {
+  margin: 0;
+  color: #d6d9f7;
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.wv-value .arrow {
+  color: #8e93c0;
+}
+
+.wv-value b {
+  color: #fff;
+}
+
+.wv-buy,
+.wv-max {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 36px;
+  border-radius: 10px;
+  font: 900 16px var(--font-ui);
+}
+
+.wv-buy {
+  border: 1.5px solid rgba(95, 240, 224, 0.6);
+  background: rgba(95, 240, 224, 0.12);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.wv-buy:hover {
+  background: rgba(95, 240, 224, 0.24);
+}
+
+.wv-buy:active {
+  transform: translateY(1px);
+}
+
+.wv-buy:disabled {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #9ea3cc;
+  cursor: default;
+}
+
+.wv-buy:disabled .core-ico {
+  color: #5f7f8c;
+  filter: none;
+}
+
+.wv-buy small {
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.wv-max {
+  background: rgba(255, 194, 58, 0.16);
+  color: #ffc23a;
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* The side: what the run starts with */
+.wv-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wv-box {
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.wv-starts,
+.wv-weapons {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.wv-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-height: 58px;
+  padding: 4px;
+  border-radius: 11px;
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.wv-opt:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.wv-opt.on {
+  border: 2px solid #ffc23a;
+  background: rgba(255, 194, 58, 0.14);
+}
+
+.wv-opt.locked {
+  border-style: dashed;
+  background: transparent;
+  color: #8e93c0;
+  cursor: default;
+}
+
+.wv-opt b {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 400 22px/1 var(--font-display);
+}
+
+.wv-opt small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.wv-opt.on small {
+  color: #ffd98a;
+}
+
+.wv-weapon {
+  min-height: 70px;
+}
+
+.wv-weapon img {
+  width: 62px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.wv-weapon.locked img {
+  filter: grayscale(1) brightness(0.45);
+}
+
+.wv-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+/* The milestones' track */
+.wv-track {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+}
+
+.wv-rail {
+  position: absolute;
+  left: 19px;
+  right: 19px;
+  top: 17px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.wv-rail i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #ffc23a, #ff8a3a);
+}
+
+.wv-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 38px;
+}
+
+.wv-node .dot {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  background: #16163a;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.wv-node.got .dot {
+  border: 2px solid #ffc23a;
+  background: #2a2410;
+}
+
+.wv-node img.w {
+  width: 30px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.wv-node img.o {
+  width: 34px;
+  height: 34px;
+}
+
+.wv-node:not(.got) img {
+  opacity: 0.55;
+}
+
+.wv-node b {
+  color: #d6d9f7;
+  font-size: 12.5px;
+}
+
+.wv-node.got b {
+  color: #ffc23a;
+}
+
+.wv-play {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 58px;
+  margin-top: auto;
+  border: 0;
+  border-radius: 15px;
+  background: linear-gradient(180deg, #ffd34d, #ff9f1a);
+  color: #2a1600;
+  font: 400 26px var(--font-display);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  box-shadow: 0 5px 0 #b85d00, 0 12px 26px rgba(255, 160, 30, 0.3);
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+}
+
+.wv-play:hover {
+  filter: brightness(1.08);
+}
+
+.wv-play:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #b85d00;
+}
+
+.wv-play .icon {
+  fill: currentColor;
+}
+
+/* The progress line: tighter here */
+.waves-modal .camp-save {
+  margin-top: 10px;
+}
+
+@media (max-width: 1000px) {
+  .wv-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .wv-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .waves-modal .modal-head {
+    flex-wrap: wrap;
+  }
+
+  .wv-record {
+    display: none;
+  }
+}
+
+@media (max-width: 440px) {
+  .wv-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The start screen's waves card: the Cores, and how many upgrades they pay for */
+.dock-cores {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #c9fff8;
+  font: 900 13.5px var(--font-ui);
+}
+
+.dock-badge {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #ffc23a;
+  color: #2a1600;
+  font: 900 12px var(--font-ui);
+  white-space: nowrap;
 }

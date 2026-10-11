@@ -10,7 +10,8 @@ import { modeName, modeShort, modeTagline } from '../client/modes';
 import { CAMPAIGN, LEVELS_PER_CHAPTER, loadProgress } from '../client/campaign';
 import { bestKills } from '../client/records';
 import { loadWavesRecord } from '../client/waves';
-import { LANG_KEY, lang, num, t, type Lang } from '../i18n';
+import { affordable, balance, loadProgress as loadWavesProgress } from '../client/wavesProgress';
+import { LANG_KEY, bigNum, lang, num, t, type Lang } from '../i18n';
 import { ROOM_MODES, type RoomMode, type RoomStatus } from '../net/protocol';
 import type { Account } from './account';
 import { AccountModal } from './accountModal';
@@ -25,8 +26,9 @@ import { Embers } from './embers';
 import { icon, type IconName } from './icons';
 import { OrbPicker } from './orbPicker';
 import { turning, type OrbStudio } from './orbStudio';
-import { SKINS, saveSettings, skinInfo, type Settings } from './settings';
+import { FREE_SKINS, availableSkins, saveSettings, skinInfo, type Settings } from './settings';
 import { TrainingModal } from './training';
+import { WavesModal, coreIcon } from './wavesModal';
 import { versioned } from '../sim/assetVersion';
 import { adsAllowed, mountAd, onAdBlockFound, onAdsAllowed, refreshAd, type AdSlot } from '../client/ads';
 import { track } from '../client/analytics';
@@ -76,6 +78,7 @@ export class StartScreen {
   private readonly accountModal: AccountModal;
   private readonly statsModal: StatsModal;
   private readonly campaign: CampaignModal;
+  private readonly waves: WavesModal;
   private readonly adblock = new AdblockModal();
   private readonly ranking: RankingModal;
   private readonly room: RoomModal;
@@ -149,10 +152,20 @@ export class StartScreen {
       () => this.accountModal.open(),
     );
     $('btnCampaign').addEventListener('click', () => this.campaign.open());
+    this.waves = new WavesModal(
+      account,
+      studio,
+      () => skinInfo(this.settings),
+      () => {
+        this.play('offline', false);
+        onWaves();
+      },
+      () => this.accountModal.open(),
+      () => this.renderProgress(),
+    );
     $('btnWaves').addEventListener('click', () => {
       track('menu_open', { window: 'waves' });
-      this.play('offline', false);
-      onWaves();
+      this.waves.open();
     });
     account.onChange(() => this.renderAccount());
     this.renderAccount();
@@ -322,8 +335,9 @@ export class StartScreen {
 
   /** The arrows beside the orb: the previous or next style, same colours. */
   private cycleSkin(step: number): void {
-    const i = Math.max(0, SKINS.indexOf(this.settings.skin));
-    this.settings.skin = SKINS[(i + step + SKINS.length) % SKINS.length];
+    const skins = availableSkins();
+    const i = Math.max(0, skins.indexOf(this.settings.skin));
+    this.settings.skin = skins[(i + step + skins.length) % skins.length];
     this.saveOrb();
   }
 
@@ -374,6 +388,20 @@ export class StartScreen {
 
     const waves = loadWavesRecord();
     $('wavesLine').textContent = waves ? t('menu.wavesRecord', { n: waves.wave }) : t('menu.wavesSolo');
+    // The Cores of the waves, and how many upgrades they pay for now
+    const wp = loadWavesProgress();
+    const cores = $('wavesCores');
+    cores.hidden = wp.earned === 0;
+    cores.innerHTML = `${coreIcon(16)}${t('menu.wavesCores', { n: bigNum(balance(wp)) })}`;
+    const canBuy = affordable(wp);
+    const badge = $('wavesBadge');
+    badge.hidden = canBuy === 0;
+    badge.textContent = t(canBuy === 1 ? 'menu.wavesCanBuyOne' : 'menu.wavesCanBuy', { n: canBuy });
+  }
+
+  /** The waves' Workshop (back from a run that asked for it). */
+  openWaves(): void {
+    this.waves.open();
   }
 
   private setName(name: string): void {
@@ -605,7 +633,7 @@ export class StartScreen {
       const hue = Math.random();
       const base = hsl(hue, 0.85, 0.45);
       const info = skinInfo({
-        skin: SKINS[Math.floor(Math.random() * SKINS.length)],
+        skin: FREE_SKINS[Math.floor(Math.random() * FREE_SKINS.length)],
         red: hsl(hue, 0.9, 0.75),
         green: base,
         blue: hsl(hue, 0.9, 0.22),
