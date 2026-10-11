@@ -146,6 +146,8 @@ export interface WavesProgress {
   /** The Workshop's last choices: the wave to start from, the weapon. */
   startWave: number;
   startWeapon: number;
+  /** The daily reward: the day it was last taken (YYYY-MM-DD, this computer's date) and the days in a row. */
+  daily: { last: string; streak: number };
 }
 
 const MAX_CORES = 100_000_000;
@@ -175,7 +177,7 @@ export function cleanLevels(raw: unknown): Levels {
 }
 
 export function loadProgress(): WavesProgress {
-  const p: WavesProgress = { earned: 0, levels: { ...NO_LEVELS }, startWave: 1, startWeapon: WEAPON_SMG };
+  const p: WavesProgress = { earned: 0, levels: { ...NO_LEVELS }, startWave: 1, startWeapon: WEAPON_SMG, daily: { last: '', streak: 0 } };
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Record<string, unknown> | null;
     if (!raw) return p;
@@ -183,6 +185,9 @@ export function loadProgress(): WavesProgress {
     p.levels = cleanLevels(raw.levels);
     if (typeof raw.startWave === 'number' && Number.isInteger(raw.startWave)) p.startWave = raw.startWave;
     if (typeof raw.startWeapon === 'number' && Number.isInteger(raw.startWeapon)) p.startWeapon = raw.startWeapon;
+    const d = raw.daily as { last?: unknown; streak?: unknown } | undefined;
+    if (d && typeof d.last === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.last) && typeof d.streak === 'number' && Number.isInteger(d.streak))
+      p.daily = { last: d.last, streak: Math.max(0, Math.min(10000, d.streak)) };
   } catch {
     /* storage unavailable or corrupt: a fresh start */
   }
@@ -195,6 +200,51 @@ export function saveProgress(p: WavesProgress): void {
   } catch {
     /* storage unavailable: the progress lasts for this page */
   }
+}
+
+// ------------------------------------------------------------------ the daily reward
+
+/**
+ * Cores for coming back each day (in the Workshop): more each day in a row, up to the 7th, then the
+ * week starts again; a day missed starts it over.
+ */
+export const DAILY_CORES = [20, 25, 30, 40, 50, 60, 100];
+
+/** A date as YYYY-MM-DD, by this computer's clock (the reward turns at its midnight). */
+function dayOf(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export interface DailyState {
+  /** Today's reward is still there to take. */
+  ready: boolean;
+  /** The day of the week of rewards: the one to take now, or the one taken today (1..7). */
+  day: number;
+  cores: number;
+}
+
+export function dailyState(p: WavesProgress, now = new Date()): DailyState {
+  const today = dayOf(now);
+  if (p.daily.last === today) {
+    const day = ((p.daily.streak - 1) % DAILY_CORES.length) + 1;
+    return { ready: false, day, cores: DAILY_CORES[day - 1] };
+  }
+  const yesterday = dayOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+  const streak = p.daily.last === yesterday ? p.daily.streak + 1 : 1;
+  const day = ((streak - 1) % DAILY_CORES.length) + 1;
+  return { ready: true, day, cores: DAILY_CORES[day - 1] };
+}
+
+/** Takes today's reward; null when it was already taken. */
+export function claimDaily(now = new Date()): { progress: WavesProgress; day: number; cores: number } | null {
+  const p = loadProgress();
+  const state = dailyState(p, now);
+  if (!state.ready) return null;
+  const yesterday = dayOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+  p.daily = { last: dayOf(now), streak: p.daily.last === yesterday ? p.daily.streak + 1 : 1 };
+  p.earned = Math.min(MAX_CORES, p.earned + state.cores);
+  saveProgress(p);
+  return { progress: p, day: state.day, cores: state.cores };
 }
 
 /** Adds a run's Cores; returns the new progress. */

@@ -10,7 +10,7 @@ import { modeName, modeShort, modeTagline } from '../client/modes';
 import { CAMPAIGN, LEVELS_PER_CHAPTER, loadProgress } from '../client/campaign';
 import { bestKills } from '../client/records';
 import { loadWavesRecord } from '../client/waves';
-import { affordable, balance, loadProgress as loadWavesProgress } from '../client/wavesProgress';
+import { affordable, balance, dailyState, loadProgress as loadWavesProgress } from '../client/wavesProgress';
 import { LANG_KEY, bigNum, lang, num, t, type Lang } from '../i18n';
 import { MAX_NAME_LENGTH, ROOM_MODES, cleanName, isReservedName, limitNameInput, type RoomMode, type RoomStatus } from '../net/protocol';
 import type { Account } from './account';
@@ -403,10 +403,13 @@ export class StartScreen {
     const cores = $('wavesCores');
     cores.hidden = wp.earned === 0;
     cores.innerHTML = `${coreIcon(16)}${t('menu.wavesCores', { n: bigNum(balance(wp)) })}`;
+    // The badge: today's reward waiting first, else how many upgrades the Cores pay for
     const canBuy = affordable(wp);
+    const daily = dailyState(wp).ready;
     const badge = $('wavesBadge');
-    badge.hidden = canBuy === 0;
-    badge.textContent = t(canBuy === 1 ? 'menu.wavesCanBuyOne' : 'menu.wavesCanBuy', { n: canBuy });
+    badge.hidden = !daily && canBuy === 0;
+    badge.classList.toggle('daily', daily);
+    badge.textContent = daily ? t('menu.dailyReady') : t(canBuy === 1 ? 'menu.wavesCanBuyOne' : 'menu.wavesCanBuy', { n: canBuy });
   }
 
   /** The waves' Workshop (back from a run that asked for it). */

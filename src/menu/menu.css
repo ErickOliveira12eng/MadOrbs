@@ -3944,3 +3944,137 @@ input[type='range'] {
   font: 900 12px var(--font-ui);
   white-space: nowrap;
 }
+
+/* The daily reward (WavesModal.renderDaily): the week's days and the button */
+.wv-daily {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-color: rgba(95, 240, 224, 0.4);
+  background: linear-gradient(180deg, rgba(20, 60, 70, 0.55), rgba(255, 255, 255, 0.03));
+}
+
+.wv-daily.claimed-now {
+  animation: wv-bought 0.7s ease-out;
+}
+
+.wd-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wd-head > span:last-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.wd-head b {
+  font-weight: 900;
+  font-size: 15px;
+}
+
+.wd-head small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.wd-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(95, 240, 224, 0.16);
+  color: #5ff0e0;
+}
+
+.wd-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wd-days {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.wd-day {
+  display: grid;
+  place-items: center;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+}
+
+.wd-day b {
+  font: 900 11.5px var(--font-ui);
+}
+
+.wd-day.got {
+  border-color: rgba(95, 240, 224, 0.5);
+  background: rgba(95, 240, 224, 0.2);
+  color: #c9fff8;
+}
+
+.wd-day.now {
+  border: 2px solid #ffc23a;
+  background: rgba(255, 194, 58, 0.16);
+  color: #ffd98a;
+}
+
+.wd-claim {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #7ff7ea, #22c3b4);
+  color: #032925;
+  font: 900 15px var(--font-ui);
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(95, 240, 224, 0.35);
+  animation: wd-pulse 1.6s ease-in-out infinite;
+}
+
+.wd-claim .core-ico {
+  color: #fff;
+}
+
+@keyframes wd-pulse {
+  50% {
+    box-shadow: 0 0 26px rgba(95, 240, 224, 0.65);
+  }
+}
+
+.wd-done {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.wv-cores.bought {
+  animation: wv-bought 0.7s ease-out;
+}
+
+/* The start screen's card: today's reward waiting */
+.dock-badge.daily {
+  background: #5ff0e0;
+  color: #032925;
+}

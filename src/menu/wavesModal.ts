@@ -9,9 +9,12 @@ import {
   MILESTONES,
   UPGRADES,
   UPGRADE_STEP,
+  DAILY_CORES,
   balance,
   buy,
   checkpoints,
+  claimDaily,
+  dailyState,
   headStartPowers,
   loadProgress,
   nextCost,
@@ -116,6 +119,17 @@ export class WavesModal {
       if (!b || b.disabled) return;
       this.choose({ startWeapon: Number(b.dataset.weapon) });
     });
+    $('wvDaily').addEventListener('click', (e) => {
+      if (!(e.target as HTMLElement).closest('[data-claim]')) return;
+      const got = claimDaily();
+      if (!got) return;
+      track('daily_reward', { day: got.day, cores: got.cores });
+      void this.account.saveWavesProgress();
+      this.render();
+      this.onChange();
+      $('wvDaily').classList.add('claimed-now');
+      $('wvCores').classList.add('bought');
+    });
     $('wvPlay').addEventListener('click', () => {
       this.close();
       this.onPlay();
@@ -212,6 +226,7 @@ export class WavesModal {
       .join('');
 
     this.renderTrack();
+    this.renderDaily(p);
     $('wvPlay').innerHTML = `${icon('play', 22)}${t('workshop.play', { n: startWave })}`;
 
     // Where the progress is kept
@@ -241,6 +256,24 @@ export class WavesModal {
       `<p class="wv-desc">${t(`up.${u.id}.desc`)}</p>` +
       `<p class="wv-value">${value}</p>${action}</div>`
     );
+  }
+
+  /** The daily reward: the week's seven days (taken, today, to come) and the button, or "come back tomorrow". */
+  private renderDaily(p: WavesProgress): void {
+    const d = dailyState(p);
+    const days = DAILY_CORES.map((cores, i) => {
+      const n = i + 1;
+      const cls = n < d.day || (n === d.day && !d.ready) ? 'got' : n === d.day ? 'now' : '';
+      return `<span class="wd-day ${cls}" title="${t('daily.day', { n })}"><b>${cores}</b></span>`;
+    }).join('');
+    $('wvDaily').classList.remove('claimed-now');
+    $('wvDaily').innerHTML =
+      `<div class="wd-head"><span class="wd-ico">${icon('gift', 20)}</span><span><b>${t('daily.title')}</b><small>${t('daily.day', { n: d.day })} · ${t('daily.hint')}</small></span></div>` +
+      `<div class="wd-row"><div class="wd-days">${days}</div>` +
+      (d.ready
+        ? `<button type="button" class="wd-claim" data-claim>${coreIcon(16)}+${d.cores}</button>`
+        : `<span class="wd-done">${icon('check', 15)}${t('daily.claimed')}</span>`) +
+      `</div>`;
   }
 
   /** The milestones: a track with each prize, the record's progress on it. */
