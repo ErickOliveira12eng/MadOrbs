@@ -174,6 +174,9 @@ export class HudLayer {
   private readonly stage: HTMLElement;
   private readonly r: Record<string, HTMLElement> = {};
   private readonly tagEls: HTMLElement[] = [];
+  /** Each name tag's life bar: the white trail of the last damage (its life, and until when it holds). */
+  private readonly hpTrail = new Map<number, { life: number; holdUntil: number }>();
+  private hpTime = 0;
   private view: ViewRect = { x: 0, y: 0, w: 1, h: 1 };
   private k = 1;
   private time = 0;
@@ -1239,7 +1242,14 @@ export class HudLayer {
 
   // ---------------------------------------------------------------- world labels and cursors
 
+  /**
+   * The names over the other orbs, with a life bar under the name once they are hurt (all modes; ours
+   * is the HUD's big bar). The life lost stays white a moment, then shrinks: how much a hit took.
+   */
   private updateTags(f: HudFrame): void {
+    const now = performance.now() / 1000;
+    const dt = Math.min(0.1, Math.max(0, now - this.hpTime));
+    this.hpTime = now;
     let n = 0;
     for (const p of f.players) {
       if (!p || p === f.me || !p.isAlive) continue;
@@ -1249,19 +1259,39 @@ export class HudLayer {
       if (!el) {
         el = document.createElement('span');
         el.className = 'h-tag';
+        el.innerHTML = '<span class="nm"></span><span class="h-hp"><i class="g"></i><i class="f"></i></span>';
         this.r.tags.appendChild(el);
         this.tagEls.push(el);
       }
       n++;
       show(el, true);
-      const cls = `h-tag ${teamClass(f.game, p.teamID)}`.trim();
+      const life = Math.max(0, Math.min(1, p.life));
+      // The trail: held 0.45 s after a hit, then down to the life; a heal moves it up at once
+      let trail = this.hpTrail.get(p.playerID);
+      if (!trail || life > trail.life) this.hpTrail.set(p.playerID, (trail = { life, holdUntil: 0 }));
+      else if (life < trail.life - 0.001 && trail.holdUntil < now - 0.05) trail.holdUntil = now + 0.45;
+      if (now > trail.holdUntil) trail.life = Math.max(life, trail.life - dt * 1.2);
+      const hurt = life < 0.995 || trail.life > life + 0.005;
+      const big = p.radius > 0.3;
+      const cls = `h-tag ${teamClass(f.game, p.teamID)}${hurt ? ' hurt' : ''}${big ? ' big' : ''}`.replace(/\s+/g, ' ').trim();
       if (el.className !== cls) el.className = cls;
       // ping > 12 network frames: the original's *LAGGER* tag
-      setHTML(el, esc(p.name) + (p.pingFrames > 12 ? '<span class="lag">LAG</span>' : ''));
+      setHTML(el.firstElementChild as HTMLElement, esc(p.name) + (p.pingFrames > 12 ? '<span class="lag">LAG</span>' : ''));
+      if (hurt) {
+        const bar = el.lastElementChild as HTMLElement;
+        const fill = bar.lastElementChild as HTMLElement;
+        (bar.firstElementChild as HTMLElement).style.width = `${(trail.life * 100).toFixed(1)}%`;
+        fill.style.width = `${(life * 100).toFixed(1)}%`;
+        const tone = life > 0.6 ? 'hi' : life > 0.3 ? 'mid' : 'lo';
+        if (fill.className !== `f ${tone}`) fill.className = `f ${tone}`;
+      }
       const [x, y] = this.toStage(pt.x, pt.top);
       el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
     }
     for (let i = n; i < this.tagEls.length; i++) show(this.tagEls[i], false);
+    // Trails of players gone (left, dead) are forgotten
+    if (this.hpTrail.size > 64) this.hpTrail.clear();
+    for (const [id] of this.hpTrail) if (!f.players[id]?.isAlive) this.hpTrail.delete(id);
   }
 
   /** The ring on the orb that killed us, and its name. */
