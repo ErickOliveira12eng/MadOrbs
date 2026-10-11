@@ -1,0 +1,114 @@
+<!doctype html>
+<!-- Written by tools/make-pages.ts from content/pages/en.ts: edit those, not this file -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Cookie banner (public/consent.js): outside Europe statistics and ads run until refused; in Europe only after the visitor agrees -->
+    <script src="/consent.js?v=5" defer></script>
+    <title>Mad Orbs Waves mode: survive endless waves of bots</title>
+    <meta name="description" content="How the Waves mode of Mad Orbs works: endless waves of bots that hunt you, crates with power-ups, permanent upgrades, a boss every ten waves, your record and tips to go further." />
+    <link rel="canonical" href="https://madorbs.com/waves" />
+    <link rel="alternate" hreflang="en" href="https://madorbs.com/waves" />
+    <link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/ondas" />
+    <link rel="alternate" hreflang="es" href="https://madorbs.com/es/oleadas" />
+    <link rel="alternate" hreflang="x-default" href="https://madorbs.com/waves" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Mad Orbs" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="https://madorbs.com/waves" />
+    <meta property="og:title" content="Waves" />
+    <meta property="og:description" content="How the Waves mode of Mad Orbs works: endless waves of bots that hunt you, crates with power-ups, permanent upgrades, a boss every ten waves, your record and tips to go further." />
+    <meta property="og:image" content="https://madorbs.com/og-image.jpg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <link rel="stylesheet" href="/legal.css?v=3" />
+  </head>
+  <body>
+    <header>
+      <a class="home" href="/"><img src="/favicon.svg?v=2" alt="" />MAD ORBS</a>
+      <nav class="langs" aria-label="Languages"><span aria-current="true">English</span> <a href="/pt/ondas" hreflang="pt" lang="pt-BR" onclick="try{localStorage.setItem('madorbs.lang','pt')}catch(e){}">Português</a> <a href="/es/oleadas" hreflang="es" lang="es" onclick="try{localStorage.setItem('madorbs.lang','es')}catch(e){}">Español</a></nav>
+    </header>
+    <main>
+      <h1>Waves</h1>
+      <p class="updated">Survive for as long as you can</p>
+      <p>
+        <strong>Waves</strong> is the survival mode of Mad Orbs: you alone against wave after wave of bots, with no end. It
+        runs in your own browser, with no server and no other players, on the map CTF-Invaders. On the start screen, click
+        the red <strong>Waves</strong> card. The goal is simple: get as far as you can. Your record is the highest wave you
+        reached, and it goes to the ranking.
+      </p>
+
+      <h2>The rules</h2>
+      <ul>
+        <li><strong>Three lives.</strong> When you go down you are back by yourself 5 seconds later, while you have lives
+        left. The clock of the wave stops while you are dead.</li>
+        <li><strong>You start with the sub machine gun</strong>, the knives, 2 grenades and a molotov. Better weapons come
+        from the crates.</li>
+        <li><strong>Each wave has a time limit:</strong> 30 seconds plus one per wave, up to a minute. When it runs out the
+        next wave comes even if enemies are still alive, and they stay on the map.</li>
+        <li><strong>A short break between waves:</strong> 9 seconds (5 before the first one).</li>
+        <li><strong>The bots hunt you.</strong> They always know where you are and come for you, a little slower than you
+        (80% of your speed). They don't break crates on purpose and don't take the power-ups.</li>
+        <li><strong>They hit softer than in the other modes</strong>, a quarter of the damage, but every wave they hit a
+        little harder (2% per wave) and take a little longer to go down: about 35% tougher on wave 10, twice as tough on
+        wave 26.</li>
+        <li><strong>More bots every wave:</strong> 3 on the first one, 16 on the tenth, 34 on the twentieth. They come in a
+        few at a time.</li>
+        <li><strong>Their weapons change:</strong> only sub machine guns at first, then shotguns from wave 3, dual machine
+        guns from wave 5, chain guns and sniper rifles from wave 7, bazookas from wave 9, and flame throwers and photon
+        rifles from wave 12.</li>
+        <li><strong>A boss every ten waves:</strong> the eye, a big orb that takes a quarter of the damage, with fewer bots
+        around it.</li>
+      </ul>
+
+      <h2>Crates and power-ups</h2>
+      <p>
+        Wooden crates appear on the map: three new ones at each break and one more every 20 seconds during a wave, up to
+        six at once. They stop bullets and rockets, so they are also cover. Shoot them, blow them up or hit them with the
+        knives: each one drops a power-up that waits 30 seconds on the floor. Roll over it to take it.
+      </p>
+      <ul>
+        <li><strong>Health:</strong> gives back half your life.</li>
+        <li><strong>Grenades:</strong> 2 grenades and a molotov more.</li>
+        <li><strong>New weapon:</strong> a stronger weapon falls on the floor. Press <kbd>F</kbd> over it to take it; it is
+        yours until you go down.</li>
+        <li><strong>Speed</strong>, <strong>rapid fire</strong>, <strong>shield</strong> and <strong>fury</strong> last 15
+        seconds: 35% faster, 60% more shots, half the damage taken and double damage.</li>
+        <li><strong>Extra life:</strong> one more life.</li>
+        <li><strong>Bomb:</strong> a blast around you that hurts every enemy in sight within 6 blocks and breaks the crates
+        nearby.</li>
+      </ul>
+      <p>
+        Some power-ups are <strong>permanent</strong>: they last until the end of the run, and each one you take adds a
+        level.
+      </p>
+      <ul>
+        <li><strong>Fire rate, damage and speed:</strong> 10% more per level.</li>
+        <li><strong>Resistance:</strong> 10% less damage taken per level.</li>
+        <li><strong>Poison shot:</strong> whoever you hit keeps losing life for 3 seconds, and the kill is yours.</li>
+        <li><strong>Ice shot:</strong> whoever you hit slows down for a second and a half.</li>
+      </ul>
+
+      <h2>Your record and the ranking</h2>
+      <p>
+        The record is the wave you were fighting when your last life went, with your kills as the tiebreak. It is kept in
+        your browser and, if you sign in with Google, in your account; the <strong>Ranking</strong> on the start screen has
+        a Waves tab with the best runs. <kbd>Esc</kbd> pauses the run whenever you need.
+      </p>
+
+      <h2>Tips</h2>
+      <ul>
+        <li>Keep moving. The bots come straight at you, so a loop around the blocks of the map keeps them in a line behind
+        you, where every shot finds someone.</li>
+        <li>Use the breaks to break crates and pick up what they drop before the next wave arrives.</li>
+        <li>Take the permanent power-ups early: a few levels of fire rate and resistance make the late waves possible.</li>
+        <li>Throw grenades where the bots come in, while they are still bunched up.</li>
+        <li>Keep the bomb and the fury for the boss waves or for when the map is full.</li>
+        <li>A crate between you and a sniper is a wall: let it take the shots while you deal with the closest bots.</li>
+      </ul>
+      <p>To know each weapon a crate may give you, see the <a href="/weapons">weapons guide</a>; more tips in the <a href="/strategy">strategy guide</a>.</p>
+      <p><a href="/">Play now</a></p>
+    </main>
+    <footer><a href="/how-to-play">How to play</a> · <a href="/weapons">Weapons</a> · <a href="/modes">Game modes</a> · <a href="/campaign">Campaign</a> · <a href="/strategy">Strategy</a> · <a href="/maps">Maps</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms of use</a> · <a href="#" data-cookie-settings>Cookies</a> · <a href="/">Back to the game</a></footer>
+  </body>
+</html>

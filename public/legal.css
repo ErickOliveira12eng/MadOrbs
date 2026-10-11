@@ -256,6 +256,19 @@ footer {
   font-size: 14px;
 }
 
+/* The maps page: the top view, crisp, beside the text */
+.map .weapon-pic {
+  flex-basis: 190px;
+  padding: 8px;
+  background: rgba(10, 8, 30, 0.5);
+}
+
+.map .weapon-pic img {
+  max-height: 190px;
+  image-rendering: pixelated;
+  border-radius: 6px;
+}
+
 @media (max-width: 640px) {
   .weapon {
     flex-direction: column;
