@@ -126,6 +126,8 @@ export class WavesRun {
     this.spec = waveSpec(ctx.startWave);
     for (let i = 0; i < headStartPowers(ctx.startWave); i++) this.perms[rollPerm()]++;
     ctx.me.secondWind = ctx.levels.secondWind;
+    // The Workshop's grenades make the bag bigger too: what lies on the floor fills it up to that
+    ctx.me.maxGrenades = Math.max(ctx.me.maxGrenades, 2 + ctx.levels.grenades);
     this.windLeft = ctx.levels.secondWind;
     this.dropCrates(WAVES.crates.perBreak);
     window.addEventListener('pagehide', this.onPageHide);
@@ -147,7 +149,7 @@ export class WavesRun {
       me.nextMeleeWeapon = WEAPON_KNIVES;
     }
     // A spawn: the Workshop's grenades on top of the usual ones
-    if (me.isAlive && !this.wasAlive && this.ctx.levels.grenades > 0) me.nbGrenadeLeft = Math.min(5, me.nbGrenadeLeft + this.ctx.levels.grenades);
+    if (me.isAlive && !this.wasAlive && this.ctx.levels.grenades > 0) me.nbGrenadeLeft = Math.min(me.maxGrenades, me.nbGrenadeLeft + this.ctx.levels.grenades);
     this.wasAlive = me.isAlive;
     // The second wind saved the player
     if (me.secondWind < this.windLeft) {
@@ -286,6 +288,8 @@ export class WavesRun {
     // What lies on the floor (life packs, grenades) is the player's; a fallen bot doesn't always leave one
     p.takesLifePacks = false;
     p.lifePackChance = WAVES.lifePackChance + UPGRADE_STEP.drops * this.ctx.levels.drops;
+    // They come in from the map's edges, never out of its middle
+    p.edgeSpawn = true;
     bots[i] = new BotController(p, this.spec.skill, loadout);
     // They come for the player, wherever they are
     bots[i].hunt = this.ctx.me;
@@ -300,6 +304,7 @@ export class WavesRun {
       if (!p) return;
       p.teamID = PLAYER_TEAM_RED;
       p.radius = WAVES.boss.radius;
+      p.edgeSpawn = true;
       p.damageScale = WAVES.boss.damageScale;
       p.takesLifePacks = false;
       // The eye (skin14), in the red team's colours
@@ -379,7 +384,7 @@ export class WavesRun {
         me.life = Math.min(1, me.life + 0.5);
         break;
       case 'ammo':
-        me.nbGrenadeLeft = Math.min(5, me.nbGrenadeLeft + 2);
+        me.nbGrenadeLeft = Math.min(Math.max(5, me.maxGrenades), me.nbGrenadeLeft + 2);
         me.nbMolotovLeft = Math.min(3, me.nbMolotovLeft + 1);
         break;
       case 'weapon': {

@@ -122,6 +122,10 @@ export class Player {
   takesLifePacks = true;
   /** The chance this player drops a life pack when killed (always in the original; the waves' bots: less). */
   lifePackChance = 1;
+  /** Grenades this player can carry (the original's 3; the waves' Workshop makes the bag bigger). */
+  maxGrenades = 3;
+  /** Spawns only at the spawn points near the map's edges, never the middle ones (the waves' bots). */
+  edgeSpawn = false;
   /** Power-ups of the waves mode (src/client/wavesRun.ts): damage dealt, damage taken, moving and firing. */
   damageBoost = 1;
   armorBoost = 1;
@@ -828,7 +832,7 @@ export class Player {
   /** Grenade pickup (dropped grenades). */
   giveGrenade(): void {
     this.nbGrenadeLeft += 1;
-    if (this.nbGrenadeLeft > 3) this.nbGrenadeLeft = 3;
+    if (this.nbGrenadeLeft > this.maxGrenades) this.nbGrenadeLeft = this.maxGrenades;
     this.game.events.push({ type: 'pickup', playerID: this.playerID, itemType: ITEM_GRENADE, itemFlag: 0 });
   }
 }

@@ -107,6 +107,9 @@ export interface GameOptions {
   maxPlayers?: number;
 }
 
+/** Player.edgeSpawn: a spawn point this close to the map's edge (cells) counts as on the edge. */
+const EDGE_SPAWN = 4;
+
 /** Map::flagState, the flag touching distances of Server::updateCTF. */
 const FLAG_POD_REACH = 0.25;
 /**
@@ -394,7 +397,13 @@ export class Game {
     // A respawn spends a life (only the campaign counts them); a babo stuck in a wall just moves
     const respawn = player.status !== PLAYER_STATUS_ALIVE;
     if (respawn && player.lives <= 0) return false;
-    const spawns = this.map.dmSpawns;
+    // The waves' bots: only the spawn points near the edges (all of them on a map that has none there)
+    let spawns = this.map.dmSpawns;
+    if (player.edgeSpawn) {
+      const [w, h] = this.map.size;
+      const edge = spawns.filter((s) => Math.min(s.x, s.y, w - s.x, h - s.y) <= EDGE_SPAWN);
+      if (edge.length > 0) spawns = edge;
+    }
     if (spawns.length === 0) return false;
     let currentScore = 0;
     let bestFound = 0;

@@ -27,6 +27,9 @@ const RENDER_FOV = 40;
 /** Drawn camera height / logical camera height (same ground footprint as the original lens). */
 export const LENS_HEIGHT = Math.tan((ORIGINAL_FOV * Math.PI) / 360) / Math.tan((RENDER_FOV * Math.PI) / 360);
 
+/** The everyday view: a little wider than the original's (one notch of the debug zoom). */
+export const DEFAULT_ZOOM = 1.15;
+
 export class GameCamera {
   readonly camera = new THREE.PerspectiveCamera(RENDER_FOV, VIEW_ASPECT, 1, 50 * LENS_HEIGHT);
   camPos = new Vec3();
@@ -35,10 +38,11 @@ export class GameCamera {
   private prevCamPos = new Vec3();
   viewShake = 0;
   /**
-   * Debug zoom (ClientGame's debugZoom): the view drawn this many times higher, from 0.5 to 5. Only the
+   * The view drawn this many times higher than the original's (Erick, 12/10/2026: a notch wider, the
+   * same for everybody; the debug zoom, ClientGame's debugZoom, moves it from 0.5 to 5). Only the
    * drawing: camPos, and the sound, sniper damage and network that use it, keep the original heights.
    */
-  zoom = 1;
+  zoom = DEFAULT_ZOOM;
   private mapSize: [number, number] = [32, 32];
   private raycaster = new THREE.Raycaster();
   private ndc = new THREE.Vector2();
@@ -101,12 +105,15 @@ export class GameCamera {
     if (!sniper) {
       // The original kept its 4:3 view inside the map with a 5-cell margin: a wider view needs a
       // wider one, and a map narrower than the view stays centred
-      const mx = 5 * (this.camera.aspect / ORIGINAL_ASPECT);
+      // (and a higher view, a wider one)
+      const mx = 5 * (this.camera.aspect / ORIGINAL_ASPECT) * this.zoom;
+      const my = 4 * this.zoom;
       if (w <= mx * 2) this.camLookAt.x = w / 2;
       else if (this.camLookAt.x < mx) this.camLookAt.x = mx;
       else if (this.camLookAt.x > w - mx) this.camLookAt.x = w - mx;
-      if (this.camLookAt.y < 4) this.camLookAt.y = 4;
-      if (this.camLookAt.y > h - 4) this.camLookAt.y = h - 4;
+      if (h <= my * 2) this.camLookAt.y = h / 2;
+      else if (this.camLookAt.y < my) this.camLookAt.y = my;
+      else if (this.camLookAt.y > h - my) this.camLookAt.y = h - my;
     }
     this.camDest = this.camLookAt.add(new Vec3(0, 0, 7));
     if (player && player.isAlive && sniper) {
