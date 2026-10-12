@@ -221,6 +221,7 @@ export const es: Record<Key, string> = {
   'account.noStatsMode': 'Aún no hay partidas en este modo.',
   'account.statsNote': 'Solo partidas online (el entrenamiento no cuenta). Una partida cuenta cuando juegas 30 s de ella.',
   'account.debugZoom': 'Zoom libre con la rueda del ratón (modos sin conexión, para pruebas)',
+  'account.debugBots': 'Oleadas: todos los bots de la oleada, sin el límite de 32 (para pruebas)',
   'account.signOut': 'Salir',
   'account.delete': 'Borrar cuenta',
   'account.deleteConfirm': 'Haz clic otra vez para borrarla para siempre',

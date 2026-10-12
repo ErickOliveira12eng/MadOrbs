@@ -79,8 +79,8 @@ export class Account {
   profile: Profile | null = null;
   /** The account's stats per game mode (a mode never played has no row). */
   stats: Partial<Record<RoomMode, ModeStats>> = {};
-  /** Debug tools the server gives this account (DEBUG_USER_IDS): the free zoom of the offline modes. */
-  debugTools = { zoom: false };
+  /** Debug tools the server gives this account (DEBUG_USER_IDS): the free zoom, the waves past 32 bots. */
+  debugTools = { zoom: false, bots: false };
   /** The account's best waves run (waves_records), or null. */
   waves: WavesRecord | null = null;
   private client: SupabaseClient | null = null;
@@ -136,7 +136,7 @@ export class Account {
           this.profile = null;
           this.stats = {};
           this.waves = null;
-          this.debugTools = { zoom: false };
+          this.debugTools = { zoom: false, bots: false };
         }
         // No Supabase call inside this callback (it would wait on the auth lock)
         if (session && (userChanged || event === 'USER_UPDATED')) setTimeout(() => void this.refreshProfile(), 0);
@@ -293,10 +293,10 @@ export class Account {
     try {
       const r = await fetch('/api/debug-tools', { headers: { Authorization: `Bearer ${token}` } });
       if (!r.ok) return;
-      const body = (await r.json()) as { zoom?: unknown };
-      const zoom = body.zoom === true;
-      if (zoom !== this.debugTools.zoom) {
-        this.debugTools = { zoom };
+      const body = (await r.json()) as { zoom?: unknown; bots?: unknown };
+      const tools = { zoom: body.zoom === true, bots: body.bots === true };
+      if (tools.zoom !== this.debugTools.zoom || tools.bots !== this.debugTools.bots) {
+        this.debugTools = tools;
         this.emit();
       }
     } catch {

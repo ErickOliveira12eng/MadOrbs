@@ -7,15 +7,29 @@ import type { OrbStudio } from './orbStudio';
 import { skinInfo, type Settings } from './settings';
 
 const DEBUG_ZOOM_KEY = 'madorbs.debugZoom';
+const DEBUG_BOTS_KEY = 'madorbs.debugBots';
 
-/** The debug zoom was turned on in this browser (the game uses it only for the accounts allowed). */
-export function debugZoomOn(): boolean {
+function flagOn(key: string): boolean {
   try {
-    return localStorage.getItem(DEBUG_ZOOM_KEY) === '1';
+    return localStorage.getItem(key) === '1';
   } catch {
     return false;
   }
 }
+
+function setFlag(key: string, on: boolean): void {
+  try {
+    if (on) localStorage.setItem(key, '1');
+    else localStorage.removeItem(key);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/** The debug zoom was turned on in this browser (the game uses it only for the accounts allowed). */
+export const debugZoomOn = (): boolean => flagOn(DEBUG_ZOOM_KEY);
+/** The waves past 32 bots were turned on in this browser (the accounts allowed). */
+export const debugBotsOn = (): boolean => flagOn(DEBUG_BOTS_KEY);
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -52,16 +66,11 @@ export class AccountModal {
     });
     $('accountSignOut').addEventListener('click', () => void account.signOut());
     // The debug zoom (only the accounts the server allows see it): remembered in this browser
-    const zoom = $<HTMLInputElement>('debugZoomInput');
-    zoom.checked = debugZoomOn();
-    zoom.addEventListener('change', () => {
-      try {
-        if (zoom.checked) localStorage.setItem(DEBUG_ZOOM_KEY, '1');
-        else localStorage.removeItem(DEBUG_ZOOM_KEY);
-      } catch {
-        /* storage unavailable */
-      }
-    });
+    for (const [id, key] of [['debugZoomInput', DEBUG_ZOOM_KEY], ['debugBotsInput', DEBUG_BOTS_KEY]] as const) {
+      const box = $<HTMLInputElement>(id);
+      box.checked = flagOn(key);
+      box.addEventListener('change', () => setFlag(key, box.checked));
+    }
     $('accountDelete').addEventListener('click', () => void this.deleteAccount());
     account.onChange(() => this.render());
   }
@@ -114,6 +123,7 @@ export class AccountModal {
     $('accountTag').textContent = p ? `#${p.tag}` : '';
     $('accountEmail').textContent = this.account.email;
     $('accountDebugZoom').hidden = !this.account.debugTools.zoom;
+    $('accountDebugBots').hidden = !this.account.debugTools.bots;
     if (document.activeElement !== this.nameInput) this.nameInput.value = p?.name ?? this.settings.name;
     void this.studio.picture(skinInfo(this.settings), 144, undefined, true).then((src) => ($<HTMLImageElement>('accountOrb').src = src));
   }

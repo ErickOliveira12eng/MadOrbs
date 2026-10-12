@@ -100,6 +100,11 @@ export interface GameOptions {
   net?: ClientNet;
   /** GAME_TYPE_DM (default), GAME_TYPE_TDM or GAME_TYPE_CTF. */
   gameType?: number;
+  /**
+   * Player slots (default MAX_PLAYER, the original's 32: online the network sends player IDs in one
+   * byte). Offline a game may hold more (the waves' debug option, ClientGame's unlimitedBots).
+   */
+  maxPlayers?: number;
 }
 
 /** Map::flagState, the flag touching distances of Server::updateCTF. */
@@ -152,6 +157,7 @@ export class Game {
     this.mode = opts.mode ?? 'local';
     this.net = opts.net ?? null;
     this.gameType = opts.gameType ?? GAME_TYPE_DM;
+    if (opts.maxPlayers && opts.maxPlayers > MAX_PLAYER && this.mode === 'local') this.players = new Array(opts.maxPlayers).fill(null);
     this.resetFlags();
   }
 

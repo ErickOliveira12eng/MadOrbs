@@ -135,6 +135,8 @@ export interface ClientGameOptions {
   onCampaignAction?: (action: 'next' | 'retry' | 'menu', level: CampaignLevel) => void;
   /** Debug: the mouse wheel zooms the view in and out (offline modes only; the accounts allowed). */
   debugZoom?: boolean;
+  /** Debug: the waves bring every bot of the wave, past the 32 player slots (up to 256; the accounts allowed). */
+  unlimitedBots?: boolean;
   /**
    * The waves mode (offline, src/client/waves.ts) instead of a training match: the wave to begin on,
    * the weapon to spawn with, the Workshop's levels (src/client/wavesProgress.ts).
@@ -338,7 +340,7 @@ export class ClientGame {
     // wave clocks stop meanwhile, and whoever stays still is hunted down and loses the lives)
     sv.sv_forceRespawn = true;
     sv.sv_timeToSpawn = WAVES.respawnSeconds;
-    this.game = new Game(map, { gameType: GAME_TYPE_TDM, onMapChangeRequest: () => {} });
+    this.game = new Game(map, { gameType: GAME_TYPE_TDM, onMapChangeRequest: () => {}, maxPlayers: this.opts.unlimitedBots ? 256 : undefined });
     this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
     this.me.skin = this.opts.skin;
     this.me.teamID = PLAYER_TEAM_BLUE;
