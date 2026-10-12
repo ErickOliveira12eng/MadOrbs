@@ -200,7 +200,7 @@ export class WavesRun {
     const lv = this.ctx.levels;
     me.speedBoost = Math.min(2, (1 + UPGRADE_STEP.speed * lv.speed) * (1 + PERM_STEP * perm.permSpeed) * (this.timers.speed > 0 ? BOOSTS.speed : 1));
     me.fireBoost = (1 + UPGRADE_STEP.fire * lv.fire) * (1 + PERM_STEP * perm.permFire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1);
-    me.armorBoost = ((1 - PERM_STEP) ** perm.permArmor * (this.timers.shield > 0 ? BOOSTS.shield : 1)) / (1 + UPGRADE_STEP.life * lv.life);
+    me.armorBoost = (((1 - PERM_STEP) ** perm.permArmor * (this.timers.shield > 0 ? BOOSTS.shield : 1)) / (1 + UPGRADE_STEP.life * lv.life)) * (1 - UPGRADE_STEP.armor * lv.armor);
     me.damageBoost = (1 + UPGRADE_STEP.damage * lv.damage) * (1 + PERM_STEP * perm.permDamage) * (this.timers.fury > 0 ? BOOSTS.fury : 1);
     me.poisonShot = POISON_DPS * perm.poison;
     me.iceShot = Math.min(ICE_MAX, ICE_SLOW * perm.ice);
@@ -285,7 +285,7 @@ export class WavesRun {
     p.speedBoost = WAVES.botSpeed;
     // What lies on the floor (life packs, grenades) is the player's; a fallen bot doesn't always leave one
     p.takesLifePacks = false;
-    p.lifePackChance = WAVES.lifePackChance;
+    p.lifePackChance = WAVES.lifePackChance + UPGRADE_STEP.drops * this.ctx.levels.drops;
     bots[i] = new BotController(p, this.spec.skill, loadout);
     // They come for the player, wherever they are
     bots[i].hunt = this.ctx.me;

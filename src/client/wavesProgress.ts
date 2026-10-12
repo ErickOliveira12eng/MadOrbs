@@ -4,7 +4,7 @@
 // Kept in this browser (madorbs.wavesProgress) and, signed in, in the account (waves_progress).
 import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_FLAME_THROWER, WEAPON_SHOTGUN, WEAPON_SMG } from '../sim/constants';
 
-export type UpgradeID = 'life' | 'damage' | 'fire' | 'speed' | 'lives' | 'grenades' | 'luck' | 'breather' | 'secondWind';
+export type UpgradeID = 'life' | 'armor' | 'damage' | 'fire' | 'speed' | 'lives' | 'grenades' | 'luck' | 'drops' | 'breather' | 'secondWind';
 
 export interface Upgrade {
   id: UpgradeID;
@@ -17,29 +17,32 @@ export interface Upgrade {
 /** The Workshop's upgrades, in the order of its cards. */
 export const UPGRADES: Upgrade[] = [
   { id: 'life', costs: [60, 120, 200, 320, 500], tone: 'red' },
+  { id: 'armor', costs: [80, 150, 250, 400, 600], tone: 'red' },
   { id: 'damage', costs: [80, 150, 250, 400, 600], tone: 'gold' },
   { id: 'fire', costs: [80, 150, 250, 400, 600], tone: 'gold' },
   { id: 'speed', costs: [50, 100, 180, 280, 400], tone: 'gold' },
   { id: 'lives', costs: [300, 600], tone: 'red' },
   { id: 'grenades', costs: [100, 220, 400], tone: 'blue' },
   { id: 'luck', costs: [70, 140, 240, 360, 520], tone: 'blue' },
+  { id: 'drops', costs: [60, 120, 200, 300, 450], tone: 'green' },
   { id: 'breather', costs: [180, 350, 600], tone: 'green' },
   { id: 'secondWind', costs: [1500], tone: 'green' },
 ];
 
 /**
- * What a level does: life +10% (the damage taken shrinks as if the life were bigger), damage and
- * fire rate +5%, speed +4%, one more life, one more grenade at each spawn, +10% chance that a crate
- * drops a permanent power-up, life back between waves (20%, 35%, 50%), and once a run a blow that
- * would kill leaves half the life.
+ * What a level does: life +10% (the damage taken shrinks as if the life were bigger), defence 4% less
+ * damage taken, damage and fire rate +5%, speed +4%, one more life, one more grenade at each spawn,
+ * +10% chance that a crate drops a permanent power-up, +5 points on the chance a fallen bot drops a
+ * life pack (WAVES.lifePackChance), life back between waves (20%, 35%, 50%), and once a run a blow
+ * that would kill leaves half the life.
  */
-export const UPGRADE_STEP = { life: 0.1, damage: 0.05, fire: 0.05, speed: 0.04, luck: 0.1 };
+export const UPGRADE_STEP = { life: 0.1, armor: 0.04, damage: 0.05, fire: 0.05, speed: 0.04, luck: 0.1, drops: 0.05 };
 export const BREATHER = [0, 0.2, 0.35, 0.5];
 export const SECOND_WIND_LIFE = 0.5;
 
 export type Levels = Record<UpgradeID, number>;
 
-export const NO_LEVELS: Levels = { life: 0, damage: 0, fire: 0, speed: 0, lives: 0, grenades: 0, luck: 0, breather: 0, secondWind: 0 };
+export const NO_LEVELS: Levels = { life: 0, armor: 0, damage: 0, fire: 0, speed: 0, lives: 0, grenades: 0, luck: 0, drops: 0, breather: 0, secondWind: 0 };
 
 // ------------------------------------------------------------------ milestones and checkpoints
 

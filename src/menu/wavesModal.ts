@@ -36,6 +36,8 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 
 const UPGRADE_ICON: Record<UpgradeID, IconName> = {
   life: 'heart',
+  armor: 'shield',
+  drops: 'medkit',
   damage: 'crosshair',
   fire: 'zap',
   speed: 'gauge',
@@ -56,6 +58,10 @@ function upgradeValue(id: UpgradeID, level: number): string {
     case 'speed':
     case 'luck':
       return pct(UPGRADE_STEP[id] * level);
+    case 'armor':
+      return level ? `-${Math.round(UPGRADE_STEP.armor * level * 100)}%` : '0%';
+    case 'drops':
+      return `${Math.round((WAVES.lifePackChance + UPGRADE_STEP.drops * level) * 100)}%`;
     case 'lives':
       return String(WAVES.lives + level);
     case 'grenades':
