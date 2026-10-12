@@ -253,14 +253,14 @@ export class WavesModal {
     const action =
       cost === null
         ? `<span class="wv-max">${t('workshop.max')}</span>`
-        : `<button type="button" class="wv-buy" data-buy="${u.id}"${cost > cash ? ' disabled' : ''}>${coreIcon(18)}${bigNum(cost)}${cost > cash ? `<small>${t('workshop.short', { n: bigNum(cost - cash) })}</small>` : ''}</button>`;
+        : `<button type="button" class="wv-buy" data-buy="${u.id}"${cost > cash ? ` disabled title="${t('workshop.short', { n: bigNum(cost - cash) }).replace(/^· /, '')}"` : ''}>${coreIcon(16)}${bigNum(cost)}</button>`;
+    // Compact (the window must fit a laptop's screen): what it does shows on hover
     return (
-      `<div class="wv-card ${u.tone}${cost === null ? ' maxed' : ''}" data-up="${u.id}">` +
-      `<div class="wv-card-head"><span class="wv-ico">${icon(UPGRADE_ICON[u.id], 22)}</span>` +
+      `<div class="wv-card ${u.tone}${cost === null ? ' maxed' : ''}" data-up="${u.id}" title="${t(`up.${u.id}.desc`)}">` +
+      `<div class="wv-card-head"><span class="wv-ico">${icon(UPGRADE_ICON[u.id], 20)}</span>` +
       `<span><b>${t(`up.${u.id}`)}</b><small>${t('workshop.level', { n: level, max })}</small></span></div>` +
       `<div class="wv-pips">${pips}</div>` +
-      `<p class="wv-desc">${t(`up.${u.id}.desc`)}</p>` +
-      `<p class="wv-value">${value}</p>${action}</div>`
+      `<div class="wv-foot"><span class="wv-value">${value}</span>${action}</div></div>`
     );
   }
 
