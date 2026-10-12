@@ -114,7 +114,7 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
           mode: 'tdm',
           mapName: WAVES_MAP,
           // The Workshop's choices (a checkpoint, a weapon) and levels (src/client/wavesProgress.ts)
-          waves: { ...WavesModal.startChoice(), levels: loadWavesProgress().levels },
+          waves: { ...WavesModal.startChoice(account.debugTools.zoom), levels: loadWavesProgress().levels },
           onWavesEnd: (end) => {
             void account.saveWaves(end.wave, end.kills);
             void account.saveWavesProgress();

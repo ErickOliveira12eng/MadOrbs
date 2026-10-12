@@ -13,6 +13,7 @@ import { adsAllowed, mountAd, refreshAd } from '../ads';
 import type { WavesEnd, WavesHud } from '../wavesRun';
 import { MILESTONES, affordable, balance, checkpoints, nextMilestone } from '../wavesProgress';
 import { orbName, prizeText, weaponLook } from '../wavesPrize';
+import { cardDef, cardValue, type CardID } from '../wavesCards';
 import { powerIconUrl } from '../powerIcons';
 import { loadMap } from '../../sim/map';
 import './hud.css';
@@ -584,7 +585,10 @@ export class HudLayer {
     const head =
       `<div class="wave-reached"><span>${t('waves.label')}</span><b>${e.wave}</b></div>` +
       `<div class="time">${kills} · ${clock(e.seconds)}</div>` +
-      (e.isBest ? `<div class="best new">${t('waves.newBest')}</div>` : e.best ? `<div class="best">${t('waves.record', { n: e.best.wave })}</div>` : '');
+      (e.isBest ? `<div class="best new">${t('waves.newBest')}</div>` : e.best ? `<div class="best">${t('waves.record', { n: e.best.wave })}</div>` : '') +
+      (e.cards.length
+        ? `<div class="h-wcards end">${e.cards.map((c) => `<span class="${cardDef(c.id).rarity}" title="${t(`card.${c.id}`)}">${cardIcon(c.id, 'h-cardmini')}<b>${c.level}</b></span>`).join('')}</div>`
+        : '');
 
     // The Cores: where they came from, the total, the balance
     const c = e.cores;
@@ -656,6 +660,68 @@ export class HudLayer {
     fill();
   }
 
+  /** The waves' cards waiting for a choice: their keys (1, 2, 3), the moment they start to answer. */
+  private cardKeys: ((ev: KeyboardEvent) => void) | null = null;
+
+  /**
+   * The boss fell (the waves): three cards in the middle of the screen, the game stopped, the banner
+   * under them and the system's cursor. A click or the keys 1, 2, 3 take one (after a moment: the shot
+   * that killed the boss must not pick a card by itself).
+   */
+  showCards(offer: { id: CardID; level: number }[], onPick: (i: number) => void): void {
+    const cards = offer
+      .map(({ id, level }, i) => {
+        const def = cardDef(id);
+        const next = level + 1;
+        const lv = level ? t('cards.level', { from: level, to: next }) : t('cards.new');
+        return (
+          `<button type="button" class="h-card ${def.rarity}" data-card="${i}">` +
+          `<span class="rar">${t(`cards.${def.rarity}`)}</span>${cardIcon(id)}` +
+          `<b>${t(`card.${id}`)}</b><em>${lv}</em>` +
+          `<p>${id === 'pierce' && next === 1 ? t('card.pierce.descOne') : t(`card.${id}.desc`, { v: cardValue(id, next) })}</p>` +
+          `<span class="h-key">${i + 1}</span></button>`
+        );
+      })
+      .join('');
+    setHTML(this.r.campcard, `<div class="t">${t('cards.title')}</div><div class="lvl">${t('cards.sub')}</div><div class="h-cards">${cards}</div>`);
+    this.r.campcard.classList.remove('waves');
+    this.r.campcard.classList.add('cards');
+    this.r.campend.classList.remove('preload');
+    show(this.r.campend, true);
+    const ad = this.r.campad;
+    if (ad.hidden && mountAd(ad.lastElementChild as HTMLElement, 'wide')) ad.hidden = false;
+    this.cursorFree = true;
+    this.root.classList.add('free-cursor');
+    const readyAt = performance.now() + 700;
+    const pick = (i: number) => {
+      if (performance.now() < readyAt || i < 0 || i >= offer.length) return;
+      onPick(i);
+    };
+    this.r.campend.onclick = (ev) => {
+      const b = (ev.target as HTMLElement).closest<HTMLElement>('[data-card]');
+      if (b) pick(Number(b.dataset.card));
+    };
+    this.cardKeys = (ev: KeyboardEvent) => {
+      const m = /^(?:Digit|Numpad)([1-3])$/.exec(ev.code);
+      if (!m) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      pick(Number(m[1]) - 1);
+    };
+    window.addEventListener('keydown', this.cardKeys, true);
+  }
+
+  /** The card was taken: the panel goes back to waiting unseen (its banner stays loaded for the end). */
+  hideCards(): void {
+    if (this.cardKeys) window.removeEventListener('keydown', this.cardKeys, true);
+    this.cardKeys = null;
+    this.r.campend.onclick = null;
+    this.r.campcard.classList.remove('cards');
+    this.r.campend.classList.add('preload');
+    this.cursorFree = false;
+    this.root.classList.remove('free-cursor');
+  }
+
   /**
    * The end panel (a campaign level, a waves run): its card, the banner under it, the buttons that
    * wait CAMPAIGN_NEXT_WAIT seconds (all but the menu), the keys (Enter: `primary`, R: again, Esc: menu)
@@ -664,7 +730,7 @@ export class HudLayer {
   private openEndPanel(card: string, primary: string, onAction: (action: string) => void, keys: Record<string, string> = {}): void {
     const waitUntil = performance.now() + CAMPAIGN_NEXT_WAIT * 1000;
     setHTML(this.r.campcard, card);
-    this.r.campcard.classList.remove('waves');
+    this.r.campcard.classList.remove('waves', 'cards');
     this.r.campend.classList.remove('preload');
     show(this.r.campend, true);
     // The banner under the panel: loaded when the level started (preloadCampaignAd), or now
@@ -753,6 +819,9 @@ export class HudLayer {
         `</div></div>`;
     if (w.record) html += `<div class="h-wrec">${t('waves.record', { n: w.record })}</div>`;
     if (w.cores) html += `<div class="h-wcores">${CORE_SVG}${t('waves.coresRun', { n: bigNum(w.cores) })}</div>`;
+    // The cards taken, with their levels
+    if (w.cards.length)
+      html += `<div class="h-wcards">${w.cards.map((c) => `<span class="${cardDef(c.id).rarity}" title="${t(`card.${c.id}`)}">${cardIcon(c.id, 'h-cardmini')}<b>${c.level}</b></span>`).join('')}</div>`;
     setHTML(this.r.board, html);
   }
 
@@ -1578,6 +1647,21 @@ export class HudLayer {
 }
 
 /** Seconds before "Next level" / "Try again" work at the end of a campaign level. */
+/** The waves' cards (wavesCards.ts): each one's picture. */
+const CARD_PATHS: Record<CardID, string> = {
+  double: '<path d="M3 8h11M3 16h11"/><path d="m12 4 4 4-4 4M12 12l4 4-4 4"/><path d="M19 6v12"/>',
+  parallel: '<path d="M3 7h15M3 12h15M3 17h15"/><path d="m16 4 3 3-3 3M16 9l3 3-3 3M16 14l3 3-3 3"/>',
+  fan: '<path d="M3 12h17M3 12l15-7M3 12l15 7"/><circle cx="3" cy="12" r="1.5" fill="currentColor"/>',
+  pierce: '<circle cx="12" cy="12" r="4.5"/><path d="M2 12h20M17 7l5 5-5 5"/>',
+  crit: '<path d="m12 2 2.4 6.9H22l-6 4.4 2.3 7L12 16l-6.3 4.3 2.3-7-6-4.4h7.6z"/>',
+  vampire: '<path d="M12 2.7s7 7.3 7 12a7 7 0 0 1-14 0c0-4.7 7-12 7-12z"/><path d="M9.5 15.5a2.5 2.5 0 0 0 2.5 2.5"/>',
+  rage: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  dodge: '<path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"/><path d="M16 8 2 22"/><path d="M17.5 15H9"/>',
+  grenadier: '<circle cx="11" cy="13" r="8"/><path d="M14.35 4.65 16.3 2.7a2.41 2.41 0 0 1 3.4 0l1.6 1.6a2.4 2.4 0 0 1 0 3.4l-1.95 1.95"/><path d="m22 2-1.5 1.5"/>',
+};
+const cardIcon = (id: CardID, cls = 'h-cardico') =>
+  `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CARD_PATHS[id]}</svg>`;
+
 /** The waves' Workshop abilities on the HUD: the dash (Shift), the shock wave (Q). */
 const ABILITY_ICON = {
   dash: '<svg class="h-abico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>',

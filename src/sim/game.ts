@@ -992,6 +992,38 @@ export class Game {
         const end = b.p2.clone();
         if (segmentToSphere(b.p1, end, crate.position, CRATE_RADIUS)) (b.crates ??= []).push(crate);
       }
+    } else if (player.pierce > 0) {
+      // The waves' Pierce card: through the first `pierce` babos, stopped by the next one or a crate
+      const along = (at: Vec3, radius: number): Vec3 | null => {
+        const end = b.p2.clone();
+        return segmentToSphere(b.p1, end, at, radius) ? end : null;
+      };
+      let crate: Crate | null = null;
+      let crateD = Infinity;
+      let crateAt: Vec3 | null = null;
+      for (const c of this.crates) {
+        const e = along(c.position, CRATE_RADIUS);
+        if (e && e.sub(b.p1).length() < crateD) {
+          crateD = e.sub(b.p1).length();
+          crate = c;
+          crateAt = e;
+        }
+      }
+      const touched: { p: Player; d: number; at: Vec3 }[] = [];
+      for (const other of this.players) {
+        if (!other || other === player || !other.isAlive) continue;
+        const e = along(other.currentCF.position, other.radius);
+        if (e && e.sub(b.p1).length() < crateD) touched.push({ p: other, d: e.sub(b.p1).length(), at: e });
+      }
+      touched.sort((x, y) => x.d - y.d);
+      const hits = touched.slice(0, player.pierce + 1);
+      b.hits = hits.map((h) => h.p);
+      if (hits.length === player.pierce + 1) b.p2 = hits[hits.length - 1].at;
+      else if (crate && crateAt) {
+        b.p2 = crateAt;
+        b.crates = [crate];
+      }
+      if (hits.length || crate) b.normal = b.p2.sub(b.p1).normalizeIn();
     } else {
       let hit: Player | null = null;
       for (const other of this.players) {
@@ -1029,13 +1061,14 @@ export class Game {
       this.events.push({ type: 'shoot', playerID: player.playerID, weaponID, nuzzleID, p1: b.p1.clone(), p2: b.p2.clone(), normal: b.normal.clone(), hitPlayerID: -1 });
       return;
     }
-    if (b.crates?.length) this.hitCrate(b.crates[0], this.bulletDamage(weaponID) * player.damageBoost, player);
+    if (b.crates?.length) this.hitCrate(b.crates[0], this.bulletDamage(weaponID) * player.damageBoost * player.shotScale, player);
     const hit = b.hits[0] ?? null;
-    if (hit) {
+    // Every babo the bullet touched (more than one: the waves' Pierce card)
+    for (const victim of b.hits) {
       // Knockback on the victim (ClientRecv NET_SVCL_PLAYER_SHOOT)
       const direction = b.p2.sub(b.p1).normalizeIn();
-      hit.currentCF.vel.addIn(direction.mul(weaponDefs[weaponID].damage * 2));
-      hit.hitSV(weaponID, player);
+      victim.currentCF.vel.addIn(direction.mul(weaponDefs[weaponID].damage * 2));
+      victim.hitSV(weaponID, player);
     }
     this.events.push({
       type: 'shoot',

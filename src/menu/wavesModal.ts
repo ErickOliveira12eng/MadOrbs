@@ -39,6 +39,9 @@ import type { OrbStudio } from './orbStudio';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
+/** The testers' extra start (DEBUG_USER_IDS): right before the first boss, to try its cards. */
+const TEST_START = 9;
+
 const UPGRADE_ICON: Record<UpgradeID, IconName> = {
   life: 'heart',
   armor: 'shield',
@@ -206,11 +209,12 @@ export class WavesModal {
    * The choices of the last run, kept when still allowed (a checkpoint or a weapon from the record):
    * else the first wave and the SMG.
    */
-  static startChoice(): { startWave: number; startWeapon: number } {
+  static startChoice(tester = false): { startWave: number; startWeapon: number } {
     const record = loadWavesRecord()?.wave ?? 0;
     const p = loadProgress();
     return {
-      startWave: checkpoints(record).includes(p.startWave) ? p.startWave : 1,
+      // Testers (DEBUG_USER_IDS) may also start on wave 9: the boss and its cards in a minute
+      startWave: checkpoints(record).includes(p.startWave) || (tester && p.startWave === TEST_START) ? p.startWave : 1,
       startWeapon: startWeapons(record).includes(p.startWeapon) ? p.startWeapon : startWeapons(record)[0],
     };
   }
@@ -219,7 +223,8 @@ export class WavesModal {
     const p = loadProgress();
     const record = loadWavesRecord()?.wave ?? 0;
     const cash = balance(p);
-    const { startWave, startWeapon } = WavesModal.startChoice();
+    const tester = this.account.debugTools.zoom;
+    const { startWave, startWeapon } = WavesModal.startChoice(tester);
 
     $('wvCores').innerHTML = `${coreIcon(26)}<b>${bigNum(cash)}</b><span>${t('workshop.cores')}</span>`;
     $('wvRecord').innerHTML = record ? `${icon('trophy', 16)}${t('waves.record', { n: record })}` : '';
@@ -241,10 +246,10 @@ export class WavesModal {
     const reached = checkpoints(record).slice(1).slice(-2);
     const next = (Math.floor(record / 10) + 1) * 10;
     $('wvStarts').innerHTML =
-      [1, ...reached]
+      [1, ...(tester ? [TEST_START] : []), ...reached]
         .map(
           (w) =>
-            `<button type="button" class="wv-opt${w === startWave ? ' on' : ''}" data-start="${w}"><b>${w}</b><small>${w === 1 ? t('workshop.fromStart') : t('workshop.unlocked')}</small></button>`,
+            `<button type="button" class="wv-opt${w === startWave ? ' on' : ''}" data-start="${w}"><b>${w}</b><small>${w === 1 ? t('workshop.fromStart') : w === TEST_START && tester ? t('workshop.testStart') : t('workshop.unlocked')}</small></button>`,
         )
         .join('') + `<button type="button" class="wv-opt locked" disabled><b>${icon('lock', 14)}${next}</b><small>${t('workshop.reach', { n: next })}</small></button>`;
     $('wvStartNote').textContent =

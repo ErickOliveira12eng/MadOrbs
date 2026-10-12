@@ -3297,3 +3297,146 @@
 .h-perms span.full b {
   color: var(--h-gold-1);
 }
+
+/* The waves' cards after a boss (HudLayer.showCards): three in the middle, the game stopped */
+.h-campcard.cards {
+  width: 780px;
+}
+
+.h-campend .h-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.h-campend .h-card {
+  --rc: 150, 175, 230;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 290px;
+  padding: 16px 14px 14px;
+  border-radius: 18px;
+  border: 2px solid rgba(var(--rc), 0.95);
+  background: radial-gradient(170px 130px at 50% 26%, rgba(var(--rc), 0.4), transparent 72%), linear-gradient(180deg, #1c2152, #10132e);
+  box-shadow: 0 0 24px rgba(var(--rc), 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: var(--h-text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+  animation: card-in 0.35s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+
+.h-campend .h-card:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.h-campend .h-card:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+@keyframes card-in {
+  from {
+    transform: translateY(26px) scale(0.92);
+    opacity: 0;
+  }
+}
+
+.h-campend .h-card:hover {
+  background: radial-gradient(170px 130px at 50% 26%, rgba(var(--rc), 0.55), transparent 72%), linear-gradient(180deg, #232968, #141838);
+  transform: translateY(-4px);
+  box-shadow: 0 0 34px rgba(var(--rc), 0.45);
+}
+
+.h-campend .h-card.epic {
+  --rc: 176, 123, 255;
+}
+
+.h-campend .h-card.legendary {
+  --rc: 255, 194, 58;
+}
+
+.h-campend .h-card .rar {
+  color: rgb(var(--rc));
+  font: 900 11.5px var(--h-ui);
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+
+.h-campend .h-cardico {
+  width: 64px;
+  height: 64px;
+  margin: 8px 0 4px;
+  color: rgb(var(--rc));
+  filter: drop-shadow(0 0 10px rgba(var(--rc), 0.55));
+}
+
+.h-campend .h-card.common .h-cardico {
+  color: #d6e2ff;
+}
+
+.h-campend .h-card b {
+  font: 400 22px/1.1 var(--h-display);
+  letter-spacing: 0.5px;
+}
+
+.h-campend .h-card em {
+  color: #ffd98a;
+  font: 900 12.5px var(--h-ui);
+  font-style: normal;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.h-campend .h-card p {
+  margin: 4px 0 0;
+  color: #c9cff2;
+  font: 700 14px/1.35 var(--h-ui);
+}
+
+.h-campend .h-card .h-key {
+  margin-top: auto;
+}
+
+/* The cards taken: small icons with their levels (the corner panel, the end of a run) */
+.h-wcards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 6px 4px 2px;
+  max-width: 200px;
+}
+
+.h-wcards.end {
+  justify-content: center;
+  max-width: none;
+  margin-top: 8px;
+}
+
+.h-wcards span {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 5px;
+  border-radius: 7px;
+  border: 1px solid rgba(143, 163, 199, 0.6);
+  background: rgba(14, 16, 40, 0.7);
+  font: 900 11.5px var(--h-ui);
+}
+
+.h-wcards span.epic {
+  border-color: rgba(176, 123, 255, 0.8);
+}
+
+.h-wcards span.legendary {
+  border-color: rgba(255, 194, 58, 0.85);
+}
+
+.h-cardmini {
+  width: 15px;
+  height: 15px;
+}

@@ -10,6 +10,7 @@ import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { CARD_LEVELS, rollCards, type CardID, type CardLevels } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADE_STEP, addCores, headStartPowers, runCores, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
@@ -34,6 +35,8 @@ export interface WavesHud {
   abilities: { kind: 'dash' | 'shock'; ready: number }[];
   /** The Workshop's recharging shield (share of a life), or null without it. */
   barrier: { now: number; max: number } | null;
+  /** The cards taken (after each boss), with their levels. */
+  cards: { id: CardID; level: number }[];
   bossLife: { name: string; life: number } | null;
   /** The best wave before this run. */
   record: number | null;
@@ -58,6 +61,8 @@ export interface WavesEnd {
   progress: WavesProgress;
   /** Milestones reached for the first time. */
   unlocked: Milestone[];
+  /** The cards taken in the run, with their levels. */
+  cards: { id: CardID; level: number }[];
 }
 
 type TimedPower = 'speed' | 'rapid' | 'shield' | 'fury';
@@ -86,6 +91,8 @@ export interface WavesContext {
   onBomb: (position: Vec3) => void;
   /** The Workshop's second wind saved the player. */
   onSecondWind: () => void;
+  /** The boss fell: three cards to choose from (the game waits for WavesRun.pick). */
+  onCards: (offer: CardID[]) => void;
   /** The Workshop's abilities: a dash, a shock wave (where it went off). */
   onDash: () => void;
   onShock: (position: Vec3) => void;
@@ -125,6 +132,11 @@ export class WavesRun {
   private readonly permCap: number;
   private dashWait = 0;
   private shockWait = 0;
+  /** The cards taken, the offer waiting for a choice (null: none), the kills already paid by Vampire, the Grenadier's clock. */
+  private readonly cards: CardLevels = {};
+  private offer: CardID[] | null = null;
+  private killsSeen = 0;
+  private grenadeClock = 0;
   /** Seconds since the first spawn. */
   elapsed = 0;
   over = false;
@@ -183,7 +195,16 @@ export class WavesRun {
     }
     // A boss beaten
     const bossUp = !!this.boss?.isAlive;
-    if (this.bossUp && !bossUp && this.boss && this.boss.lives <= 0) this.bosses++;
+    if (this.bossUp && !bossUp && this.boss && this.boss.lives <= 0) {
+      this.bosses++;
+      // The boss fell: three cards, the game waits for the choice
+      const offer = rollCards(this.wave, this.cards);
+      if (offer.length) {
+        this.offer = offer;
+        track('waves_cards', { wave: this.wave, offer: offer.join(',') });
+        this.ctx.onCards(offer);
+      }
+    }
     this.bossUp = bossUp;
     // Out of lives: the end
     if (!me.isAlive && me.lives <= 0 && this.elapsed > 0) {
@@ -229,6 +250,29 @@ export class WavesRun {
     me.fireBoost = (1 + UPGRADE_STEP.fire * lv.fire) * (1 + PERM_STEP * perm.permFire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1);
     me.armorBoost = (((1 - PERM_STEP) ** perm.permArmor * (this.timers.shield > 0 ? BOOSTS.shield : 1)) / (1 + UPGRADE_STEP.life * lv.life)) * (1 - UPGRADE_STEP.armor * lv.armor);
     me.damageBoost = (1 + UPGRADE_STEP.damage * lv.damage) * (1 + PERM_STEP * perm.permDamage) * (this.timers.fury > 0 ? BOOSTS.fury : 1);
+    // The cards (wavesCards.ts)
+    const card = (id: CardID) => CARD_LEVELS[id][this.cards[id] ?? 0];
+    me.extraShotChance = card('double');
+    me.parallelShot = card('parallel');
+    me.fanShot = card('fan');
+    me.pierce = card('pierce');
+    me.critChance = card('crit');
+    me.dodgeChance = card('dodge');
+    // Rage: more damage the less life is left
+    if (this.cards.rage) me.damageBoost *= 1 + card('rage') * (1 - Math.max(0, Math.min(1, me.life)));
+    // Vampire: life back for each kill
+    if (me.kills > this.killsSeen) {
+      if (this.cards.vampire && me.isAlive) me.life = Math.min(1, me.life + card('vampire') * (me.kills - this.killsSeen));
+      this.killsSeen = me.kills;
+    }
+    // Grenadier: a grenade comes back by itself now and then
+    if (this.cards.grenadier && me.isAlive) {
+      this.grenadeClock += TICK;
+      if (this.grenadeClock >= card('grenadier')) {
+        this.grenadeClock = 0;
+        if (me.nbGrenadeLeft < me.maxGrenades) me.nbGrenadeLeft++;
+      }
+    }
     me.poisonShot = POISON_DPS * perm.poison;
     me.iceShot = Math.min(ICE_MAX, ICE_SLOW * perm.ice);
   }
@@ -459,6 +503,25 @@ export class WavesRun {
     this.ctx.onPower(kind, weaponID);
   }
 
+  /** Cards to choose from now (the game waits), or null. */
+  get choosing(): CardID[] | null {
+    return this.offer;
+  }
+
+  /** The level of a card taken (0: not taken). */
+  cardLevel(id: CardID): number {
+    return this.cards[id] ?? 0;
+  }
+
+  /** The player took card `i` of the offer: one level more, and the run goes on. */
+  pick(i: number): void {
+    const id = this.offer?.[i];
+    if (!id) return;
+    this.cards[id] = (this.cards[id] ?? 0) + 1;
+    this.offer = null;
+    track('waves_card', { card: id, level: this.cards[id]!, wave: this.wave });
+  }
+
   /** The Workshop's dash: the way the keys go (else towards the aim), past the speed limit for a moment. */
   private dash(): void {
     const me = this.ctx.me;
@@ -542,6 +605,7 @@ export class WavesRun {
       cores,
       progress: addCores(cores.total),
       unlocked: MILESTONES.filter((m) => m.wave > before && m.wave <= wave),
+      cards: this.cardList(),
     };
   }
 
@@ -567,11 +631,16 @@ export class WavesRun {
         ...(this.ctx.levels.shock > 0 ? [{ kind: 'shock' as const, ready: 1 - this.shockWait / SHOCK_COOLDOWN[this.ctx.levels.shock] }] : []),
       ],
       barrier: me.barrierMax > 0 ? { now: me.barrier, max: me.barrierMax } : null,
+      cards: this.cardList(),
       bossLife: boss && this.spec.boss && this.phase === 'fight' && (boss.isAlive || boss.lives > 0) ? { name: boss.name, life: boss.isAlive ? boss.life : 1 } : null,
       record: this.record?.wave ?? null,
       cores: runCores(this.ctx.startWave, Math.max(this.ctx.startWave, this.wave), me.kills, this.bosses, false).total,
       over: this.over,
     };
+  }
+
+  private cardList(): { id: CardID; level: number }[] {
+    return (Object.keys(this.cards) as CardID[]).map((id) => ({ id, level: this.cards[id]! }));
   }
 
   /** The wave being fought, for analytics. */

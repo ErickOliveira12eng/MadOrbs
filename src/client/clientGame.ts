@@ -372,6 +372,21 @@ export class ClientGame {
         audio.play(this.sounds.equip, 200);
       },
       onBomb: (position) => this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 4),
+      onCards: (offer) => {
+        // The cards in the middle of the screen, with the system's cursor (and a banner under them)
+        this.input.exitPointerLock();
+        this.renderer.domElement.style.cursor = 'auto';
+        audio.play(this.sounds.equip, 255);
+        this.hud.showCards(
+          offer.map((id) => ({ id, level: this.waves?.cardLevel(id) ?? 0 })),
+          (i) => {
+            this.waves?.pick(i);
+            this.hud.hideCards();
+            this.renderer.domElement.style.cursor = 'none';
+            this.input.requestPointerLock();
+          },
+        );
+      },
       onDash: () => audio.play(this.sounds.equip, 160),
       onShock: (position) => {
         this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 3);
@@ -996,8 +1011,8 @@ export class ClientGame {
 
     if (this.conn) this.applyServerMessages();
     if (!this.running) return;
-    // The waves mode stops while its pause screen (Esc) is up
-    if (this.waves && !this.waves.over && this.hud.picker.visible) {
+    // The waves mode stops while its pause screen (Esc) is up, and while the boss's cards wait for a choice
+    if (this.waves && !this.waves.over && (this.hud.picker.visible || this.waves.choosing)) {
       input.endTick();
       return;
     }

@@ -12,6 +12,7 @@ import {
   PLAYER_TEAM_BLUE,
   PLAYER_TEAM_RED,
   PLAYER_TEAM_SPECTATOR,
+  PROJECTILE_DIRECT,
   PROJECTILE_DROPED_GRENADE,
   PROJECTILE_DROPED_WEAPON,
   PROJECTILE_LIFE_PACK,
@@ -148,6 +149,21 @@ export class Player {
   barrier = 0;
   barrierMax = 0;
   barrierWait = 0;
+  /**
+   * The waves' cards (src/client/wavesCards.ts): the chance of a second volley right after a shot, the
+   * side and the two diagonal volleys' share of the damage (0: none), enemies a bullet goes through,
+   * the chance of double damage, the chance a hit misses this player. Zero elsewhere.
+   */
+  extraShotChance = 0;
+  parallelShot = 0;
+  fanShot = 0;
+  pierce = 0;
+  critChance = 0;
+  dodgeChance = 0;
+  /** Damage share of the volley being fired now (the cards' extra volleys). */
+  shotScale = 1;
+  /** Seconds before the Double shot card's second volley (0: none waiting). */
+  private extraShotIn = 0;
   /** Marks shown before the name over the orb (the waves' elites: 'fast', 'brute', 'sniper', 'tank'). */
   badges: readonly string[] = [];
   /** Power-ups of the waves mode (src/client/wavesRun.ts): damage dealt, damage taken, moving and firing. */
@@ -261,6 +277,15 @@ export class Player {
       this.shootShakeDis.mulIn(lenShake);
     }
 
+    // The waves' Double shot card: the second volley
+    if (this.extraShotIn > 0) {
+      this.extraShotIn -= delay;
+      if (this.extraShotIn <= 0 && this.isAlive && this.weapon) {
+        const { origin, direction } = this.weapon.firingOriginAndDirection(this);
+        this.game.shoot(origin, direction, 0, 0, this, PROJECTILE_DIRECT);
+        this.cardVolleys(origin, direction, false);
+      }
+    }
     // The waves' dash and recharging shield
     if (this.dashLeft > 0) this.dashLeft = Math.max(0, this.dashLeft - delay);
     if (this.barrierMax > 0) {
@@ -738,7 +763,10 @@ export class Player {
 
     // A tougher babo (the campaign's bosses); the waves' power-ups (fury on the shooter, shield here)
     cdamage *= this.damageScale * this.armorBoost;
-    if (from !== this) cdamage *= from.damageBoost;
+    if (from !== this) cdamage *= from.damageBoost * from.shotScale;
+    // The waves' cards: a critical hit (double damage), a dodged one
+    if (from !== this && from.critChance > 0 && Math.random() < from.critChance) cdamage *= 2;
+    if (from !== this && this.dodgeChance > 0 && this.status === PLAYER_STATUS_ALIVE && Math.random() < this.dodgeChance) return false;
     // Shield protection
     if (this.protection > 0.6) cdamage *= 0.5;
     // Spawn immunity
@@ -866,6 +894,22 @@ export class Player {
         from.score--;
       }
     }
+  }
+
+  /**
+   * The waves' cards, after a direct shot: the side volley (Parallel), the two diagonal ones (Fan), each
+   * at its share of the damage; and maybe a second volley a moment later (Double shot, not for that one).
+   */
+  cardVolleys(origin: Vec3, direction: Vec3, mayRepeat = true): void {
+    const game = this.game;
+    const volley = (o: Vec3, d: Vec3, scale: number): void => {
+      this.shotScale = scale;
+      game.shoot(o, d, 0, 0, this, PROJECTILE_DIRECT);
+      this.shotScale = 1;
+    };
+    if (this.parallelShot > 0) volley(origin.add(new Vec3(-direction.y, direction.x, 0).mul(0.3)), direction, this.parallelShot);
+    if (this.fanShot > 0) for (const a of [-22, 22]) volley(origin, rotateAboutAxis(direction, a, Z_AXIS), this.fanShot);
+    if (mayRepeat && this.extraShotChance > 0 && this.extraShotIn <= 0 && Math.random() < this.extraShotChance) this.extraShotIn = 0.09;
   }
 
   /** The waves' dash (the Workshop): a burst of speed this way, past the usual limit for a moment. */
