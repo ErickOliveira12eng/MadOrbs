@@ -360,6 +360,8 @@ export class WavesRun {
     // What lies on the floor (life packs, grenades) is the player's; a fallen bot doesn't always leave one
     p.takesLifePacks = false;
     p.lifePackChance = WAVES.lifePackChance + UPGRADE_STEP.drops * this.ctx.levels.drops;
+    // Grenades: one, at the life pack's chance (they used to drop all they had)
+    p.grenadeDropChance = WAVES.lifePackChance;
     // They come in from the map's edges, never out of its middle
     p.edgeSpawn = true;
     // An elite, maybe (waves.ts): its traits on top of the wave's numbers

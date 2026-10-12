@@ -131,6 +131,11 @@ export class Player {
   takesLifePacks = true;
   /** The chance this player drops a life pack when killed (always in the original; the waves' bots: less). */
   lifePackChance = 1;
+  /**
+   * The chance this player drops a grenade when killed: 1 drops every grenade left (the original);
+   * below 1, one grenade at that chance (the waves' bots: the life pack's chance).
+   */
+  grenadeDropChance = 1;
   /** Grenades this player can carry (the original's 3; the waves' Workshop makes the bag bigger). */
   maxGrenades = 3;
   /** Spawns only at the spawn points near the map's edges, never the middle ones (the waves' bots). */
@@ -862,7 +867,11 @@ export class Player {
     };
     if (this.lifePackChance >= 1 || Math.random() < this.lifePackChance) game.spawnProjectile(this.currentCF.position.clone(), dropVel(), this.playerID, PROJECTILE_LIFE_PACK, 0);
     if (this.weapon) game.spawnProjectile(this.currentCF.position.clone(), dropVel(), this.playerID, PROJECTILE_DROPED_WEAPON, this.weapon.weaponID);
-    for (let i = 0; i < this.nbGrenadeLeft; ++i) {
+    if (this.grenadeDropChance >= 1) {
+      for (let i = 0; i < this.nbGrenadeLeft; ++i) {
+        game.spawnProjectile(this.currentCF.position.clone(), dropVel(), this.playerID, PROJECTILE_DROPED_GRENADE, 0);
+      }
+    } else if (this.nbGrenadeLeft > 0 && Math.random() < this.grenadeDropChance) {
       game.spawnProjectile(this.currentCF.position.clone(), dropVel(), this.playerID, PROJECTILE_DROPED_GRENADE, 0);
     }
     game.events.push({ type: 'death', playerID: this.playerID, fromID: from.playerID, weaponID: fromWeaponID, friendlyFire, position: this.currentCF.position.clone() });
