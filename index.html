@@ -351,6 +351,10 @@
           </form>
           <p id="accountNameMsg" class="account-msg" role="status" hidden></p>
           <label id="accountDebugZoom" class="account-debug" hidden><input id="debugZoomInput" type="checkbox" /><span data-i18n="account.debugZoom">Free zoom with the mouse wheel (offline modes, for testing)</span></label>
+          <div id="accountDebugReset" class="account-debug-reset" hidden>
+            <button type="button" class="btn-ghost danger" data-reset="waves"><span data-icon="rotate"></span><span data-i18n="account.resetWaves">Reset the Waves</span></button>
+            <button type="button" class="btn-ghost danger" data-reset="campaign"><span data-icon="rotate"></span><span data-i18n="account.resetCampaign">Reset the Campaign</span></button>
+          </div>
           <footer class="modal-foot account-foot">
             <button id="accountDelete" class="btn-ghost danger" type="button"><span data-icon="trash"></span><span id="accountDeleteText" data-i18n="account.delete">Delete account</span></button>
             <button id="accountSignOut" class="btn-ghost" type="button"><span data-icon="log_out"></span><span data-i18n="account.signOut">Sign out</span></button>

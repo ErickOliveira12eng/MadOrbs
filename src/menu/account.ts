@@ -286,6 +286,24 @@ export class Account {
     }
   }
 
+  /** Testers: deletes this account's waves or campaign progress in the database (the server checks who asks). */
+  async resetProgress(what: 'waves' | 'campaign'): Promise<string | null> {
+    const token = await this.accessToken();
+    if (!token) return 'signin';
+    try {
+      const r = await fetch('/api/debug-tools/reset', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ what }),
+      });
+      if (r.ok) return null;
+      const body = (await r.json().catch(() => ({}))) as { error?: string };
+      return body.error ?? `HTTP ${r.status}`;
+    } catch (e) {
+      return (e as Error).message;
+    }
+  }
+
   /** Which debug tools the server gives this account (GET /api/debug-tools). */
   private async loadDebugTools(): Promise<void> {
     const token = await this.accessToken();

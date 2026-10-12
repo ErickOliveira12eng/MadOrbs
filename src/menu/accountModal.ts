@@ -64,6 +64,27 @@ export class AccountModal {
     });
     $('accountSignOut').addEventListener('click', () => void account.signOut());
     // The debug zoom (only the accounts the server allows see it): remembered in this browser
+    // Testers: the waves' or the campaign's progress back to nothing, here and in the account
+    $('accountDebugReset').addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-reset]');
+      if (!b) return;
+      const what = b.dataset.reset === 'campaign' ? 'campaign' : 'waves';
+      if (!confirm(t(what === 'waves' ? 'account.resetWavesConfirm' : 'account.resetCampaignConfirm'))) return;
+      b.disabled = true;
+      void this.account.resetProgress(what).then((err) => {
+        b.disabled = false;
+        if (err) {
+          this.showError(t('account.resetFailed', { reason: err }));
+          return;
+        }
+        try {
+          for (const key of what === 'waves' ? ['madorbs.waves', 'madorbs.wavesProgress'] : ['madorbs.campaign']) localStorage.removeItem(key);
+        } catch {
+          /* storage unavailable */
+        }
+        location.reload();
+      });
+    });
     for (const [id, key] of [['debugZoomInput', DEBUG_ZOOM_KEY]] as const) {
       const box = $<HTMLInputElement>(id);
       box.checked = flagOn(key);
@@ -121,6 +142,7 @@ export class AccountModal {
     $('accountTag').textContent = p ? `#${p.tag}` : '';
     $('accountEmail').textContent = this.account.email;
     $('accountDebugZoom').hidden = !this.account.debugTools.zoom;
+    $('accountDebugReset').hidden = !this.account.debugTools.zoom;
     if (document.activeElement !== this.nameInput) this.nameInput.value = p?.name ?? this.settings.name;
     void this.studio.picture(skinInfo(this.settings), 144, undefined, true).then((src) => ($<HTMLImageElement>('accountOrb').src = src));
   }

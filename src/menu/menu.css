@@ -2181,6 +2181,17 @@ input[type='range'] {
 }
 
 /* Debug tools (only the accounts the server allows see them) */
+.account-debug-reset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.account-debug-reset[hidden] {
+  display: none;
+}
+
 .account-debug {
   display: flex;
   align-items: center;
