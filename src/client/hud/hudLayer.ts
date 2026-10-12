@@ -1269,7 +1269,7 @@ export class HudLayer {
       if (!el) {
         el = document.createElement('span');
         el.className = 'h-tag';
-        el.innerHTML = '<span class="nm"></span><span class="h-hp"><i class="g"></i><i class="f"></i></span>';
+        el.innerHTML = '<span class="nm"></span><span class="h-tbar"><i class="g"></i><i class="f"></i></span>';
         this.r.tags.appendChild(el);
         this.tagEls.push(el);
       }

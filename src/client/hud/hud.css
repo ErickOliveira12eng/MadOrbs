@@ -141,7 +141,7 @@
 }
 
 /* The life bar under the name, once the orb is hurt (HudLayer.updateTags): the tag moves up to make room */
-.h-hp {
+.h-tbar {
   display: none;
   position: absolute;
   left: 50%;
@@ -159,11 +159,11 @@
   margin-top: -11px;
 }
 
-.h-tag.hurt .h-hp {
+.h-tag.hurt .h-tbar {
   display: block;
 }
 
-.h-hp i {
+.h-tbar i {
   position: absolute;
   left: 0;
   top: 0;
@@ -171,33 +171,33 @@
 }
 
 /* The trail: what the last hit took, white for a moment */
-.h-hp .g {
+.h-tbar .g {
   background: rgba(255, 255, 255, 0.85);
 }
 
-.h-hp .f {
+.h-tbar .f {
   background: #4be07a;
 }
 
-.h-hp .f.mid {
+.h-tbar .f.mid {
   background: #ffd23f;
 }
 
-.h-hp .f.lo {
+.h-tbar .f.lo {
   background: #ff4d5e;
 }
 
 /* Team modes: the bar's edge in the team's colour */
-.h-tag.t0 .h-hp {
+.h-tag.t0 .h-tbar {
   box-shadow: 0 0 0 1px rgba(91, 149, 255, 0.95);
 }
 
-.h-tag.t1 .h-hp {
+.h-tag.t1 .h-tbar {
   box-shadow: 0 0 0 1px rgba(255, 93, 93, 0.95);
 }
 
 /* A boss (the campaign's, the waves'): a wider bar */
-.h-tag.big .h-hp {
+.h-tag.big .h-tbar {
   width: 84px;
   height: 8px;
   border-radius: 4px;
