@@ -1,10 +1,10 @@
 // The waves' cards (Erick, 12/10/2026, in the style of Archero): each time the boss falls (wave 10, 20,
 // 30...) the game stops and offers 3 cards; the player takes one, for the rest of the run. Taking a
-// card again raises its level. Commons have 5 levels; epics (unique effects) and legendaries (from
-// wave 40) come in the next steps. What each level does lives here; WavesRun applies it to the player
+// card again raises its level. Commons have 5 levels, the epics 3 (missiles falling, shadow allies);
+// the legendaries (from wave 40) come later. What each level does lives here; WavesRun applies it to the player
 // (src/sim/player.ts: extra volleys, piercing, criticals, dodging) and the HUD shows the cards.
 
-export type CardID = 'double' | 'parallel' | 'fan' | 'pierce' | 'crit' | 'vampire' | 'rage' | 'dodge' | 'grenadier';
+export type CardID = 'double' | 'parallel' | 'fan' | 'pierce' | 'crit' | 'vampire' | 'rage' | 'dodge' | 'grenadier' | 'blast' | 'ricochet' | 'missiles' | 'shadow';
 export type Rarity = 'common' | 'epic' | 'legendary';
 
 export interface CardDef {
@@ -26,6 +26,10 @@ export const CARDS: CardDef[] = [
   { id: 'rage', rarity: 'common', max: 5 },
   { id: 'dodge', rarity: 'common', max: 5 },
   { id: 'grenadier', rarity: 'common', max: 5 },
+  { id: 'blast', rarity: 'common', max: 5 },
+  { id: 'ricochet', rarity: 'common', max: 5 },
+  { id: 'missiles', rarity: 'epic', max: 3 },
+  { id: 'shadow', rarity: 'epic', max: 3 },
 ];
 
 /** How likely each rarity is in an offer (by weight). */
@@ -36,7 +40,9 @@ const RARITY_WEIGHT: Record<Rarity, number> = { common: 70, epic: 25, legendary:
  * the side volley's share of the damage; Fan, the two diagonal volleys' share; Pierce, enemies a bullet
  * goes through; Critical, chance of double damage; Vampire, life back per kill; Rage, extra damage at
  * no life left (it grows as the life goes down); Dodge, chance a hit misses; Grenadier, seconds for a
- * grenade to come back by itself.
+ * grenade to come back by itself; Blast, the power of the blast a kill makes (a bot's life, before its
+ * toughness; BLAST_RADIUS); Ricochet, enemies a hit jumps on to; Missiles, rockets falling every
+ * MISSILE_EVERY seconds; Shadow, allies at the player's side.
  */
 export const CARD_LEVELS: Record<CardID, number[]> = {
   double: [0, 0.2, 0.4, 0.6, 0.8, 1],
@@ -48,7 +54,20 @@ export const CARD_LEVELS: Record<CardID, number[]> = {
   rage: [0, 0.2, 0.4, 0.6, 0.8, 1],
   dodge: [0, 0.05, 0.1, 0.15, 0.2, 0.25],
   grenadier: [0, 20, 16, 12, 9, 6],
+  blast: [0, 0.5, 0.6, 0.7, 0.85, 1],
+  ricochet: [0, 1, 2, 3, 4, 5],
+  missiles: [0, 3, 5, 7],
+  shadow: [0, 1, 2, 3],
 };
+
+/** Blast: how far a kill's blast reaches (cells), by level. */
+export const BLAST_RADIUS = [0, 1.5, 1.75, 2, 2.25, 2.5];
+/** Ricochet: how far a hit jumps (cells) and the share of the damage it keeps at each jump. */
+export const RICOCHET_RANGE = 5;
+export const RICOCHET_KEEP = 0.7;
+/** Missiles: seconds between two volleys, how far from the player they look for targets. */
+export const MISSILE_EVERY = 15;
+export const MISSILE_RANGE = 14;
 
 export type CardLevels = Partial<Record<CardID, number>>;
 
@@ -57,6 +76,9 @@ export function cardValue(id: CardID, level: number): string {
   const v = CARD_LEVELS[id][level] ?? 0;
   switch (id) {
     case 'pierce':
+    case 'ricochet':
+    case 'missiles':
+    case 'shadow':
       return String(v);
     case 'vampire':
       return String(Math.round(v * 100));

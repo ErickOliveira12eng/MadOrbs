@@ -163,6 +163,8 @@ export class Player {
   parallelShot = 0;
   fanShot = 0;
   pierce = 0;
+  /** The waves' Ricochet card: enemies a hit jumps on to (Game.ricochetChain). */
+  ricochet = 0;
   critChance = 0;
   dodgeChance = 0;
   /** Damage share of the volley being fired now (the cards' extra volleys). */

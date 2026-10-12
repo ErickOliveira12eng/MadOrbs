@@ -678,7 +678,7 @@ export class HudLayer {
           `<button type="button" class="h-card ${def.rarity}" data-card="${i}">` +
           `<span class="rar">${t(`cards.${def.rarity}`)}</span>${cardIcon(id)}` +
           `<b>${t(`card.${id}`)}</b><em>${lv}</em>` +
-          `<p>${id === 'pierce' && next === 1 ? t('card.pierce.descOne') : t(`card.${id}.desc`, { v: cardValue(id, next) })}</p>` +
+          `<p>${next === 1 && (id === 'pierce' || id === 'ricochet' || id === 'shadow') ? t(`card.${id}.descOne`) : t(`card.${id}.desc`, { v: cardValue(id, next) })}</p>` +
           `<span class="h-key">${i + 1}</span></button>`
         );
       })
@@ -1661,6 +1661,10 @@ const CARD_PATHS: Record<CardID, string> = {
   rage: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
   dodge: '<path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"/><path d="M16 8 2 22"/><path d="M17.5 15H9"/>',
   grenadier: '<circle cx="11" cy="13" r="8"/><path d="M14.35 4.65 16.3 2.7a2.41 2.41 0 0 1 3.4 0l1.6 1.6a2.4 2.4 0 0 1 0 3.4l-1.95 1.95"/><path d="m22 2-1.5 1.5"/>',
+  blast: '<circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/>',
+  ricochet: '<circle cx="4" cy="18" r="2"/><circle cx="12" cy="6" r="2"/><circle cx="20" cy="16" r="2"/><path d="M5.5 16.5 10.5 7.5M13.5 7.5l5 7"/>',
+  missiles: '<path d="M14 3 8 9l1.5 1.5L16 4.5z"/><path d="M8 9 4 13l2 1 1 2 4-4"/><path d="M6 18l-3 3M9 19l-2 2M5 15l-2 2"/><path d="m16 4.5 3-1.5-1.5 3"/>',
+  shadow: '<circle cx="9" cy="9" r="5"/><circle cx="16" cy="15" r="5" stroke-dasharray="3 2"/>',
 };
 const cardIcon = (id: CardID, cls = 'h-cardico') =>
   `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CARD_PATHS[id]}</svg>`;

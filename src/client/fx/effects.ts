@@ -805,6 +805,28 @@ export class Effects {
    * Game::spawnExplosion (NET_SVCL_EXPLOSION). size = explosion radius; >= 4 is the nuke
    * (nuke flash + low-pitched sound). The camera shake is NOT here (moved to NET_SVCL_PLAYER_HIT).
    */
+  /**
+   * A light blast (the waves' Blast card: kills going off one after the other): the flash of fire and
+   * a quieter sound, no smoke and no mark on the floor (a third of spawnExplosion's particles).
+   */
+  spawnBlastLight(position: Vec3, radius: number): void {
+    const size = radius * 3;
+    const h = audio.play3D(this.sfx_explosion[0], 10, position, 150);
+    if (h) h.source.playbackRate.value = 1.25;
+    const d = this.dkp;
+    const smoke = this.tex_smoke1;
+    const normal = new Vec3(0, 0, 1);
+    const duration = Math.min(this.options.reducedParticles ? 1.0 : 10.0, size * 0.5);
+    d.dkpCreateParticleEx(position, position, normal, 1.5, 3.5, 0, 90, size * 0.01, size * 0.01, size * 0.02, size * 0.02,
+      duration * 0.1, duration * 0.1, [1, 0, 0, 1], [1, 1, 0, 1], [1, 1, 0, 0], [1, 1, 0, 0],
+      0, 360, 0, 30, 0, 1, 12, 12, smoke, 0, DKP_SRC_ALPHA, DKP_ONE);
+    d.dkpCreateParticleEx(
+      position.sub(new Vec3(radius * 0.35, radius * 0.35, 0)), position.add(new Vec3(radius * 0.35, radius * 0.35, 0)),
+      normal, 0, 0, 0, 90, radius * 0.25, radius * 0.25, radius * 0.5, radius * 0.5,
+      0.25, 0.25, [1, 0, 0, 1], [1, 1, 0, 1], [1, 0, 0, 0], [1, 1, 0, 0],
+      0, 360, -180, 180, 0, 1, 6, 6, smoke, 0, DKP_SRC_ALPHA, DKP_ONE);
+  }
+
   spawnExplosion(position: Vec3, normal: Vec3, size: number): void {
     if (size >= 4.0) this.addNukeFlash(position, size * 3);
 

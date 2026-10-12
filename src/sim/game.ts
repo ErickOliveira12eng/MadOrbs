@@ -52,6 +52,9 @@ import { CRATE_RADIUS, Crate } from './crate';
 import type { GameMap } from './map';
 import { Player } from './player';
 import { MIN_THROW, Projectile } from './projectile';
+/** The waves' Ricochet card (src/client/wavesCards.ts keeps the same numbers for its text). */
+const RICOCHET_RANGE = 5;
+const RICOCHET_KEEP = 0.7;
 import { Vec3, distance, distanceSquared, randRange, rotateAboutAxis } from './vec';
 
 const Z_AXIS = new Vec3(0, 0, 1);
@@ -1070,6 +1073,8 @@ export class Game {
       victim.currentCF.vel.addIn(direction.mul(weaponDefs[weaponID].damage * 2));
       victim.hitSV(weaponID, player);
     }
+    // The waves' Ricochet card: the hit jumps on from the last babo touched
+    if (player.ricochet > 0 && b.hits.length) this.ricochetChain(player, weaponID, b.hits[b.hits.length - 1], new Set(b.hits));
     this.events.push({
       type: 'shoot',
       playerID: player.playerID,
@@ -1136,7 +1141,8 @@ export class Game {
   }
 
   /** Game::radiusHit — damage falls off with the distance, walls protect. */
-  radiusHit(pos: Vec3, radius: number, fromID: number, weaponID: number, sameDmg = false): void {
+  /** `spareID`: a player the blast leaves alone (the waves' missiles spare the one who called them). */
+  radiusHit(pos: Vec3, radius: number, fromID: number, weaponID: number, sameDmg = false, spareID = -1): void {
     const position = pos.clone();
     const from = this.players[fromID];
     if (!from) return;
@@ -1144,6 +1150,7 @@ export class Game {
     for (const player of this.players) {
       if (!player) continue;
       if (player.playerID === fromID && weaponID === WEAPON_KNIVES) continue;
+      if (player.playerID === spareID) continue;
       const dis = distance(player.currentCF.position, position);
       if (dis < radius) {
         const normal = new Vec3();
@@ -1158,6 +1165,38 @@ export class Game {
       if (dis >= radius + CRATE_RADIUS) continue;
       if (this.map.rayTest(position.clone(), crate.position.clone(), new Vec3())) continue;
       this.hitCrate(crate, (sameDmg ? 1 : Math.max(0.2, 1 - dis / radius)) * weaponDamage * from.damageBoost, from);
+    }
+  }
+
+  /**
+   * The waves' Ricochet card: from the babo just hit, the hit jumps to the nearest other enemy in sight
+   * (RICOCHET_RANGE), `player.ricochet` times, keeping RICOCHET_KEEP of the damage each time; each jump
+   * is drawn as a shot from one to the other.
+   */
+  private ricochetChain(player: Player, weaponID: number, from: Player, touched: Set<Player>): void {
+    let at = from.currentCF.position.clone();
+    let scale = player.shotScale;
+    for (let n = 0; n < player.ricochet; n++) {
+      scale *= RICOCHET_KEEP;
+      let next: Player | null = null;
+      let best = RICOCHET_RANGE;
+      for (const other of this.players) {
+        if (!other || other === player || !other.isAlive || touched.has(other)) continue;
+        if (this.isTeamGame && other.teamID === player.teamID) continue;
+        const d = distance(at, other.currentCF.position);
+        if (d >= best || this.map.rayTest(at.clone(), other.currentCF.position.clone(), new Vec3())) continue;
+        best = d;
+        next = other;
+      }
+      if (!next) return;
+      touched.add(next);
+      const to = next.currentCF.position.clone();
+      this.events.push({ type: 'shoot', playerID: player.playerID, weaponID, nuzzleID: 0, p1: at.clone(), p2: to.clone(), normal: to.sub(at).normalizeIn(), hitPlayerID: next.playerID });
+      const keep = player.shotScale;
+      player.shotScale = scale;
+      next.hitSV(weaponID, player);
+      player.shotScale = keep;
+      at = to;
     }
   }
 

@@ -3,14 +3,14 @@
 // break and now and then), the power-ups they drop and their effects, the lives and the end.
 import * as THREE from 'three';
 import { BotController } from '../sim/bot';
-import { PLAYER_TEAM_RED, PROJECTILE_DROPED_WEAPON, TICK, WEAPON_KNIVES, WEAPON_NUCLEAR } from '../sim/constants';
+import { PLAYER_TEAM_BLUE, PLAYER_TEAM_RED, PROJECTILE_DROPED_WEAPON, PROJECTILE_ROCKET, TICK, WEAPON_BAZOOKA, WEAPON_GRENADE, WEAPON_KNIVES, WEAPON_NUCLEAR } from '../sim/constants';
 import type { Game } from '../sim/game';
 import type { Player, SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
-import { CARD_LEVELS, rollCards, type CardID, type CardLevels } from './wavesCards';
+import { BLAST_RADIUS, CARD_LEVELS, MISSILE_EVERY, MISSILE_RANGE, rollCards, type CardID, type CardLevels } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADE_STEP, addCores, headStartPowers, runCores, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
@@ -95,6 +95,10 @@ export interface WavesContext {
   onSecondWind: () => void;
   /** The boss fell: three cards to choose from (the game waits for WavesRun.pick). */
   onCards: (offer: CardID[]) => void;
+  /** The Blast card: a kill's blast went off there, this far (drawn light, a few a second at most). */
+  onKillBlast: (position: Vec3, radius: number) => void;
+  /** The Shadow card's allies' name. */
+  allyName: string;
   /** The Workshop's abilities: a dash, a shock wave (where it went off). */
   onDash: () => void;
   onShock: (position: Vec3) => void;
@@ -139,6 +143,11 @@ export class WavesRun {
   private offer: CardID[] | null = null;
   private killsSeen = 0;
   private grenadeClock = 0;
+  /** The Blast card: enemies a blast killed (their own death makes no blast: no chain); the Missiles card's clock. */
+  private readonly blastKills = new Set<number>();
+  private missileClock = 0;
+  /** The Shadow card's allies (blue bots walking beside the player), and on which side the next one goes. */
+  private readonly allies: Player[] = [];
   /** Seconds since the first spawn. */
   elapsed = 0;
   over = false;
@@ -260,6 +269,15 @@ export class WavesRun {
     me.pierce = card('pierce');
     me.critChance = card('crit');
     me.dodgeChance = card('dodge');
+    me.ricochet = card('ricochet');
+    // Missiles: a volley falls on enemies around now and then
+    if (this.cards.missiles && me.isAlive && this.phase === 'fight') {
+      this.missileClock += TICK;
+      if (this.missileClock >= MISSILE_EVERY) {
+        this.missileClock = 0;
+        this.missiles(card('missiles'));
+      }
+    }
     // Rage: more damage the less life is left
     if (this.cards.rage) me.damageBoost *= 1 + card('rage') * (1 - Math.max(0, Math.min(1, me.life)));
     // Vampire: life back for each kill
@@ -295,6 +313,8 @@ export class WavesRun {
     this.nextCrate = WAVES.crates.every;
     track('wave_start', { wave: this.wave, boss: this.spec.boss });
     this.ctx.onWave(this.spec);
+    // The Shadow card's allies fallen in the last wave come back
+    this.reviveAllies();
   }
 
   private updateFight(): void {
@@ -524,6 +544,97 @@ export class WavesRun {
     this.cards[id] = (this.cards[id] ?? 0) + 1;
     this.offer = null;
     track('waves_card', { card: id, level: this.cards[id]!, wave: this.wave });
+    if (id === 'shadow') this.reviveAllies();
+  }
+
+  /**
+   * An enemy went down (the game's 'death' event). The Blast card: killed by the player, it blows up and
+   * hurts the enemies around (in sight); those a blast kills don't blow up in turn.
+   */
+  onEnemyDown(victimID: number, fromID: number, position: Vec3): void {
+    if (this.blastKills.delete(victimID)) return;
+    const { game, me } = this.ctx;
+    const level = this.cards.blast ?? 0;
+    if (this.over || !level || fromID !== me.playerID) return;
+    const victim = game.players[victimID];
+    if (!victim || victim.teamID !== PLAYER_TEAM_RED) return;
+    const radius = BLAST_RADIUS[level];
+    const power = CARD_LEVELS.blast[level];
+    for (const p of this.reds()) {
+      if (!p.isAlive || p.playerID === victimID) continue;
+      const d = Math.hypot(p.currentCF.position.x - position.x, p.currentCF.position.y - position.y);
+      if (d >= radius + p.radius || game.map.rayTest(position.clone(), p.currentCF.position.clone(), new Vec3())) continue;
+      p.hitSV(WEAPON_GRENADE, me, power * (1 - d / (radius * 1.5)));
+      if (!p.isAlive) this.blastKills.add(p.playerID);
+    }
+    this.ctx.onKillBlast(position, radius);
+  }
+
+  /**
+   * The Missiles card: `n` bazooka rockets falling from the sky at an angle on enemies around the player
+   * (MISSILE_RANGE; the nearest first, the same one twice when there are few), their blast sparing him.
+   */
+  private missiles(n: number): void {
+    const { game, me } = this.ctx;
+    const at = me.currentCF.position;
+    const targets = this.reds()
+      .filter((p) => p.isAlive && Math.hypot(p.currentCF.position.x - at.x, p.currentCF.position.y - at.y) < MISSILE_RANGE)
+      .sort(() => Math.random() - 0.5);
+    if (!targets.length) {
+      // Nobody around yet: the volley waits a little
+      this.missileClock = MISSILE_EVERY - 2;
+      return;
+    }
+    for (let i = 0; i < n; i++) {
+      const target = targets[i % targets.length].currentCF.position;
+      const to = new Vec3(target.x + (Math.random() - 0.5) * 0.6, target.y + (Math.random() - 0.5) * 0.6, 0);
+      const from = new Vec3(to.x - 2.5 + Math.random(), to.y + 2.5 + Math.random(), 7 + i * 0.6);
+      if (!game.spawnProjectile(from, to.sub(from).normalizeIn().mul(4), me.playerID, PROJECTILE_ROCKET, WEAPON_BAZOOKA)) continue;
+      game.projectiles[game.projectiles.length - 1].rain = true;
+    }
+    track('waves_ability', { ability: 'missiles', wave: this.wave });
+  }
+
+  /** The Shadow card: as many allies as its level, the fallen ones back beside the player. */
+  private reviveAllies(): void {
+    const { game, me, bots } = this.ctx;
+    const want = CARD_LEVELS.shadow[this.cards.shadow ?? 0];
+    while (this.allies.length < want) {
+      const p = game.addPlayer(this.ctx.allyName, true);
+      if (!p) break;
+      p.teamID = PLAYER_TEAM_BLUE;
+      p.skin = me.skin;
+      p.takesLifePacks = false;
+      p.lifePackChance = 0;
+      p.grenadeDropChance = 0;
+      p.lives = 0;
+      this.allies.push(p);
+    }
+    this.allies.forEach((p, k) => {
+      if (p.isAlive) return;
+      p.lives = 1;
+      p.spawnRequested = false;
+      p.timeToSpawn = 0;
+      // As tough and as strong as the wave's enemies: they keep up with the waves
+      p.damageScale = this.spec.toughness;
+      p.damageBoost = this.spec.hitBoost;
+      p.speedBoost = 1;
+      const bot = new BotController(p, Math.min(1, this.spec.skill + 0.1), { primary: this.ctx.startWeapon, secondary: WEAPON_KNIVES });
+      bot.escort = me;
+      bot.escortSide = k % 2 === 0 ? 1 : -1;
+      const i = bots.findIndex((b) => b.player === p);
+      if (i >= 0) bots[i] = bot;
+      else bots.push(bot);
+      game.requestSpawn(p);
+      // Right beside the player when the floor there is free
+      const x = me.currentCF.position.x + bot.escortSide * 0.8;
+      const y = me.currentCF.position.y - 0.3 * k;
+      const cell = game.map.cellAt(Math.floor(x), Math.floor(y));
+      if (p.isAlive && me.isAlive && cell?.passable) {
+        p.currentCF.position.set(x, y, 0.25);
+        p.lastCF.position.copy(p.currentCF.position);
+      }
+    });
   }
 
   /** The Workshop's dash: the way the keys go (else towards the aim), past the speed limit for a moment. */

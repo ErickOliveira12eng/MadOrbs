@@ -77,6 +77,11 @@ export class Projectile {
   predicted = false;
   /** Client mode: the server's copy of a projectile we predicted, kept up to date but not drawn. */
   hidden = false;
+  /**
+   * A rocket of the waves' missile rain (the Missiles card): its owner's bazooka neither detonates it nor
+   * waits for it, and its blast spares the owner.
+   */
+  rain = false;
 
   constructor(position: Vec3, vel: Vec3, fromID: number, projectileType: number, uniqueID: number, weaponID = 0) {
     this.fromID = fromID;
@@ -157,7 +162,7 @@ export class Projectile {
       return;
     }
     game.explosion(pos, normal, radius, playerID);
-    game.radiusHit(pos, hitRadius, this.fromID, weaponID);
+    game.radiusHit(pos, hitRadius, this.fromID, weaponID, false, this.rain ? this.fromID : -1);
   }
 
   /** Projectile::update (server logic). */
@@ -271,7 +276,7 @@ export class Projectile {
       }
       if (type === PROJECTILE_ROCKET) {
         const owner = game.players[this.fromID];
-        if (owner) {
+        if (owner && !this.rain) {
           owner.rocketInAir = false;
           owner.detonateRocket = false;
         }
@@ -289,7 +294,7 @@ export class Projectile {
       // The waves mode's crates stop a rocket too
       const crate = hit ? null : game.crateInRadius(cf.position, 0.1);
       if (hit || crate) {
-        if (owner) {
+        if (owner && !this.rain) {
           owner.rocketInAir = false;
           owner.detonateRocket = false;
         }
@@ -300,8 +305,8 @@ export class Projectile {
       }
       const p2 = cf.position.clone();
       const normal = new Vec3();
-      if (map.rayTest(this.lastCF.position.clone(), p2, normal) || (owner && owner.detonateRocket)) {
-        if (owner) {
+      if (map.rayTest(this.lastCF.position.clone(), p2, normal) || (owner && owner.detonateRocket && !this.rain)) {
+        if (owner && !this.rain) {
           owner.rocketInAir = false;
           owner.detonateRocket = false;
         }

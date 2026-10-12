@@ -323,6 +323,8 @@ export class ClientGame {
 
   /** A run of the waves mode, or null. */
   private waves: WavesRun | null = null;
+  /** The waves' Blast card: when its last light blasts were drawn (a few a second at most). */
+  private blastTimes: number[] = [];
 
   /**
    * The waves mode: Team Deathmatch with us alone on blue (three lives and the SMG, more with the
@@ -388,6 +390,15 @@ export class ClientGame {
           },
         );
       },
+      onKillBlast: (position, radius) => {
+        // Drawn light, and at most a few a second (the damage is always there)
+        const now = performance.now();
+        this.blastTimes = this.blastTimes.filter((t) => now - t < 1000);
+        if (this.blastTimes.length >= 6) return;
+        this.blastTimes.push(now);
+        this.effects.spawnBlastLight(position, radius);
+      },
+      allyName: t('waves.allyName'),
       onDash: () => audio.play(this.sounds.equip, 160),
       onShock: (position) => {
         this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 3);
@@ -1496,6 +1507,8 @@ export class ClientGame {
       }
       case 'death': {
         this.effects.playerDeath(e.position);
+        // The waves' Blast card (offline: the run decides)
+        if (this.waves && !online) this.waves.onEnemyDown(e.playerID, e.fromID, e.position);
         const victim = game.players[e.playerID];
         const killer = game.players[e.fromID];
         if (fromServer && victim && victim.isAlive) {
