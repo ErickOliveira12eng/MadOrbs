@@ -77,9 +77,10 @@ export interface WaveSpec {
  * close in on a ceiling. A gentle start and a steady climb (the first version was hard from the start
  * and too hard soon after; the Workshop's upgrades, src/client/wavesProgress.ts, now carry the player
  * further run after run). Bots: 2 + 0.9 n + n²/80 (3, 7 on wave 5, 12 on 10, 25 on 20, 40 on 30); their
- * skill 0.92 - 0.77 e^(-(n-1)/18) (0.15, 0.27, 0.42, 0.66 on 20); they take 1/(1 + 0.035 (n-1)) of the
- * damage (31% tougher on wave 10, twice on 30) and hit 1 + 0.015 (n-1) as hard (on top of
- * WAVES.playerDamage). The better weapons come a few waves later than they used to.
+ * skill 0.92 - 0.77 e^(-(n-1)/18) (0.15, 0.27, 0.42, 0.66 on 20). They take 1/(1 + 0.07 (n-1)) of the
+ * damage (as if their life were ×1.6 on wave 10, ×2.3 on 20, ×3.7 on 40) and hit 1 + 0.04 (n-1) as hard
+ * (×1.4, ×1.8, ×2.6; on top of WAVES.playerDamage): Erick, 12/10/2026, the gentler 0.035 and 0.015 went
+ * unnoticed against the player's power-ups. The better weapons come a few waves later than they used to.
  */
 export function waveSpec(n: number): WaveSpec {
   const boss = n % WAVES.bossEvery === 0;
@@ -99,8 +100,8 @@ export function waveSpec(n: number): WaveSpec {
     spawnGap: Math.max(0.25, 0.9 - n * 0.02),
     seconds: Math.min(60, 30 + n),
     skill: 0.92 - 0.77 * Math.exp(-(n - 1) / 18),
-    toughness: 1 / (1 + 0.035 * (n - 1)),
-    hitBoost: 1 + 0.015 * (n - 1),
+    toughness: 1 / (1 + 0.07 * (n - 1)),
+    hitBoost: 1 + 0.04 * (n - 1),
     weapons,
   };
 }

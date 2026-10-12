@@ -454,6 +454,8 @@ export const pt: Record<Key, string> = {
   'waves.nextIn': 'Próxima onda em {s}',
   'waves.left': '{n} inimigos restantes',
   'waves.leftOne': '1 inimigo restante',
+  'waves.scale': 'Vida ×{life} · Dano ×{hit}',
+  'waves.scaleHint': 'Os bots desta onda comparados aos da onda 1 (elites e chefão somam os deles por cima)',
   'waves.toBeat': 'restantes',
   'waves.lives': 'Vidas',
   'waves.record': 'Recorde: onda {n}',

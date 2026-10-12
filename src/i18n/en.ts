@@ -464,6 +464,8 @@ export const en = {
   'waves.nextIn': 'Next wave in {s}',
   'waves.left': '{n} enemies left',
   'waves.leftOne': '1 enemy left',
+  'waves.scale': 'Life ×{life} · Damage ×{hit}',
+  'waves.scaleHint': "The wave's bots against wave 1's (elites and the boss add their own on top)",
   'waves.toBeat': 'to beat',
   'waves.lives': 'Lives',
   'waves.record': 'Record: wave {n}',

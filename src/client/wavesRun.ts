@@ -40,6 +40,8 @@ export interface WavesHud {
   bossLife: { name: string; life: number } | null;
   /** The best wave before this run. */
   record: number | null;
+  /** The wave's bots against wave 1's: their life (as the damage they take shrinks) and their damage. */
+  scale: { life: number; hit: number };
   /** Cores earned so far (the waves survived, the kills, the bosses; a new record adds more at the end). */
   cores: number;
   over: boolean;
@@ -636,6 +638,8 @@ export class WavesRun {
       cards: this.cardList(),
       bossLife: boss && this.spec.boss && this.phase === 'fight' && (boss.isAlive || boss.lives > 0) ? { name: boss.name, life: boss.isAlive ? boss.life : 1 } : null,
       record: this.record?.wave ?? null,
+      // How much tougher and harder hitting the wave's bots are than on wave 1
+      scale: { life: 1 / this.spec.toughness, hit: this.spec.hitBoost },
       cores: runCores(this.ctx.startWave, Math.max(this.ctx.startWave, this.wave), me.kills, this.bosses, false).total,
       over: this.over,
     };

@@ -3440,3 +3440,10 @@
   width: 15px;
   height: 15px;
 }
+
+/* The waves' corner panel: how strong the wave's bots are against wave 1's */
+.h-wscale {
+  padding: 0 6px 6px;
+  color: #ff9a9a;
+  font: 800 12.5px var(--h-ui);
+}
