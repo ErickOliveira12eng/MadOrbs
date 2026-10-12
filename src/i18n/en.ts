@@ -223,6 +223,7 @@ export const en = {
   'account.noStats': 'No online matches yet: play one and your stats show up here.',
   'account.noStatsMode': 'No matches in this mode yet.',
   'account.statsNote': "Online matches only (the training doesn't count). A match counts once you play 30 s of it.",
+  'account.debugZoom': 'Free zoom with the mouse wheel (offline modes, for testing)',
   'account.signOut': 'Sign out',
   'account.delete': 'Delete account',
   'account.deleteConfirm': 'Click again to delete it for good',

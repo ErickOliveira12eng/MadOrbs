@@ -79,6 +79,8 @@ export class Account {
   profile: Profile | null = null;
   /** The account's stats per game mode (a mode never played has no row). */
   stats: Partial<Record<RoomMode, ModeStats>> = {};
+  /** Debug tools the server gives this account (DEBUG_USER_IDS): the free zoom of the offline modes. */
+  debugTools = { zoom: false };
   /** The account's best waves run (waves_records), or null. */
   waves: WavesRecord | null = null;
   private client: SupabaseClient | null = null;
@@ -134,6 +136,7 @@ export class Account {
           this.profile = null;
           this.stats = {};
           this.waves = null;
+          this.debugTools = { zoom: false };
         }
         // No Supabase call inside this callback (it would wait on the auth lock)
         if (session && (userChanged || event === 'USER_UPDATED')) setTimeout(() => void this.refreshProfile(), 0);
@@ -157,6 +160,7 @@ export class Account {
       client.from('waves_records').select('best_wave, best_kills').eq('user_id', id).maybeSingle(),
       client.from('waves_progress').select('earned, levels').eq('user_id', id).maybeSingle(),
     ]);
+    void this.loadDebugTools();
     // The waves' Cores and Workshop levels: the account's and this browser's, the most of each in both
     if (wavesProgress.error) console.warn('[account] cannot read the waves progress', wavesProgress.error.message);
     else {
@@ -279,6 +283,24 @@ export class Account {
     else if (!this.waves || wave > this.waves.wave || (wave === this.waves.wave && kills > this.waves.kills)) {
       this.waves = { wave, kills };
       this.emit();
+    }
+  }
+
+  /** Which debug tools the server gives this account (GET /api/debug-tools). */
+  private async loadDebugTools(): Promise<void> {
+    const token = await this.accessToken();
+    if (!token) return;
+    try {
+      const r = await fetch('/api/debug-tools', { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) return;
+      const body = (await r.json()) as { zoom?: unknown };
+      const zoom = body.zoom === true;
+      if (zoom !== this.debugTools.zoom) {
+        this.debugTools = { zoom };
+        this.emit();
+      }
+    } catch {
+      /* no server (the static page): no tools */
     }
   }
 

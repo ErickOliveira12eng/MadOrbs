@@ -6,6 +6,17 @@ import type { Account, SaveError } from './account';
 import type { OrbStudio } from './orbStudio';
 import { skinInfo, type Settings } from './settings';
 
+const DEBUG_ZOOM_KEY = 'madorbs.debugZoom';
+
+/** The debug zoom was turned on in this browser (the game uses it only for the accounts allowed). */
+export function debugZoomOn(): boolean {
+  try {
+    return localStorage.getItem(DEBUG_ZOOM_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 export class AccountModal {
@@ -40,6 +51,17 @@ export class AccountModal {
       void this.saveName(this.nameInput.value);
     });
     $('accountSignOut').addEventListener('click', () => void account.signOut());
+    // The debug zoom (only the accounts the server allows see it): remembered in this browser
+    const zoom = $<HTMLInputElement>('debugZoomInput');
+    zoom.checked = debugZoomOn();
+    zoom.addEventListener('change', () => {
+      try {
+        if (zoom.checked) localStorage.setItem(DEBUG_ZOOM_KEY, '1');
+        else localStorage.removeItem(DEBUG_ZOOM_KEY);
+      } catch {
+        /* storage unavailable */
+      }
+    });
     $('accountDelete').addEventListener('click', () => void this.deleteAccount());
     account.onChange(() => this.render());
   }
@@ -91,6 +113,7 @@ export class AccountModal {
     $('accountName').textContent = p?.name ?? t('account.pickName');
     $('accountTag').textContent = p ? `#${p.tag}` : '';
     $('accountEmail').textContent = this.account.email;
+    $('accountDebugZoom').hidden = !this.account.debugTools.zoom;
     if (document.activeElement !== this.nameInput) this.nameInput.value = p?.name ?? this.settings.name;
     void this.studio.picture(skinInfo(this.settings), 144, undefined, true).then((src) => ($<HTMLImageElement>('accountOrb').src = src));
   }

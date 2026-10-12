@@ -2180,6 +2180,31 @@ input[type='range'] {
   color: var(--danger);
 }
 
+/* Debug tools (only the accounts the server allows see them) */
+.account-debug {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 194, 58, 0.5);
+  color: #ffd98a;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.account-debug[hidden] {
+  display: none;
+}
+
+.account-debug input {
+  width: 16px;
+  height: 16px;
+  accent-color: #ffc23a;
+}
+
 .account-modes {
   margin-bottom: 10px;
 }

@@ -133,6 +133,8 @@ export interface ClientGameOptions {
   signedIn?: boolean;
   /** The end of a campaign level: what the player chose (next level, again, back to the menu). */
   onCampaignAction?: (action: 'next' | 'retry' | 'menu', level: CampaignLevel) => void;
+  /** Debug: the mouse wheel zooms the view in and out (offline modes only; the accounts allowed). */
+  debugZoom?: boolean;
   /**
    * The waves mode (offline, src/client/waves.ts) instead of a training match: the wave to begin on,
    * the weapon to spawn with, the Workshop's levels (src/client/wavesProgress.ts).
@@ -1081,6 +1083,8 @@ export class ClientGame {
             y: (input.isDown(bindings.moveUp) ? 10 : 0) - (input.isDown(bindings.moveDown) ? 10 : 0),
           }
         : undefined;
+    // Debug zoom: the wheel (a notch is about 15%), offline only: online it would show more than the others see
+    if (this.opts.debugZoom && !this.online && input.wheel) this.cam.setZoom(this.cam.zoom * Math.pow(1.0015, input.wheel));
     this.cam.tick(TICK, me, spectator);
     audio.setListener(this.cam.camPos);
     input.endTick();

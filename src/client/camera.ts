@@ -34,6 +34,11 @@ export class GameCamera {
   camDest = new Vec3();
   private prevCamPos = new Vec3();
   viewShake = 0;
+  /**
+   * Debug zoom (ClientGame's debugZoom): the view drawn this many times higher, from 0.5 to 5. Only the
+   * drawing: camPos, and the sound, sniper damage and network that use it, keep the original heights.
+   */
+  zoom = 1;
   private mapSize: [number, number] = [32, 32];
   private raycaster = new THREE.Raycaster();
   private ndc = new THREE.Vector2();
@@ -45,6 +50,16 @@ export class GameCamera {
 
   setMapSize(size: [number, number]): void {
     this.mapSize = size;
+  }
+
+  setZoom(zoom: number): void {
+    this.zoom = Math.max(0.5, Math.min(5, zoom));
+    // Far enough to see the ground from up there
+    const far = 50 * LENS_HEIGHT * Math.max(1, this.zoom);
+    if (this.camera.far !== far) {
+      this.camera.far = far;
+      this.camera.updateProjectionMatrix();
+    }
   }
 
   setAspect(aspect: number): void {
@@ -122,14 +137,14 @@ export class GameCamera {
     const x = this.prevCamPos.x + (this.camPos.x - this.prevCamPos.x) * alpha;
     const y = this.prevCamPos.y + (this.camPos.y - this.prevCamPos.y) * alpha;
     const z = this.prevCamPos.z + (this.camPos.z - this.prevCamPos.z) * alpha;
-    this.camera.position.set(x, y, z * LENS_HEIGHT);
+    this.camera.position.set(x, y, z * LENS_HEIGHT * this.zoom);
     this.camera.lookAt(x, y, 0);
     this.camera.updateMatrixWorld();
   }
 
   /** Camera height of this frame in the original's terms (for the sniper scope overlay). */
   get renderHeight(): number {
-    return this.camera.position.z / LENS_HEIGHT;
+    return this.camera.position.z / LENS_HEIGHT / this.zoom;
   }
 
   /** camPos as drawn this frame, in the original's terms (weather around the camera). */
