@@ -210,6 +210,7 @@
             <section class="info-block">
               <h2 data-i18n="home.newsTitle">What's new</h2>
               <ul class="info-news">
+                <li><time datetime="2026-10-12" data-i18n="home.news14Date">October 12, 2026</time><b data-i18n="home.news14Title">Waves: a new Workshop</b><span data-i18n="home.news14">The Workshop has a new look: pick an upgrade from the list and see what each level gives before you buy, with the run and the milestones on the same screen.</span></li>
                 <li><time datetime="2026-10-12" data-i18n="home.news13Date">October 12, 2026</time><b data-i18n="home.news13Title">Waves: the boss's cards</b><span data-i18n="home.news13">Beat the boss and choose one of 3 cards for the rest of the run: double shot, ricochet, Reflector Shield, Shadow Allies and, from wave 40, the legendary Missile Rain, Silver Bullet and Necromancer. Every run turns out different.</span></li>
                 <li><time datetime="2026-10-11" data-i18n="home.news12Date">October 11, 2026</time><b data-i18n="home.news12Title">Daily reward</b><span data-i18n="home.news12">Come back every day for free Cores in the Waves Workshop: more each day in a row, up to 100 on the seventh.</span></li>
                 <li><time datetime="2026-10-11" data-i18n="home.news11Date">October 11, 2026</time><b data-i18n="home.news11Title">Grenades where you aim</b><span data-i18n="home.news11">Grenades and molotovs now land where your cursor is: close to your Orb for a short throw, far away for the longest one.</span></li>
@@ -389,20 +390,21 @@
     <div id="wavesModal" class="modal" hidden>
       <div class="modal-card waves-modal" role="dialog" aria-modal="true" aria-labelledby="wavesTitle">
         <header class="modal-head">
-          <h2 id="wavesTitle"><span class="wv-mode" data-i18n="menu.waves">Waves</span> <span data-i18n="workshop.title">Workshop</span></h2>
+          <h2 id="wavesTitle"><small class="wv-mode" data-i18n="menu.waves">Waves</small><span data-i18n="workshop.title">Workshop</span></h2>
+          <a class="camp-guide wv-guide" data-i18n-attr="href=link.waves" href="/waves" target="_blank" rel="noopener" data-i18n="campaign.howItWorks">How it works</a>
           <span class="wv-chips"><span id="wvRecord" class="wv-record" hidden></span><span id="wvCores" class="wv-cores"></span></span>
           <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>
         </header>
-        <p class="modal-sub"><span data-i18n="workshop.sub">Every run earns Cores: spend them on upgrades that stay, and go further each time.</span>
-          <a class="camp-guide" data-i18n-attr="href=link.waves" href="/waves" target="_blank" rel="noopener" data-i18n="campaign.howItWorks">How it works</a></p>
         <div class="wv-body">
-          <section class="wv-shop">
+          <section class="wv-list">
             <div id="wvTabs" class="wv-tabs" role="tablist">
-              <button type="button" class="on" data-tab="stats" data-i18n="workshop.tabStats">Upgrades</button>
-              <button type="button" data-tab="skills" data-i18n="workshop.tabSkills">Abilities and limits</button>
+              <button type="button" class="on" data-tab="stats" role="tab" aria-selected="true"><span data-i18n="workshop.tabStats">Upgrades</span><b class="n"></b></button>
+              <button type="button" data-tab="skills" role="tab" aria-selected="false"><span data-i18n="workshop.tabSkills">Abilities</span><b class="n"></b></button>
             </div>
-            <div id="wvUpgrades" class="wv-grid"></div>
+            <div id="wvUpgrades" class="wv-rows"></div>
+            <div id="wvSave" class="wv-save"></div>
           </section>
+          <section id="wvDetail" class="wv-detail" aria-live="polite"></section>
           <aside class="wv-side">
             <div class="wv-box">
               <h3 data-i18n="workshop.startWave">Start on wave</h3>
@@ -411,17 +413,16 @@
             </div>
             <div class="wv-box">
               <h3 data-i18n="workshop.weapon">Starting weapon</h3>
-              <div id="wvWeapons" class="wv-weapons"></div>
+              <div id="wvWeapons" class="wv-weapon-pick"></div>
             </div>
-            <div class="wv-box">
-              <h3 data-i18n-attr="title=workshop.milestonesHint" title="Reach a wave once and its prize is yours for good: weapons to start with and Orbs only won here."><span data-i18n="workshop.milestones">Milestones</span><small id="wvNext"></small></h3>
-              <div id="wvTrack" class="wv-track" data-i18n-attr="title=workshop.milestonesHint" title="Reach a wave once and its prize is yours for good: weapons to start with and Orbs only won here."></div>
-            </div>
-            <div id="wvDaily" class="wv-box wv-daily"></div>
+            <div id="wvDaily" class="wv-daily"></div>
             <button id="wvPlay" class="wv-play" type="button"></button>
           </aside>
         </div>
-        <div id="wvSave" class="camp-save"></div>
+        <div class="wv-milestones" data-i18n-attr="title=workshop.milestonesHint" title="Reach a wave once and its prize is yours for good: weapons to start with and Orbs only won here.">
+          <div class="wv-ms-text"><h3 data-i18n="workshop.milestones">Milestones</h3><b id="wvNext"></b><small id="wvNextSub"></small></div>
+          <div id="wvTrack" class="wv-track"></div>
+        </div>
       </div>
     </div>
 

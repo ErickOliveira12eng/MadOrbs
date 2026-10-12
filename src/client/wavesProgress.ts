@@ -6,34 +6,35 @@ import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_FLAME_THROWER, WEAPON_SHOTGUN,
 
 export type UpgradeID = 'life' | 'armor' | 'damage' | 'fire' | 'speed' | 'lives' | 'grenades' | 'luck' | 'drops' | 'breather' | 'secondWind' | 'cap' | 'dash' | 'barrier' | 'shock';
 
+/** The Workshop's kinds of upgrade (its list, src/menu/wavesModal.ts): the last two are in the other tab. */
+export type UpgradeGroup = 'attack' | 'defense' | 'survival' | 'abilities' | 'limits';
+
 export interface Upgrade {
   id: UpgradeID;
   /** The price of each level (its length is the top level). */
   costs: number[];
-  /** The card's colour family (src/menu/wavesModal.ts). */
-  tone: 'red' | 'gold' | 'blue' | 'green';
-  /** The Workshop's tab: the numbers, or what only the Workshop gives (the run's limits, the abilities). */
-  tab?: 'skills';
+  /** Its kind, in the Workshop's list. */
+  group: UpgradeGroup;
 }
 
-/** The Workshop's upgrades, in the order of its cards. */
+/** The Workshop's upgrades, in the order of its list. */
 export const UPGRADES: Upgrade[] = [
-  { id: 'life', costs: [60, 120, 200, 320, 500], tone: 'red' },
-  { id: 'armor', costs: [80, 150, 250, 400, 600], tone: 'red' },
-  { id: 'damage', costs: [80, 150, 250, 400, 600], tone: 'gold' },
-  { id: 'fire', costs: [80, 150, 250, 400, 600], tone: 'gold' },
-  { id: 'speed', costs: [50, 100, 180, 280, 400], tone: 'gold' },
-  { id: 'lives', costs: [300, 600], tone: 'red' },
-  { id: 'grenades', costs: [100, 220, 400], tone: 'blue' },
-  { id: 'luck', costs: [70, 140, 240, 360, 520], tone: 'blue' },
-  { id: 'drops', costs: [60, 120, 200, 300, 450], tone: 'green' },
-  { id: 'breather', costs: [180, 350, 600], tone: 'green' },
-  { id: 'secondWind', costs: [1500], tone: 'green' },
+  { id: 'damage', costs: [80, 150, 250, 400, 600], group: 'attack' },
+  { id: 'fire', costs: [80, 150, 250, 400, 600], group: 'attack' },
+  { id: 'grenades', costs: [100, 220, 400], group: 'attack' },
+  { id: 'life', costs: [60, 120, 200, 320, 500], group: 'defense' },
+  { id: 'armor', costs: [80, 150, 250, 400, 600], group: 'defense' },
+  { id: 'lives', costs: [300, 600], group: 'defense' },
+  { id: 'secondWind', costs: [1500], group: 'defense' },
+  { id: 'speed', costs: [50, 100, 180, 280, 400], group: 'survival' },
+  { id: 'luck', costs: [70, 140, 240, 360, 520], group: 'survival' },
+  { id: 'drops', costs: [60, 120, 200, 300, 450], group: 'survival' },
+  { id: 'breather', costs: [180, 350, 600], group: 'survival' },
   // Only the Workshop gives these (Erick, 12/10/2026: its numbers got lost among the run's power-ups)
-  { id: 'cap', costs: [150, 300, 500, 800, 1200, 1800, 2600, 3600], tone: 'gold', tab: 'skills' },
-  { id: 'dash', costs: [200, 350, 550, 800, 1100], tone: 'blue', tab: 'skills' },
-  { id: 'barrier', costs: [250, 400, 600, 850, 1200], tone: 'blue', tab: 'skills' },
-  { id: 'shock', costs: [300, 500, 750, 1050, 1400], tone: 'red', tab: 'skills' },
+  { id: 'dash', costs: [200, 350, 550, 800, 1100], group: 'abilities' },
+  { id: 'barrier', costs: [250, 400, 600, 850, 1200], group: 'abilities' },
+  { id: 'shock', costs: [300, 500, 750, 1050, 1400], group: 'abilities' },
+  { id: 'cap', costs: [150, 300, 500, 800, 1200, 1800, 2600, 3600], group: 'limits' },
 ];
 
 /**

@@ -1,8 +1,10 @@
-// The waves' Workshop (mockup approved by Erick, 11/10/2026), opened by the start screen's "Waves"
-// card and by the end of a run: the Cores to spend, the permanent upgrades as cards (level, what the
-// next one does, its price), and on the side what the run starts with: the wave (the first, or a
-// checkpoint reached), the weapon (the SMG, or one a milestone gave), the milestones' track, PLAY.
-import { prizeText, weaponLook } from '../client/wavesPrize';
+// The waves' Workshop (proposal A approved by Erick, 12/10/2026), opened by the start screen's "Waves"
+// card and by the end of a run. Three columns: the upgrades as a short list by kind (attack, defence,
+// survival; abilities and limits in the other tab), the chosen one in detail (what the next level does,
+// the levels after it, the button that buys it), and what the run starts with: the wave (the first, or a
+// checkpoint reached), the weapon (the SMG, or one a milestone gave), the daily reward, PLAY. Under them,
+// the milestones' track.
+import { orbName, prizeText, weaponLook } from '../client/wavesPrize';
 import { loadWavesRecord, WAVES } from '../client/waves';
 import {
   BREATHER,
@@ -26,7 +28,9 @@ import {
   nextMilestone,
   saveProgress,
   startWeapons,
+  type Milestone,
   type Upgrade,
+  type UpgradeGroup,
   type UpgradeID,
   type WavesProgress,
 } from '../client/wavesProgress';
@@ -60,7 +64,22 @@ const UPGRADE_ICON: Record<UpgradeID, IconName> = {
   shock: 'radio',
 };
 
-/** What an upgrade gives at a level, as the card says it. */
+/** The list's kinds, in order, each in its tab. */
+const GROUPS: { id: UpgradeGroup; tab: Tab }[] = [
+  { id: 'attack', tab: 'stats' },
+  { id: 'defense', tab: 'stats' },
+  { id: 'survival', tab: 'stats' },
+  { id: 'abilities', tab: 'skills' },
+  { id: 'limits', tab: 'skills' },
+];
+
+type Tab = 'stats' | 'skills';
+const tabOf = (u: Upgrade): Tab => GROUPS.find((g) => g.id === u.group)!.tab;
+
+/** How many later levels the detail lists under the next one. */
+const LATER_LEVELS = 3;
+
+/** What an upgrade gives at a level, as the Workshop says it. */
 function upgradeValue(id: UpgradeID, level: number): string {
   const pct = (x: number) => `+${Math.round(x * 100)}%`;
   switch (id) {
@@ -89,9 +108,12 @@ function upgradeValue(id: UpgradeID, level: number): string {
     case 'shock':
       return level ? `${num(SHOCK_COOLDOWN[level])} s` : '—';
     case 'barrier':
-      return `${Math.round(BARRIER_SIZE[level] * 100)}`;
+      return `${Math.round(BARRIER_SIZE[level] * 100)}%`;
   }
 }
+
+/** A milestone's prize in a couple of words (the track's "next" line). */
+const prizeName = (m: Milestone): string => ('weapon' in m ? weaponLook(m.weapon).name : t('workshop.orbNamed', { name: orbName(m.skin) }));
 
 /** A Core, the waves' currency. */
 export const coreIcon = (size = 18) => `<span class="core-ico">${icon('core', size)}</span>`;
@@ -99,7 +121,9 @@ export const coreIcon = (size = 18) => `<span class="core-ico">${icon('core', si
 export class WavesModal {
   private readonly root = $('wavesModal');
   /** The tab shown: the numbers, or what only the Workshop gives (the run's limits, the abilities). */
-  private tab: 'stats' | 'skills' = 'stats';
+  private tab: Tab = 'stats';
+  /** The upgrade shown in detail (null: the first one worth buying, when the window opens). */
+  private selected: UpgradeID | null = null;
   /** The exclusive Orbs' pictures in the player's colours, drawn once each. */
   private readonly orbPics = new Map<string, string>();
 
@@ -125,6 +149,12 @@ export class WavesModal {
       if (e.key === 'Escape' && this.isOpen) this.close();
     });
     $('wvUpgrades').addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('[data-pick]');
+      if (!b) return;
+      this.selected = b.dataset.pick as UpgradeID;
+      this.render();
+    });
+    $('wvDetail').addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-buy]');
       if (!b || b.disabled) return;
       const id = b.dataset.buy as UpgradeID;
@@ -134,13 +164,16 @@ export class WavesModal {
       void this.account.saveWavesProgress();
       this.render();
       this.onChange();
-      // The card that was bought flashes
-      $('wvUpgrades').querySelector(`[data-up="${id}"]`)?.classList.add('bought');
+      // What was bought flashes, and the Cores with it
+      $('wvDetail').classList.add('bought');
+      $('wvUpgrades').querySelector(`[data-pick="${id}"]`)?.classList.add('bought');
+      $('wvCores').classList.add('bought');
     });
     $('wvTabs').addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLElement>('[data-tab]');
       if (!b) return;
       this.tab = b.dataset.tab === 'skills' ? 'skills' : 'stats';
+      this.selected = null;
       this.render();
     });
     $('wvStarts').addEventListener('click', (e) => {
@@ -181,6 +214,7 @@ export class WavesModal {
 
   open(): void {
     this.root.hidden = false;
+    this.selected = null;
     this.render();
     // The exclusive Orbs, in the player's colours
     const colours = this.colours();
@@ -226,21 +260,13 @@ export class WavesModal {
     const tester = this.account.debugTools.zoom;
     const { startWave, startWeapon } = WavesModal.startChoice(tester);
 
+    for (const id of ['wvDetail', 'wvCores', 'wvDaily']) $(id).classList.remove('bought', 'claimed-now');
     $('wvCores').innerHTML = `${coreIcon(26)}<b>${bigNum(cash)}</b><span>${t('workshop.cores')}</span>`;
     $('wvRecord').innerHTML = record ? `${icon('trophy', 16)}${t('waves.record', { n: record })}` : '';
     $('wvRecord').hidden = !record;
 
-    // The upgrade cards
-    // The tabs: a dot where something can be bought
-    const canBuy = (tab: 'stats' | 'skills') =>
-      UPGRADES.some((u) => (u.tab ?? 'stats') === tab && (nextCost(u, p.levels) ?? Infinity) <= cash);
-    for (const b of $('wvTabs').querySelectorAll<HTMLElement>('[data-tab]')) {
-      b.classList.toggle('on', b.dataset.tab === this.tab);
-      b.classList.toggle('dot', canBuy(b.dataset.tab as 'stats' | 'skills'));
-    }
-    $('wvUpgrades').innerHTML = UPGRADES.filter((u) => (u.tab ?? 'stats') === this.tab)
-      .map((u) => this.card(u, p, cash))
-      .join('');
+    this.renderList(p, cash);
+    this.renderDetail(p, cash);
 
     // The wave to start from: the first, the last two checkpoints reached, the next one (locked)
     const reached = checkpoints(record).slice(1).slice(-2);
@@ -251,82 +277,131 @@ export class WavesModal {
           (w) =>
             `<button type="button" class="wv-opt${w === startWave ? ' on' : ''}" data-start="${w}"><b>${w}</b><small>${w === 1 ? t('workshop.fromStart') : w === TEST_START && tester ? t('workshop.testStart') : t('workshop.unlocked')}</small></button>`,
         )
-        .join('') + `<button type="button" class="wv-opt locked" disabled><b>${icon('lock', 14)}${next}</b><small>${t('workshop.reach', { n: next })}</small></button>`;
+        .join('') + `<button type="button" class="wv-opt locked" disabled title="${t('workshop.reach', { n: next })}"><b>${icon('lock', 13)}${next}</b><small>${t('workshop.locked')}</small></button>`;
     $('wvStartNote').textContent =
       startWave > 1 ? t('workshop.startFrom', { n: startWave, p: headStartPowers(startWave) }) : record >= 10 ? t('workshop.startHint') : t('workshop.startLocked');
 
-    // The weapons to start with: the SMG and the milestones' (locked until reached)
-    const weapons = [startWeapons(0)[0], ...MILESTONES.flatMap((m) => ('weapon' in m ? [m] : []))];
-    $('wvWeapons').innerHTML = weapons
-      .map((w) => {
-        const id = typeof w === 'number' ? w : w.weapon;
-        const at = typeof w === 'number' ? 0 : w.wave;
-        const open = record >= at;
-        const look = weaponLook(id);
-        return (
-          `<button type="button" class="wv-opt wv-weapon${open && id === startWeapon ? ' on' : ''}${open ? '' : ' locked'}" data-weapon="${id}"${open ? '' : ' disabled'} title="${look.name}">` +
-          `<img src="${look.picture}" alt="" /><small>${open ? look.name : t('workshop.atWave', { n: at })}</small></button>`
-        );
-      })
-      .join('');
-
+    this.renderWeapon(record, startWeapon);
     this.renderTrack();
     this.renderDaily(p);
     $('wvPlay').innerHTML = `${icon('play', 22)}${t('workshop.play', { n: startWave })}`;
 
     // Where the progress is kept
     $('wvSave').innerHTML = this.account.signedIn
-      ? `<span class="ok">${icon('check', 16)}${t('workshop.savedAccount')}</span>`
-      : `<span>${t('workshop.savedLocal')}</span><button type="button" class="pill-btn">${icon('user', 16)}${t('account.signIn')}</button>`;
+      ? `<span class="ok">${icon('check', 14)}${t('workshop.savedAccount')}</span>`
+      : `<span title="${t('workshop.savedLocal')}">${t('workshop.savedLocalShort')}</span><button type="button" class="wv-signin">${icon('user', 14)}${t('account.signIn')}</button>`;
   }
 
-  private card(u: Upgrade, p: WavesProgress, cash: number): string {
+  /** The list: the tab's upgrades by kind, each with its level and the price of the next one. */
+  private renderList(p: WavesProgress, cash: number): void {
+    const affordable = (tab: Tab) => UPGRADES.filter((u) => tabOf(u) === tab && (nextCost(u, p.levels) ?? Infinity) <= cash).length;
+    for (const b of $('wvTabs').querySelectorAll<HTMLElement>('[data-tab]')) {
+      const tab = b.dataset.tab as Tab;
+      b.classList.toggle('on', tab === this.tab);
+      b.setAttribute('aria-selected', String(tab === this.tab));
+      const n = affordable(tab);
+      b.querySelector('.n')!.textContent = n ? String(n) : '';
+    }
+    const shown = UPGRADES.filter((u) => tabOf(u) === this.tab);
+    // Nothing chosen yet (or another tab's): the first one the Cores pay for, else the first
+    if (!this.selected || !shown.some((u) => u.id === this.selected)) {
+      this.selected = (shown.find((u) => (nextCost(u, p.levels) ?? Infinity) <= cash) ?? shown[0]).id;
+    }
+    $('wvUpgrades').innerHTML = GROUPS.filter((g) => g.tab === this.tab)
+      .map((g) => {
+        const rows = shown.filter((u) => u.group === g.id).map((u) => this.row(u, p, cash));
+        return `<div class="wv-group ${g.id}"><h3>${t(`workshop.group.${g.id}`)}</h3>${rows.join('')}</div>`;
+      })
+      .join('');
+  }
+
+  private row(u: Upgrade, p: WavesProgress, cash: number): string {
     const level = p.levels[u.id];
-    const max = u.costs.length;
     const cost = nextCost(u, p.levels);
-    const pips = Array.from({ length: max }, (_, i) => `<i class="${i < level ? 'on' : ''}"></i>`).join('');
-    const value =
-      cost === null
-        ? `<b>${upgradeValue(u.id, level)}</b>`
-        : `${upgradeValue(u.id, level)} <span class="arrow">→</span> <b>${upgradeValue(u.id, level + 1)}</b>`;
-    const action =
-      cost === null
-        ? `<span class="wv-max">${t('workshop.max')}</span>`
-        : `<button type="button" class="wv-buy" data-buy="${u.id}"${cost > cash ? ` disabled title="${t('workshop.short', { n: bigNum(cost - cash) }).replace(/^· /, '')}"` : ''}>${coreIcon(16)}${bigNum(cost)}</button>`;
-    // Compact (the window must fit a laptop's screen): what it does shows on hover
+    const pips =
+      u.costs.length > 5 ? `<span class="wv-lvtext">${level}/${u.costs.length}</span>` : u.costs.map((_, i) => `<i class="${i < level ? 'on' : ''}"></i>`).join('');
+    const price =
+      cost === null ? `<span class="wv-price max">${t('workshop.max')}</span>` : `<span class="wv-price${cost > cash ? ' off' : ''}">${coreIcon(12)}${bigNum(cost)}</span>`;
     return (
-      `<div class="wv-card ${u.tone}${cost === null ? ' maxed' : ''}" data-up="${u.id}" title="${t(`up.${u.id}.desc`)}">` +
-      `<div class="wv-card-head"><span class="wv-ico">${icon(UPGRADE_ICON[u.id], 20)}</span>` +
-      `<span><b>${t(`up.${u.id}`)}</b><small>${t('workshop.level', { n: level, max })}</small></span></div>` +
-      `<div class="wv-pips">${pips}</div>` +
-      `<div class="wv-foot"><span class="wv-value">${value}</span>${action}</div></div>`
+      `<button type="button" class="wv-row ${u.group}${u.id === this.selected ? ' on' : ''}" data-pick="${u.id}" title="${t(`up.${u.id}.desc`)}">` +
+      `<span class="wv-ico">${icon(UPGRADE_ICON[u.id], 16)}</span><span class="wv-name">${t(`up.${u.id}`)}</span>` +
+      `<span class="wv-pips">${pips}</span>${price}</button>`
     );
   }
 
-  /** The daily reward: the week's seven days (taken, today, to come) and the button, or "come back tomorrow". */
-  private renderDaily(p: WavesProgress): void {
-    const d = dailyState(p);
-    const days = DAILY_CORES.map((cores, i) => {
-      const n = i + 1;
-      const cls = n < d.day || (n === d.day && !d.ready) ? 'got' : n === d.day ? 'now' : '';
-      return `<span class="wd-day ${cls}" title="${t('daily.day', { n })}"><b>${cores}</b></span>`;
-    }).join('');
-    $('wvDaily').classList.remove('claimed-now');
-    $('wvDaily').innerHTML =
-      `<div class="wd-head"><span class="wd-ico">${icon('gift', 20)}</span><span><b>${t('daily.title')}</b><small>${t('daily.day', { n: d.day })} · ${t('daily.hint')}</small></span></div>` +
-      `<div class="wd-row"><div class="wd-days">${days}</div>` +
-      (d.ready
-        ? `<button type="button" class="wd-claim" data-claim>${coreIcon(16)}+${d.cores}</button>`
-        : `<span class="wd-done">${icon('check', 15)}${t('daily.claimed')}</span>`) +
-      `</div>`;
+  /** The chosen upgrade: what it does now and at the next level, the levels after, the button. */
+  private renderDetail(p: WavesProgress, cash: number): void {
+    const u = UPGRADES.find((x) => x.id === this.selected)!;
+    const level = p.levels[u.id];
+    const max = u.costs.length;
+    const cost = nextCost(u, p.levels);
+    const bars = u.costs.map((_, i) => `<i class="${i < level ? 'on' : i === level ? 'next' : ''}"></i>`).join('');
+    let body: string;
+    if (cost === null) {
+      body =
+        `<div class="wv-compare maxed"><div class="wv-now on"><small>${t('workshop.maxed')}</small><b>${upgradeValue(u.id, level)}</b></div></div>` +
+        `<div class="wv-buyzone"><span class="wv-done">${icon('check', 18)}${t('workshop.maxed')}</span></div>`;
+    } else {
+      const later = [];
+      for (let l = level + 2; l <= Math.min(max, level + 1 + LATER_LEVELS); l++) {
+        later.push(`<li><span>${t('workshop.levelN', { n: l })}</span><b>${upgradeValue(u.id, l)}</b><span>${coreIcon(12)}${bigNum(u.costs[l - 1])}</span></li>`);
+      }
+      const short = cost > cash;
+      body =
+        `<div class="wv-compare"><div class="wv-now"><small>${t('workshop.now')}</small><b>${upgradeValue(u.id, level)}</b></div>` +
+        `<span class="wv-arrow">${icon('arrowRight', 28)}</span>` +
+        `<div class="wv-now on"><small>${t('workshop.levelN', { n: level + 1 })}</small><b>${upgradeValue(u.id, level + 1)}</b></div></div>` +
+        (later.length ? `<ul class="wv-later">${later.join('')}</ul>` : '') +
+        `<div class="wv-buyzone"><button type="button" class="wv-buy" data-buy="${u.id}"${short ? ' disabled' : ''}>` +
+        `${t('workshop.upgradeTo', { n: level + 1 })}<span class="wv-cost">${coreIcon(15)}${bigNum(cost)}</span></button>` +
+        `<small class="${short ? 'short' : ''}">${short ? t('workshop.need', { n: bigNum(cost - cash) }) : t('workshop.left', { n: bigNum(cash - cost) })}</small></div>`;
+    }
+    $('wvDetail').className = `wv-detail ${u.group}`;
+    $('wvDetail').innerHTML =
+      `<div class="wv-detail-head"><span class="wv-bigico">${icon(UPGRADE_ICON[u.id], 36)}</span>` +
+      `<div><small>${t(`workshop.group.${u.group}`)}</small><h4>${t(`up.${u.id}`)}</h4><p>${t(`up.${u.id}.desc`)}</p></div></div>` +
+      `<div class="wv-level"><span>${t('workshop.level', { n: level, max })}</span><span class="wv-bars">${bars}</span></div>` +
+      body;
   }
 
-  /** The milestones: a track with each prize, the record's progress on it. */
+  /** The starting weapon: the open ones one at a time, with arrows. */
+  private renderWeapon(record: number, startWeapon: number): void {
+    const all = [startWeapons(0)[0], ...MILESTONES.flatMap((m) => ('weapon' in m ? [m.weapon] : []))];
+    const open = startWeapons(record);
+    const i = Math.max(0, open.indexOf(startWeapon));
+    const look = weaponLook(open[i]);
+    const step = (d: number) => open[(i + d + open.length) % open.length];
+    const arrow = (d: number, name: IconName, label: string) =>
+      `<button type="button" class="wv-step" data-weapon="${step(d)}" aria-label="${label}"${open.length < 2 ? ' disabled' : ''}>${icon(name, 18)}</button>`;
+    $('wvWeapons').innerHTML =
+      arrow(-1, 'chevronLeft', t('workshop.prevWeapon')) +
+      `<div class="wv-gun"><img src="${look.picture}" alt="" /><b>${look.name}</b><small>${t('workshop.weaponsOpen', { n: open.length, total: all.length })}</small></div>` +
+      arrow(1, 'chevronRight', t('workshop.nextWeapon'));
+  }
+
+  /** The daily reward: one line (take it, or taken and what tomorrow brings) and the week's seven days. */
+  private renderDaily(p: WavesProgress): void {
+    const d = dailyState(p);
+    const week = DAILY_CORES.map((_, i) => {
+      const n = i + 1;
+      return `<i class="${n < d.day || (n === d.day && !d.ready) ? 'got' : n === d.day ? 'now' : ''}"></i>`;
+    }).join('');
+    const tomorrow = DAILY_CORES[d.day % DAILY_CORES.length];
+    $('wvDaily').classList.toggle('ready', d.ready);
+    $('wvDaily').innerHTML =
+      `<span class="wd-ico">${icon('gift', 20)}</span>` +
+      `<span class="wd-text"><b>${d.ready ? t('daily.title') : t('daily.got')}</b>` +
+      `<small>${d.ready ? t('daily.dayOf', { n: d.day, total: DAILY_CORES.length }) : `${t('daily.day', { n: d.day })} · ${t('daily.tomorrow', { n: tomorrow })}`}</small><span class="wd-week">${week}</span></span>` +
+      (d.ready ? `<button type="button" class="wd-claim" data-claim>${coreIcon(15)}+${d.cores}</button>` : `<span class="wd-done">${icon('check', 18)}</span>`);
+  }
+
+  /** The milestones: what comes next, and a track with each prize and the record's progress on it. */
   private renderTrack(): void {
     const record = loadWavesRecord()?.wave ?? 0;
     const colours = this.colours();
     const next = nextMilestone(record);
-    $('wvNext').textContent = next ? t('workshop.nextAt', { n: next.wave }) : t('workshop.allDone');
+    $('wvNext').textContent = next ? t('workshop.nextPrize', { prize: prizeName(next) }) : t('workshop.allDone');
+    $('wvNextSub').textContent = next ? t('workshop.nextIn', { n: next.wave, left: next.wave - record }) : '';
     // The bar: whole steps for the milestones passed, a share of the next step
     const i = MILESTONES.findIndex((m) => m.wave > record);
     const fill =
@@ -345,7 +420,7 @@ export class WavesModal {
           const src = this.orbPics.get(`${m.skin}|${colours.redDecal}|${colours.greenDecal}|${colours.blueDecal}`);
           art = src ? `<img class="o" src="${src}" alt="" />` : '<i class="o"></i>';
         }
-        return `<span class="wv-node${got ? ' got' : ''}" title="${prizeText(m)}"><span class="dot">${art}</span><b>${m.wave}</b></span>`;
+        return `<span class="wv-node${got ? ' got' : ''}${m === next ? ' next' : ''}" title="${prizeText(m)}"><span class="dot">${art}</span><b>${m.wave}</b></span>`;
       }).join('');
   }
 }
