@@ -120,6 +120,7 @@ export class WavesRun {
 
   constructor(private readonly ctx: WavesContext) {
     this.renderer = new WavesRenderer(ctx.scene);
+    ctx.game.lifePackHeal = WAVES.lifePackHeal;
     // A run from a checkpoint: the wave before it counts as done, and a head start of power-ups
     this.wave = ctx.startWave - 1;
     this.spec = waveSpec(ctx.startWave);
@@ -282,8 +283,9 @@ export class WavesRun {
     p.damageScale = this.spec.toughness;
     p.damageBoost = this.spec.hitBoost;
     p.speedBoost = WAVES.botSpeed;
-    // What lies on the floor (life packs, grenades) is the player's
+    // What lies on the floor (life packs, grenades) is the player's; a fallen bot doesn't always leave one
     p.takesLifePacks = false;
+    p.lifePackChance = WAVES.lifePackChance;
     bots[i] = new BotController(p, this.spec.skill, loadout);
     // They come for the player, wherever they are
     bots[i].hunt = this.ctx.me;

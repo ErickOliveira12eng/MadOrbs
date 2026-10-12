@@ -120,6 +120,8 @@ export class Player {
    * of the waves don't (the map's packs and what fallen bots drop are the player's).
    */
   takesLifePacks = true;
+  /** The chance this player drops a life pack when killed (always in the original; the waves' bots: less). */
+  lifePackChance = 1;
   /** Power-ups of the waves mode (src/client/wavesRun.ts): damage dealt, damage taken, moving and firing. */
   damageBoost = 1;
   armorBoost = 1;
@@ -787,7 +789,7 @@ export class Player {
       v = rotateAboutAxis(v, randRange(0, 360), Z_AXIS).mul(3);
       return v.add(this.currentCF.vel.mul(0.25));
     };
-    game.spawnProjectile(this.currentCF.position.clone(), dropVel(), this.playerID, PROJECTILE_LIFE_PACK, 0);
+    if (this.lifePackChance >= 1 || Math.random() < this.lifePackChance) game.spawnProjectile(this.currentCF.position.clone(), dropVel(), this.playerID, PROJECTILE_LIFE_PACK, 0);
     if (this.weapon) game.spawnProjectile(this.currentCF.position.clone(), dropVel(), this.playerID, PROJECTILE_DROPED_WEAPON, this.weapon.weaponID);
     for (let i = 0; i < this.nbGrenadeLeft; ++i) {
       game.spawnProjectile(this.currentCF.position.clone(), dropVel(), this.playerID, PROJECTILE_DROPED_GRENADE, 0);

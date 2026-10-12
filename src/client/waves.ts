@@ -22,6 +22,12 @@ export const WAVES = {
   lives: 3,
   /** Share of the damage the player takes: the bots hit a quarter as hard as elsewhere. */
   playerDamage: 0.25,
+  /**
+   * Life packs: what one gives back (half elsewhere) and the chance a fallen bot drops one (always
+   * elsewhere; the boss always does).
+   */
+  lifePackHeal: 0.25,
+  lifePackChance: 0.35,
   /** The bots' speed (they hunt the player down: a little slower, so there is room to run). */
   botSpeed: 0.7,
   /** The player's weapons, the same at each spawn (better ones come from the crates). */

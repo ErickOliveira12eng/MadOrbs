@@ -134,6 +134,8 @@ export class Game {
   changeMapDelay = 0;
   /** The match's first kill was made (First Blood, src/sim/feats.ts). */
   firstBloodDone = false;
+  /** Life a life pack gives back (the original's half; the waves mode gives less). */
+  lifePackHeal = 0.5;
   private autoBalanceTimer = 0;
   private uniqueProjectileID = 0;
   /** Client mode: ids of our predicted projectiles, negative so they never meet the server's. */

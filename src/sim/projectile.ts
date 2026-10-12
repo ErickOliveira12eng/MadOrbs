@@ -344,7 +344,7 @@ export class Projectile {
     if (type === PROJECTILE_LIFE_PACK && !this.needToBeDeleted) {
       const p = game.playerInRadius(new Vec3(cf.position.x, cf.position.y, 0.25), 0.25, -1, (q) => q.takesLifePacks);
       if (p) {
-        p.life += 0.5;
+        p.life += game.lifePackHeal;
         if (p.life > 1) p.life = 1;
         this.needToBeDeleted = true;
         game.events.push({ type: 'pickup', playerID: p.playerID, itemType: ITEM_LIFE_PACK, itemFlag: 0 });
