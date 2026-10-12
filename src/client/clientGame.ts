@@ -240,13 +240,14 @@ export class ClientGame {
     menu.onQuit = () => this.quit();
     menu.room = () => this.roomView();
     menu.onRoomAction = (a, extra) => this.conn?.send({ t: 'host', a, ...extra });
-    // Pressing Escape while the mouse is captured releases it: open the menu like k_menuAccess.
+    // Pressing Escape while the mouse is captured releases it: open the menu like k_menuAccess. Not when the
+    // game itself lets the mouse go (the waves' cards after a boss: only the cards show)
     this.input.onPointerLockChange = (locked) => {
-      if (!locked && this.running && !menu.visible && !this.camp?.over && !this.waves?.over) menu.show();
+      if (!locked && this.running && !menu.visible && !this.camp?.over && !this.waves?.over && !this.waves?.choosing) menu.show();
     };
     // Capture the mouse on a click in the arena (also after the menu closes, see onVisibilityChange)
     this.renderer.domElement.addEventListener('mousedown', () => {
-      if (this.running && !menu.visible && !this.input.locked && !this.camp?.over && !this.waves?.over) this.input.requestPointerLock();
+      if (this.running && !menu.visible && !this.input.locked && !this.camp?.over && !this.waves?.over && !this.waves?.choosing) this.input.requestPointerLock();
     });
     window.addEventListener('keydown', this.onChatKey, true);
 
