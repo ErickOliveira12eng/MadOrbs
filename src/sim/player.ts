@@ -71,6 +71,14 @@ const TEAM_DECALS: Record<number, Omit<SkinInfo, 'skin'>> = {
   [PLAYER_TEAM_RED]: { redDecal: [1, 0.5, 0.5], greenDecal: [1, 0, 0], blueDecal: [0.5, 0, 0] },
 };
 
+/** The waves' dash (Player.dash): its speed and how long the speed limit stays this many times higher. */
+export const DASH_SPEED = 9;
+const DASH_TIME = 0.22;
+const DASH_TOP = 3;
+/** The waves' recharging shield: seconds without a hit before it comes back, and seconds to fill up again. */
+const BARRIER_WAIT = 4;
+const BARRIER_REFILL = 2;
+
 /** The waves' poison and ice shots: how long a hit poisons, and how long it slows. */
 const POISON_SECONDS = 3;
 const CHILL_SECONDS = 1.5;
@@ -131,6 +139,15 @@ export class Player {
    * its size but still goes through the one-cell passages (the waves' boss).
    */
   wallRadius = 0;
+  /** The waves' dash (the Workshop): seconds the speed limit stays lifted after a dash. */
+  dashLeft = 0;
+  /**
+   * The waves' recharging shield (the Workshop): what it still absorbs, at most `barrierMax` (in life),
+   * and the seconds before it starts to come back after a hit.
+   */
+  barrier = 0;
+  barrierMax = 0;
+  barrierWait = 0;
   /** Marks shown before the name over the orb (the waves' elites: 'fast', 'brute', 'sniper', 'tank'). */
   badges: readonly string[] = [];
   /** Power-ups of the waves mode (src/client/wavesRun.ts): damage dealt, damage taken, moving and firing. */
@@ -242,6 +259,13 @@ export class Player {
       lenShake -= delay;
       if (lenShake < 0) lenShake = 0;
       this.shootShakeDis.mulIn(lenShake);
+    }
+
+    // The waves' dash and recharging shield
+    if (this.dashLeft > 0) this.dashLeft = Math.max(0, this.dashLeft - delay);
+    if (this.barrierMax > 0) {
+      if (this.barrierWait > 0) this.barrierWait -= delay;
+      else this.barrier = Math.min(this.barrierMax, this.barrier + (this.barrierMax / BARRIER_REFILL) * delay);
     }
 
     this.mfElapsedSinceLastShot += delay;
@@ -443,7 +467,8 @@ export class Player {
 
     // Clamp the velocity ("Upgrade, faster ! haha")
     const size = this.currentCF.vel.length();
-    const top = 3.25 * pace;
+    // (lifted for a moment by the waves' dash)
+    const top = 3.25 * pace * (this.dashLeft > 0 ? DASH_TOP : 1);
     if (size > top) this.currentCF.vel.normalizeIn().mulIn(top);
   }
 
@@ -718,6 +743,13 @@ export class Player {
     if (this.protection > 0.6) cdamage *= 0.5;
     // Spawn immunity
     if (this.immuneTime > 0.3) cdamage = 0;
+    // The waves' recharging shield takes the blow first, and waits a moment before coming back
+    if (this.barrierMax > 0 && cdamage > 0 && this.status === PLAYER_STATUS_ALIVE) {
+      const taken = Math.min(this.barrier, cdamage);
+      this.barrier -= taken;
+      cdamage -= taken;
+      this.barrierWait = BARRIER_WAIT;
+    }
 
     if (this.status !== PLAYER_STATUS_ALIVE) return false;
 
@@ -834,6 +866,16 @@ export class Player {
         from.score--;
       }
     }
+  }
+
+  /** The waves' dash (the Workshop): a burst of speed this way, past the usual limit for a moment. */
+  dash(dir: Vec3): void {
+    const d = new Vec3(dir.x, dir.y, 0);
+    if (d.lengthSq() < 1e-6) return;
+    d.normalizeIn();
+    this.currentCF.vel.x = d.x * DASH_SPEED;
+    this.currentCF.vel.y = d.y * DASH_SPEED;
+    this.dashLeft = DASH_TIME;
   }
 
   /** Grenade pickup (dropped grenades). */

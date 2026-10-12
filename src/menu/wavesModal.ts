@@ -9,7 +9,12 @@ import {
   MILESTONES,
   UPGRADES,
   UPGRADE_STEP,
+  BARRIER_SIZE,
+  DASH_COOLDOWN,
   DAILY_CORES,
+  PERM_CAP_BASE,
+  PERM_CAP_STEP,
+  SHOCK_COOLDOWN,
   balance,
   buy,
   checkpoints,
@@ -26,7 +31,7 @@ import {
   type WavesProgress,
 } from '../client/wavesProgress';
 import { track } from '../client/analytics';
-import { bigNum, t } from '../i18n';
+import { bigNum, num, t } from '../i18n';
 import type { SkinInfo } from '../sim/player';
 import type { Account } from './account';
 import { icon, type IconName } from './icons';
@@ -46,6 +51,10 @@ const UPGRADE_ICON: Record<UpgradeID, IconName> = {
   luck: 'package',
   breather: 'heartPulse',
   secondWind: 'rotate',
+  cap: 'chevronsUp',
+  dash: 'wind',
+  barrier: 'shieldHalf',
+  shock: 'radio',
 };
 
 /** What an upgrade gives at a level, as the card says it. */
@@ -70,6 +79,14 @@ function upgradeValue(id: UpgradeID, level: number): string {
       return `${Math.round(BREATHER[level] * 100)}%`;
     case 'secondWind':
       return String(level);
+    case 'cap':
+      return String(PERM_CAP_BASE + PERM_CAP_STEP * level);
+    case 'dash':
+      return level ? `${num(DASH_COOLDOWN[level])} s` : '—';
+    case 'shock':
+      return level ? `${num(SHOCK_COOLDOWN[level])} s` : '—';
+    case 'barrier':
+      return `${Math.round(BARRIER_SIZE[level] * 100)}`;
   }
 }
 
@@ -78,6 +95,8 @@ export const coreIcon = (size = 18) => `<span class="core-ico">${icon('core', si
 
 export class WavesModal {
   private readonly root = $('wavesModal');
+  /** The tab shown: the numbers, or what only the Workshop gives (the run's limits, the abilities). */
+  private tab: 'stats' | 'skills' = 'stats';
   /** The exclusive Orbs' pictures in the player's colours, drawn once each. */
   private readonly orbPics = new Map<string, string>();
 
@@ -114,6 +133,12 @@ export class WavesModal {
       this.onChange();
       // The card that was bought flashes
       $('wvUpgrades').querySelector(`[data-up="${id}"]`)?.classList.add('bought');
+    });
+    $('wvTabs').addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('[data-tab]');
+      if (!b) return;
+      this.tab = b.dataset.tab === 'skills' ? 'skills' : 'stats';
+      this.render();
     });
     $('wvStarts').addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-start]');
@@ -201,7 +226,16 @@ export class WavesModal {
     $('wvRecord').hidden = !record;
 
     // The upgrade cards
-    $('wvUpgrades').innerHTML = UPGRADES.map((u) => this.card(u, p, cash)).join('');
+    // The tabs: a dot where something can be bought
+    const canBuy = (tab: 'stats' | 'skills') =>
+      UPGRADES.some((u) => (u.tab ?? 'stats') === tab && (nextCost(u, p.levels) ?? Infinity) <= cash);
+    for (const b of $('wvTabs').querySelectorAll<HTMLElement>('[data-tab]')) {
+      b.classList.toggle('on', b.dataset.tab === this.tab);
+      b.classList.toggle('dot', canBuy(b.dataset.tab as 'stats' | 'skills'));
+    }
+    $('wvUpgrades').innerHTML = UPGRADES.filter((u) => (u.tab ?? 'stats') === this.tab)
+      .map((u) => this.card(u, p, cash))
+      .join('');
 
     // The wave to start from: the first, the last two checkpoints reached, the next one (locked)
     const reached = checkpoints(record).slice(1).slice(-2);

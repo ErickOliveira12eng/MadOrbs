@@ -372,6 +372,11 @@ export class ClientGame {
         audio.play(this.sounds.equip, 200);
       },
       onBomb: (position) => this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 4),
+      onDash: () => audio.play(this.sounds.equip, 160),
+      onShock: (position) => {
+        this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 3);
+        this.cam.viewShake = Math.max(this.cam.viewShake, 0.8);
+      },
       onSecondWind: () => {
         this.hud.announceText(t('waves.secondWind'), t('waves.secondWindSub'), banner('#e2ffe9', '#2fd35c'), 2.2);
         audio.play(this.sounds.lifePack, 255);
@@ -1040,7 +1045,8 @@ export class ClientGame {
     game.update(TICK);
     for (const e of game.events.drain()) this.handleEvent(e, false);
     this.updateCampaign();
-    this.waves?.update();
+    // The Workshop's abilities: Shift dashes, Q sends a shock wave
+    this.waves?.update({ dash: input.wasPressed('ShiftLeft') || input.wasPressed('ShiftRight'), shock: input.wasPressed('KeyQ') });
 
     if (this.conn) {
       // NET_CLSV_SVCL_PLAYER_COORD_FRAME every sv_minSendInterval frames

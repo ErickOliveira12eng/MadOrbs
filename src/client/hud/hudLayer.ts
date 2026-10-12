@@ -277,7 +277,7 @@ export class HudLayer {
 <div class="h-abs h-panel h-health" data-r="health">
   <svg class="plus" viewBox="0 0 24 24" aria-hidden="true"><rect data-r="plus" x="1" y="1" width="22" height="22" rx="7" fill="#47b800"/><path d="M12 6v12M6 12h12" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>
   <b class="h-hp" data-r="hp"></b>
-  <div class="h-hpcol"><span class="h-label">${t('hud.health')}</span><div class="h-hpbar"><i data-r="hpbar"></i><span class="tk" style="left:25%"></span><span class="tk" style="left:50%"></span><span class="tk" style="left:75%"></span></div></div>
+  <div class="h-hpcol"><span class="h-label">${t('hud.health')}</span><div class="h-shbar" data-r="shbar" hidden><i data-r="shfill"></i></div><div class="h-hpbar"><i data-r="hpbar"></i><span class="tk" style="left:25%"></span><span class="tk" style="left:50%"></span><span class="tk" style="left:75%"></span></div></div>
 </div>
 <div class="h-abs h-weapons" data-r="weapons">
   <div class="h-panel h-wbox"><div class="h-wtop"><span data-r="wicon"></span><span class="h-wextra" data-r="wextra"></span></div><div class="name" data-r="wname"></div></div>
@@ -287,6 +287,8 @@ export class HudLayer {
   </div>
   <div class="h-panel h-slot" data-r="gren"><img data-r="grenImg" alt="${t('hud.grenades')}"><div class="cnt"><span data-r="grenN"></span>${mouseIcon('right')}</div><i class="h-cool" data-r="grenCool" hidden></i></div>
   <div class="h-panel h-slot" data-r="molo"><img data-r="moloImg" alt="Molotov"><div class="cnt"><span data-r="moloN"></span>${mouseIcon('middle')}</div><i class="h-cool" data-r="moloCool" hidden></i></div>
+  <div class="h-panel h-slot h-abil" data-r="dash" hidden title="${t('up.dash')}">${ABILITY_ICON.dash}<span class="h-key">Shift</span><i class="h-cool" data-r="dashCool" hidden></i></div>
+  <div class="h-panel h-slot h-abil" data-r="shock" hidden title="${t('up.shock')}">${ABILITY_ICON.shock}<span class="h-key">Q</span><i class="h-cool" data-r="shockCool" hidden></i></div>
 </div>
 <div class="h-abs h-panel h-spec" data-r="spec" hidden>${t('hud.spectating')} <span>${t('hud.specHint')}</span></div>
 
@@ -746,7 +748,7 @@ export class HudLayer {
       html +=
         `<div class="h-perms"><span class="h-label">${t('waves.upgrades')}</span><div>` +
         w.perms
-          .map((p) => `<span title="${t(`power.${p.kind}` as Key)}"><img src="${powerIconUrl(p.kind)}" alt="" /><b>${p.kind === 'poison' || p.kind === 'ice' ? `×${p.level}` : `+${p.level * 10}%`}</b></span>`)
+          .map((p) => `<span class="${p.full ? 'full' : ''}" title="${t(`power.${p.kind}` as Key)}${p.full ? ` · ${t('waves.permFull')}` : ''}"><img src="${powerIconUrl(p.kind)}" alt="" /><b>${p.kind === 'poison' || p.kind === 'ice' ? `×${p.level}` : `+${p.level * 10}%`}</b></span>`)
           .join('') +
         `</div></div>`;
     if (w.record) html += `<div class="h-wrec">${t('waves.record', { n: w.record })}</div>`;
@@ -857,6 +859,7 @@ export class HudLayer {
       this.updateHealth(me);
       this.updateWeapons(me);
     }
+    this.updateAbilities(f.waves, liveHud);
     this.updatePickHint(f, liveHud);
     if (deadScreen) this.updateDeath(f);
     this.updateKiller(f, deadScreen);
@@ -1209,6 +1212,24 @@ export class HudLayer {
     this.r.plus.setAttribute('fill', color);
   }
 
+  /** The waves' Workshop abilities (Shift, Q) and its recharging shield, over the life bar. */
+  private updateAbilities(w: WavesHud | null, live: boolean): void {
+    const r = this.r;
+    for (const kind of ['dash', 'shock'] as const) {
+      const a = live ? w?.abilities.find((x) => x.kind === kind) : undefined;
+      show(r[kind], !!a);
+      if (!a) continue;
+      const ready = a.ready >= 1;
+      r[kind].classList.toggle('ready', ready);
+      const cool = r[`${kind}Cool`];
+      show(cool, !ready);
+      if (!ready) setStyle(cool, '--p', `${Math.round(a.ready * 100)}%`);
+    }
+    const b = live ? w?.barrier : null;
+    show(r.shbar, !!b);
+    if (b) setStyle(r.shfill, 'width', `${((b.now / b.max) * 100).toFixed(1)}%`);
+  }
+
   private updateWeapons(me: Player): void {
     const r = this.r;
     const w = me.weapon;
@@ -1557,6 +1578,12 @@ export class HudLayer {
 }
 
 /** Seconds before "Next level" / "Try again" work at the end of a campaign level. */
+/** The waves' Workshop abilities on the HUD: the dash (Shift), the shock wave (Q). */
+const ABILITY_ICON = {
+  dash: '<svg class="h-abico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>',
+  shock: '<svg class="h-abico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>',
+};
+
 /** The waves' elites' traits before their name (waves.ts): fast, brute, sharpshooter, tank. */
 const BADGE_ICON: Record<string, string> = {
   fast: '<svg class="h-trait fast" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>',

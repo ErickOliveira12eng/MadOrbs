@@ -4113,3 +4113,41 @@ input[type='range'] {
   background: #5ff0e0;
   color: #032925;
 }
+
+/* The Workshop's tabs: the numbers, or what only the Workshop gives */
+.wv-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.wv-tabs button {
+  position: relative;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font: 800 13px var(--font-ui);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.wv-tabs button.on {
+  border-color: rgba(255, 194, 58, 0.7);
+  background: rgba(255, 194, 58, 0.14);
+  color: #ffd98a;
+}
+
+.wv-tabs button.dot::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #5ff0e0;
+}

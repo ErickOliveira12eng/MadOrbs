@@ -4,7 +4,7 @@
 // Kept in this browser (madorbs.wavesProgress) and, signed in, in the account (waves_progress).
 import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_FLAME_THROWER, WEAPON_SHOTGUN, WEAPON_SMG } from '../sim/constants';
 
-export type UpgradeID = 'life' | 'armor' | 'damage' | 'fire' | 'speed' | 'lives' | 'grenades' | 'luck' | 'drops' | 'breather' | 'secondWind';
+export type UpgradeID = 'life' | 'armor' | 'damage' | 'fire' | 'speed' | 'lives' | 'grenades' | 'luck' | 'drops' | 'breather' | 'secondWind' | 'cap' | 'dash' | 'barrier' | 'shock';
 
 export interface Upgrade {
   id: UpgradeID;
@@ -12,6 +12,8 @@ export interface Upgrade {
   costs: number[];
   /** The card's colour family (src/menu/wavesModal.ts). */
   tone: 'red' | 'gold' | 'blue' | 'green';
+  /** The Workshop's tab: the numbers, or what only the Workshop gives (the run's limits, the abilities). */
+  tab?: 'skills';
 }
 
 /** The Workshop's upgrades, in the order of its cards. */
@@ -27,6 +29,11 @@ export const UPGRADES: Upgrade[] = [
   { id: 'drops', costs: [60, 120, 200, 300, 450], tone: 'green' },
   { id: 'breather', costs: [180, 350, 600], tone: 'green' },
   { id: 'secondWind', costs: [1500], tone: 'green' },
+  // Only the Workshop gives these (Erick, 12/10/2026: its numbers got lost among the run's power-ups)
+  { id: 'cap', costs: [150, 300, 500, 800, 1200, 1800, 2600, 3600], tone: 'gold', tab: 'skills' },
+  { id: 'dash', costs: [200, 350, 550, 800, 1100], tone: 'blue', tab: 'skills' },
+  { id: 'barrier', costs: [250, 400, 600, 850, 1200], tone: 'blue', tab: 'skills' },
+  { id: 'shock', costs: [300, 500, 750, 1050, 1400], tone: 'red', tab: 'skills' },
 ];
 
 /**
@@ -42,7 +49,20 @@ export const SECOND_WIND_LIFE = 0.5;
 
 export type Levels = Record<UpgradeID, number>;
 
-export const NO_LEVELS: Levels = { life: 0, armor: 0, damage: 0, fire: 0, speed: 0, lives: 0, grenades: 0, luck: 0, drops: 0, breather: 0, secondWind: 0 };
+export const NO_LEVELS: Levels = { life: 0, armor: 0, damage: 0, fire: 0, speed: 0, lives: 0, grenades: 0, luck: 0, drops: 0, breather: 0, secondWind: 0, cap: 0, dash: 0, barrier: 0, shock: 0 };
+
+/**
+ * What only the Workshop gives. The run's limits: each permanent power-up of a run stops at
+ * PERM_CAP_BASE levels, PERM_CAP_STEP more a level of 'cap' (5 up to 21). The abilities: a dash (Shift)
+ * and a shock wave (Q), their cooldowns (seconds) by level; a recharging shield that takes this share of
+ * a life before the life does (Player.barrier).
+ */
+export const PERM_CAP_BASE = 5;
+export const PERM_CAP_STEP = 2;
+export const DASH_COOLDOWN = [0, 6, 5, 4, 3, 2.2];
+export const SHOCK_COOLDOWN = [0, 20, 16, 13, 10, 8];
+export const BARRIER_SIZE = [0, 0.15, 0.25, 0.35, 0.45, 0.6];
+export const SHOCK = { radius: 3.5, damage: 1.2, push: 7 };
 
 // ------------------------------------------------------------------ milestones and checkpoints
 

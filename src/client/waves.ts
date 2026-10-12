@@ -216,18 +216,24 @@ export const ICE_MAX = 0.6;
 /** Weapons a "new weapon" power-up can give (better than the SMG). */
 export const POWER_WEAPONS = [WEAPON_DUAL_MACHINE_GUN, WEAPON_CHAIN_GUN, WEAPON_SHOTGUN, WEAPON_BAZOOKA, WEAPON_PHOTON_RIFLE, WEAPON_FLAME_THROWER, WEAPON_SNIPER];
 
-/** One of the permanent power-ups, by their weights (the Workshop's crate luck, a head start). */
-export function rollPerm(): PermKind {
-  let r = Math.random() * PERM_KINDS.reduce((s, k) => s + POWERS[k].weight, 0);
-  for (const k of PERM_KINDS) {
+/**
+ * One of the permanent power-ups, by their weights (the Workshop's crate luck, a head start), leaving
+ * out those at their limit (`full`); null when all of them are.
+ */
+export function rollPerm(full: (k: PermKind) => boolean = () => false): PermKind | null {
+  const kinds = PERM_KINDS.filter((k) => !full(k));
+  if (!kinds.length) return null;
+  let r = Math.random() * kinds.reduce((s, k) => s + POWERS[k].weight, 0);
+  for (const k of kinds) {
     r -= POWERS[k].weight;
     if (r <= 0) return k;
   }
-  return 'permDamage';
+  return kinds[0];
 }
 
-export function rollPower(): PowerKind {
-  const kinds = Object.keys(POWERS) as PowerKind[];
+/** A crate's power-up, by the weights, leaving out the permanent ones at their limit (`full`). */
+export function rollPower(full: (k: PermKind) => boolean = () => false): PowerKind {
+  const kinds = (Object.keys(POWERS) as PowerKind[]).filter((k) => !POWERS[k].perm || !full(k as PermKind));
   let r = Math.random() * kinds.reduce((s, k) => s + POWERS[k].weight, 0);
   for (const k of kinds) {
     r -= POWERS[k].weight;

@@ -298,6 +298,8 @@
           <div class="ctrl"><span class="keys"><kbd data-i18n="controls.middleButton">middle button</kbd></span><span data-i18n="controls.molotov">molotov</span></div>
           <div class="ctrl"><span class="keys"><kbd data-i18n="controls.space">space</kbd></span><span data-i18n="controls.secondary">secondary weapon</span></div>
           <div class="ctrl"><span class="keys"><kbd>F</kbd></span><span data-i18n="controls.pickup">pick up weapon</span></div>
+          <div class="ctrl"><span class="keys"><kbd>Shift</kbd></span><span data-i18n="controls.dash">dash (Waves, from the Workshop)</span></div>
+          <div class="ctrl"><span class="keys"><kbd>Q</kbd></span><span data-i18n="controls.shock">shock wave (Waves, from the Workshop)</span></div>
           <div class="ctrl"><span class="keys"><kbd>Tab</kbd></span><span data-i18n="controls.scores">scoreboard</span></div>
           <div class="ctrl"><span class="keys"><kbd>T</kbd></span><span data-i18n="controls.chat">chat</span></div>
           <div class="ctrl"><span class="keys"><kbd>M</kbd></span><span data-i18n="controls.music">music</span></div>
@@ -390,7 +392,10 @@
           <a class="camp-guide" data-i18n-attr="href=link.waves" href="/waves" target="_blank" rel="noopener" data-i18n="campaign.howItWorks">How it works</a></p>
         <div class="wv-body">
           <section class="wv-shop">
-            <h3 data-i18n="workshop.upgrades">Permanent upgrades</h3>
+            <div id="wvTabs" class="wv-tabs" role="tablist">
+              <button type="button" class="on" data-tab="stats" data-i18n="workshop.tabStats">Upgrades</button>
+              <button type="button" data-tab="skills" data-i18n="workshop.tabSkills">Abilities and limits</button>
+            </div>
             <div id="wvUpgrades" class="wv-grid"></div>
           </section>
           <aside class="wv-side">

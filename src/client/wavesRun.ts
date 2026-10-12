@@ -10,7 +10,7 @@ import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
-import { BREATHER, MILESTONES, UPGRADE_STEP, addCores, headStartPowers, runCores, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
+import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADE_STEP, addCores, headStartPowers, runCores, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
 export interface WavesHud {
@@ -28,8 +28,12 @@ export interface WavesHud {
   kills: number;
   /** The timed power-ups on, with their seconds left. */
   powers: { kind: PowerKind; left: number }[];
-  /** The permanent ones taken, with their levels. */
-  perms: { kind: PermKind; level: number }[];
+  /** The permanent ones taken, with their levels; `full`: at the limit the Workshop allows. */
+  perms: { kind: PermKind; level: number; full: boolean }[];
+  /** The Workshop's abilities bought: their key, and how ready they are (1: ready). */
+  abilities: { kind: 'dash' | 'shock'; ready: number }[];
+  /** The Workshop's recharging shield (share of a life), or null without it. */
+  barrier: { now: number; max: number } | null;
   bossLife: { name: string; life: number } | null;
   /** The best wave before this run. */
   record: number | null;
@@ -82,6 +86,9 @@ export interface WavesContext {
   onBomb: (position: Vec3) => void;
   /** The Workshop's second wind saved the player. */
   onSecondWind: () => void;
+  /** The Workshop's abilities: a dash, a shock wave (where it went off). */
+  onDash: () => void;
+  onShock: (position: Vec3) => void;
   onEnd: (end: WavesEnd) => void;
   /** The wave to begin on (1, or a checkpoint reached), the weapon to spawn with, the Workshop's levels. */
   startWave: number;
@@ -114,6 +121,10 @@ export class WavesRun {
   /** Whether the player was alive last tick (a spawn: the Workshop's grenades), the second winds left. */
   private wasAlive = false;
   private windLeft: number;
+  /** The run's limit on each permanent power-up (the Workshop), the abilities' cooldowns left. */
+  private readonly permCap: number;
+  private dashWait = 0;
+  private shockWait = 0;
   /** Seconds since the first spawn. */
   elapsed = 0;
   over = false;
@@ -124,7 +135,14 @@ export class WavesRun {
     // A run from a checkpoint: the wave before it counts as done, and a head start of power-ups
     this.wave = ctx.startWave - 1;
     this.spec = waveSpec(ctx.startWave);
-    for (let i = 0; i < headStartPowers(ctx.startWave); i++) this.perms[rollPerm()]++;
+    this.permCap = PERM_CAP_BASE + PERM_CAP_STEP * ctx.levels.cap;
+    for (let i = 0; i < headStartPowers(ctx.startWave); i++) {
+      const k = rollPerm(this.full);
+      if (k) this.perms[k]++;
+    }
+    // The Workshop's recharging shield, full at the start
+    ctx.me.barrierMax = BARRIER_SIZE[ctx.levels.barrier];
+    ctx.me.barrier = ctx.me.barrierMax;
     ctx.me.secondWind = ctx.levels.secondWind;
     // The Workshop's grenades make the bag bigger too: what lies on the floor fills it up to that
     ctx.me.maxGrenades = Math.max(ctx.me.maxGrenades, 2 + ctx.levels.grenades);
@@ -138,10 +156,17 @@ export class WavesRun {
     if (!this.over) this.leave();
   };
 
-  /** Every tick. */
-  update(): void {
+  /** A permanent power-up at the limit the Workshop allows. */
+  private readonly full = (k: PermKind): boolean => this.perms[k] >= this.permCap;
+
+  /** Every tick; `keys`: the Workshop's abilities asked for this tick. */
+  update(keys: { dash: boolean; shock: boolean } = { dash: false, shock: false }): void {
     if (this.over) return;
     const me = this.ctx.me;
+    this.dashWait = Math.max(0, this.dashWait - TICK);
+    this.shockWait = Math.max(0, this.shockWait - TICK);
+    if (me.isAlive && keys.dash && this.ctx.levels.dash > 0 && this.dashWait <= 0) this.dash();
+    if (me.isAlive && keys.shock && this.ctx.levels.shock > 0 && this.shockWait <= 0) this.shock();
     if (me.isAlive || this.elapsed > 0) this.elapsed += TICK;
     // The same weapons at every spawn (the menu can't change them; a new weapon lasts one life)
     if (!me.isAlive) {
@@ -387,9 +412,9 @@ export class WavesRun {
   onCrate(crateID: number, position: Vec3, broken: boolean): void {
     this.renderer.crateHit(crateID, position.x, position.y, broken);
     if (!broken || this.over) return;
-    let kind = rollPower();
-    // The Workshop's crate luck: a better chance of a permanent one
-    if (!POWERS[kind].perm && Math.random() < UPGRADE_STEP.luck * this.ctx.levels.luck) kind = rollPerm();
+    let kind = rollPower(this.full);
+    // The Workshop's crate luck: a better chance of a permanent one (not one at its limit)
+    if (!POWERS[kind].perm && Math.random() < UPGRADE_STEP.luck * this.ctx.levels.luck) kind = rollPerm(this.full) ?? kind;
     if (kind === 'weapon') {
       // A real weapon on the floor: the player takes it (F) or leaves it
       const options = POWER_WEAPONS.filter((w) => w !== this.ctx.me.weapon?.weaponID);
@@ -427,11 +452,43 @@ export class WavesRun {
         this.bomb();
         break;
       default:
-        if (POWERS[kind].perm) this.perms[kind as PermKind]++;
+        if (POWERS[kind].perm) this.perms[kind as PermKind] = Math.min(this.permCap, this.perms[kind as PermKind] + 1);
         else this.timers[kind as TimedPower] = WAVES.powerSeconds;
     }
     track('powerup_pick', { kind, wave: this.wave });
     this.ctx.onPower(kind, weaponID);
+  }
+
+  /** The Workshop's dash: the way the keys go (else towards the aim), past the speed limit for a moment. */
+  private dash(): void {
+    const me = this.ctx.me;
+    const i = me.input;
+    let dir = new Vec3((i.right ? 1 : 0) - (i.left ? 1 : 0), (i.up ? 1 : 0) - (i.down ? 1 : 0), 0);
+    if (dir.lengthSq() < 1e-6) dir = me.currentCF.mousePosOnMap.sub(me.currentCF.position);
+    me.dash(dir);
+    this.dashWait = DASH_COOLDOWN[this.ctx.levels.dash];
+    track('waves_ability', { ability: 'dash', wave: this.wave });
+    this.ctx.onDash();
+  }
+
+  /** The Workshop's shock wave: hurts and throws back the enemies around (in sight), breaks the crates near. */
+  private shock(): void {
+    const { game, me } = this.ctx;
+    const pos = me.currentCF.position.clone();
+    for (const p of this.reds()) {
+      if (!p.isAlive) continue;
+      const d = Math.hypot(p.currentCF.position.x - pos.x, p.currentCF.position.y - pos.y);
+      if (d >= SHOCK.radius + p.radius || game.map.rayTest(pos.clone(), p.currentCF.position.clone(), new Vec3())) continue;
+      const away = new Vec3(p.currentCF.position.x - pos.x, p.currentCF.position.y - pos.y, 0);
+      if (away.lengthSq() > 1e-6) p.currentCF.vel.addIn(away.normalizeIn().mul(SHOCK.push));
+      p.hitSV(WEAPON_NUCLEAR, me, SHOCK.damage * (1 - d / (SHOCK.radius * 1.5)));
+    }
+    for (const c of [...game.crates]) {
+      if (Math.hypot(c.position.x - pos.x, c.position.y - pos.y) < SHOCK.radius) game.hitCrate(c, 10, me);
+    }
+    this.shockWait = SHOCK_COOLDOWN[this.ctx.levels.shock];
+    track('waves_ability', { ability: 'shock', wave: this.wave });
+    this.ctx.onShock(pos);
   }
 
   /** The bomb: a big blast around the player that hurts only the enemies (and breaks crates). */
@@ -504,7 +561,12 @@ export class WavesRun {
       lives: me.lives + (me.isAlive ? 1 : 0),
       kills: me.kills,
       powers: (Object.keys(this.timers) as TimedPower[]).filter((k) => this.timers[k] > 0).map((k) => ({ kind: k, left: this.timers[k] })),
-      perms: PERM_KINDS.filter((k) => this.perms[k] > 0).map((k) => ({ kind: k, level: this.perms[k] })),
+      perms: PERM_KINDS.filter((k) => this.perms[k] > 0).map((k) => ({ kind: k, level: this.perms[k], full: this.perms[k] >= this.permCap })),
+      abilities: [
+        ...(this.ctx.levels.dash > 0 ? [{ kind: 'dash' as const, ready: 1 - this.dashWait / DASH_COOLDOWN[this.ctx.levels.dash] }] : []),
+        ...(this.ctx.levels.shock > 0 ? [{ kind: 'shock' as const, ready: 1 - this.shockWait / SHOCK_COOLDOWN[this.ctx.levels.shock] }] : []),
+      ],
+      barrier: me.barrierMax > 0 ? { now: me.barrier, max: me.barrierMax } : null,
       bossLife: boss && this.spec.boss && this.phase === 'fight' && (boss.isAlive || boss.lives > 0) ? { name: boss.name, life: boss.isAlive ? boss.life : 1 } : null,
       record: this.record?.wave ?? null,
       cores: runCores(this.ctx.startWave, Math.max(this.ctx.startWave, this.wave), me.kills, this.bosses, false).total,
