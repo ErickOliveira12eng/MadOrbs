@@ -99,6 +99,11 @@ export class BotController {
   private guardSpot: Vec3 | null = null;
   /** Someone to hunt down when nobody is in sight (the waves mode: the player), instead of wandering. */
   hunt: Player | null = null;
+  /** Times the aim's error (below 1: a better shot than the skill alone gives; the waves' sharpshooters). */
+  aimScale = 1;
+  /** Someone to walk beside (the waves' boss: its two escorts), on this side of it (-1 or 1). */
+  escort: Player | null = null;
+  escortSide = 1;
 
   /** `loadout`: always these weapons (the campaign: the chapter's weapon), else picked at random. */
   constructor(
@@ -191,7 +196,25 @@ export class BotController {
     let moveTo: Vec3 | null = null;
     const goal = this.objective();
     const duel = !!target && (!goal || (!goal.urgent && best < 7));
-    if (target && duel) {
+    if (this.escort?.isAlive) {
+      // Escort: beside the one it guards, on its side of its way (shooting whoever is in sight)
+      const g = this.escort.currentCF;
+      const v = g.vel.length() > 0.3 ? g.vel.clone().normalizeIn() : new Vec3(0, 1, 0);
+      const off = this.escort.radius + p.radius + 0.25;
+      const spot = new Vec3(g.position.x - v.y * off * this.escortSide, g.position.y + v.x * off * this.escortSide, 0);
+      if (distance(pos, spot) > 2.5) {
+        // Far: the way there, again every half second
+        if (this.path.length === 0 || this.repathTimer <= 0) {
+          this.repathTimer = 0.5;
+          this.path = findPath(game, pos, spot);
+        }
+        while (this.path.length && distance(this.path[0], new Vec3(pos.x, pos.y, 0)) < 0.35) this.path.shift();
+        moveTo = this.path.length ? this.path[0] : spot;
+      } else {
+        moveTo = spot;
+        this.path = [];
+      }
+    } else if (target && duel) {
       const toT = target.currentCF.position.sub(pos);
       const d = toT.length();
       const weapon = p.weapon?.weaponID ?? 0;
@@ -255,7 +278,7 @@ export class BotController {
       const d = moveTo.sub(pos);
       // Flags are touched within a quarter of a cell: aim finely at the end of the path. A big babo
       // (the campaign's boss) keeps close to the middle of the cells, or it catches on the corners
-      const t = goal && !duel && this.path.length === 0 ? 0.04 : Math.min(0.2, Math.max(0.03, 0.5 - p.radius - 0.02));
+      const t = goal && !duel && this.path.length === 0 ? 0.04 : Math.min(0.2, Math.max(0.03, 0.5 - (p.wallRadius || p.radius) - 0.02));
       input.right = d.x > t;
       input.left = d.x < -t;
       input.up = d.y > t;
@@ -266,7 +289,7 @@ export class BotController {
     this.aimErrorTimer -= delay;
     if (this.aimErrorTimer <= 0) {
       this.aimErrorTimer = randRange(0.2, 0.6);
-      const e = (1 - this.skill) * 1.2 + 0.1;
+      const e = ((1 - this.skill) * 1.2 + 0.1) * this.aimScale;
       this.aimError.set(randRange(-e, e), randRange(-e, e), 0);
     }
     if (target) {

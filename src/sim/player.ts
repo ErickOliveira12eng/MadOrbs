@@ -126,6 +126,13 @@ export class Player {
   maxGrenades = 3;
   /** Spawns only at the spawn points near the map's edges, never the middle ones (the waves' bots). */
   edgeSpawn = false;
+  /**
+   * Size against the walls when smaller than `radius` (0: the same): a huge boss is hit and drawn at
+   * its size but still goes through the one-cell passages (the waves' boss).
+   */
+  wallRadius = 0;
+  /** Marks shown before the name over the orb (the waves' elites: 'fast', 'brute', 'sniper', 'tank'). */
+  badges: readonly string[] = [];
   /** Power-ups of the waves mode (src/client/wavesRun.ts): damage dealt, damage taken, moving and firing. */
   damageBoost = 1;
   armorBoost = 1;

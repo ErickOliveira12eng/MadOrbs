@@ -102,7 +102,7 @@ export interface GameOptions {
   gameType?: number;
   /**
    * Player slots (default MAX_PLAYER, the original's 32: online the network sends player IDs in one
-   * byte). Offline a game may hold more (the waves' debug option, ClientGame's unlimitedBots).
+   * byte). Offline a game may hold more (the waves: WAVES.maxOrbs).
    */
   maxPlayers?: number;
 }
@@ -558,15 +558,15 @@ export class Game {
           const dis = other.currentCF.position.sub(p.currentCF.position).normalizeIn();
           p.currentCF.position = other.currentCF.position.sub(dis.mul(touch + 0.01));
           p.currentCF.vel = p.currentCF.vel.mul(-BOUNCE_FACTOR);
-          map.performCollision(p.lastCF, p.currentCF, p.radius);
-          map.collisionClip(p.currentCF, p.radius);
+          map.performCollision(p.lastCF, p.currentCF, p.wallRadius || p.radius);
+          map.collisionClip(p.currentCF, p.wallRadius || p.radius);
           p.lastCF.position.copy(p.currentCF.position);
         }
       }
     }
     // The waves mode's crates: solid, the babo slides around them
     for (const crate of this.crates) {
-      const touch = p.radius + CRATE_RADIUS;
+      const touch = (p.wallRadius || p.radius) + CRATE_RADIUS;
       const dx = p.currentCF.position.x - crate.position.x;
       const dy = p.currentCF.position.y - crate.position.y;
       const d = Math.hypot(dx, dy);
@@ -582,9 +582,9 @@ export class Game {
         p.currentCF.vel.y -= into * ny;
       }
     }
-    map.performCollision(p.lastCF, p.currentCF, p.radius);
+    map.performCollision(p.lastCF, p.currentCF, p.wallRadius || p.radius);
     // Final clip
-    map.collisionClip(p.currentCF, p.radius);
+    map.collisionClip(p.currentCF, p.wallRadius || p.radius);
 
     // Stuck in a wall? Respawn request
     const x = Math.trunc(p.currentCF.position.x);

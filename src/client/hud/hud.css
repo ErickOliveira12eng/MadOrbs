@@ -207,6 +207,31 @@
   margin-top: -13px;
 }
 
+/* The waves' elites: their traits' icons before the name */
+.h-trait {
+  width: 13px;
+  height: 13px;
+  margin-right: 3px;
+  vertical-align: -2px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
+}
+
+.h-trait.fast {
+  color: #ffd23f;
+}
+
+.h-trait.brute {
+  color: #ff5a4e;
+}
+
+.h-trait.sniper {
+  color: #c48bff;
+}
+
+.h-trait.tank {
+  color: #9fd3ff;
+}
+
 .h-tag .lag {
   margin-left: 6px;
   padding: 0 5px;

@@ -9,7 +9,7 @@ import type { Player, SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
-import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, loadWavesRecord, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BREATHER, MILESTONES, UPGRADE_STEP, addCores, headStartPowers, runCores, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
@@ -265,8 +265,11 @@ export class WavesRun {
     return this.ctx.game.players.filter((p): p is Player => !!p && p.teamID === PLAYER_TEAM_RED);
   }
 
-  /** One more bot for the wave: a fallen one comes back with new weapons and skill, or a new one. */
-  private spawnBot(): boolean {
+  /**
+   * One more bot for the wave: a fallen one comes back with new weapons and skill, or a new one.
+   * `escort`: it walks beside that one (the boss), on that side.
+   */
+  private spawnBot(escort?: { of: Player; side: number }): boolean {
     const { game, bots } = this.ctx;
     const loadout = { primary: this.spec.weapons[Math.floor(Math.random() * this.spec.weapons.length)], secondary: WEAPON_KNIVES };
     let i = bots.findIndex((b) => b.player !== this.boss && !b.player.isAlive && b.player.lives <= 0);
@@ -290,7 +293,25 @@ export class WavesRun {
     p.lifePackChance = WAVES.lifePackChance + UPGRADE_STEP.drops * this.ctx.levels.drops;
     // They come in from the map's edges, never out of its middle
     p.edgeSpawn = true;
-    bots[i] = new BotController(p, this.spec.skill, loadout);
+    // An elite, maybe (waves.ts): its traits on top of the wave's numbers
+    const traits = rollElite(this.wave);
+    const strength = eliteStrength(this.wave);
+    p.badges = traits;
+    p.radius = 0.25;
+    if (traits.includes('fast')) p.speedBoost = Math.min(1.9, WAVES.botSpeed * strength.speed);
+    if (traits.includes('brute')) {
+      p.damageBoost *= strength.hit;
+      p.radius = 0.3;
+    }
+    if (traits.includes('tank')) p.damageScale *= strength.tough;
+    bots[i] = new BotController(p, traits.includes('sniper') ? 1 : this.spec.skill, loadout);
+    if (traits.includes('sniper')) bots[i].aimScale = strength.aim;
+    if (escort) {
+      bots[i].escort = escort.of;
+      bots[i].escortSide = escort.side;
+      // A little faster than the boss, to catch up with it
+      p.speedBoost = Math.max(p.speedBoost, WAVES.botSpeed * 1.15);
+    }
     // They come for the player, wherever they are
     bots[i].hunt = this.ctx.me;
     game.requestSpawn(p);
@@ -315,8 +336,12 @@ export class WavesRun {
     p.lives = 1;
     p.spawnRequested = false;
     p.timeToSpawn = 0;
-    p.damageScale = WAVES.boss.damageScale * this.spec.toughness;
-    p.damageBoost = this.spec.hitBoost;
+    // Bigger and much harder hitting each time it comes (bossStrength); its size against the walls stays
+    const strength = bossStrength(this.wave);
+    p.radius = strength.radius;
+    p.wallRadius = WAVES.boss.radius;
+    p.damageScale = WAVES.boss.damageScale * this.spec.toughness * strength.tough;
+    p.damageBoost = this.spec.hitBoost * strength.hit;
     const heavy = this.spec.weapons[this.spec.weapons.length - 1];
     p.speedBoost = WAVES.botSpeed;
     const bot = new BotController(p, Math.min(1, this.spec.skill + 0.1), { primary: heavy, secondary: WEAPON_KNIVES });
@@ -325,6 +350,8 @@ export class WavesRun {
     if (i >= 0) bots[i] = bot;
     else bots.push(bot);
     game.requestSpawn(p);
+    // Its escorts, one on each side
+    for (let k = 0; k < WAVES.escorts; k++) this.spawnBot({ of: p, side: k % 2 === 0 ? 1 : -1 });
   }
 
   // ---------------------------------------------------------------- crates and power-ups
@@ -473,7 +500,7 @@ export class WavesRun {
       breakLeft: Math.max(0, this.breakLeft),
       waveLeft: Math.max(0, this.waveLeft),
       left: this.phase === 'fight' ? this.pending + standing + (this.bossPending ? 1 : 0) : 0,
-      total: this.spec.total + (this.spec.boss ? 1 : 0),
+      total: this.spec.total + (this.spec.boss ? 1 + WAVES.escorts : 0),
       lives: me.lives + (me.isAlive ? 1 : 0),
       kills: me.kills,
       powers: (Object.keys(this.timers) as TimedPower[]).filter((k) => this.timers[k] > 0).map((k) => ({ kind: k, left: this.timers[k] })),

@@ -18,6 +18,11 @@ import {
 export const WAVES_MAP = 'CTF-Invaders';
 
 export const WAVES = {
+  /**
+   * Orbs in the game at most: every bot of the wave comes, past the original's 32 (offline nothing
+   * needs it; tested by Erick up to 256, 12/10/2026). Online stays at 32 (MAX_PLAYER).
+   */
+  maxOrbs: 256,
   /** Lives: spawns at the start and after each death. */
   lives: 3,
   /** Share of the damage the player takes: the bots hit a quarter as hard as elsewhere. */
@@ -45,6 +50,8 @@ export const WAVES = {
   /** A boss every so many waves: its size and the share of the damage it takes (before the wave's toughness). */
   bossEvery: 10,
   boss: { radius: 0.45, damageScale: 0.25 },
+  /** Bots that come with the boss and walk beside it. */
+  escorts: 2,
 };
 
 export interface WaveSpec {
@@ -96,6 +103,59 @@ export function waveSpec(n: number): WaveSpec {
     hitBoost: 1 + 0.015 * (n - 1),
     weapons,
   };
+}
+
+// ------------------------------------------------------------------ elites
+
+/**
+ * Elites (Erick, 12/10/2026: a strong player stopped dying, every bot was the same): from wave 10
+ * some bots come with a trait, more of them and stronger ones as the waves go on (by the wave only,
+ * not by the player's power-ups). Fast: runs nearly as fast as a boosted player. Brute: hits much
+ * harder (and is a bit bigger). Sharpshooter: hardly misses. Tank: takes much less damage. Later on
+ * some have two. The name over the orb shows each trait's icon (HudLayer.updateTags).
+ */
+export type EliteKind = 'fast' | 'brute' | 'sniper' | 'tank';
+export const ELITE_KINDS: EliteKind[] = ['fast', 'brute', 'sniper', 'tank'];
+export const ELITE_FROM = 10;
+
+/** The share of a wave's bots that are elites: 10% on wave 10, 60% from wave 40. */
+export function eliteShare(n: number): number {
+  return n < ELITE_FROM ? 0 : Math.min(0.6, 0.1 + (n - ELITE_FROM) / 60);
+}
+
+/** The chance an elite has a second trait: from wave 30, up to 50% on wave 50. */
+export function eliteDoubleChance(n: number): number {
+  return n < 30 ? 0 : Math.min(0.5, (n - 30) / 40);
+}
+
+/**
+ * How strong the traits are on wave n: the fast one's speed (times WAVES.botSpeed, at most 1.9 in all),
+ * the brute's damage (×), the sharpshooter's aim error (×, and the best skill), the tank's share of the
+ * damage it takes.
+ */
+export function eliteStrength(n: number): { speed: number; hit: number; aim: number; tough: number } {
+  const k = Math.max(0, n - ELITE_FROM);
+  return { speed: 1.3 + 0.02 * k, hit: 1.6 + 0.06 * k, aim: 0.3, tough: 1 / (2 + 0.06 * k) };
+}
+
+/**
+ * The boss grows each time it comes (wave 10, 20, 30...; Erick, 12/10/2026): bigger (hit and drawn at
+ * that size; against the walls it keeps WAVES.boss.radius), much harder hitting, a bit tougher.
+ * `k` is how many times it came before.
+ */
+export function bossStrength(n: number): { radius: number; hit: number; tough: number } {
+  const k = Math.max(0, Math.floor(n / WAVES.bossEvery) - 1);
+  return { radius: Math.min(1, WAVES.boss.radius + 0.1 * k), hit: 1.5 + 0.75 * k, tough: 1 / (1 + 0.2 * k) };
+}
+
+/** A bot's traits on wave n: none (most), one, or two later on. */
+export function rollElite(n: number): EliteKind[] {
+  if (Math.random() >= eliteShare(n)) return [];
+  const pool = [...ELITE_KINDS];
+  const pick = () => pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+  const out = [pick()];
+  if (Math.random() < eliteDoubleChance(n)) out.push(pick());
+  return out;
 }
 
 // ------------------------------------------------------------------ power-ups

@@ -15,7 +15,7 @@ import { WAVES_MAP } from './client/waves';
 import { loadProgress as loadWavesProgress } from './client/wavesProgress';
 import { WavesModal } from './menu/wavesModal';
 import { StartScreen, type PlayMode } from './menu/menu';
-import { debugBotsOn, debugZoomOn } from './menu/accountModal';
+import { debugZoomOn } from './menu/accountModal';
 import type { PrivateRoomJoin } from './menu/roomModal';
 import { ROOM_LINK_RE } from './net/protocol';
 import { OrbStudio } from './menu/orbStudio';
@@ -71,7 +71,6 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
   const common = {
     // The debug zoom (mouse wheel, offline only): the accounts the server allows, with the box ticked
     debugZoom: account.debugTools.zoom && debugZoomOn(),
-    unlimitedBots: account.debugTools.bots && debugBotsOn(),
     playerName: settings.name,
     skin: skinInfo(settings),
     mode: settings.mode,

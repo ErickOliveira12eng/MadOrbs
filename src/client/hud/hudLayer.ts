@@ -1286,7 +1286,7 @@ export class HudLayer {
       const cls = `h-tag ${teamClass(f.game, p.teamID)}${hurt ? ' hurt' : ''}${big ? ' big' : ''}`.replace(/\s+/g, ' ').trim();
       if (el.className !== cls) el.className = cls;
       // ping > 12 network frames: the original's *LAGGER* tag
-      setHTML(el.firstElementChild as HTMLElement, esc(p.name) + (p.pingFrames > 12 ? '<span class="lag">LAG</span>' : ''));
+      setHTML(el.firstElementChild as HTMLElement, p.badges.map((b) => BADGE_ICON[b] ?? '').join('') + esc(p.name) + (p.pingFrames > 12 ? '<span class="lag">LAG</span>' : ''));
       if (hurt) {
         const bar = el.lastElementChild as HTMLElement;
         const fill = bar.lastElementChild as HTMLElement;
@@ -1557,6 +1557,14 @@ export class HudLayer {
 }
 
 /** Seconds before "Next level" / "Try again" work at the end of a campaign level. */
+/** The waves' elites' traits before their name (waves.ts): fast, brute, sharpshooter, tank. */
+const BADGE_ICON: Record<string, string> = {
+  fast: '<svg class="h-trait fast" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>',
+  brute: '<svg class="h-trait brute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m13 19 6-6M14.5 17.5 3.6 6.6A2 2 0 0 1 3 5.2V3h2.2a2 2 0 0 1 1.4.6l10.9 10.9M16 16l4 4M19 21l2-2M14.8 6.2l2.6-2.6A2 2 0 0 1 18.8 3H21v2.2a2 2 0 0 1-.6 1.4l-2.6 2.6M5 14l4 4M7.5 16.5 4 20M5 21l-2-2"/></svg>',
+  sniper: '<svg class="h-trait sniper" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M22 12h-4M6 12H2M12 6V2M12 22v-4"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>',
+  tank: '<svg class="h-trait tank" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
+};
+
 /** A Core, the waves' currency (as src/menu/icons.ts draws it). */
 const CORE_SVG =
   '<svg class="h-core" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".45"/><circle cx="12" cy="12" r="7" fill="currentColor"/><circle cx="9.8" cy="9.6" r="2.4" fill="#fff" opacity=".75"/></svg>';
