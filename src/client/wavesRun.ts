@@ -3,14 +3,15 @@
 // break and now and then), the power-ups they drop and their effects, the lives and the end.
 import * as THREE from 'three';
 import { BotController } from '../sim/bot';
-import { PLAYER_TEAM_BLUE, PLAYER_TEAM_RED, PROJECTILE_DROPED_WEAPON, PROJECTILE_ROCKET, TICK, WEAPON_BAZOOKA, WEAPON_GRENADE, WEAPON_KNIVES, WEAPON_NUCLEAR } from '../sim/constants';
+import { PLAYER_STATUS_DEAD, PLAYER_TEAM_BLUE, PLAYER_TEAM_RED, PROJECTILE_DROPED_WEAPON, PROJECTILE_ROCKET, TICK, WEAPON_BAZOOKA, WEAPON_GRENADE, WEAPON_KNIVES, WEAPON_NUCLEAR } from '../sim/constants';
 import type { Game } from '../sim/game';
+import { weaponDefs } from '../sim/gameVar';
 import type { Player, SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
-import { BLAST_RADIUS, CARD_LEVELS, MISSILE_EVERY, MISSILE_RANGE, rollCards, type CardID, type CardLevels } from './wavesCards';
+import { BLAST_RADIUS, CARD_LEVELS, MISSILE_EVERY, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SILVER_LIFE, rollCards, type CardID, type CardLevels } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADE_STEP, addCores, headStartPowers, runCores, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
@@ -97,8 +98,15 @@ export interface WavesContext {
   onCards: (offer: CardID[]) => void;
   /** The Blast card: a kill's blast went off there, this far (drawn light, a few a second at most). */
   onKillBlast: (position: Vec3, radius: number) => void;
-  /** The Shadow card's allies' name. */
+  /** The Shadow card's allies' name, the Necromancer's risen enemies' one. */
   allyName: string;
+  undeadName: string;
+  /** The Silver bullet card: a silver bullet went from p1 to p2. */
+  onSilver: (p1: Vec3, p2: Vec3) => void;
+  /** The Reflector card: the shield came up on the player. */
+  onReflect: () => void;
+  /** The Necromancer card: an enemy rose there, or one went back to dust (`gone`). */
+  onRise: (position: Vec3, gone: boolean) => void;
   /** The Workshop's abilities: a dash, a shock wave (where it went off). */
   onDash: () => void;
   onShock: (position: Vec3) => void;
@@ -148,6 +156,10 @@ export class WavesRun {
   private missileClock = 0;
   /** The Shadow card's allies (blue bots walking beside the player), and on which side the next one goes. */
   private readonly allies: Player[] = [];
+  /** The Silver bullet card's firing time loaded, the Reflector's clock, the Necromancer's risen (and their seconds left). */
+  private silverCharge = 0;
+  private reflectClock = 0;
+  private readonly risen: { p: Player; left: number }[] = [];
   /** Seconds since the first spawn. */
   elapsed = 0;
   over = false;
@@ -270,6 +282,22 @@ export class WavesRun {
     me.critChance = card('crit');
     me.dodgeChance = card('dodge');
     me.ricochet = card('ricochet');
+    // Reflector: the shield comes up by itself now and then (its clock waits while it's up)
+    if (!me.isAlive) me.reflectTime = 0;
+    if (this.cards.reflect && me.isAlive && this.phase === 'fight' && me.reflectTime <= 0) {
+      this.reflectClock += TICK;
+      if (this.reflectClock >= REFLECT_EVERY) {
+        this.reflectClock = 0;
+        me.reflectTime = me.reflectSpan = card('reflect');
+        this.ctx.onReflect();
+      }
+    }
+    // Necromancer: the risen go back to dust after a while
+    for (const r of this.risen) {
+      if (!r.p.isAlive) continue;
+      r.left -= TICK;
+      if (r.left <= 0) this.vanish(r.p);
+    }
     // Missiles: a volley falls on enemies around now and then
     if (this.cards.missiles && me.isAlive && this.phase === 'fight') {
       this.missileClock += TICK;
@@ -552,12 +580,15 @@ export class WavesRun {
    * hurts the enemies around (in sight); those a blast kills don't blow up in turn.
    */
   onEnemyDown(victimID: number, fromID: number, position: Vec3): void {
-    if (this.blastKills.delete(victimID)) return;
+    const chained = this.blastKills.delete(victimID);
     const { game, me } = this.ctx;
-    const level = this.cards.blast ?? 0;
-    if (this.over || !level || fromID !== me.playerID) return;
+    if (this.over || fromID !== me.playerID) return;
     const victim = game.players[victimID];
     if (!victim || victim.teamID !== PLAYER_TEAM_RED) return;
+    // Necromancer: it may rise there on the player's side (never the boss)
+    if (this.cards.necro && victim !== this.boss) this.raise(victim, position);
+    const level = this.cards.blast ?? 0;
+    if (chained || !level) return;
     const radius = BLAST_RADIUS[level];
     const power = CARD_LEVELS.blast[level];
     for (const p of this.reds()) {
@@ -593,6 +624,73 @@ export class WavesRun {
       game.projectiles[game.projectiles.length - 1].rain = true;
     }
     track('waves_ability', { ability: 'missiles', wave: this.wave });
+  }
+
+  /**
+   * The player fired (the game's 'fire' event, its weapon only): the Silver bullet card loads with the
+   * firing time (the same for every weapon), and a full load fires a silver bullet along the aim.
+   */
+  onFire(weaponID: number, origin: Vec3, direction: Vec3): void {
+    const me = this.ctx.me;
+    const every = CARD_LEVELS.silver[this.cards.silver ?? 0];
+    if (this.over || !every || !me.isAlive || weaponID !== me.weapon?.weaponID) return;
+    this.silverCharge += weaponDefs[weaponID].fireDelay / me.fireBoost;
+    if (this.silverCharge < every) return;
+    this.silverCharge = 0;
+    // An ordinary enemy of the wave drops (its toughness undone); the tanks and the boss lose a share
+    const { p1, p2 } = this.ctx.game.silverShot(me, origin, direction, SILVER_LIFE / this.spec.toughness);
+    this.ctx.onSilver(p1, p2);
+  }
+
+  /** The Necromancer card: maybe the enemy just killed rises there, on the player's side, for a while. */
+  private raise(victim: Player, position: Vec3): void {
+    const level = this.cards.necro ?? 0;
+    if (Math.random() >= CARD_LEVELS.necro[level]) return;
+    if (this.risen.filter((r) => r.p.isAlive).length >= NECRO_MAX[level]) return;
+    const { game, me, bots } = this.ctx;
+    let r = this.risen.find((x) => !x.p.isAlive);
+    if (!r) {
+      const p = game.addPlayer(this.ctx.undeadName, true);
+      if (!p) return;
+      p.teamID = PLAYER_TEAM_BLUE;
+      p.takesLifePacks = false;
+      p.lifePackChance = 0;
+      p.grenadeDropChance = 0;
+      r = { p, left: 0 };
+      this.risen.push(r);
+    }
+    const p = r.p;
+    p.skin = victim.skin;
+    p.lives = 1;
+    p.spawnRequested = false;
+    p.timeToSpawn = 0;
+    // As tough and as strong as the wave's enemies, with the weapon it had
+    p.damageScale = this.spec.toughness;
+    p.damageBoost = this.spec.hitBoost;
+    p.speedBoost = 1;
+    const bot = new BotController(p, Math.min(1, this.spec.skill + 0.1), { primary: victim.weapon?.weaponID ?? this.ctx.startWeapon, secondary: WEAPON_KNIVES });
+    bot.escort = me;
+    bot.escortSide = this.risen.indexOf(r) % 2 === 0 ? 1 : -1;
+    const i = bots.findIndex((b) => b.player === p);
+    if (i >= 0) bots[i] = bot;
+    else bots.push(bot);
+    game.requestSpawn(p);
+    if (!p.isAlive) return;
+    // Up where it fell
+    p.currentCF.position.set(position.x, position.y, 0.25);
+    p.lastCF.position.copy(p.currentCF.position);
+    p.currentCF.vel.set(0, 0, 0);
+    r.left = NECRO_TIME;
+    this.ctx.onRise(p.currentCF.position.clone(), false);
+  }
+
+  /** A risen enemy goes back to dust: gone without a death (no kill, no line in the feed, nothing dropped). */
+  private vanish(p: Player): void {
+    this.ctx.onRise(p.currentCF.position.clone(), true);
+    p.status = PLAYER_STATUS_DEAD;
+    p.lives = 0;
+    p.currentCF.position.set(-999, -999, 0);
+    p.lastCF.position.copy(p.currentCF.position);
   }
 
   /** The Shadow card: as many allies as its level, the fallen ones back beside the player. */

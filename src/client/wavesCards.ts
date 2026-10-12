@@ -1,10 +1,11 @@
 // The waves' cards (Erick, 12/10/2026, in the style of Archero): each time the boss falls (wave 10, 20,
 // 30...) the game stops and offers 3 cards; the player takes one, for the rest of the run. Taking a
-// card again raises its level. Commons have 5 levels, the epics 3 (missiles falling, shadow allies);
-// the legendaries (from wave 40) come later. What each level does lives here; WavesRun applies it to the player
-// (src/sim/player.ts: extra volleys, piercing, criticals, dodging) and the HUD shows the cards.
+// card again raises its level. Commons have 5 levels, the epics 3 (shadow allies, the reflector shield),
+// the legendaries 3 too, offered from wave 40 only (missiles falling, the silver bullet, the necromancer).
+// What each level does lives here; WavesRun applies it to the player (src/sim/player.ts: extra volleys,
+// piercing, criticals, dodging, the reflector) and the HUD shows the cards.
 
-export type CardID = 'double' | 'parallel' | 'fan' | 'pierce' | 'crit' | 'vampire' | 'rage' | 'dodge' | 'grenadier' | 'blast' | 'ricochet' | 'missiles' | 'shadow';
+export type CardID = 'double' | 'parallel' | 'fan' | 'pierce' | 'crit' | 'vampire' | 'rage' | 'dodge' | 'grenadier' | 'blast' | 'ricochet' | 'missiles' | 'shadow' | 'reflect' | 'silver' | 'necro';
 export type Rarity = 'common' | 'epic' | 'legendary';
 
 export interface CardDef {
@@ -28,8 +29,11 @@ export const CARDS: CardDef[] = [
   { id: 'grenadier', rarity: 'common', max: 5 },
   { id: 'blast', rarity: 'common', max: 5 },
   { id: 'ricochet', rarity: 'common', max: 5 },
-  { id: 'missiles', rarity: 'epic', max: 3 },
   { id: 'shadow', rarity: 'epic', max: 3 },
+  { id: 'reflect', rarity: 'epic', max: 3 },
+  { id: 'missiles', rarity: 'legendary', max: 3, from: 40 },
+  { id: 'silver', rarity: 'legendary', max: 3, from: 40 },
+  { id: 'necro', rarity: 'legendary', max: 3, from: 40 },
 ];
 
 /** How likely each rarity is in an offer (by weight). */
@@ -42,7 +46,9 @@ const RARITY_WEIGHT: Record<Rarity, number> = { common: 70, epic: 25, legendary:
  * no life left (it grows as the life goes down); Dodge, chance a hit misses; Grenadier, seconds for a
  * grenade to come back by itself; Blast, the power of the blast a kill makes (a bot's life, before its
  * toughness; BLAST_RADIUS); Ricochet, enemies a hit jumps on to; Missiles, rockets falling every
- * MISSILE_EVERY seconds; Shadow, allies at the player's side.
+ * MISSILE_EVERY seconds; Shadow, allies at the player's side; Reflector, seconds the shield stays up
+ * (every REFLECT_EVERY seconds); Silver, seconds of firing that load a silver bullet; Necromancer, the
+ * chance an enemy killed rises on the player's side (NECRO_TIME seconds, NECRO_MAX at once).
  */
 export const CARD_LEVELS: Record<CardID, number[]> = {
   double: [0, 0.2, 0.4, 0.6, 0.8, 1],
@@ -58,6 +64,9 @@ export const CARD_LEVELS: Record<CardID, number[]> = {
   ricochet: [0, 1, 2, 3, 4, 5],
   missiles: [0, 3, 5, 7],
   shadow: [0, 1, 2, 3],
+  reflect: [0, 2, 3, 4],
+  silver: [0, 5, 4, 3],
+  necro: [0, 0.2, 0.3, 0.4],
 };
 
 /** Blast: how far a kill's blast reaches (cells), by level. */
@@ -68,6 +77,16 @@ export const RICOCHET_KEEP = 0.7;
 /** Missiles: seconds between two volleys, how far from the player they look for targets. */
 export const MISSILE_EVERY = 15;
 export const MISSILE_RANGE = 14;
+/** Reflector: seconds between the end of a shield and the next one. */
+export const REFLECT_EVERY = 10;
+/**
+ * Silver bullet: its damage, in the lives of an ordinary enemy of the wave (more than one: it drops them;
+ * the tanks and the boss, tougher, only lose a share).
+ */
+export const SILVER_LIFE = 1.05;
+/** Necromancer: seconds a risen enemy fights for the player, and how many at once, by level. */
+export const NECRO_TIME = 10;
+export const NECRO_MAX = [0, 3, 4, 5];
 
 export type CardLevels = Partial<Record<CardID, number>>;
 
@@ -83,6 +102,8 @@ export function cardValue(id: CardID, level: number): string {
     case 'vampire':
       return String(Math.round(v * 100));
     case 'grenadier':
+    case 'reflect':
+    case 'silver':
       return `${v} s`;
     default:
       return `${Math.round(v * 100)}%`;

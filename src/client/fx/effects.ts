@@ -809,6 +809,30 @@ export class Effects {
    * A light blast (the waves' Blast card: kills going off one after the other): the flash of fire and
    * a quieter sound, no smoke and no mark on the floor (a third of spawnExplosion's particles).
    */
+  /** The waves' Silver bullet: a thick white trail that lasts, and a bright flash where it stopped. */
+  spawnSilverTrail(p1: Vec3, p2: Vec3): void {
+    const col: Color4 = [1, 1, 1, 1];
+    this.addTrail(p1, p2, 1.6, col, 6, 0);
+    this.addTrail(p1, p2, 0.35, [0.8, 0.9, 1, 1], 1.5, 1);
+    this.addTrail(p1, p2, 0.15, [0.8, 0.9, 1, 1], 1.5, 1);
+    const d = this.dkp;
+    d.dkpCreateParticle(p2, new Vec3(), [1, 1, 1, 1], [0.8, 0.9, 1, 0], 0.4, 0.6, 0.35, 0, 0, 0, this.tex_shotGlow, DKP_SRC_ALPHA, DKP_ONE, 0);
+    d.dkpCreateParticle(p1, new Vec3(), [1, 1, 1, 1], [0.8, 0.9, 1, 0], 0.25, 0.45, 0.25, 0, 0, 0, this.tex_shotGlow, DKP_SRC_ALPHA, DKP_ONE, 0);
+  }
+
+  /**
+   * The waves' Necromancer: a green glow rising where an enemy comes up on the player's side, a grey
+   * puff when it goes back to dust (`gone`). A handful of particles.
+   */
+  spawnRisePuff(position: Vec3, gone: boolean): void {
+    const at = new Vec3(position.x, position.y, 0.1);
+    const c1: Color4 = gone ? [0.6, 0.6, 0.6, 0.7] : [0.35, 1, 0.45, 0.9];
+    const c2: Color4 = gone ? [0.4, 0.4, 0.4, 0] : [0.2, 0.8, 0.3, 0];
+    this.dkp.dkpCreateParticleEx(at, at, new Vec3(0, 0, 1), 0.4, 1.0, 0, 35, 0.2, 0.3, 0.5, 0.8, 0.7, 1.1,
+      c1, c1, c2, c2, 0, 360, -60, 60, 0, 1, 8, 8, this.tex_smoke1, 0, DKP_SRC_ALPHA, gone ? DKP_ONE_MINUS_SRC_ALPHA : DKP_ONE);
+    if (!gone) this.dkp.dkpCreateParticle(at, new Vec3(), [0.4, 1, 0.5, 0.9], [0.2, 0.8, 0.3, 0], 0.6, 0.9, 0.5, 0, 0, 0, this.tex_shotGlow, DKP_SRC_ALPHA, DKP_ONE, 0);
+  }
+
   spawnBlastLight(position: Vec3, radius: number): void {
     const size = radius * 3;
     const h = audio.play3D(this.sfx_explosion[0], 10, position, 150);

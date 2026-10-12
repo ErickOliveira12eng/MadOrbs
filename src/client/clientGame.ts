@@ -38,6 +38,7 @@ import {
   WEAPON_FLAME_THROWER,
   WEAPON_GRENADE,
   WEAPON_NUCLEAR,
+  WEAPON_SHIELD,
   WEAPON_SNIPER,
 } from '../sim/constants';
 import { BOSS, BOT_SPEED, HEALTH_PACKS, loadProgress, nextLevel, saveWin, starsFor, type CampaignLevel } from './campaign';
@@ -399,6 +400,13 @@ export class ClientGame {
         this.effects.spawnBlastLight(position, radius);
       },
       allyName: t('waves.allyName'),
+      undeadName: t('waves.undeadName'),
+      onSilver: (p1, p2) => {
+        this.effects.spawnSilverTrail(p1, p2);
+        audio.play3D(this.sounds.weapon[WEAPON_SNIPER], 5, p1, 255);
+      },
+      onReflect: () => audio.play3D(this.sounds.weapon[WEAPON_SHIELD], 5, this.me.currentCF.position, 255),
+      onRise: (position, gone) => this.effects.spawnRisePuff(position, gone),
       onDash: () => audio.play(this.sounds.equip, 160),
       onShock: (position) => {
         this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 3);
@@ -1375,6 +1383,8 @@ export class ClientGame {
         if (!p) break;
         this.babos.get(p.playerID)?.fire(e.weaponID, e.nuzzleID);
         audio.play3D(S.weapon[e.weaponID], 5, p.currentCF.position, 255);
+        // The waves' Silver bullet card loads with the player's firing
+        if (this.waves && !online && p === me) this.waves.onFire(e.weaponID, e.origin, e.direction);
         if (e.weaponID === WEAPON_GRENADE || e.weaponID === 9) {
           this.effects.firingSmoke(e.origin, e.direction, 45);
           break;

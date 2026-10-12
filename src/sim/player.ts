@@ -165,6 +165,12 @@ export class Player {
   pierce = 0;
   /** The waves' Ricochet card: enemies a hit jumps on to (Game.ricochetChain). */
   ricochet = 0;
+  /**
+   * The waves' Reflector card: seconds left of the shield that sends the enemies' bullets back (nothing
+   * of theirs gets through meanwhile), and how long this one lasts (for the drawing).
+   */
+  reflectTime = 0;
+  reflectSpan = 0;
   critChance = 0;
   dodgeChance = 0;
   /** Damage share of the volley being fired now (the cards' extra volleys). */
@@ -295,6 +301,7 @@ export class Player {
     }
     // The waves' dash and recharging shield
     if (this.dashLeft > 0) this.dashLeft = Math.max(0, this.dashLeft - delay);
+    if (this.reflectTime > 0) this.reflectTime = Math.max(0, this.reflectTime - delay);
     if (this.barrierMax > 0) {
       if (this.barrierWait > 0) this.barrierWait -= delay;
       else this.barrier = Math.min(this.barrierMax, this.barrier + (this.barrierMax / BARRIER_REFILL) * delay);
@@ -774,6 +781,8 @@ export class Player {
     // The waves' cards: a critical hit (double damage), a dodged one
     if (from !== this && from.critChance > 0 && Math.random() < from.critChance) cdamage *= 2;
     if (from !== this && this.dodgeChance > 0 && this.status === PLAYER_STATUS_ALIVE && Math.random() < this.dodgeChance) return false;
+    // The Reflector card's shield: nothing of the enemies' gets through (their bullets go back: Game.applyBullet)
+    if (from !== this && this.reflectTime > 0 && from.teamID !== this.teamID && this.status === PLAYER_STATUS_ALIVE) return false;
     // Shield protection
     if (this.protection > 0.6) cdamage *= 0.5;
     // Spawn immunity

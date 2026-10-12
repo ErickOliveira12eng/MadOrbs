@@ -347,6 +347,16 @@ class WeaponVisual {
   }
 }
 
+/**
+ * The Reflector's bubble: the Instant Shield's animation (Shield.DKO: frames 1-12 open, 13-20 closing)
+ * held open while it lasts: opening in 0.2 s (the glow flashes), closing in the last 0.5 s.
+ */
+function reflectorFrame(elapsed: number, left: number): number {
+  if (left < 0.5) return 12 + 8 * (1 - left / 0.5);
+  if (elapsed < 0.2) return (elapsed / 0.2) * 6;
+  return 6;
+}
+
 // ------------------------------------------------------------------ babo
 
 export class BaboVisual {
@@ -357,6 +367,8 @@ export class BaboVisual {
   private weaponHolder = new THREE.Group();
   private weapon: WeaponVisual | null = null;
   private melee: WeaponVisual | null = null;
+  /** The waves' Reflector card: the Instant Shield's bubble, up while it lasts. */
+  private reflector: WeaponVisual | null = null;
   private roll = new THREE.Quaternion();
   /** The roll at the previous tick: frames in between interpolate, like the position. */
   private prevRoll = new THREE.Quaternion();
@@ -470,6 +482,10 @@ export class BaboVisual {
     }
     this.weapon?.update(delay);
     this.melee?.update(delay);
+    if (player.reflectTime > 0 && !this.reflector) {
+      this.reflector = new WeaponVisual(WEAPON_SHIELD);
+      this.weaponHolder.add(this.reflector.group);
+    }
 
     // Nuke bot
     const bot = player.minibot;
@@ -530,6 +546,11 @@ export class BaboVisual {
     this.weaponHolder.rotation.set(0, 0, ((this.prevAngle + da * alpha) * Math.PI) / 180);
     this.weapon?.render(player.weapon?.modelAnim ?? 0);
     this.melee?.render(player.meleeWeapon?.modelAnim ?? 0);
+    if (this.reflector) {
+      const on = player.reflectTime > 0;
+      this.reflector.group.visible = on;
+      if (on) this.reflector.render(reflectorFrame(player.reflectSpan - player.reflectTime, player.reflectTime));
+    }
 
     if (this.botRoot.visible && player.minibot) {
       const bx = this.botPrev.x + (this.botCur.x - this.botPrev.x) * alpha;
@@ -553,6 +574,7 @@ export class BaboVisual {
   dispose(): void {
     this.weapon?.dispose();
     this.melee?.dispose();
+    this.reflector?.dispose();
     this.root.removeFromParent();
     this.botRoot.removeFromParent();
   }

@@ -1068,6 +1068,11 @@ export class Game {
     const hit = b.hits[0] ?? null;
     // Every babo the bullet touched (more than one: the waves' Pierce card)
     for (const victim of b.hits) {
+      // The waves' Reflector card: the bullet goes back to its shooter
+      if (victim.reflectTime > 0 && victim.teamID !== player.teamID) {
+        this.reflectShot(victim, player, weaponID);
+        continue;
+      }
       // Knockback on the victim (ClientRecv NET_SVCL_PLAYER_SHOOT)
       const direction = b.p2.sub(b.p1).normalizeIn();
       victim.currentCF.vel.addIn(direction.mul(weaponDefs[weaponID].damage * 2));
@@ -1198,6 +1203,39 @@ export class Game {
       player.shotScale = keep;
       at = to;
     }
+  }
+
+  /** The waves' Reflector card: a bullet on the shield goes back to its shooter, drawn as a shot. */
+  private reflectShot(shield: Player, shooter: Player, weaponID: number): void {
+    if (!shooter.isAlive) return;
+    const at = shield.currentCF.position.clone();
+    const to = shooter.currentCF.position.clone();
+    this.events.push({ type: 'shoot', playerID: shield.playerID, weaponID, nuzzleID: 0, p1: at.clone(), p2: to.clone(), normal: to.sub(at).normalizeIn(), hitPlayerID: shooter.playerID });
+    shooter.hitSV(weaponID, shield);
+  }
+
+  /**
+   * The waves' Silver bullet card: one bullet straight along the aim, through every enemy and crate up to
+   * a wall, `damage` each (as a sniper shot). Where it went, for the drawing.
+   */
+  silverShot(player: Player, origin: Vec3, direction: Vec3, damage: number): { p1: Vec3; p2: Vec3 } {
+    const dir = direction.clone().normalizeIn();
+    const p1 = origin.clone();
+    const p2 = p1.add(new Vec3(dir.x * 128, dir.y * 128, dir.z * 64));
+    const normal = new Vec3();
+    if (this.map.rayTest(player.currentCF.position.clone(), p1, normal)) p1.addIn(normal.mul(0.01));
+    this.map.rayTest(p1, p2, normal);
+    for (const other of this.players) {
+      if (!other || other === player || !other.isAlive) continue;
+      if (this.isTeamGame && other.teamID === player.teamID) continue;
+      if (!segmentToSphere(p1, p2.clone(), other.currentCF.position, other.radius)) continue;
+      other.currentCF.vel.addIn(dir.mul(1.5));
+      other.hitSV(WEAPON_SNIPER, player, damage);
+    }
+    for (const crate of [...this.crates]) {
+      if (segmentToSphere(p1, p2.clone(), crate.position, CRATE_RADIUS)) this.hitCrate(crate, 10, player);
+    }
+    return { p1, p2 };
   }
 
   /** Whether a blast there would hurt that player (Game::radiusHit's distance and wall rules). */
