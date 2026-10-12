@@ -1536,16 +1536,16 @@ export class ClientGame {
         break;
       }
       case 'feat': {
-        // Not in the campaign: dying ends the level there, the announcer has its own lines
-        if (this.camp) break;
+        // Not in the campaign (dying ends the level there, the announcer has its own lines), nor in the
+        // waves (killing a lot is the mode itself: "Unstoppable" all the time; Erick's call)
+        if (this.camp || this.waves) break;
         // The big ones for everybody, the others only for the one who made them
         const who = game.players[e.playerID] ?? null;
         if (who !== me && !isAnnouncedToAll(e.feat)) break;
         const kind = e.feat;
         if (who === me) track('kill_feat', { feat: kind, n: e.n, ...this.matchInfo() });
         if (kind === 'missionFailed' && who === me) this.missionFailedAt = performance.now();
-        // The banner always; the voice, not in the waves mode
-        this.hud.announce(kind, who, game.players[e.victimID] ?? null, e.n, this.waves ? undefined : () => playAnnouncer(kind));
+        this.hud.announce(kind, who, game.players[e.victimID] ?? null, e.n, () => playAnnouncer(kind));
         break;
       }
       case 'mapChange':
