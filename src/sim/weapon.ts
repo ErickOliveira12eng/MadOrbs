@@ -96,8 +96,11 @@ export class Weapon {
   /** Port of the client-side Weapon::shoot(Player*) — the shooter's fire logic. */
   shoot(owner: Player): void {
     const game = owner.game;
-    // Remote detonation of the rocket already in the air (pro servers).
-    if (this.weaponID === WEAPON_BAZOOKA && owner.rocketInAir && this.currentFireDelay <= this.fireDelay - 0.25) {
+    // Remote detonation of the rocket already in the air (pro servers), 0.25 s after it left: counted
+    // from the delay the shot really set (the waves' rapid fire shortens it). From the full delay, a
+    // faster fire let clicks through at once, and a rocket that young gets another one launched
+    // (Game.handleProjectileRequest): rockets one after the other
+    if (this.weaponID === WEAPON_BAZOOKA && owner.rocketInAir && this.currentFireDelay <= this.fireDelay / owner.fireBoost - 0.25) {
       if (this.nuzzleFlashes.length > 0) owner.currentCF.position.z = 0.25;
       const { origin, direction } = this.firingOriginAndDirection(owner);
       game.shoot(origin, direction, 0, this.damage, owner, this.projectileType);
