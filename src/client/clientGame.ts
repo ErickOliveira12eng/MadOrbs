@@ -976,6 +976,11 @@ export class ClientGame {
 
   // ---------------------------------------------------------------- loop
 
+  /** The waves mode stops while its pause screen (Esc) is up, and while the boss's cards wait for a choice. */
+  private get paused(): boolean {
+    return !!this.waves && !this.waves.over && (this.hud.picker.visible || !!this.waves.choosing);
+  }
+
   private frame(now: number): void {
     if (!this.running) return;
     this.rafId = requestAnimationFrame((t) => this.frame(t));
@@ -992,7 +997,9 @@ export class ClientGame {
       this.acc -= TICK;
     }
     if (!this.running) return;
-    const alpha = this.acc / TICK;
+    // Paused: the last tick as it stands. Between the last two ticks it would keep flickering back and
+    // forth (the boss's blast shaking the view, the babos that were moving)
+    const alpha = this.paused ? 1 : this.acc / TICK;
     this.cam.apply(alpha);
 
     // GameRender.cpp: find the mouse position on the ground with the current camera
@@ -1031,8 +1038,7 @@ export class ClientGame {
 
     if (this.conn) this.applyServerMessages();
     if (!this.running) return;
-    // The waves mode stops while its pause screen (Esc) is up, and while the boss's cards wait for a choice
-    if (this.waves && !this.waves.over && (this.hud.picker.visible || this.waves.choosing)) {
+    if (this.paused) {
       input.endTick();
       return;
     }
