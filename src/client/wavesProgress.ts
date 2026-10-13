@@ -124,8 +124,12 @@ export function headStartPowers(startWave: number): number {
 
 // ------------------------------------------------------------------ Cores of a run
 
-/** A wave survived (the next one began): 3 Cores, plus one for every two waves of its number. */
-export const waveCores = (n: number): number => 3 + Math.floor(n / 2);
+/**
+ * A wave survived (the next one began): 3 Cores plus one for every two waves of its number, times
+ * WAVE_CORES_SCALE (30% more since 12/10/2026, Erick): 4 for the first, 10 for the 10th, 17 for the 20th.
+ */
+export const WAVE_CORES_SCALE = 1.3;
+export const waveCores = (n: number): number => Math.round(WAVE_CORES_SCALE * (3 + Math.floor(n / 2)));
 export const KILLS_PER_CORE = 5;
 export const BOSS_CORES = 25;
 export const RECORD_CORES = 30;
@@ -235,7 +239,7 @@ export function saveProgress(p: WavesProgress): void {
  * Cores for coming back each day (in the Workshop): more each day in a row, up to the 7th, then the
  * week starts again; a day missed starts it over.
  */
-export const DAILY_CORES = [20, 25, 30, 40, 50, 60, 100];
+export const DAILY_CORES = [30, 40, 50, 60, 80, 100, 150];
 
 /** A date as YYYY-MM-DD, by this computer's clock (the reward turns at its midnight). */
 function dayOf(d: Date): string {
