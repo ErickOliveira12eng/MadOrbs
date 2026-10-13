@@ -8,6 +8,7 @@ import { orbName, prizeText, weaponLook } from '../client/wavesPrize';
 import { loadWavesRecord, WAVES } from '../client/waves';
 import {
   BREATHER,
+  CHECKPOINT,
   MILESTONES,
   UPGRADES,
   UPGRADE_STEP,
@@ -286,18 +287,19 @@ export class WavesModal {
     this.renderList(p, cash);
     this.renderDetail(p, cash);
 
-    // The wave to start from: the first, the last two checkpoints reached, the next one (locked)
-    const reached = checkpoints(record).slice(1).slice(-2);
-    const next = (Math.floor(record / 10) + 1) * 10;
+    // The wave to start from: the first, the last two checkpoints open, the next one (locked: the wave that opens it)
+    const open = checkpoints(record);
+    const reached = open.slice(1).slice(-2);
+    const next = open.length * CHECKPOINT;
     $('wvStarts').innerHTML =
       [1, ...(tester ? [TEST_START] : []), ...reached]
         .map(
           (w) =>
             `<button type="button" class="wv-opt${w === startWave ? ' on' : ''}" data-start="${w}"><b>${w}</b><small>${w === 1 ? t('workshop.fromStart') : w === TEST_START && tester ? t('workshop.testStart') : t('workshop.unlocked')}</small></button>`,
         )
-        .join('') + `<button type="button" class="wv-opt locked" disabled title="${t('workshop.reach', { n: next })}"><b>${icon('lock', 13)}${next}</b><small>${t('workshop.locked')}</small></button>`;
+        .join('') + `<button type="button" class="wv-opt locked" disabled title="${t('workshop.reach', { n: next + CHECKPOINT })}"><b>${icon('lock', 13)}${next}</b><small>${t('workshop.locked')}</small></button>`;
     $('wvStartNote').textContent =
-      startWave > 1 ? t('workshop.startFrom', { n: startWave, p: headStartPowers(startWave) }) : record >= 10 ? t('workshop.startHint') : t('workshop.startLocked');
+      startWave > 1 ? t('workshop.startFrom', { n: startWave, p: headStartPowers(startWave) }) : open.length > 1 ? t('workshop.startHint') : t('workshop.startLocked');
 
     this.renderWeapon(record, startWeapon);
     this.renderTrack();

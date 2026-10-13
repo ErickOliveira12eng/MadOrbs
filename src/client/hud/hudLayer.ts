@@ -619,7 +619,8 @@ export class HudLayer {
           .join('') +
         `</div></div>`;
     const record = Math.max(e.wave, e.recordBefore);
-    const newCheckpoint = checkpoints(e.wave).filter((w) => w > 1 && w > e.recordBefore).pop();
+    const before = checkpoints(e.recordBefore);
+    const newCheckpoint = checkpoints(e.wave).filter((w) => w > 1 && !before.includes(w)).pop();
     const next = nextMilestone(record);
     if (next) {
       const prev = [...MILESTONES].reverse().find((m) => m.wave < next.wave)?.wave ?? 0;

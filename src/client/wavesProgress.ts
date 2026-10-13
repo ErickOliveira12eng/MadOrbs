@@ -104,13 +104,16 @@ export function nextMilestone(record: number): Milestone | null {
   return MILESTONES.find((m) => m.wave > record) ?? null;
 }
 
-/** Every CHECKPOINT waves a run can start from, once reached. */
+/**
+ * Every CHECKPOINT waves a run can start from, once the record is CHECKPOINT waves past it: wave 20 opens
+ * wave 10, wave 30 opens wave 20 (Erick, 12/10/2026: starting right on the wave reached was too hard).
+ */
 export const CHECKPOINT = 10;
 
-/** The waves a run can start from: the first, and each checkpoint reached. */
+/** The waves a run can start from: the first, and each checkpoint the record went far enough past. */
 export function checkpoints(record: number): number[] {
   const out = [1];
-  for (let w = CHECKPOINT; w <= record; w += CHECKPOINT) out.push(w);
+  for (let w = CHECKPOINT; w + CHECKPOINT <= record; w += CHECKPOINT) out.push(w);
   return out;
 }
 
