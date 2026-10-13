@@ -79,6 +79,14 @@ const tabOf = (u: Upgrade): Tab => GROUPS.find((g) => g.id === u.group)!.tab;
 /** How many later levels the detail lists under the next one. */
 const LATER_LEVELS = 3;
 
+/**
+ * WavesModal.fit: the window's full width (its three columns), the scale it may shrink to, and the screen
+ * width below which it is a phone's single column instead.
+ */
+const FIT_WIDTH = 1200;
+const FIT_MIN = 0.6;
+const FIT_MIN_WIDTH = 700;
+
 /** What an upgrade gives at a level, as the Workshop says it. */
 function upgradeValue(id: UpgradeID, level: number): string {
   const pct = (x: number) => `+${Math.round(x * 100)}%`;
@@ -124,6 +132,8 @@ export class WavesModal {
   private tab: Tab = 'stats';
   /** The upgrade shown in detail (null: the first one worth buying, when the window opens). */
   private selected: UpgradeID | null = null;
+  /** The weapon the picker shows, maybe a locked one (null: the run's starting weapon). */
+  private weaponView: number | null = null;
   /** The exclusive Orbs' pictures in the player's colours, drawn once each. */
   private readonly orbPics = new Map<string, string>();
 
@@ -147,6 +157,9 @@ export class WavesModal {
     });
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isOpen) this.close();
+    });
+    window.addEventListener('resize', () => {
+      if (this.isOpen) this.fit();
     });
     $('wvUpgrades').addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLElement>('[data-pick]');
@@ -182,9 +195,13 @@ export class WavesModal {
       this.choose({ startWave: Number(b.dataset.start) });
     });
     $('wvWeapons').addEventListener('click', (e) => {
-      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-weapon]');
-      if (!b || b.disabled) return;
-      this.choose({ startWeapon: Number(b.dataset.weapon) });
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-view]');
+      if (!b) return;
+      // A locked one can be looked at; the run then starts with the SMG
+      const id = Number(b.dataset.view);
+      this.weaponView = id;
+      const open = startWeapons(loadWavesRecord()?.wave ?? 0);
+      this.choose({ startWeapon: open.includes(id) ? id : open[0] });
     });
     $('wvDaily').addEventListener('click', (e) => {
       if (!(e.target as HTMLElement).closest('[data-claim]')) return;
@@ -215,6 +232,7 @@ export class WavesModal {
   open(): void {
     this.root.hidden = false;
     this.selected = null;
+    this.weaponView = null;
     this.render();
     // The exclusive Orbs, in the player's colours
     const colours = this.colours();
@@ -290,6 +308,35 @@ export class WavesModal {
     $('wvSave').innerHTML = this.account.signedIn
       ? `<span class="ok">${icon('check', 14)}${t('workshop.savedAccount')}</span>`
       : `<span title="${t('workshop.savedLocal')}">${t('workshop.savedLocalShort')}</span><button type="button" class="wv-signin">${icon('user', 14)}${t('account.signIn')}</button>`;
+    this.fit();
+  }
+
+  /**
+   * Smaller screens (an 18" monitor under the browser's bars, a small laptop): the window keeps its three
+   * columns at their full width and shrinks to fit the screen, down to FIT_MIN, instead of being cut at the
+   * bottom; past that it scrolls. Phones get their one column instead (menu.css), scrolling.
+   */
+  private fit(): void {
+    const card = this.root.querySelector<HTMLElement>('.waves-modal')!;
+    card.style.zoom = '';
+    card.style.maxHeight = '';
+    card.style.width = '';
+    if (this.root.hidden || window.innerWidth < FIT_MIN_WIDTH) return;
+    const pad = getComputedStyle(this.root);
+    const roomW = window.innerWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
+    const roomH = window.innerHeight - parseFloat(pad.paddingTop) - parseFloat(pad.paddingBottom);
+    if (roomW < FIT_WIDTH) card.style.width = `${FIT_WIDTH}px`;
+    // (a pixel spare: the scaled sizes round, and a 1 px scrollbar would show)
+    const need = card.scrollHeight + 1;
+    const k = Math.min(1, roomW / FIT_WIDTH, roomH / need);
+    if (k >= 1) {
+      card.style.width = '';
+      return;
+    }
+    const zoom = Math.max(FIT_MIN, k);
+    card.style.zoom = String(zoom);
+    card.style.maxHeight = `${roomH / zoom}px`;
+    card.style.width = `${Math.min(FIT_WIDTH, roomW / zoom)}px`;
   }
 
   /** The list: the tab's upgrades by kind, each with its level and the price of the next one. */
@@ -364,18 +411,37 @@ export class WavesModal {
       body;
   }
 
-  /** The starting weapon: the open ones one at a time, with arrows. */
+  /**
+   * The starting weapon, one at a time with arrows: all of them, the locked ones dimmed under a padlock
+   * with the wave that gives them (the run then starts with the SMG), and a dot for each underneath.
+   */
   private renderWeapon(record: number, startWeapon: number): void {
-    const all = [startWeapons(0)[0], ...MILESTONES.flatMap((m) => ('weapon' in m ? [m.weapon] : []))];
-    const open = startWeapons(record);
-    const i = Math.max(0, open.indexOf(startWeapon));
-    const look = weaponLook(open[i]);
-    const step = (d: number) => open[(i + d + open.length) % open.length];
+    const all = [
+      { id: startWeapons(0)[0], at: 0 },
+      ...MILESTONES.flatMap((m) => ('weapon' in m ? [{ id: m.weapon, at: m.wave }] : [])),
+    ];
+    let i = all.findIndex((w) => w.id === (this.weaponView ?? startWeapon));
+    if (i < 0) i = Math.max(0, all.findIndex((w) => w.id === startWeapon));
+    const shown = all[i];
+    const open = record >= shown.at;
+    const look = weaponLook(shown.id);
+    const step = (d: number) => all[(i + d + all.length) % all.length].id;
     const arrow = (d: number, name: IconName, label: string) =>
-      `<button type="button" class="wv-step" data-weapon="${step(d)}" aria-label="${label}"${open.length < 2 ? ' disabled' : ''}>${icon(name, 18)}</button>`;
+      `<button type="button" class="wv-step" data-view="${step(d)}" aria-label="${label}">${icon(name, 18)}</button>`;
+    const dots = all
+      .map((w, k) => {
+        const locked = record < w.at;
+        const label = locked ? `${weaponLook(w.id).name} · ${t('workshop.reach', { n: w.at })}` : weaponLook(w.id).name;
+        return `<button type="button" class="${k === i ? 'on' : ''}${locked ? ' locked' : ''}" data-view="${w.id}" aria-label="${label}" title="${label}"></button>`;
+      })
+      .join('');
+    const openCount = all.filter((w) => record >= w.at).length;
     $('wvWeapons').innerHTML =
       arrow(-1, 'chevronLeft', t('workshop.prevWeapon')) +
-      `<div class="wv-gun"><img src="${look.picture}" alt="" /><b>${look.name}</b><small>${t('workshop.weaponsOpen', { n: open.length, total: all.length })}</small></div>` +
+      `<div class="wv-gun${open ? '' : ' locked'}"><span class="wv-gun-pic"><img src="${look.picture}" alt="" />` +
+      (open ? '' : `<span class="wv-gun-lock">${icon('lock', 13)}${t('workshop.atWave', { n: shown.at })}</span>`) +
+      `</span><b>${look.name}</b>` +
+      `<span class="wv-dots" role="group" aria-label="${t('workshop.weaponsOpen', { n: openCount, total: all.length })}">${dots}</span></div>` +
       arrow(1, 'chevronRight', t('workshop.nextWeapon'));
   }
 

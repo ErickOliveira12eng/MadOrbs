@@ -4168,11 +4168,45 @@ input[type='range'] {
   min-width: 0;
 }
 
-.wv-gun img {
+.wv-gun-pic {
+  position: relative;
+  display: grid;
+  place-items: center;
   width: 100%;
   max-width: 170px;
   height: 46px;
+}
+
+.wv-gun-pic img {
+  width: 100%;
+  height: 46px;
   object-fit: contain;
+}
+
+/* A locked weapon: dimmed, under a padlock with the wave that gives it */
+.wv-gun.locked img {
+  filter: grayscale(1) brightness(0.4);
+}
+
+.wv-gun-lock {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(10, 12, 32, 0.88);
+  color: #d6d9f7;
+  font: 900 12px var(--font-ui);
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+.wv-gun.locked b {
+  color: var(--muted);
 }
 
 .wv-gun b {
@@ -4183,10 +4217,51 @@ input[type='range'] {
   font: 900 14px var(--font-ui);
 }
 
-.wv-gun small {
-  color: var(--muted);
-  font-size: 11.5px;
-  font-weight: 700;
+/* A dot for each weapon: the open ones filled, the locked ones hollow, the one shown wide and gold */
+.wv-dots {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.wv-dots button {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.wv-dots button::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.4);
+  transition: width 0.15s;
+}
+
+.wv-dots button.locked::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.32);
+}
+
+.wv-dots button.on {
+  width: 24px;
+}
+
+.wv-dots button.on::before {
+  width: 18px;
+  background: #ffc23a;
+  box-shadow: none;
+}
+
+.wv-dots button.on.locked::before {
+  background: rgba(255, 194, 58, 0.3);
+  box-shadow: inset 0 0 0 1.5px #ffc23a;
 }
 
 /* The daily reward (WavesModal.renderDaily): one line and the week's seven days */
@@ -4478,26 +4553,8 @@ input[type='range'] {
   color: #ffc23a;
 }
 
-/* Narrower windows: the run's column goes under the list and the detail, then everything in one column */
-@media (max-width: 1080px) {
-  .wv-body {
-    grid-template-columns: 320px minmax(0, 1fr);
-  }
-
-  .wv-side {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-  }
-
-  .wv-daily,
-  .wv-play {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 700px) {
+/* Smaller screens keep the three columns and shrink to fit (WavesModal.fit); phones get one column */
+@media (max-width: 699px) {
   .wv-body,
   .wv-side {
     grid-template-columns: minmax(0, 1fr);
