@@ -10,10 +10,16 @@ export type FlagReason = 'took' | 'returned' | 'captured' | 'dropped';
 export type GameEvent =
   /** A crate (waves mode) was hit; `broken`: it is gone, by `fromID`. */
   | { type: 'crate'; crateID: number; position: Vec3; broken: boolean; fromID: number }
-  /** A weapon was fired by `playerID` (nuzzle flash, fire sound, firing smoke, casing). Weapon::shoot. */
-  | { type: 'fire'; playerID: number; weaponID: number; nuzzleID: number; origin: Vec3; direction: Vec3 }
-  /** Result of one traced shot (one per pellet). NET_SVCL_PLAYER_SHOOT / Weapon::shoot(playerShoot). */
-  | { type: 'shoot'; playerID: number; weaponID: number; nuzzleID: number; p1: Vec3; p2: Vec3; normal: Vec3; hitPlayerID: number }
+  /**
+   * A weapon was fired by `playerID` (nuzzle flash, fire sound, firing smoke, casing). Weapon::shoot.
+   * `extra`: the waves' Double shot card's second volley (offline only, never sent).
+   */
+  | { type: 'fire'; playerID: number; weaponID: number; nuzzleID: number; origin: Vec3; direction: Vec3; extra?: boolean }
+  /**
+   * Result of one traced shot (one per pellet). NET_SVCL_PLAYER_SHOOT / Weapon::shoot(playerShoot).
+   * `card`: a shot the waves' cards added (Double, Parallel, Fan, Ricochet), drawn in gold (offline only, never sent).
+   */
+  | { type: 'shoot'; playerID: number; weaponID: number; nuzzleID: number; p1: Vec3; p2: Vec3; normal: Vec3; hitPlayerID: number; card?: boolean }
   | { type: 'photonCharge'; playerID: number; position: Vec3 }
   | { type: 'overheat'; playerID: number; position: Vec3 }
   | { type: 'shotgunReload'; playerID: number; position: Vec3 }

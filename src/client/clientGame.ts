@@ -89,6 +89,7 @@ import { HudLayer, type CampaignHud, type HudFrame } from './hud/hudLayer';
 import { weaponInfo } from './hud/weaponInfo';
 import type { RoomView } from './hud/weaponPicker';
 import { WavesRun, type WavesEnd } from './wavesRun';
+import { cardDef, type CardID } from './wavesCards';
 import { POWERS, WAVES, type PowerKind } from './waves';
 import type { Levels } from './wavesProgress';
 import { ViewOverlay, scopeAlpha } from './ui/viewOverlay';
@@ -145,6 +146,11 @@ export interface ClientGameOptions {
   onWavesAction?: (action: 'retry' | 'shop' | 'menu') => void;
   /** A waves run ended (or was left): the account keeps the best one and the Cores. */
   onWavesEnd?: (end: WavesEnd) => void;
+  /**
+   * The testers' tools on the waves' Esc screen (the DEBUG_USER_IDS accounts): any card at any level, any
+   * wave. A run they changed counts for nothing.
+   */
+  testTools?: boolean;
 }
 
 export class ClientGame {
@@ -423,6 +429,16 @@ export class ClientGame {
     this.beginLoop();
     // We start right away, no weapon menu; Esc is a pause screen (always the same weapons)
     this.hud.picker.pauseOnly = true;
+    // The testers' tools beside it (the cards, the wave)
+    const run = this.waves;
+    this.hud.picker.tools = this.opts.testTools
+      ? {
+          wave: () => run.waveNumber,
+          cards: () => run.cardLevels().map((c) => ({ ...c, name: t(`card.${c.id}`), rarity: cardDef(c.id).rarity })),
+          setCard: (id, level) => run.setCard(id as CardID, level),
+          goToWave: (n, clear) => run.goToWave(n, clear),
+        }
+      : null;
     this.hud.picker.hide();
     this.game.requestSpawn(this.me);
     // The banner of the end panel loads now
@@ -431,7 +447,8 @@ export class ClientGame {
 
   private endWaves(end: WavesEnd): void {
     track('waves_end', { wave: end.wave, kills: end.kills, seconds: Math.round(end.seconds), new_best: end.isBest, start_wave: end.startWave, cores: end.cores.total, fps: this.fps() });
-    this.opts.onWavesEnd?.(end);
+    // A tester's run counts for nothing: the account keeps what it had
+    if (!end.test) this.opts.onWavesEnd?.(end);
     // The mouse comes back for the buttons, with the system's cursor
     this.input.exitPointerLock();
     this.renderer.domElement.style.cursor = 'auto';
@@ -826,7 +843,7 @@ export class ClientGame {
       track('waves_quit', { wave: this.waves.waveNumber, kills: this.me.kills, seconds });
       // Leaving counts: the wave reached goes to the record and to the account
       const left = this.waves.leave();
-      if (left) this.opts.onWavesEnd?.(left);
+      if (left && !left.test) this.opts.onWavesEnd?.(left);
     }
     else if (!this.camp && !this.waves && !this.matchEnded) track('match_quit', { ...this.matchInfo(), seconds, kills: this.me.kills, deaths: this.me.deaths, reason: reason ? 'closed' : 'menu' });
     this.running = false;
@@ -1389,8 +1406,8 @@ export class ClientGame {
         if (!p) break;
         this.babos.get(p.playerID)?.fire(e.weaponID, e.nuzzleID);
         audio.play3D(S.weapon[e.weaponID], 5, p.currentCF.position, 255);
-        // The waves' Silver bullet card loads with the player's firing
-        if (this.waves && !online && p === me) this.waves.onFire(e.weaponID, e.origin, e.direction);
+        // The waves' Silver bullet card loads with the player's firing (not the Double shot's second volley)
+        if (this.waves && !online && p === me && !e.extra) this.waves.onFire(e.weaponID, e.origin, e.direction);
         if (e.weaponID === WEAPON_GRENADE || e.weaponID === 9) {
           this.effects.firingSmoke(e.origin, e.direction, 45);
           break;
@@ -1411,7 +1428,7 @@ export class ClientGame {
           const brass = this.brassFor(shooter, e.weaponID, e.nuzzleID);
           this.effects.weaponFireRemote(e.weaponID, damage, shooter.teamID, e.p1, e.p2, e.normal, shooter.currentCF.angle, brass, S.weapon[e.weaponID]);
         } else if (e.weaponID === WEAPON_FLAME_THROWER) this.effects.flameThrowerFire(e.p1, e.p2, e.normal);
-        else this.effects.spawnImpact(e.p1, e.p2, e.normal, e.weaponID, damage, shooter ? shooter.teamID : 0);
+        else this.effects.spawnImpact(e.p1, e.p2, e.normal, e.weaponID, damage, shooter ? shooter.teamID : 0, !!e.card);
         // We got hit: we get pushed (ClientRecv NET_SVCL_PLAYER_SHOOT)
         if (fromServer && e.hitPlayerID === me.playerID && me.isAlive) {
           const dir = e.p2.sub(e.p1).normalizeIn();

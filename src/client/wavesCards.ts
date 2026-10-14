@@ -84,6 +84,12 @@ export const REFLECT_EVERY = 10;
  * the tanks and the boss, tougher, only lose a share).
  */
 export const SILVER_LIFE = 1.05;
+/**
+ * Shadow: the allies against the wave's enemies (12/10/2026, they were too weak and in the way): the share of
+ * the damage they take, how much harder they hit, the skill they add, the seconds a fallen one takes to come
+ * back, how far from the player they go to fight, and the room they keep beside him.
+ */
+export const SHADOW_ALLY = { tough: 0.5, hit: 1.5, skill: 0.25, respawn: 8, slack: 4.5, gap: 0.8 };
 /** Necromancer: seconds a risen enemy fights for the player, and how many at once, by level. */
 export const NECRO_TIME = 10;
 export const NECRO_MAX = [0, 3, 4, 5];

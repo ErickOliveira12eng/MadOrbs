@@ -104,6 +104,12 @@ export class BotController {
   /** Someone to walk beside (the waves' boss: its two escorts), on this side of it (-1 or 1). */
   escort: Player | null = null;
   escortSide = 1;
+  /**
+   * How far from the one it escorts it may leave to fight whoever is in sight (the waves' allies), and the
+   * room it keeps beside it. 0: always at its side, close (the boss's escorts).
+   */
+  escortSlack = 0;
+  escortGap = 0.25;
 
   /** `loadout`: always these weapons (the campaign: the chapter's weapon), else picked at random. */
   constructor(
@@ -196,11 +202,13 @@ export class BotController {
     let moveTo: Vec3 | null = null;
     const goal = this.objective();
     const duel = !!target && (!goal || (!goal.urgent && best < 7));
-    if (this.escort?.isAlive) {
+    // An escort with some slack fights whoever is in sight while it stays near the one it guards
+    const freeToFight = !!this.escort && this.escortSlack > 0 && !!target && duel && distance(pos, this.escort.currentCF.position) < this.escortSlack;
+    if (this.escort?.isAlive && !freeToFight) {
       // Escort: beside the one it guards, on its side of its way (shooting whoever is in sight)
       const g = this.escort.currentCF;
       const v = g.vel.length() > 0.3 ? g.vel.clone().normalizeIn() : new Vec3(0, 1, 0);
-      const off = this.escort.radius + p.radius + 0.25;
+      const off = this.escort.radius + p.radius + this.escortGap;
       const spot = new Vec3(g.position.x - v.y * off * this.escortSide, g.position.y + v.x * off * this.escortSide, 0);
       if (distance(pos, spot) > 2.5) {
         // Far: the way there, again every half second

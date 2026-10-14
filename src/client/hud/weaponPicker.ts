@@ -38,6 +38,17 @@ export interface RoomView {
 const CROWN =
   '<svg class="h-crown" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="#ffd34d" stroke="#8a5a00" stroke-width="1.4" stroke-linejoin="round"/></svg>';
 
+/**
+ * The testers' tools beside the waves' pause screen (the DEBUG_USER_IDS accounts, WavesRun): every card at any
+ * level, and a wave to jump to. A run they changed counts for nothing.
+ */
+export interface PauseTools {
+  wave(): number;
+  cards(): { id: string; name: string; rarity: string; level: number; max: number }[];
+  setCard(id: string, level: number): void;
+  goToWave(n: number, clear: boolean): void;
+}
+
 export interface WeaponChoice {
   primary: number;
   secondary: number;
@@ -58,6 +69,12 @@ export class WeaponPicker {
   canSpectate = false;
   /** A pause screen instead of the weapons (the waves mode: always the same weapons; the game stops meanwhile). */
   pauseOnly = false;
+  /** The testers' tools beside the pause screen, or null. */
+  tools: PauseTools | null = null;
+  /** The tools' wave to jump to (0: the next one), and the one asked for (it begins when the game goes on). */
+  private toolWave = 0;
+  private toolQueued = 0;
+  private toolClear = true;
   spectating = false;
   /** The player already entered the game once (label of the main button). */
   joined = false;
@@ -113,6 +130,29 @@ export class WeaponPicker {
         case 'copy':
           void this.copyLink();
           break;
+        case 'tcard': {
+          const card = this.tools?.cards().find((c) => c.id === b.dataset.id);
+          if (card) this.tools!.setCard(card.id, card.level + Number(b.dataset.d));
+          this.render();
+          break;
+        }
+        case 'twstep':
+          this.toolWave = Math.max(1, Math.min(999, this.targetWave() + Number(b.dataset.d)));
+          this.render();
+          break;
+        case 'twset':
+          this.toolWave = Number(b.dataset.n);
+          this.render();
+          break;
+        case 'tclear':
+          this.toolClear = !this.toolClear;
+          this.render();
+          break;
+        case 'twave':
+          this.tools?.goToWave(this.targetWave(), this.toolClear);
+          this.toolQueued = this.targetWave();
+          this.render();
+          break;
         case 'host': {
           const action = b.dataset.a as HostAction;
           if (action === 'map') {
@@ -167,6 +207,8 @@ export class WeaponPicker {
   private setVisible(v: boolean): void {
     if (this.visible === v) return;
     this.visible = v;
+    // The tools start again from the wave being fought (a jump asked for begins as the game goes on)
+    if (!v) this.toolWave = this.toolQueued = 0;
     if (v) this.render();
     else if (this.el.contains(document.activeElement)) (document.activeElement as HTMLElement).blur(); // Space must not press a button
     this.el.hidden = !v;
@@ -191,7 +233,7 @@ export class WeaponPicker {
     if (this.pauseOnly) {
       const where = [this.modeName, this.mapName].filter(Boolean).map(esc).join(' · ');
       this.el.innerHTML =
-        `<div class="h-pickin pause"><div class="h-pausecard"><span class="h-label">${where}</span><h2>${t('pause.title')}</h2>` +
+        `<div class="h-pickin pause${this.tools ? ' tools' : ''}">${this.toolsPanel()}<div class="h-pausecard"><span class="h-label">${where}</span><h2>${t('pause.title')}</h2>` +
         `<p class="sub">${t('pause.sub')}</p><div class="h-pfoot">` +
         `<button type="button" class="h-ghost danger" data-act="quit">${t('pick.quit')}</button>` +
         `<button type="button" class="h-play" data-act="back">${t('pick.back')} <span class="h-key">Esc</span></button>` +
@@ -251,6 +293,41 @@ export class WeaponPicker {
       (this.canSpectate ? `<button type="button" class="h-ghost" data-act="spectate">${t(this.spectating ? 'pick.playAgain' : 'pick.spectate')}</button>` : '') +
       `<button type="button" class="h-play" data-act="back">${t(this.joined ? 'pick.back' : 'pick.join')} <span class="h-key">Esc</span></button>` +
       `</div></div>`;
+  }
+
+  /** The tools' wave to jump to: the one picked, else the next. */
+  private targetWave(): number {
+    return this.toolWave || (this.tools ? this.tools.wave() + 1 : 1);
+  }
+
+  /** The testers' tools (PauseTools): the wave to jump to, and every card with − and +. */
+  private toolsPanel(): string {
+    const tools = this.tools;
+    if (!tools) return '';
+    const target = this.targetWave();
+    const step = (d: number) => `<button type="button" class="h-tstep" data-act="twstep" data-d="${d}">${d > 0 ? '+' : '−'}${Math.abs(d)}</button>`;
+    const quick = [10, 20, 30, 40, 50, 60]
+      .map((n) => `<button type="button" class="h-tchip${n === target ? ' on' : ''}" data-act="twset" data-n="${n}">${n}</button>`)
+      .join('');
+    const cards = tools
+      .cards()
+      .map(
+        (c) =>
+          `<div class="h-trow ${c.rarity}${c.level ? ' on' : ''}"><span>${esc(c.name)}</span>` +
+          `<button type="button" data-act="tcard" data-id="${c.id}" data-d="-1"${c.level ? '' : ' disabled'} aria-label="−">−</button>` +
+          `<b>${c.level}/${c.max}</b>` +
+          `<button type="button" data-act="tcard" data-id="${c.id}" data-d="1"${c.level < c.max ? '' : ' disabled'} aria-label="+">+</button></div>`,
+      )
+      .join('');
+    return (
+      `<div class="h-tools"><span class="h-label">${t('test.title')}</span><p class="note">${t('test.note')}</p>` +
+      `<div class="h-twave"><div class="now">${t('test.now', { n: tools.wave() })}${this.toolQueued ? ` · <b>${t('test.queued', { n: this.toolQueued })}</b>` : ''}</div>` +
+      `<div class="row">${step(-10)}${step(-1)}<output>${target}</output>${step(1)}${step(10)}</div>` +
+      `<div class="row chips">${quick}</div>` +
+      `<button type="button" class="h-tcheck${this.toolClear ? ' on' : ''}" data-act="tclear" aria-pressed="${this.toolClear}"><i></i>${t('test.clear')}</button>` +
+      `<button type="button" class="h-tgo" data-act="twave">${t('test.wave', { n: target })}</button></div>` +
+      `<span class="h-label">${t('test.cards')}</span><div class="h-tcards">${cards}</div></div>`
+    );
   }
 
   /** The two tabs of a private room's menu: the weapons and the room. */

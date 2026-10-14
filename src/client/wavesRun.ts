@@ -11,8 +11,8 @@ import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
-import { BLAST_RADIUS, CARD_LEVELS, MISSILE_EVERY, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SILVER_LIFE, rollCards, type CardID, type CardLevels } from './wavesCards';
-import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADE_STEP, addCores, headStartPowers, runCores, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
+import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SILVER_LIFE, cardDef, rollCards, type CardID, type CardLevels } from './wavesCards';
+import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
 export interface WavesHud {
@@ -66,6 +66,8 @@ export interface WavesEnd {
   unlocked: Milestone[];
   /** The cards taken in the run, with their levels. */
   cards: { id: CardID; level: number }[];
+  /** A tester changed the run (WavesRun.setCard, goToWave): it counts for nothing (no record, Cores or ranking). */
+  test: boolean;
 }
 
 type TimedPower = 'speed' | 'rapid' | 'shield' | 'fury';
@@ -160,6 +162,10 @@ export class WavesRun {
   private silverCharge = 0;
   private reflectClock = 0;
   private readonly risen: { p: Player; left: number }[] = [];
+  /** Seconds before the Shadow card's fallen allies come back. */
+  private allyClock = 0;
+  /** A tester changed the run (the waves' Esc screen, DEBUG_USER_IDS accounts): it counts for nothing. */
+  tested = false;
   /** Seconds since the first spawn. */
   elapsed = 0;
   over = false;
@@ -298,6 +304,14 @@ export class WavesRun {
       r.left -= TICK;
       if (r.left <= 0) this.vanish(r.p);
     }
+    // Shadow: a fallen ally comes back a few seconds later (not only at the next wave)
+    if (this.allies.some((p) => !p.isAlive) && me.isAlive && this.phase === 'fight') {
+      this.allyClock += TICK;
+      if (this.allyClock >= SHADOW_ALLY.respawn) {
+        this.allyClock = 0;
+        this.reviveAllies();
+      }
+    } else this.allyClock = 0;
     // Missiles: a volley falls on enemies around now and then
     if (this.cards.missiles && me.isAlive && this.phase === 'fight') {
       this.missileClock += TICK;
@@ -575,6 +589,43 @@ export class WavesRun {
     if (id === 'shadow') this.reviveAllies();
   }
 
+  // ---------------------------------------------------------------- the testers' tools
+
+  /** Every card with its level now (the testers' tools). */
+  cardLevels(): { id: CardID; level: number; max: number }[] {
+    return CARDS.map((c) => ({ id: c.id, level: this.cards[c.id] ?? 0, max: c.max }));
+  }
+
+  /** The testers' tools: a card at any level (0: none). The run then counts for nothing. */
+  setCard(id: CardID, level: number): void {
+    this.tested = true;
+    const lv = Math.max(0, Math.min(cardDef(id).max, Math.round(level)));
+    if (lv) this.cards[id] = lv;
+    else delete this.cards[id];
+    if (id !== 'shadow') return;
+    // Fewer allies: the extra ones go; more: they come now
+    for (const p of this.allies.splice(CARD_LEVELS.shadow[lv])) this.remove(p);
+    this.reviveAllies();
+  }
+
+  /**
+   * The testers' tools: wave `n` begins as soon as the game goes on (its bots, its boss), the enemies
+   * standing gone first when `clear`. The run then counts for nothing.
+   */
+  goToWave(n: number, clear: boolean): void {
+    this.tested = true;
+    if (clear) {
+      for (const p of this.reds()) this.remove(p);
+      // Gone, not beaten: no cards for it
+      this.bossUp = false;
+      this.pending = 0;
+      this.bossPending = false;
+    }
+    this.wave = Math.max(0, Math.round(n) - 1);
+    this.phase = 'break';
+    this.breakLeft = 0;
+  }
+
   /**
    * An enemy went down (the game's 'death' event). The Blast card: killed by the player, it blows up and
    * hurts the enemies around (in sight); those a blast kills don't blow up in turn.
@@ -598,6 +649,8 @@ export class WavesRun {
       p.hitSV(WEAPON_GRENADE, me, power * (1 - d / (radius * 1.5)));
       if (!p.isAlive) this.blastKills.add(p.playerID);
     }
+    // A ring of fire out to the blast's reach (a few at once at most), and the fire and the sound
+    this.renderer.blastRing(position.x, position.y, radius);
     this.ctx.onKillBlast(position, radius);
   }
 
@@ -653,6 +706,7 @@ export class WavesRun {
       const p = game.addPlayer(this.ctx.undeadName, true);
       if (!p) return;
       p.teamID = PLAYER_TEAM_BLUE;
+      p.ghost = true;
       p.takesLifePacks = false;
       p.lifePackChance = 0;
       p.grenadeDropChance = 0;
@@ -671,6 +725,8 @@ export class WavesRun {
     const bot = new BotController(p, Math.min(1, this.spec.skill + 0.1), { primary: victim.weapon?.weaponID ?? this.ctx.startWeapon, secondary: WEAPON_KNIVES });
     bot.escort = me;
     bot.escortSide = this.risen.indexOf(r) % 2 === 0 ? 1 : -1;
+    bot.escortSlack = SHADOW_ALLY.slack;
+    bot.escortGap = SHADOW_ALLY.gap;
     const i = bots.findIndex((b) => b.player === p);
     if (i >= 0) bots[i] = bot;
     else bots.push(bot);
@@ -687,6 +743,11 @@ export class WavesRun {
   /** A risen enemy goes back to dust: gone without a death (no kill, no line in the feed, nothing dropped). */
   private vanish(p: Player): void {
     this.ctx.onRise(p.currentCF.position.clone(), true);
+    this.remove(p);
+  }
+
+  /** A babo out of the run at once, without a death (no kill, no line in the feed, nothing dropped). */
+  private remove(p: Player): void {
     p.status = PLAYER_STATUS_DEAD;
     p.lives = 0;
     p.currentCF.position.set(-999, -999, 0);
@@ -701,6 +762,8 @@ export class WavesRun {
       const p = game.addPlayer(this.ctx.allyName, true);
       if (!p) break;
       p.teamID = PLAYER_TEAM_BLUE;
+      // The player walks and shoots through them (they bumped him and took his bullets)
+      p.ghost = true;
       p.skin = me.skin;
       p.takesLifePacks = false;
       p.lifePackChance = 0;
@@ -713,13 +776,16 @@ export class WavesRun {
       p.lives = 1;
       p.spawnRequested = false;
       p.timeToSpawn = 0;
-      // As tough and as strong as the wave's enemies: they keep up with the waves
-      p.damageScale = this.spec.toughness;
-      p.damageBoost = this.spec.hitBoost;
+      // Tougher and harder hitting than the wave's enemies (they face many at once), keeping up with the waves
+      p.damageScale = this.spec.toughness * SHADOW_ALLY.tough;
+      p.damageBoost = this.spec.hitBoost * SHADOW_ALLY.hit;
       p.speedBoost = 1;
-      const bot = new BotController(p, Math.min(1, this.spec.skill + 0.1), { primary: this.ctx.startWeapon, secondary: WEAPON_KNIVES });
+      const bot = new BotController(p, Math.min(1, this.spec.skill + SHADOW_ALLY.skill), { primary: this.ctx.startWeapon, secondary: WEAPON_KNIVES });
       bot.escort = me;
       bot.escortSide = k % 2 === 0 ? 1 : -1;
+      // Off to fight whoever is in sight near the player, a step away from him otherwise
+      bot.escortSlack = SHADOW_ALLY.slack;
+      bot.escortGap = SHADOW_ALLY.gap;
       const i = bots.findIndex((b) => b.player === p);
       if (i >= 0) bots[i] = bot;
       else bots.push(bot);
@@ -799,13 +865,16 @@ export class WavesRun {
     this.ctx.onEnd(this.finish());
   }
 
-  /** The run is over: the record and the Cores are saved. */
+  /** The run is over: the record and the Cores are saved (not for a tester's run: it counts for nothing). */
   private finish(): WavesEnd {
     this.over = true;
     const kills = this.ctx.me.kills;
     const wave = Math.max(this.ctx.startWave, this.wave);
-    const isBest = saveWavesRun(wave, kills);
-    const cores = runCores(this.ctx.startWave, wave, kills, this.bosses, isBest);
+    const test = this.tested;
+    const isBest = !test && saveWavesRun(wave, kills);
+    const cores = test
+      ? { waves: 0, waveCores: 0, kills, killCores: 0, bosses: this.bosses, bossCores: 0, recordCores: 0, total: 0 }
+      : runCores(this.ctx.startWave, wave, kills, this.bosses, isBest);
     const before = this.record?.wave ?? 0;
     return {
       wave,
@@ -816,9 +885,10 @@ export class WavesRun {
       startWave: this.ctx.startWave,
       recordBefore: before,
       cores,
-      progress: addCores(cores.total),
-      unlocked: MILESTONES.filter((m) => m.wave > before && m.wave <= wave),
+      progress: test ? loadProgress() : addCores(cores.total),
+      unlocked: test ? [] : MILESTONES.filter((m) => m.wave > before && m.wave <= wave),
       cards: this.cardList(),
+      test,
     };
   }
 

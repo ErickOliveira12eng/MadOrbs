@@ -290,7 +290,8 @@ export class Projectile {
     if (type === PROJECTILE_ROCKET && !this.needToBeDeleted) {
       const owner = game.players[this.fromID];
       let hit = game.playerInRadius(cf.position, 0.25);
-      if (hit && hit.playerID === this.fromID) hit = null;
+      // Not on its shooter, nor on the waves' allies of its side (they let it through)
+      if (hit && (hit.playerID === this.fromID || (owner && game.passesThrough(owner, hit)))) hit = null;
       // The waves mode's crates stop a rocket too
       const crate = hit ? null : game.crateInRadius(cf.position, 0.1);
       if (hit || crate) {

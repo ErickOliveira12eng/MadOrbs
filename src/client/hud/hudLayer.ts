@@ -585,7 +585,14 @@ export class HudLayer {
     const head =
       `<div class="wave-reached"><span>${t('waves.label')}</span><b>${e.wave}</b></div>` +
       `<div class="time">${kills} · ${clock(e.seconds)}</div>` +
-      (e.isBest ? `<div class="best new">${t('waves.newBest')}</div>` : e.best ? `<div class="best">${t('waves.record', { n: e.best.wave })}</div>` : '') +
+      // A tester's run (the Esc screen's tools) counts for nothing
+      (e.test
+        ? `<div class="best">${t('test.run')}</div>`
+        : e.isBest
+          ? `<div class="best new">${t('waves.newBest')}</div>`
+          : e.best
+            ? `<div class="best">${t('waves.record', { n: e.best.wave })}</div>`
+            : '') +
       (e.cards.length
         ? `<div class="h-wcards end">${e.cards.map((c) => `<span class="${cardDef(c.id).rarity}" title="${t(`card.${c.id}`)}">${cardIcon(c.id, 'h-cardmini')}<b>${c.level}</b></span>`).join('')}</div>`
         : '');

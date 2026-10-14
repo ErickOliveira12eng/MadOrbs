@@ -1825,6 +1825,195 @@
   justify-content: center;
 }
 
+/* The testers' tools beside the waves' pause screen (WeaponPicker.toolsPanel, DEBUG_USER_IDS accounts) */
+.h-pickin.pause.tools {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+}
+
+.h-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 400px;
+  max-height: 88%;
+  overflow-y: auto;
+  padding: 18px 20px;
+  box-sizing: border-box;
+  border-radius: 20px;
+  border: 1px dashed rgba(255, 211, 77, 0.55);
+  background: var(--h-panel-strong);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+.h-tools .note {
+  margin: 0;
+  color: var(--h-muted);
+  font: 700 12.5px/1.35 var(--h-ui);
+}
+
+.h-twave {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.h-twave .now {
+  color: var(--h-muted);
+  font: 800 13px var(--h-ui);
+}
+
+.h-twave .now b {
+  color: #ffd34d;
+}
+
+.h-twave .row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.h-twave output {
+  flex: 1;
+  color: #fff;
+  font: 400 30px/1 var(--h-display);
+  text-align: center;
+}
+
+.h-tstep,
+.h-tchip,
+.h-trow button {
+  border: 1px solid var(--h-line-strong);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--h-text);
+  font: 900 13px var(--h-ui);
+  cursor: pointer;
+}
+
+.h-tstep {
+  min-width: 44px;
+  height: 32px;
+}
+
+.h-tchip {
+  flex: 1;
+  height: 28px;
+}
+
+.h-tchip.on {
+  border-color: #ffd34d;
+  background: rgba(255, 211, 77, 0.18);
+  color: #ffe39a;
+}
+
+.h-tstep:hover,
+.h-tchip:hover,
+.h-trow button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.h-tcheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--h-text);
+  font: 700 13px var(--h-ui);
+  text-align: left;
+  cursor: pointer;
+}
+
+.h-tcheck i {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  border: 2px solid var(--h-line-strong);
+}
+
+.h-tcheck.on i {
+  border-color: #ffd34d;
+  background: #ffd34d;
+  box-shadow: inset 0 0 0 2px #2a1600;
+}
+
+.h-tgo {
+  height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffd34d, #ff9f1a);
+  color: #2a1600;
+  font: 400 20px var(--h-display);
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+
+.h-tgo:hover {
+  filter: brightness(1.07);
+}
+
+.h-tcards {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.h-trow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px 40px 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 9px;
+  color: var(--h-muted);
+  font: 800 13px var(--h-ui);
+}
+
+.h-trow span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.h-trow.on {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--h-text);
+}
+
+.h-trow.epic span {
+  color: #c9a4ff;
+}
+
+.h-trow.legendary span {
+  color: #ffd34d;
+}
+
+.h-trow b {
+  color: var(--h-text);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.h-trow button {
+  height: 26px;
+  padding: 0;
+}
+
+.h-trow button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 .h-pfoot {
   margin-top: auto;
   display: flex;

@@ -553,6 +553,8 @@ export class Game {
       if (!other || other === p || !other.isAlive) continue;
       // Bots pass through each other: two bots pushing into each other got stuck (training, campaign)
       if (p.isBot && other.isBot) continue;
+      // The waves' allies don't get in their side's way
+      if (this.passesThrough(p, other)) continue;
       // Must have been on the field for more than 3 seconds
       if (other.timeAlive > 3 && p.timeAlive > 3) {
         const disSq = distanceSquared(p.currentCF.position, other.currentCF.position);
@@ -973,6 +975,14 @@ export class Game {
     return { p1, p2, normal, hits: [] };
   }
 
+  /**
+   * The waves' allies (Player.ghost: the Shadow card, the Necromancer's risen) and their side go through
+   * each other: no bumping, and their shots fly past one another (else an ally took the player's bullets).
+   */
+  passesThrough(a: Player, b: Player): boolean {
+    return (a.ghost || b.ghost) && a.teamID === b.teamID;
+  }
+
   /** Photon beam and flames hurt the babos they cross (as the original loop tested them). */
   private canPierce(player: Player, other: Player): boolean {
     return other.teamID !== player.teamID || this.gameType === GAME_TYPE_DM || this.gameType === GAME_TYPE_SND || sv.sv_friendlyFire || sv.sv_reflectedDamage;
@@ -984,7 +994,7 @@ export class Game {
     if (weaponID === WEAPON_PHOTON_RIFLE || weaponID === WEAPON_FLAME_THROWER) {
       let p3 = b.p2.clone();
       for (const other of this.players) {
-        if (!other || other === player || !other.isAlive || !this.canPierce(player, other)) continue;
+        if (!other || other === player || !other.isAlive || !this.canPierce(player, other) || this.passesThrough(player, other)) continue;
         if (segmentToSphere(b.p1, p3, other.currentCF.position, weaponID === WEAPON_FLAME_THROWER ? other.radius + 0.25 : other.radius)) {
           b.normal = p3.sub(b.p1).normalizeIn();
           p3 = b.p2.clone(); // full length (goes through everybody)
@@ -1014,7 +1024,7 @@ export class Game {
       }
       const touched: { p: Player; d: number; at: Vec3 }[] = [];
       for (const other of this.players) {
-        if (!other || other === player || !other.isAlive) continue;
+        if (!other || other === player || !other.isAlive || this.passesThrough(player, other)) continue;
         const e = along(other.currentCF.position, other.radius);
         if (e && e.sub(b.p1).length() < crateD) touched.push({ p: other, d: e.sub(b.p1).length(), at: e });
       }
@@ -1030,7 +1040,7 @@ export class Game {
     } else {
       let hit: Player | null = null;
       for (const other of this.players) {
-        if (!other || other === player || !other.isAlive) continue;
+        if (!other || other === player || !other.isAlive || this.passesThrough(player, other)) continue;
         // segmentToSphere shortens p2 to the hit point, so the closest babo wins
         if (segmentToSphere(b.p1, b.p2, other.currentCF.position, other.radius)) {
           hit = other;
@@ -1089,6 +1099,8 @@ export class Game {
       p2: b.p2.clone(),
       normal: b.normal.clone(),
       hitPlayerID: hit ? hit.playerID : -1,
+      // A shot of the waves' cards: drawn in gold (offline only: the key is left out otherwise)
+      ...(player.cardShot ? { card: true } : {}),
     });
   }
 
@@ -1196,7 +1208,7 @@ export class Game {
       if (!next) return;
       touched.add(next);
       const to = next.currentCF.position.clone();
-      this.events.push({ type: 'shoot', playerID: player.playerID, weaponID, nuzzleID: 0, p1: at.clone(), p2: to.clone(), normal: to.sub(at).normalizeIn(), hitPlayerID: next.playerID });
+      this.events.push({ type: 'shoot', playerID: player.playerID, weaponID, nuzzleID: 0, p1: at.clone(), p2: to.clone(), normal: to.sub(at).normalizeIn(), hitPlayerID: next.playerID, card: true });
       const keep = player.shotScale;
       player.shotScale = scale;
       next.hitSV(weaponID, player);

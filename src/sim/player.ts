@@ -175,6 +175,13 @@ export class Player {
   dodgeChance = 0;
   /** Damage share of the volley being fired now (the cards' extra volleys). */
   shotScale = 1;
+  /** A volley of the waves' cards is being fired now: its shots are drawn in gold (the 'shoot' event's `card`). */
+  cardShot = false;
+  /**
+   * The waves' allies (the Shadow card, the Necromancer's risen): their own side walks and shoots through
+   * them, and they through it (Game.performPlayerCollisions, Game.passesThrough).
+   */
+  ghost = false;
   /** Seconds before the Double shot card's second volley (0: none waiting). */
   private extraShotIn = 0;
   /** Marks shown before the name over the orb (the waves' elites: 'fast', 'brute', 'sniper', 'tank'). */
@@ -295,8 +302,12 @@ export class Player {
       this.extraShotIn -= delay;
       if (this.extraShotIn <= 0 && this.isAlive && this.weapon) {
         const { origin, direction } = this.weapon.firingOriginAndDirection(this);
+        // Seen and heard: the second volley flashes and sounds like a shot of its own
+        this.game.events.push({ type: 'fire', playerID: this.playerID, weaponID: this.weapon.weaponID, nuzzleID: this.weapon.firingNuzzle, origin: origin.clone(), direction: direction.clone(), extra: true });
+        this.cardShot = true;
         this.game.shoot(origin, direction, 0, 0, this, PROJECTILE_DIRECT);
         this.cardVolleys(origin, direction, false);
+        this.cardShot = false;
       }
     }
     // The waves' dash and recharging shield
@@ -924,7 +935,9 @@ export class Player {
     const game = this.game;
     const volley = (o: Vec3, d: Vec3, scale: number): void => {
       this.shotScale = scale;
+      this.cardShot = true;
       game.shoot(o, d, 0, 0, this, PROJECTILE_DIRECT);
+      this.cardShot = false;
       this.shotScale = 1;
     };
     if (this.parallelShot > 0) volley(origin.add(new Vec3(-direction.y, direction.x, 0).mul(0.3)), direction, this.parallelShot);

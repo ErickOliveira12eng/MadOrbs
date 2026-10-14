@@ -766,8 +766,9 @@ export class Effects {
    * Game::spawnImpact — trail(s), impact spark/smoke particles and ricochet sound.
    * Called by Weapon::shoot(net) for every direct weapon except the flame thrower, and by
    * ClientRecv (NET_SVCL_PLAYER_SHOOT) for our own shots / minibot shots (weaponID SMG, damage .08).
+   * `card`: a shot the waves' cards added (Double, Parallel, Fan, Ricochet): a gold trail that stands out.
    */
-  spawnImpact(p1: Vec3, p2: Vec3, normal: Vec3, weaponID: number, damage: number, team: number): void {
+  spawnImpact(p1: Vec3, p2: Vec3, normal: Vec3, weaponID: number, damage: number, team: number, card = false): void {
     // CMatrix3x3f with right/front/up, RotateAboutFront(rand 0..360), RotateAboutRight(rand -30..30)
     const front0 = normal.clone();
     const { right: right0, up: up0 } = createRightUpVectors(front0);
@@ -780,7 +781,14 @@ export class Effects {
     const front = front0.mul(c).add(up1.mul(s));
 
     const type = weaponID === WEAPON_PHOTON_RIFLE ? 1 : 0;
-    if (type === 0) {
+    if (card) {
+      // The cards' extra shots: the bullet's tracer in gold, and a gold glow that widens as it fades (the
+      // photon's kind of trail: it starts thin and spreads), with a gold spark where it stops
+      this.addTrail(p1, p2, damage, [1, 0.8, 0.2, 1], damage * 4, 0);
+      this.addTrail(p1, p2, 0.6, [1, 0.72, 0.12, 1], 0.4, 1);
+      this.addTrail(p1, p2, 0.22, [1, 0.95, 0.65, 1], 0.28, 1);
+      this.dkp.dkpCreateParticle(p2, new Vec3(), [1, 0.85, 0.3, 1], [1, 0.6, 0.1, 0], 0.3, 0.5, 0.3, 0, 0, 0, this.tex_shotGlow, DKP_SRC_ALPHA, DKP_ONE, 0);
+    } else if (type === 0) {
       this.addTrail(p1, p2, damage, [team === PLAYER_TEAM_RED ? 0.9 : 0.5, 0.5, team === PLAYER_TEAM_BLUE ? 0.9 : 0.5, 1], damage * 4, 0);
     } else {
       if (weaponID === WEAPON_PHOTON_RIFLE) damage = 2.0;
@@ -835,9 +843,11 @@ export class Effects {
 
   spawnBlastLight(position: Vec3, radius: number): void {
     const size = radius * 3;
-    const h = audio.play3D(this.sfx_explosion[0], 10, position, 150);
+    const h = audio.play3D(this.sfx_explosion[0], 10, position, 200);
     if (h) h.source.playbackRate.value = 1.25;
     const d = this.dkp;
+    // A bright flash over the orb that blew up (the ring on the floor: WavesRenderer.blastRing)
+    d.dkpCreateParticle(position, new Vec3(), [1, 0.85, 0.45, 1], [1, 0.35, 0.05, 0], radius * 0.7, radius * 1.4, 0.3, 0, 0, 0, this.tex_shotGlow, DKP_SRC_ALPHA, DKP_ONE, 0);
     const smoke = this.tex_smoke1;
     const normal = new Vec3(0, 0, 1);
     const duration = Math.min(this.options.reducedParticles ? 1.0 : 10.0, size * 0.5);

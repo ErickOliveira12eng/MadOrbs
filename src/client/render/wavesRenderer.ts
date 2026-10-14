@@ -89,6 +89,19 @@ interface PowerView {
   ring: THREE.Mesh;
 }
 
+interface BlastView {
+  ring: THREE.Mesh;
+  disc: THREE.Mesh;
+  ringMaterial: THREE.MeshBasicMaterial;
+  discMaterial: THREE.MeshBasicMaterial;
+  radius: number;
+  age: number;
+}
+
+/** The Blast card's ring: its seconds, and how many show at once (a chain of kills stays light). */
+const BLAST_LIFE = 0.45;
+const MAX_BLASTS = 12;
+
 export class WavesRenderer {
   private readonly root = new THREE.Group();
   private readonly crateGeometry = new THREE.BoxGeometry(CRATE_SIZE, CRATE_SIZE, CRATE_HEIGHT);
@@ -111,6 +124,11 @@ export class WavesRenderer {
   private spareRipples: { mesh: THREE.Mesh; material: THREE.MeshBasicMaterial; age: number }[] = [];
   /** Per enemy: time to its next streak and next ripple. */
   private readonly ailmentClock = new Map<number, { streak: number; ripple: number }>();
+  // The Blast card's look: a ring of fire running out to the blast's reach over a quick glow (BLAST_LIFE)
+  private readonly blastRingGeometry = new THREE.RingGeometry(0.72, 1, 48);
+  private readonly blastDiscGeometry = new THREE.CircleGeometry(1, 40);
+  private blasts: BlastView[] = [];
+  private spareBlasts: BlastView[] = [];
 
   constructor(scene: THREE.Scene) {
     scene.add(this.root);
@@ -204,6 +222,45 @@ export class WavesRenderer {
     this.ripples.push(r);
   }
 
+  /** The Blast card: a kill blew up there, this far. */
+  blastRing(x: number, y: number, radius: number): void {
+    if (this.blasts.length >= MAX_BLASTS) return;
+    let b = this.spareBlasts.pop();
+    if (!b) {
+      const ringMaterial = new THREE.MeshBasicMaterial({ color: 0xffb040, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+      const discMaterial = new THREE.MeshBasicMaterial({ color: 0xff5a14, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+      const ring = new THREE.Mesh(this.blastRingGeometry, ringMaterial);
+      const disc = new THREE.Mesh(this.blastDiscGeometry, discMaterial);
+      this.root.add(disc, ring);
+      b = { ring, disc, ringMaterial, discMaterial, radius, age: 0 };
+    }
+    b.radius = radius;
+    b.age = 0;
+    b.ring.position.set(x, y, 0.045);
+    b.disc.position.set(x, y, 0.04);
+    b.ring.visible = b.disc.visible = true;
+    this.blasts.push(b);
+  }
+
+  /** The blast rings grow out fast and fade. */
+  private renderBlasts(dt: number): void {
+    this.blasts = this.blasts.filter((b) => {
+      b.age += dt;
+      const k = b.age / BLAST_LIFE;
+      if (k >= 1) {
+        b.ring.visible = b.disc.visible = false;
+        this.spareBlasts.push(b);
+        return false;
+      }
+      const out = 1 - (1 - k) ** 3;
+      b.ring.scale.setScalar(b.radius * (0.2 + 0.8 * out));
+      b.ringMaterial.opacity = 1 - k * k;
+      b.disc.scale.setScalar(b.radius * (0.2 + 0.8 * out));
+      b.discMaterial.opacity = 0.55 * (1 - k) ** 2;
+      return true;
+    });
+  }
+
   /** A crate was hit: it shakes; broken, it flies apart. */
   crateHit(crateID: number, x: number, y: number, broken: boolean): void {
     const view = this.crates.get(crateID);
@@ -227,6 +284,7 @@ export class WavesRenderer {
   /** Every frame: the crates and power-ups as they are now, and the splinters flying. */
   render(crates: readonly Crate[], powers: readonly FloorPower[], ailments: readonly AilmentMark[], dt: number, time: number): void {
     this.renderAilments(ailments, dt);
+    this.renderBlasts(dt);
 
     // Crates: new ones appear, broken ones go; a damaged crate darkens
     const seen = new Set<number>();
@@ -328,5 +386,11 @@ export class WavesRenderer {
     (this.streakLines.material as THREE.Material).dispose();
     this.rippleGeometry.dispose();
     for (const r of [...this.ripples, ...this.spareRipples]) r.material.dispose();
+    this.blastRingGeometry.dispose();
+    this.blastDiscGeometry.dispose();
+    for (const b of [...this.blasts, ...this.spareBlasts]) {
+      b.ringMaterial.dispose();
+      b.discMaterial.dispose();
+    }
   }
 }
