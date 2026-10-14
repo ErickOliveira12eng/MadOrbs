@@ -13,6 +13,15 @@ export type SoundHandle = { buffer: AudioBuffer | null; url: string };
 /** Where a sound plays: the effects (weapons, hits...) or the ambience (rain, wind, lava). */
 export type SoundBus = 'sfx' | 'ambient';
 
+/**
+ * A crowd of effects at once (the waves with many orbs and cards) got louder and louder until it clipped
+ * (Erick, 13/10/2026): the same sound plays at most MAX_SAME_SOUND times at once and the effects at most
+ * MAX_SFX together (more of them add texture, not loudness), and a limiter on the effects keeps the peaks
+ * down. One sound alone stays as loud as before.
+ */
+const MAX_SAME_SOUND = 6;
+const MAX_SFX = 48;
+
 /** A music track streamed by an <audio> element, routed into the music bus once audio is unlocked. */
 interface MusicTrack {
   el: HTMLAudioElement;
@@ -23,6 +32,11 @@ class AudioSystem {
   private ctx: AudioContext | null = null;
   private master!: GainNode;
   private sfxBus!: GainNode;
+  /** The effects' limiter: it only acts when many play at once. */
+  private sfxLimiter!: DynamicsCompressorNode;
+  /** The effects playing now: per sound, and in all (MAX_SAME_SOUND, MAX_SFX). */
+  private readonly playingNow = new Map<SoundHandle, number>();
+  private sfxNow = 0;
   private musicBus!: GainNode;
   /** The map's own sounds (rain, wind, lava), with their own volume. */
   private ambientBus!: GainNode;
@@ -56,7 +70,13 @@ class AudioSystem {
     this.master.gain.value = this.allOff ? 0 : this.masterVolume;
     this.master.connect(this.ctx.destination);
     this.sfxBus = this.ctx.createGain();
-    this.sfxBus.connect(this.master);
+    this.sfxLimiter = this.ctx.createDynamicsCompressor();
+    this.sfxLimiter.threshold.value = -14;
+    this.sfxLimiter.knee.value = 12;
+    this.sfxLimiter.ratio.value = 8;
+    this.sfxLimiter.attack.value = 0.003;
+    this.sfxLimiter.release.value = 0.2;
+    this.sfxBus.connect(this.sfxLimiter).connect(this.master);
     this.musicBus = this.ctx.createGain();
     this.musicBus.connect(this.master);
     this.ambientBus = this.ctx.createGain();
@@ -164,10 +184,28 @@ class AudioSystem {
     }
   }
 
-  /** 2D sound (dksPlaySound). Returns the source so loops can be stopped. */
+  /**
+   * An effect may start (not past MAX_SAME_SOUND of the same sound nor MAX_SFX in all); counted until it
+   * ends. Loops and the ambience always play.
+   */
+  private admit(sound: SoundHandle, src: AudioBufferSourceNode, loop: boolean, bus: SoundBus): boolean {
+    if (loop || bus !== 'sfx') return true;
+    const same = this.playingNow.get(sound) ?? 0;
+    if (same >= MAX_SAME_SOUND || this.sfxNow >= MAX_SFX) return false;
+    this.playingNow.set(sound, same + 1);
+    this.sfxNow++;
+    src.addEventListener('ended', () => {
+      this.playingNow.set(sound, Math.max(0, (this.playingNow.get(sound) ?? 1) - 1));
+      this.sfxNow = Math.max(0, this.sfxNow - 1);
+    });
+    return true;
+  }
+
+  /** 2D sound (dksPlaySound). Returns the source so loops can be stopped (null: not played). */
   play(sound: SoundHandle | null | undefined, volume = 255, loop = false, bus: SoundBus = 'sfx'): AudioBufferSourceNode | null {
     if (!this.ctx || !sound?.buffer) return null;
     const src = this.ctx.createBufferSource();
+    if (!this.admit(sound, src, loop, bus)) return null;
     src.buffer = sound.buffer;
     src.loop = loop;
     const g = this.ctx.createGain();
@@ -188,6 +226,7 @@ class AudioSystem {
   ): { source: AudioBufferSourceNode; panner: PannerNode; gain: GainNode } | null {
     if (!this.ctx || !sound?.buffer) return null;
     const src = this.ctx.createBufferSource();
+    if (!this.admit(sound, src, loop, bus)) return null;
     src.buffer = sound.buffer;
     src.loop = loop;
     const panner = this.ctx.createPanner();
