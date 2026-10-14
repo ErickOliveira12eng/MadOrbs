@@ -2388,6 +2388,11 @@
   pointer-events: none;
 }
 
+/* With a boss's name and life bar under the header (waves, campaign): the announcements below it */
+.h-feat.low {
+  top: 164px;
+}
+
 .h-feat .fbox {
   display: flex;
   flex-direction: column;

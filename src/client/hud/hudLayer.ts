@@ -533,6 +533,8 @@ export class HudLayer {
       html += `<div class="h-boss"><b>${esc(c.boss.name)}</b><span><i style="width:${Math.round(Math.max(0, c.boss.life) * 100)}%"></i></span></div>`;
     }
     setHTML(this.r.match, html);
+    // The announcements go down under the boss's bar (they shared the spot)
+    this.r.feat.classList.toggle('low', !!c.boss);
   }
 
   private campEndKeys: ((e: KeyboardEvent) => void) | null = null;
@@ -808,6 +810,8 @@ export class HudLayer {
       `<div class="h-camp"><span class="hearts" title="${t('waves.lives')}">${hearts || '—'}</span><span>${t(w.kills === 1 ? 'end.oneKill' : 'end.kills', { n: w.kills })}</span>${powers}</div>`;
     if (w.bossLife) html += `<div class="h-boss"><b>${esc(w.bossLife.name)}</b><span><i style="width:${Math.round(Math.max(0, w.bossLife.life) * 100)}%"></i></span></div>`;
     setHTML(this.r.match, html);
+    // The announcements go down under the boss's bar (they shared the spot)
+    this.r.feat.classList.toggle('low', !!w.bossLife);
   }
 
   /** The waves' corner panel: the enemies of the wave still to beat, the record. */
