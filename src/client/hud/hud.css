@@ -2014,6 +2014,67 @@
   cursor: default;
 }
 
+/* The tools' tabs: the cards, the crates' power-ups, the Workshop */
+.h-ttabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.h-ttabs button {
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--h-muted);
+  font: 900 12px var(--h-ui);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.h-ttabs button.on {
+  background: #ffd34d;
+  color: #2a1600;
+}
+
+/* The crates' power-ups taken at once: one button each, with its colour */
+.h-tpowers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.h-tpower {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--h-line-strong);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--h-text);
+  font: 800 12.5px var(--h-ui);
+  text-align: left;
+  cursor: pointer;
+}
+
+.h-tpower:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.h-tpower i {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--pc);
+}
+
 .h-pfoot {
   margin-top: auto;
   display: flex;

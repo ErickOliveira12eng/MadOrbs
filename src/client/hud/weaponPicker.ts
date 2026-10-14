@@ -38,16 +38,34 @@ export interface RoomView {
 const CROWN =
   '<svg class="h-crown" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="#ffd34d" stroke="#8a5a00" stroke-width="1.4" stroke-linejoin="round"/></svg>';
 
+/** A line of the testers' tools: something with a level, set with − and + (`tone`: a card's rarity). */
+export interface ToolRow {
+  id: string;
+  name: string;
+  level: number;
+  max: number;
+  tone?: string;
+}
+
 /**
- * The testers' tools beside the waves' pause screen (the DEBUG_USER_IDS accounts, WavesRun): every card at any
- * level, and a wave to jump to. A run they changed counts for nothing.
+ * The testers' tools beside the waves' pause screen (the DEBUG_USER_IDS accounts, WavesRun): a wave to jump
+ * to; every card at any level; the crates' power-ups (the permanent ones at a level, the others taken at
+ * once); the Workshop's upgrades for this run. A run they changed counts for nothing.
  */
 export interface PauseTools {
   wave(): number;
-  cards(): { id: string; name: string; rarity: string; level: number; max: number }[];
-  setCard(id: string, level: number): void;
   goToWave(n: number, clear: boolean): void;
+  cards(): ToolRow[];
+  setCard(id: string, level: number): void;
+  perms(): ToolRow[];
+  setPerm(id: string, level: number): void;
+  powers(): { id: string; name: string; color: string }[];
+  takePower(id: string): void;
+  levels(): ToolRow[];
+  setLevel(id: string, level: number): void;
 }
+
+type ToolTab = 'cards' | 'crates' | 'workshop';
 
 export interface WeaponChoice {
   primary: number;
@@ -75,6 +93,7 @@ export class WeaponPicker {
   private toolWave = 0;
   private toolQueued = 0;
   private toolClear = true;
+  private toolTab: ToolTab = 'cards';
   spectating = false;
   /** The player already entered the game once (label of the main button). */
   joined = false;
@@ -130,12 +149,28 @@ export class WeaponPicker {
         case 'copy':
           void this.copyLink();
           break;
-        case 'tcard': {
-          const card = this.tools?.cards().find((c) => c.id === b.dataset.id);
-          if (card) this.tools!.setCard(card.id, card.level + Number(b.dataset.d));
+        case 'trow': {
+          const tools = this.tools;
+          if (!tools) break;
+          const [list, set] =
+            b.dataset.kind === 'perm'
+              ? [tools.perms(), tools.setPerm]
+              : b.dataset.kind === 'level'
+                ? [tools.levels(), tools.setLevel]
+                : [tools.cards(), tools.setCard];
+          const row = list.find((r) => r.id === b.dataset.id);
+          if (row) set.call(tools, row.id, row.level + Number(b.dataset.d));
           this.render();
           break;
         }
+        case 'tpower':
+          this.tools?.takePower(b.dataset.id ?? '');
+          this.render();
+          break;
+        case 'ttab':
+          this.toolTab = (b.dataset.tab as ToolTab) ?? 'cards';
+          this.render();
+          break;
         case 'twstep':
           this.toolWave = Math.max(1, Math.min(999, this.targetWave() + Number(b.dataset.d)));
           this.render();
@@ -232,12 +267,16 @@ export class WeaponPicker {
     }
     if (this.pauseOnly) {
       const where = [this.modeName, this.mapName].filter(Boolean).map(esc).join(' · ');
+      // The tools' list stays where it was scrolled to (every click draws it again)
+      const scrolled = this.el.querySelector('.h-tools')?.scrollTop ?? 0;
       this.el.innerHTML =
         `<div class="h-pickin pause${this.tools ? ' tools' : ''}">${this.toolsPanel()}<div class="h-pausecard"><span class="h-label">${where}</span><h2>${t('pause.title')}</h2>` +
         `<p class="sub">${t('pause.sub')}</p><div class="h-pfoot">` +
         `<button type="button" class="h-ghost danger" data-act="quit">${t('pick.quit')}</button>` +
         `<button type="button" class="h-play" data-act="back">${t('pick.back')} <span class="h-key">Esc</span></button>` +
         `</div></div></div>`;
+      const panel = this.el.querySelector('.h-tools');
+      if (panel) panel.scrollTop = scrolled;
       return;
     }
     const art = this.art;
@@ -300,7 +339,10 @@ export class WeaponPicker {
     return this.toolWave || (this.tools ? this.tools.wave() + 1 : 1);
   }
 
-  /** The testers' tools (PauseTools): the wave to jump to, and every card with − and +. */
+  /**
+   * The testers' tools (PauseTools): the wave to jump to, then a tab for the cards, one for the crates'
+   * power-ups (the permanent ones with − and +, the others taken at once) and one for the Workshop's upgrades.
+   */
   private toolsPanel(): string {
     const tools = this.tools;
     if (!tools) return '';
@@ -309,16 +351,29 @@ export class WeaponPicker {
     const quick = [10, 20, 30, 40, 50, 60]
       .map((n) => `<button type="button" class="h-tchip${n === target ? ' on' : ''}" data-act="twset" data-n="${n}">${n}</button>`)
       .join('');
-    const cards = tools
-      .cards()
-      .map(
-        (c) =>
-          `<div class="h-trow ${c.rarity}${c.level ? ' on' : ''}"><span>${esc(c.name)}</span>` +
-          `<button type="button" data-act="tcard" data-id="${c.id}" data-d="-1"${c.level ? '' : ' disabled'} aria-label="−">−</button>` +
-          `<b>${c.level}/${c.max}</b>` +
-          `<button type="button" data-act="tcard" data-id="${c.id}" data-d="1"${c.level < c.max ? '' : ' disabled'} aria-label="+">+</button></div>`,
-      )
-      .join('');
+    const rows = (kind: string, list: ToolRow[]) =>
+      list
+        .map(
+          (r) =>
+            `<div class="h-trow ${r.tone ?? ''}${r.level ? ' on' : ''}"><span>${esc(r.name)}</span>` +
+            `<button type="button" data-act="trow" data-kind="${kind}" data-id="${r.id}" data-d="-1"${r.level ? '' : ' disabled'} aria-label="−">−</button>` +
+            `<b>${r.level}/${r.max}</b>` +
+            `<button type="button" data-act="trow" data-kind="${kind}" data-id="${r.id}" data-d="1"${r.level < r.max ? '' : ' disabled'} aria-label="+">+</button></div>`,
+        )
+        .join('');
+    let body: string;
+    if (this.toolTab === 'crates') {
+      const powers = tools
+        .powers()
+        .map((p) => `<button type="button" class="h-tpower" data-act="tpower" data-id="${p.id}" style="--pc:${p.color}"><i></i>${esc(p.name)}</button>`)
+        .join('');
+      body =
+        `<span class="h-label">${t('test.perms')}</span><div class="h-tcards">${rows('perm', tools.perms())}</div>` +
+        `<span class="h-label">${t('test.take')}</span><div class="h-tpowers">${powers}</div>`;
+    } else if (this.toolTab === 'workshop') {
+      body = `<p class="note">${t('test.workshopNote')}</p><div class="h-tcards">${rows('level', tools.levels())}</div>`;
+    } else body = `<div class="h-tcards">${rows('card', tools.cards())}</div>`;
+    const tab = (id: ToolTab, label: string) => `<button type="button" class="${this.toolTab === id ? 'on' : ''}" data-act="ttab" data-tab="${id}" aria-pressed="${this.toolTab === id}">${label}</button>`;
     return (
       `<div class="h-tools"><span class="h-label">${t('test.title')}</span><p class="note">${t('test.note')}</p>` +
       `<div class="h-twave"><div class="now">${t('test.now', { n: tools.wave() })}${this.toolQueued ? ` · <b>${t('test.queued', { n: this.toolQueued })}</b>` : ''}</div>` +
@@ -326,7 +381,9 @@ export class WeaponPicker {
       `<div class="row chips">${quick}</div>` +
       `<button type="button" class="h-tcheck${this.toolClear ? ' on' : ''}" data-act="tclear" aria-pressed="${this.toolClear}"><i></i>${t('test.clear')}</button>` +
       `<button type="button" class="h-tgo" data-act="twave">${t('test.wave', { n: target })}</button></div>` +
-      `<span class="h-label">${t('test.cards')}</span><div class="h-tcards">${cards}</div></div>`
+      `<div class="h-ttabs">${tab('cards', t('test.cards'))}${tab('crates', t('test.crates'))}${tab('workshop', t('test.workshop'))}</div>` +
+      body +
+      `</div>`
     );
   }
 

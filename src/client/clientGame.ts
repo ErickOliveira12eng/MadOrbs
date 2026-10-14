@@ -90,8 +90,8 @@ import { weaponInfo } from './hud/weaponInfo';
 import type { RoomView } from './hud/weaponPicker';
 import { WavesRun, type WavesEnd } from './wavesRun';
 import { cardDef, type CardID } from './wavesCards';
-import { POWERS, WAVES, type PowerKind } from './waves';
-import type { Levels } from './wavesProgress';
+import { POWERS, WAVES, type PermKind, type PowerKind } from './waves';
+import type { Levels, UpgradeID } from './wavesProgress';
 import { ViewOverlay, scopeAlpha } from './ui/viewOverlay';
 import { VIEW_ASPECT, fitView, type ViewRect } from './view';
 import { modeName, modeOfGameType, teamName } from './modes';
@@ -434,9 +434,16 @@ export class ClientGame {
     this.hud.picker.tools = this.opts.testTools
       ? {
           wave: () => run.waveNumber,
-          cards: () => run.cardLevels().map((c) => ({ ...c, name: t(`card.${c.id}`), rarity: cardDef(c.id).rarity })),
-          setCard: (id, level) => run.setCard(id as CardID, level),
           goToWave: (n, clear) => run.goToWave(n, clear),
+          cards: () => run.cardLevels().map((c) => ({ ...c, name: t(`card.${c.id}`), tone: cardDef(c.id).rarity })),
+          setCard: (id, level) => run.setCard(id as CardID, level),
+          perms: () => run.permLevels().map((p) => ({ ...p, name: t(`power.${p.id}`) })),
+          setPerm: (id, level) => run.setPerm(id as PermKind, level),
+          powers: () =>
+            (Object.keys(POWERS) as PowerKind[]).filter((k) => !POWERS[k].perm).map((k) => ({ id: k, name: t(`power.${k}`), color: POWERS[k].color })),
+          takePower: (id) => run.testPower(id as PowerKind),
+          levels: () => run.workshopLevels().map((u) => ({ ...u, name: t(`up.${u.id}`) })),
+          setLevel: (id, level) => run.setWorkshopLevel(id as UpgradeID, level),
         }
       : null;
     this.hud.picker.hide();

@@ -40,8 +40,9 @@ export const CARDS: CardDef[] = [
 const RARITY_WEIGHT: Record<Rarity, number> = { common: 70, epic: 25, legendary: 8 };
 
 /**
- * What a card does at a level (1..max): Double shot, chance of a second volley right after; Parallel,
- * the side volley's share of the damage; Fan, the two diagonal volleys' share; Pierce, enemies a bullet
+ * What a card does at a level (1..max): Double shot, chance of a second volley right after (more on one
+ * target); Parallel, the share of the damage of its two volleys, one on each side opening a little (the
+ * enemies beside the target); Fan, the two diagonal volleys' share; Pierce, enemies a bullet
  * goes through; Critical, chance of double damage; Vampire, life back per kill; Rage, extra damage at
  * no life left (it grows as the life goes down); Dodge, chance a hit misses; Grenadier, seconds for a
  * grenade to come back by itself; Blast, the power of the blast a kill makes (a bot's life, before its
@@ -52,7 +53,7 @@ const RARITY_WEIGHT: Record<Rarity, number> = { common: 70, epic: 25, legendary:
  */
 export const CARD_LEVELS: Record<CardID, number[]> = {
   double: [0, 0.2, 0.4, 0.6, 0.8, 1],
-  parallel: [0, 0.5, 0.6, 0.7, 0.85, 1],
+  parallel: [0, 0.35, 0.45, 0.55, 0.65, 0.75],
   fan: [0, 0.3, 0.4, 0.5, 0.6, 0.7],
   pierce: [0, 1, 2, 3, 4, 5],
   crit: [0, 0.06, 0.12, 0.18, 0.24, 0.3],

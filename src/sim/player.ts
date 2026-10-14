@@ -79,8 +79,13 @@ const DASH_TOP = 3;
 /** The waves' recharging shield: seconds without a hit before it comes back, and seconds to fill up again. */
 const BARRIER_WAIT = 4;
 const BARRIER_REFILL = 2;
-/** The waves' Parallel shot card: how far beside the shot its volley starts (cells; 0.3 until 13/10/2026: too far). */
-const PARALLEL_OFFSET = 0.12;
+/**
+ * The waves' Parallel shot card: its two volleys, one on each side, start this far beside the shot (cells) and
+ * open by this angle (degrees), to reach the orbs beside the one aimed at: half a cell away and more from 4
+ * cells off (13/10/2026: the Double shot is for one target, the Parallel for several at once).
+ */
+const PARALLEL_OFFSET = 0.18;
+const PARALLEL_SPREAD = 5;
 
 /** The waves' poison and ice shots: how long a hit poisons, and how long it slows. */
 const POISON_SECONDS = 3;
@@ -179,6 +184,8 @@ export class Player {
   shotScale = 1;
   /** A volley of the waves' cards is being fired now: its shots are drawn in gold (the 'shoot' event's `card`). */
   cardShot = false;
+  /** The Parallel card's volleys fly without a spread of their own: they open exactly PARALLEL_SPREAD. */
+  cardSteady = false;
   /**
    * The waves' allies (the Shadow card, the Necromancer's risen): their own side walks and shoots through
    * them, and they through it (Game.performPlayerCollisions, Game.passesThrough).
@@ -942,7 +949,12 @@ export class Player {
       this.cardShot = false;
       this.shotScale = 1;
     };
-    if (this.parallelShot > 0) volley(origin.add(new Vec3(-direction.y, direction.x, 0).mul(PARALLEL_OFFSET)), direction, this.parallelShot);
+    if (this.parallelShot > 0) {
+      const left = new Vec3(-direction.y, direction.x, 0);
+      this.cardSteady = true;
+      for (const side of [-1, 1]) volley(origin.add(left.mul(PARALLEL_OFFSET * side)), rotateAboutAxis(direction, PARALLEL_SPREAD * side, Z_AXIS), this.parallelShot);
+      this.cardSteady = false;
+    }
     if (this.fanShot > 0) for (const a of [-22, 22]) volley(origin, rotateAboutAxis(direction, a, Z_AXIS), this.fanShot);
     if (mayRepeat && this.extraShotChance > 0 && this.extraShotIn <= 0 && Math.random() < this.extraShotChance) this.extraShotIn = 0.09;
   }

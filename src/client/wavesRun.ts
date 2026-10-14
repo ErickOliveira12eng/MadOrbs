@@ -12,7 +12,7 @@ import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SILVER_LIFE, cardDef, rollCards, type CardID, type CardLevels } from './wavesCards';
-import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
+import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
 export interface WavesHud {
@@ -145,7 +145,7 @@ export class WavesRun {
   private wasAlive = false;
   private windLeft: number;
   /** The run's limit on each permanent power-up (the Workshop), the abilities' cooldowns left. */
-  private readonly permCap: number;
+  private permCap: number;
   private dashWait = 0;
   private shockWait = 0;
   /** The cards taken, the offer waiting for a choice (null: none), the kills already paid by Vampire, the Grenadier's clock. */
@@ -606,6 +606,62 @@ export class WavesRun {
     // Fewer allies: the extra ones go; more: they come now
     for (const p of this.allies.splice(CARD_LEVELS.shadow[lv])) this.remove(p);
     this.reviveAllies();
+  }
+
+  /** The crates' permanent power-ups of this run, with the Workshop's limit (the testers' tools). */
+  permLevels(): { id: PermKind; level: number; max: number }[] {
+    return PERM_KINDS.map((k) => ({ id: k, level: this.perms[k], max: this.permCap }));
+  }
+
+  /** The testers' tools: a crate's permanent power-up at a level (up to the limit). */
+  setPerm(kind: PermKind, level: number): void {
+    this.tested = true;
+    this.perms[kind] = Math.max(0, Math.min(this.permCap, Math.round(level)));
+  }
+
+  /** The testers' tools: a crate's power-up taken now (the timed ones for their seconds, a life, a bomb...). */
+  testPower(kind: PowerKind): void {
+    this.tested = true;
+    this.take(kind);
+  }
+
+  /** The Workshop's levels in this run (the testers' tools). */
+  workshopLevels(): { id: UpgradeID; level: number; max: number }[] {
+    return UPGRADES.map((u) => ({ id: u.id, level: this.ctx.levels[u.id], max: u.costs.length }));
+  }
+
+  /**
+   * The testers' tools: a Workshop upgrade at a level for this run only (what was bought stays as it was),
+   * applied now, also what a run only sets when it begins (the shield, the second wind, the bag, the limit, the lives).
+   */
+  setWorkshopLevel(id: UpgradeID, level: number): void {
+    this.tested = true;
+    const u = UPGRADES.find((x) => x.id === id);
+    if (!u) return;
+    const lv = Math.max(0, Math.min(u.costs.length, Math.round(level)));
+    const before = this.ctx.levels[id];
+    this.ctx.levels[id] = lv;
+    const me = this.ctx.me;
+    switch (id) {
+      case 'barrier':
+        me.barrierMax = BARRIER_SIZE[lv];
+        me.barrier = me.barrierMax;
+        break;
+      case 'secondWind':
+        me.secondWind = this.windLeft = lv;
+        break;
+      case 'grenades':
+        me.maxGrenades = Math.max(3, 2 + lv);
+        me.nbGrenadeLeft = Math.min(me.nbGrenadeLeft, me.maxGrenades);
+        break;
+      case 'cap':
+        this.permCap = PERM_CAP_BASE + PERM_CAP_STEP * lv;
+        for (const k of PERM_KINDS) this.perms[k] = Math.min(this.perms[k], this.permCap);
+        break;
+      case 'lives':
+        me.lives = Math.max(0, me.lives + lv - before);
+        break;
+    }
   }
 
   /**
