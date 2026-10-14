@@ -1013,11 +1013,15 @@ export class Effects {
 
   /**
    * Projectile::update, PROJECTILE_ROCKET on clients: one smoke particle per tick.
-   * Team coloured in TDM/CTF (team = owner's teamID, null if the owner is gone).
+   * Team coloured in TDM/CTF (team = owner's teamID, null if the owner is gone); `gold`: the waves' card
+   * rockets (the missile rain, the bazooka's extra rockets).
    */
-  rocketSmoke(position: Vec3, gameType: number, team: number | null): void {
+  rocketSmoke(position: Vec3, gameType: number, team: number | null, gold = false): void {
     let c1 = 1, c2 = 1, c3 = 1;
-    if ((gameType === GAME_TYPE_TDM || gameType === GAME_TYPE_CTF) && team !== null) {
+    if (gold) {
+      c2 = 0.78;
+      c3 = 0.2;
+    } else if ((gameType === GAME_TYPE_TDM || gameType === GAME_TYPE_CTF) && team !== null) {
       if (team === PLAYER_TEAM_BLUE) {
         c3 = 1;
         c1 = c2 = 0.25;

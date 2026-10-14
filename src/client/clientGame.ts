@@ -382,7 +382,7 @@ export class ClientGame {
         audio.play(this.sounds.equip, 200);
       },
       onBomb: (position) => this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 4),
-      onCards: (offer) => {
+      onCards: (offer, afterWave) => {
         // The cards in the middle of the screen, with the system's cursor (and a banner under them)
         this.input.exitPointerLock();
         this.renderer.domElement.style.cursor = 'auto';
@@ -390,11 +390,14 @@ export class ClientGame {
         this.hud.showCards(
           offer.map((id) => ({ id, level: this.waves?.cardLevel(id) ?? 0 })),
           (i) => {
-            this.waves?.pick(i);
             this.hud.hideCards();
+            // The pick may bring the next offer (the boss's and wave 15's at once)
+            this.waves?.pick(i);
+            if (this.waves?.choosing) return;
             this.renderer.domElement.style.cursor = 'none';
             this.input.requestPointerLock();
           },
+          afterWave,
         );
       },
       onKillBlast: (position, radius) => {
@@ -1362,7 +1365,8 @@ export class ClientGame {
       const owner = game.players[p.fromID];
       switch (p.projectileType) {
         case PROJECTILE_ROCKET:
-          this.effects.rocketSmoke(pos, game.gameType, owner ? owner.teamID : null);
+          // The waves' card rockets leave a gold trail
+          this.effects.rocketSmoke(pos, game.gameType, owner ? owner.teamID : null, p.rain);
           break;
         case PROJECTILE_GRENADE:
           this.effects.grenadeTrail(pos, game.gameType, owner ? owner.teamID : null);

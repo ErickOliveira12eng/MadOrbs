@@ -79,6 +79,8 @@ export const RICOCHET_KEEP = 0.7;
 /** Missiles: seconds between two volleys, how far from the player they look for targets. */
 export const MISSILE_EVERY = 15;
 export const MISSILE_RANGE = 14;
+/** Missiles: the least room between two of a volley's landing spots (cells). */
+export const MISSILE_GAP = 1.3;
 /** Reflector: seconds between the end of a shield and the next one. */
 export const REFLECT_EVERY = 10;
 /**
@@ -128,10 +130,11 @@ export function cardValue(id: CardID, level: number): string {
 
 /**
  * Three different cards for wave n: by the rarities' weights, none at its top level, no legendary
- * before its wave. Fewer when fewer are left.
+ * before its wave; `commonOnly`: the commons only (after waves 5, 15, 25...: the boss's offer has them all).
+ * Fewer when fewer are left.
  */
-export function rollCards(n: number, owned: CardLevels, count = 3): CardID[] {
-  const pool = CARDS.filter((c) => (owned[c.id] ?? 0) < c.max && n >= (c.from ?? 0));
+export function rollCards(n: number, owned: CardLevels, count = 3, commonOnly = false): CardID[] {
+  const pool = CARDS.filter((c) => (owned[c.id] ?? 0) < c.max && n >= (c.from ?? 0) && (!commonOnly || c.rarity === 'common'));
   const out: CardID[] = [];
   while (out.length < count && pool.length) {
     let r = Math.random() * pool.reduce((s, c) => s + RARITY_WEIGHT[c.rarity], 0);

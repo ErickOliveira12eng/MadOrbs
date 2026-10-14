@@ -674,11 +674,11 @@ export class HudLayer {
   private cardKeys: ((ev: KeyboardEvent) => void) | null = null;
 
   /**
-   * The boss fell (the waves): three cards in the middle of the screen, the game stopped, the banner
-   * under them and the system's cursor. A click or the keys 1, 2, 3 take one (after a moment: the shot
-   * that killed the boss must not pick a card by itself).
+   * The boss fell, or wave 5, 15, 25... ended (`wave`: the commons only) (the waves): three cards in the
+   * middle of the screen, the game stopped, the banner under them and the system's cursor. A click or the
+   * keys 1, 2, 3 take one (after a moment: the shot that killed the boss must not pick a card by itself).
    */
-  showCards(offer: { id: CardID; level: number }[], onPick: (i: number) => void): void {
+  showCards(offer: { id: CardID; level: number }[], onPick: (i: number) => void, wave?: number): void {
     const cards = offer
       .map(({ id, level }, i) => {
         const def = cardDef(id);
@@ -693,7 +693,8 @@ export class HudLayer {
         );
       })
       .join('');
-    setHTML(this.r.campcard, `<div class="t">${t('cards.title')}</div><div class="lvl">${t('cards.sub')}</div><div class="h-cards">${cards}</div>`);
+    const sub = wave === undefined ? t('cards.sub') : t('cards.subWave', { n: wave });
+    setHTML(this.r.campcard, `<div class="t">${t('cards.title')}</div><div class="lvl">${sub}</div><div class="h-cards">${cards}</div>`);
     this.r.campcard.classList.remove('waves');
     this.r.campcard.classList.add('cards');
     this.r.campend.classList.remove('preload');

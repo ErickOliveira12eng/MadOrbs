@@ -11,7 +11,7 @@ import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
-import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, cardDef, rollCards, type CardID, type CardLevels } from './wavesCards';
+import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, cardDef, rollCards, type CardID, type CardLevels } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
@@ -96,8 +96,11 @@ export interface WavesContext {
   onBomb: (position: Vec3) => void;
   /** The Workshop's second wind saved the player. */
   onSecondWind: () => void;
-  /** The boss fell: three cards to choose from (the game waits for WavesRun.pick). */
-  onCards: (offer: CardID[]) => void;
+  /**
+   * Three cards to choose from (the game waits for WavesRun.pick): the boss fell, or wave `afterWave`
+   * (5, 15, 25...) ended (the commons only).
+   */
+  onCards: (offer: CardID[], afterWave?: number) => void;
   /** The Blast card: a kill's blast went off there, this far (drawn light, a few a second at most). */
   onKillBlast: (position: Vec3, radius: number) => void;
   /** The Shadow card's allies' name, the Necromancer's risen enemies' one. */
@@ -151,6 +154,9 @@ export class WavesRun {
   /** The cards taken, the offer waiting for a choice (null: none), the kills already paid by Vampire, the Grenadier's clock. */
   private readonly cards: CardLevels = {};
   private offer: CardID[] | null = null;
+  /** The last wave (5, 15, 25...) whose common cards were offered; one whose cards wait for the offer on screen (0: none). */
+  private commonCardsAt = 0;
+  private owedCards = 0;
   private killsSeen = 0;
   private grenadeClock = 0;
   /** The Blast card: enemies a blast killed (their own death makes no blast: no chain); the Missiles card's clock. */
@@ -226,13 +232,8 @@ export class WavesRun {
     const bossUp = !!this.boss?.isAlive;
     if (this.bossUp && !bossUp && this.boss && this.boss.lives <= 0) {
       this.bosses++;
-      // The boss fell: three cards, the game waits for the choice
-      const offer = rollCards(this.wave, this.cards);
-      if (offer.length) {
-        this.offer = offer;
-        track('waves_cards', { wave: this.wave, offer: offer.join(',') });
-        this.ctx.onCards(offer);
-      }
+      // The boss fell: three cards of every rarity, the game waits for the choice
+      this.offerCards();
     }
     this.bossUp = bossUp;
     // Out of lives: the end
@@ -342,7 +343,32 @@ export class WavesRun {
 
   // ---------------------------------------------------------------- waves
 
+  /**
+   * Three cards to choose from, the game waiting: of every rarity when the boss falls, the commons only
+   * after wave `afterWave` (5, 15, 25...: Erick, 13/10/2026, a choice every 5 waves).
+   */
+  private offerCards(afterWave?: number): void {
+    const offer = rollCards(this.wave, this.cards, 3, afterWave !== undefined);
+    if (!offer.length) return;
+    this.offer = offer;
+    track('waves_cards', { wave: this.wave, offer: offer.join(','), boss: afterWave === undefined });
+    this.ctx.onCards(offer, afterWave);
+  }
+
+  /**
+   * Waves 5, 15, 25...: their common cards once the wave is over (cleared, or its time up), once; after
+   * the boss's if both come at the same moment (a late boss falling as the last enemy of wave 15).
+   */
+  private commonCardsAfter(n: number): void {
+    if (n % 10 !== 5 || this.commonCardsAt >= n) return;
+    this.commonCardsAt = n;
+    if (this.offer) this.owedCards = n;
+    else this.offerCards(n);
+  }
+
   private startWave(): void {
+    // The wave that ends on its time: its cards (waves 5, 15, 25...) if it wasn't cleared
+    this.commonCardsAfter(this.wave);
     // The bots (and the boss) the last wave still had to send come too
     const carried = this.pending;
     const bossLate = this.bossPending;
@@ -392,6 +418,7 @@ export class WavesRun {
       const me = this.ctx.me;
       if (me.isAlive) me.life = Math.min(1, me.life + BREATHER[this.ctx.levels.breather]);
       this.ctx.onCleared(this.wave);
+      this.commonCardsAfter(this.wave);
     }
   }
 
@@ -580,7 +607,7 @@ export class WavesRun {
     return this.cards[id] ?? 0;
   }
 
-  /** The player took card `i` of the offer: one level more, and the run goes on. */
+  /** The player took card `i` of the offer: one level more, and the run goes on (or the next offer comes). */
   pick(i: number): void {
     const id = this.offer?.[i];
     if (!id) return;
@@ -588,6 +615,11 @@ export class WavesRun {
     this.offer = null;
     track('waves_card', { card: id, level: this.cards[id]!, wave: this.wave });
     if (id === 'shadow') this.reviveAllies();
+    if (this.owedCards) {
+      const n = this.owedCards;
+      this.owedCards = 0;
+      this.offerCards(n);
+    }
   }
 
   // ---------------------------------------------------------------- the testers' tools
@@ -679,6 +711,9 @@ export class WavesRun {
       this.bossPending = false;
     }
     this.wave = Math.max(0, Math.round(n) - 1);
+    // A jump gives no cards for the wave before it (and the waves after it give theirs again)
+    this.commonCardsAt = this.wave;
+    this.owedCards = 0;
     this.phase = 'break';
     this.breakLeft = 0;
   }
@@ -712,8 +747,9 @@ export class WavesRun {
   }
 
   /**
-   * The Missiles card: `n` bazooka rockets falling from the sky at an angle on enemies around the player
-   * (MISSILE_RANGE; the nearest first, the same one twice when there are few), their blast sparing him.
+   * The Missiles card: `n` bazooka rockets falling from the sky at an angle around the player (MISSILE_RANGE),
+   * their blast sparing him. Spread out (13/10/2026, they all fell on the same spot): one on each enemy around
+   * first, then on the floor around them, never two closer than MISSILE_GAP.
    */
   private missiles(n: number): void {
     const { game, me } = this.ctx;
@@ -726,9 +762,22 @@ export class WavesRun {
       this.missileClock = MISSILE_EVERY - 2;
       return;
     }
-    for (let i = 0; i < n; i++) {
-      const target = targets[i % targets.length].currentCF.position;
-      const to = new Vec3(target.x + (Math.random() - 0.5) * 0.6, target.y + (Math.random() - 0.5) * 0.6, 0);
+    const points: Vec3[] = [];
+    const apart = (x: number, y: number) => points.every((q) => Math.hypot(q.x - x, q.y - y) >= MISSILE_GAP);
+    for (const t of targets) {
+      const p = t.currentCF.position;
+      if (points.length < n && apart(p.x, p.y)) points.push(new Vec3(p.x, p.y, 0));
+    }
+    for (let tries = 0; points.length < n && tries < n * 12; tries++) {
+      const c = targets[tries % targets.length].currentCF.position;
+      const a = Math.random() * Math.PI * 2;
+      const r = 1 + Math.random() * 1.6;
+      const x = c.x + Math.cos(a) * r;
+      const y = c.y + Math.sin(a) * r;
+      if (game.map.cellAt(Math.floor(x), Math.floor(y))?.passable && apart(x, y)) points.push(new Vec3(x, y, 0));
+    }
+    for (let i = 0; i < points.length; i++) {
+      const to = points[i];
       const from = new Vec3(to.x - 2.5 + Math.random(), to.y + 2.5 + Math.random(), 7 + i * 0.6);
       if (!game.spawnProjectile(from, to.sub(from).normalizeIn().mul(4), me.playerID, PROJECTILE_ROCKET, WEAPON_BAZOOKA)) continue;
       game.projectiles[game.projectiles.length - 1].rain = true;

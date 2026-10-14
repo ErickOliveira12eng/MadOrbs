@@ -871,14 +871,18 @@ export class Game {
 
   /** Bookkeeping of every shot, wherever it is traced (start of Game::shootSV). */
   private beforeShot(from: Player): void {
+    // The waves' card volleys are part of the shot they follow: they count nothing of their own (each one
+    // added a whole fire delay: the flame thrower's flame shrank in no time)
+    if (from.cardShot) return;
     const weapon = from.weapon!;
     const id = weapon.weaponID;
     if (id === WEAPON_SHOTGUN || id === WEAPON_SNIPER) {
       if (id === WEAPON_SNIPER) weapon.nbShot = from.input.camPosZ >= 10 ? 3 : 2;
       from.mfElapsedSinceLastShot = 0;
     } else {
-      // Used to track how long an automatic weapon has been firing (flame thrower range)
-      if (from.mfElapsedSinceLastShot < weapon.fireDelay + 0.05) from.secondsFired += weapon.fireDelay;
+      // Used to track how long an automatic weapon has been firing (flame thrower range): the time really
+      // held, so a faster fire (the waves' power-ups) doesn't shrink the flame faster
+      if (from.mfElapsedSinceLastShot < weapon.fireDelay + 0.05) from.secondsFired += weapon.fireDelay / from.fireBoost;
       else from.secondsFired = 0;
       from.mfElapsedSinceLastShot = 0;
     }
@@ -1064,14 +1068,16 @@ export class Game {
   /** Damage, knockback and the shot event of one bullet. */
   private applyBullet(player: Player, weaponID: number, nuzzleID: number, b: Bullet): void {
     if (weaponID === WEAPON_PHOTON_RIFLE || weaponID === WEAPON_FLAME_THROWER) {
-      if (weaponID === WEAPON_PHOTON_RIFLE) {
+      // The beam that keeps hurting for 30 frames is the aimed one's: the waves' card volleys moved it onto
+      // theirs (a side beam), and where the player aimed it stopped hurting at once
+      if (weaponID === WEAPON_PHOTON_RIFLE && !player.cardShot) {
         player.p1.copy(b.p1);
         player.p2.copy(b.p2);
         player.incShot = 30;
       }
       for (const other of b.hits) other.hitSV(weaponID, player, weaponDefs[weaponID].damage);
       for (const crate of b.crates ?? []) this.hitCrate(crate, weaponDefs[weaponID].damage * player.damageBoost, player);
-      this.events.push({ type: 'shoot', playerID: player.playerID, weaponID, nuzzleID, p1: b.p1.clone(), p2: b.p2.clone(), normal: b.normal.clone(), hitPlayerID: -1 });
+      this.events.push({ type: 'shoot', playerID: player.playerID, weaponID, nuzzleID, p1: b.p1.clone(), p2: b.p2.clone(), normal: b.normal.clone(), hitPlayerID: -1, ...(player.cardShot ? { card: true } : {}) });
       return;
     }
     if (b.crates?.length) this.hitCrate(b.crates[0], this.bulletDamage(weaponID) * player.damageBoost * player.shotScale, player);
