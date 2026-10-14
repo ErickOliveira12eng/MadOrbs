@@ -11,7 +11,7 @@ import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
-import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SILVER_LIFE, cardDef, rollCards, type CardID, type CardLevels } from './wavesCards';
+import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, cardDef, rollCards, type CardID, type CardLevels } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
@@ -304,7 +304,8 @@ export class WavesRun {
       r.left -= TICK;
       if (r.left <= 0) this.vanish(r.p);
     }
-    // Shadow: a fallen ally comes back a few seconds later (not only at the next wave)
+    // Shadow: the allies follow the player's strength; a fallen one comes back a few seconds later
+    for (const p of this.allies) if (p.isAlive) this.allyStrength(p);
     if (this.allies.some((p) => !p.isAlive) && me.isAlive && this.phase === 'fight') {
       this.allyClock += TICK;
       if (this.allyClock >= SHADOW_ALLY.respawn) {
@@ -763,6 +764,8 @@ export class WavesRun {
       if (!p) return;
       p.teamID = PLAYER_TEAM_BLUE;
       p.ghost = true;
+      // The enemy's Orb, in a ghostly green (not the player's blue)
+      p.teamTint = UNDEAD_TINT;
       p.takesLifePacks = false;
       p.lifePackChance = 0;
       p.grenadeDropChance = 0;
@@ -810,6 +813,17 @@ export class WavesRun {
     p.lastCF.position.copy(p.currentCF.position);
   }
 
+  /**
+   * A Shadow ally's strength, from the player's as it is now (his armour, the Workshop's, the run's power-ups):
+   * it takes SHADOW_ALLY.takes of the damage he takes and deals SHADOW_ALLY.deals of his. Never stronger than him.
+   */
+  private allyStrength(p: Player): void {
+    const me = this.ctx.me;
+    p.damageScale = me.damageScale * me.armorBoost * SHADOW_ALLY.takes;
+    p.armorBoost = 1;
+    p.damageBoost = me.damageBoost * SHADOW_ALLY.deals;
+  }
+
   /** The Shadow card: as many allies as its level, the fallen ones back beside the player. */
   private reviveAllies(): void {
     const { game, me, bots } = this.ctx;
@@ -820,7 +834,11 @@ export class WavesRun {
       p.teamID = PLAYER_TEAM_BLUE;
       // The player walks and shoots through them (they bumped him and took his bullets)
       p.ghost = true;
-      p.skin = me.skin;
+      // Not his Orb nor his blue: an Orb of their own, in a light cyan blue (he lost himself among them);
+      // never the eye, the bosses' Orb
+      do p.skin = this.ctx.randomSkin();
+      while (p.skin.skin === 'skin14');
+      p.teamTint = SHADOW_TINT;
       p.takesLifePacks = false;
       p.lifePackChance = 0;
       p.grenadeDropChance = 0;
@@ -832,11 +850,10 @@ export class WavesRun {
       p.lives = 1;
       p.spawnRequested = false;
       p.timeToSpawn = 0;
-      // Tougher and harder hitting than the wave's enemies (they face many at once), keeping up with the waves
-      p.damageScale = this.spec.toughness * SHADOW_ALLY.tough;
-      p.damageBoost = this.spec.hitBoost * SHADOW_ALLY.hit;
+      // As strong as the player, a little less (kept so every tick: allyStrength)
+      this.allyStrength(p);
       p.speedBoost = 1;
-      const bot = new BotController(p, Math.min(1, this.spec.skill + SHADOW_ALLY.skill), { primary: this.ctx.startWeapon, secondary: WEAPON_KNIVES });
+      const bot = new BotController(p, Math.min(1, Math.max(SHADOW_ALLY.skill, this.spec.skill + 0.1)), { primary: this.ctx.startWeapon, secondary: WEAPON_KNIVES });
       bot.escort = me;
       bot.escortSide = k % 2 === 0 ? 1 : -1;
       // Off to fight whoever is in sight near the player, a step away from him otherwise

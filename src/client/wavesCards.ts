@@ -4,6 +4,7 @@
 // the legendaries 3 too, offered from wave 40 only (missiles falling, the silver bullet, the necromancer).
 // What each level does lives here; WavesRun applies it to the player (src/sim/player.ts: extra volleys,
 // piercing, criticals, dodging, the reflector) and the HUD shows the cards.
+import type { SkinInfo } from '../sim/player';
 
 export type CardID = 'double' | 'parallel' | 'fan' | 'pierce' | 'crit' | 'vampire' | 'rage' | 'dodge' | 'grenadier' | 'blast' | 'ricochet' | 'missiles' | 'shadow' | 'reflect' | 'silver' | 'necro';
 export type Rarity = 'common' | 'epic' | 'legendary';
@@ -86,11 +87,19 @@ export const REFLECT_EVERY = 10;
  */
 export const SILVER_LIFE = 1.05;
 /**
- * Shadow: the allies against the wave's enemies (12/10/2026, they were too weak and in the way): the share of
- * the damage they take, how much harder they hit, the skill they add, the seconds a fallen one takes to come
- * back, how far from the player they go to fight, and the room they keep beside him.
+ * Shadow: the allies, as strong as the player but a little less, never more (13/10/2026, Erick: too weak,
+ * then "a bit stronger, never more than me"): the damage they take against what he takes (his armour and
+ * the Workshop's included), the damage they deal against his, their aim (a bot's skill: at least this, more
+ * when the wave's bots have more), the seconds a fallen one takes to come back, how far from the player they
+ * go to fight, and the room they keep beside him. They take none of his other upgrades.
  */
-export const SHADOW_ALLY = { tough: 0.5, hit: 1.5, skill: 0.25, respawn: 8, slack: 4.5, gap: 0.8 };
+export const SHADOW_ALLY = { takes: 1.15, deals: 0.9, skill: 0.8, respawn: 8, slack: 4.5, gap: 0.8 };
+/**
+ * The allies' colours in place of the blue team's (Player.teamTint; 13/10/2026: the same blue as the player,
+ * he lost himself among them): the Shadow's a light cyan blue, the Necromancer's risen a ghostly green.
+ */
+export const SHADOW_TINT: Omit<SkinInfo, 'skin'> = { redDecal: [0.7, 1, 1], greenDecal: [0, 0.8, 0.95], blueDecal: [0, 0.32, 0.45] };
+export const UNDEAD_TINT: Omit<SkinInfo, 'skin'> = { redDecal: [0.75, 1, 0.75], greenDecal: [0.2, 0.8, 0.35], blueDecal: [0.05, 0.3, 0.12] };
 /** Necromancer: seconds a risen enemy fights for the player, and how many at once, by level. */
 export const NECRO_TIME = 10;
 export const NECRO_MAX = [0, 3, 4, 5];

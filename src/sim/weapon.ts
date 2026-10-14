@@ -3,6 +3,7 @@ import {
   SOUND_OVERHEAT,
   SOUND_PHOTON_START,
   PROJECTILE_DIRECT,
+  PROJECTILE_ROCKET,
   PROJECTILE_NONE,
   WEAPON_BAZOOKA,
   WEAPON_CHAIN_GUN,
@@ -157,8 +158,10 @@ export class Weapon {
         // A grenade or molotov lands where the mouse is, up to its full throw (throwPower)
         const power = throwPower(this.projectileType, origin, owner.currentCF.mousePosOnMap);
         game.shoot(origin, power < 1 ? direction.mul(power) : direction, 0, this.damage, owner, this.projectileType);
-        // The waves' cards: more volleys of a direct shot (offline only: the fields are zero elsewhere)
+        // The waves' cards: more volleys of a direct shot (offline only: the fields are zero elsewhere), and
+        // smaller rockets beside a rocket really launched (not a remote detonation: its clock starts again)
         if (this.projectileType === PROJECTILE_DIRECT && game.mode === 'local') owner.cardVolleys(origin, direction);
+        if (this.projectileType === PROJECTILE_ROCKET && game.mode === 'local' && owner.mfElapsedSinceLastShot === 0) owner.cardRockets(origin, direction);
       }
     }
   }

@@ -60,6 +60,8 @@ class ProjectileVisual {
   private prev = new Vec3();
   private cur = new Vec3();
   private type: number;
+  /** Projectile.size: the waves' smaller card rockets. */
+  private size = 1;
 
   constructor(p: Projectile, scene: THREE.Object3D) {
     this.type = p.projectileType;
@@ -67,8 +69,10 @@ class ProjectileVisual {
     this.cur.copy(p.currentCF.position);
     const shotGlow = getTexture(TEXTURES.shotGlow);
 
+    // The bazooka's extra rockets of the waves' cards: smaller, with a gold glow
+    this.size = p.size;
     if (this.type === PROJECTILE_ROCKET || this.type === PROJECTILE_COCKTAIL_MOLOTOV) {
-      this.glowMat = additive(shotGlow, 0xffffff, false);
+      this.glowMat = additive(shotGlow, p.size < 1 ? 0xffc040 : 0xffffff, false);
       this.glow = new THREE.Mesh(glow25, this.glowMat);
       this.glow.renderOrder = 7;
       this.root.add(this.glow);
@@ -109,7 +113,7 @@ class ProjectileVisual {
     if (modelPath) {
       this.model = createDkoObject3D(getModel(modelPath), 0);
       this.modelHolder.add(this.model);
-      this.modelHolder.scale.setScalar(scale);
+      this.modelHolder.scale.setScalar(scale * this.size);
       this.root.add(this.modelHolder);
     }
     if (this.type !== PROJECTILE_FLAME) {
@@ -143,7 +147,7 @@ class ProjectileVisual {
       this.flame.rotation.set(0, 0, 0);
       this.flame.rotateZ((cf.angle * Math.PI) / 180);
       this.flame.rotateY((randRange(0, 360) * Math.PI) / 180);
-      this.flame.scale.setScalar(0.5);
+      this.flame.scale.setScalar(0.5 * this.size);
     }
     if (this.shadow) this.shadow.position.set(x + 0.1, y - 0.1, 0.025);
 

@@ -1157,13 +1157,15 @@ export class Game {
     return null;
   }
 
-  /** Game::radiusHit — damage falls off with the distance, walls protect. */
-  /** `spareID`: a player the blast leaves alone (the waves' missiles spare the one who called them). */
-  radiusHit(pos: Vec3, radius: number, fromID: number, weaponID: number, sameDmg = false, spareID = -1): void {
+  /**
+   * Game::radiusHit — damage falls off with the distance, walls protect. `spareID`: a player the blast leaves
+   * alone (the waves' card rockets spare their owner); `share`: of the damage (the bazooka's extra rockets).
+   */
+  radiusHit(pos: Vec3, radius: number, fromID: number, weaponID: number, sameDmg = false, spareID = -1, share = 1): void {
     const position = pos.clone();
     const from = this.players[fromID];
     if (!from) return;
-    const weaponDamage = weaponID === WEAPON_BAZOOKA ? bazookaDamage() : weaponDefs[weaponID].damage;
+    const weaponDamage = (weaponID === WEAPON_BAZOOKA ? bazookaDamage() : weaponDefs[weaponID].damage) * share;
     for (const player of this.players) {
       if (!player) continue;
       if (player.playerID === fromID && weaponID === WEAPON_KNIVES) continue;

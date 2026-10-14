@@ -16,6 +16,7 @@ import {
   PROJECTILE_DROPED_GRENADE,
   PROJECTILE_DROPED_WEAPON,
   PROJECTILE_LIFE_PACK,
+  PROJECTILE_ROCKET,
   SERVER_TYPE_PRO,
   WEAPON_BAZOOKA,
   WEAPON_CHAIN_GUN,
@@ -86,6 +87,8 @@ const BARRIER_REFILL = 2;
  */
 const PARALLEL_OFFSET = 0.18;
 const PARALLEL_SPREAD = 5;
+/** The bazooka's extra rockets of the waves' cards: their size against a rocket's (the model and the blast). */
+const CARD_ROCKET_SIZE = 0.6;
 
 /** The waves' poison and ice shots: how long a hit poisons, and how long it slows. */
 const POISON_SECONDS = 3;
@@ -191,6 +194,11 @@ export class Player {
    * them, and they through it (Game.performPlayerCollisions, Game.passesThrough).
    */
   ghost = false;
+  /**
+   * Colours in place of the team's (displaySkin): the waves' allies, so the player tells himself from them
+   * (they were the same blue). Null: the team's.
+   */
+  teamTint: Omit<SkinInfo, 'skin'> | null = null;
   /** Seconds before the Double shot card's second volley (0: none waiting). */
   private extraShotIn = 0;
   /** Marks shown before the name over the orb (the waves' elites: 'fast', 'brute', 'sniper', 'tank'). */
@@ -286,6 +294,7 @@ export class Player {
    */
   get displaySkin(): SkinInfo {
     if (!this.game.isTeamGame) return this.skin;
+    if (this.teamTint) return { skin: this.skin.skin, ...this.teamTint };
     if (this.teamID === PLAYER_TEAM_BLUE) return { skin: this.skin.skin, ...TEAM_DECALS[PLAYER_TEAM_BLUE] };
     if (this.teamID === PLAYER_TEAM_RED) return { skin: this.skin.skin, ...TEAM_DECALS[PLAYER_TEAM_RED] };
     return this.skin;
@@ -313,10 +322,16 @@ export class Player {
         const { origin, direction } = this.weapon.firingOriginAndDirection(this);
         // Seen and heard: the second volley flashes and sounds like a shot of its own
         this.game.events.push({ type: 'fire', playerID: this.playerID, weaponID: this.weapon.weaponID, nuzzleID: this.weapon.firingNuzzle, origin: origin.clone(), direction: direction.clone(), extra: true });
-        this.cardShot = true;
-        this.game.shoot(origin, direction, 0, 0, this, PROJECTILE_DIRECT);
-        this.cardVolleys(origin, direction, false);
-        this.cardShot = false;
+        if (this.weapon.projectileType === PROJECTILE_ROCKET) {
+          // The bazooka: a second, smaller rocket (and the other cards' rockets with it)
+          this.cardRocket(origin, direction, 1);
+          this.cardRockets(origin, direction, false);
+        } else {
+          this.cardShot = true;
+          this.game.shoot(origin, direction, 0, 0, this, PROJECTILE_DIRECT);
+          this.cardVolleys(origin, direction, false);
+          this.cardShot = false;
+        }
       }
     }
     // The waves' dash and recharging shield
@@ -957,6 +972,30 @@ export class Player {
     }
     if (this.fanShot > 0) for (const a of [-22, 22]) volley(origin, rotateAboutAxis(direction, a, Z_AXIS), this.fanShot);
     if (mayRepeat && this.extraShotChance > 0 && this.extraShotIn <= 0 && Math.random() < this.extraShotChance) this.extraShotIn = 0.09;
+  }
+
+  /**
+   * The waves' cards with the bazooka (rockets, not bullets): smaller rockets (CARD_ROCKET_SIZE, blast
+   * included) at their card's share of the damage: Parallel two beside the rocket, opening a little, Fan
+   * two at an angle; and maybe a second one a moment later (Double shot, not for that one).
+   */
+  cardRockets(origin: Vec3, direction: Vec3, mayRepeat = true): void {
+    if (this.parallelShot > 0) {
+      const left = new Vec3(-direction.y, direction.x, 0);
+      for (const side of [-1, 1]) this.cardRocket(origin.add(left.mul(PARALLEL_OFFSET * side)), rotateAboutAxis(direction, PARALLEL_SPREAD * side, Z_AXIS), this.parallelShot);
+    }
+    if (this.fanShot > 0) for (const a of [-22, 22]) this.cardRocket(origin, rotateAboutAxis(direction, a, Z_AXIS), this.fanShot);
+    if (mayRepeat && this.extraShotChance > 0 && this.extraShotIn <= 0 && Math.random() < this.extraShotChance) this.extraShotIn = 0.15;
+  }
+
+  /** One of the cards' smaller rockets: not this player's rocket (no remote detonation), its blast spares him. */
+  private cardRocket(origin: Vec3, direction: Vec3, share: number): void {
+    const game = this.game;
+    if (!game.spawnProjectile(origin, direction, this.playerID, PROJECTILE_ROCKET, WEAPON_BAZOOKA)) return;
+    const p = game.projectiles[game.projectiles.length - 1];
+    p.rain = true;
+    p.size = CARD_ROCKET_SIZE;
+    p.share = share;
   }
 
   /** The waves' dash (the Workshop): a burst of speed this way, past the usual limit for a moment. */

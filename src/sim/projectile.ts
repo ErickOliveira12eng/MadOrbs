@@ -78,10 +78,13 @@ export class Projectile {
   /** Client mode: the server's copy of a projectile we predicted, kept up to date but not drawn. */
   hidden = false;
   /**
-   * A rocket of the waves' missile rain (the Missiles card): its owner's bazooka neither detonates it nor
-   * waits for it, and its blast spares the owner.
+   * A rocket of the waves' cards (the Missiles card's rain, the bazooka's extra rockets): its owner's bazooka
+   * neither detonates it nor waits for it, and its blast spares the owner.
    */
   rain = false;
+  /** The bazooka's extra rockets (the waves' cards): their size, blast included, and their share of the damage. */
+  size = 1;
+  share = 1;
 
   constructor(position: Vec3, vel: Vec3, fromID: number, projectileType: number, uniqueID: number, weaponID = 0) {
     this.fromID = fromID;
@@ -161,8 +164,8 @@ export class Projectile {
       if (!game.blastReaches(pos, hitRadius, this.fromID)) game.explosion(pos, normal, radius, playerID);
       return;
     }
-    game.explosion(pos, normal, radius, playerID);
-    game.radiusHit(pos, hitRadius, this.fromID, weaponID, false, this.rain ? this.fromID : -1);
+    game.explosion(pos, normal, radius * this.size, playerID);
+    game.radiusHit(pos, hitRadius * this.size, this.fromID, weaponID, false, this.rain ? this.fromID : -1, this.share);
   }
 
   /** Projectile::update (server logic). */
