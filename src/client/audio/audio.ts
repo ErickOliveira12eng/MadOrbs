@@ -15,12 +15,43 @@ export type SoundBus = 'sfx' | 'ambient';
 
 /**
  * A crowd of effects at once (the waves with many orbs and cards) got louder and louder until it clipped
- * (Erick, 13/10/2026): the same sound plays at most MAX_SAME_SOUND times at once and the effects at most
- * MAX_SFX together (more of them add texture, not loudness), and a limiter on the effects keeps the peaks
- * down. One sound alone stays as loud as before.
+ * (Erick, 13/10/2026). The first answer refused a sound past 6 of the same one playing and squeezed the
+ * effects with a compressor from -20 dB; but one SMG alone has 8 of its shots ringing (0.82 s of sound every
+ * 0.1 s), so the player's own fire skipped shots, and the compressor's automatic makeup gain (+4.6 dB on the
+ * quiet sounds, measured) changed the whole mix even with one sound ("bugging even with few orbs", 14/10/2026).
+ * Now:
+ *  - a new sound always plays: past MAX_SAME_SOUND of the same one (or MAX_SFX in all), the oldest fades out
+ *    in STEAL_FADE seconds (its tail, which the new shot covers anyway);
+ *  - the crowd: the effects' loudness is measured (an analyser on their sum, every CROWD_TICK seconds, its
+ *    power smoothed: up over CROWD_RISE seconds, down over CROWD_FALL, so one shot alone doesn't count) and
+ *    past CROWD_RMS (the loud moments of one SMG firing) the effects go down by (CROWD_RMS / loudness)^CROWD_EXP:
+ *    a crowd 10 dB louder plays 3 dB louder (it adds texture, and a little loudness);
+ *  - a limiter near the top (from -3 dB, ratio 20) only catches the peaks, its own makeup gain taken back.
+ * One sound alone plays as before the limits, a few orbs fighting nearly so (measured: the crowd's level stays at
+ * 1 on wave 1, with dips on its loudest moments; on wave 30 with the shot cards the effects sound ~5 dB louder
+ * than on wave 1 and peak under -2 dB).
  */
-const MAX_SAME_SOUND = 6;
-const MAX_SFX = 48;
+const MAX_SAME_SOUND = 8;
+const MAX_SFX = 64;
+const STEAL_FADE = 0.05;
+const CROWD_TICK = 0.05;
+const CROWD_RISE = 0.15;
+const CROWD_FALL = 0.6;
+const CROWD_RMS = 10 ** (-18 / 20);
+const CROWD_EXP = 0.7;
+/**
+ * The limiter's makeup gain taken back: Web Audio raises a compressor's output by (1 / full range gain)^0.6,
+ * +1.37 dB with these settings (measured with an OfflineAudioContext, 14/10/2026).
+ */
+const LIMITER_TRIM = 10 ** (-1.37 / 20);
+
+/** An effect playing (not the loops nor the ambience). */
+interface Voice {
+  sound: SoundHandle;
+  src: AudioBufferSourceNode;
+  gain: GainNode;
+  done: boolean;
+}
 
 /** A music track streamed by an <audio> element, routed into the music bus once audio is unlocked. */
 interface MusicTrack {
@@ -31,12 +62,21 @@ interface MusicTrack {
 class AudioSystem {
   private ctx: AudioContext | null = null;
   private master!: GainNode;
+  /**
+   * The effects: their sum (sfxIn, measured by sfxMeter), the crowd's level (sfxCrowd), the player's volume
+   * (sfxBus), the limiter for the peaks.
+   */
+  private sfxIn!: GainNode;
+  private sfxMeter!: AnalyserNode;
+  private meterBuf = new Float32Array(2048);
+  private sfxCrowd!: GainNode;
   private sfxBus!: GainNode;
-  /** The effects' limiter: it only acts when many play at once. */
   private sfxLimiter!: DynamicsCompressorNode;
-  /** The effects playing now: per sound, and in all (MAX_SAME_SOUND, MAX_SFX). */
-  private readonly playingNow = new Map<SoundHandle, number>();
-  private sfxNow = 0;
+  /** The effects' smoothed power, and the crowd's level now. */
+  private crowdPower = 0;
+  private crowdLevel = 1;
+  /** The effects playing now, oldest first (MAX_SAME_SOUND, MAX_SFX). */
+  private voices: Voice[] = [];
   private musicBus!: GainNode;
   /** The map's own sounds (rain, wind, lava), with their own volume. */
   private ambientBus!: GainNode;
@@ -69,14 +109,22 @@ class AudioSystem {
     this.master = this.ctx.createGain();
     this.master.gain.value = this.allOff ? 0 : this.masterVolume;
     this.master.connect(this.ctx.destination);
+    this.sfxIn = this.ctx.createGain();
+    this.sfxMeter = this.ctx.createAnalyser();
+    this.sfxMeter.fftSize = this.meterBuf.length;
+    this.sfxIn.connect(this.sfxMeter);
+    this.sfxCrowd = this.ctx.createGain();
     this.sfxBus = this.ctx.createGain();
     this.sfxLimiter = this.ctx.createDynamicsCompressor();
-    this.sfxLimiter.threshold.value = -14;
-    this.sfxLimiter.knee.value = 12;
-    this.sfxLimiter.ratio.value = 8;
-    this.sfxLimiter.attack.value = 0.003;
-    this.sfxLimiter.release.value = 0.2;
-    this.sfxBus.connect(this.sfxLimiter).connect(this.master);
+    this.sfxLimiter.threshold.value = -3;
+    this.sfxLimiter.knee.value = 2;
+    this.sfxLimiter.ratio.value = 20;
+    this.sfxLimiter.attack.value = 0.002;
+    this.sfxLimiter.release.value = 0.1;
+    const trim = this.ctx.createGain();
+    trim.gain.value = LIMITER_TRIM;
+    this.sfxIn.connect(this.sfxCrowd).connect(this.sfxBus).connect(this.sfxLimiter).connect(trim).connect(this.master);
+    window.setInterval(() => this.updateCrowd(), CROWD_TICK * 1000);
     this.musicBus = this.ctx.createGain();
     this.musicBus.connect(this.master);
     this.ambientBus = this.ctx.createGain();
@@ -117,7 +165,7 @@ class AudioSystem {
   }
 
   private bus(kind: SoundBus): GainNode {
-    return kind === 'ambient' ? this.ambientBus : this.sfxBus;
+    return kind === 'ambient' ? this.ambientBus : this.sfxIn;
   }
 
   /** Loads (and caches) a sound. Safe to call before `unlock()`; decoding happens once a context exists. */
@@ -185,33 +233,72 @@ class AudioSystem {
   }
 
   /**
-   * An effect may start (not past MAX_SAME_SOUND of the same sound nor MAX_SFX in all); counted until it
-   * ends. Loops and the ambience always play.
+   * An effect starts (loops and the ambience aren't counted): the oldest of the same sound past
+   * MAX_SAME_SOUND, then the oldest of all past MAX_SFX, fade out to make room; the crowd's level follows.
    */
-  private admit(sound: SoundHandle, src: AudioBufferSourceNode, loop: boolean, bus: SoundBus): boolean {
-    if (loop || bus !== 'sfx') return true;
-    const same = this.playingNow.get(sound) ?? 0;
-    if (same >= MAX_SAME_SOUND || this.sfxNow >= MAX_SFX) return false;
-    this.playingNow.set(sound, same + 1);
-    this.sfxNow++;
-    src.addEventListener('ended', () => {
-      this.playingNow.set(sound, Math.max(0, (this.playingNow.get(sound) ?? 1) - 1));
-      this.sfxNow = Math.max(0, this.sfxNow - 1);
-    });
-    return true;
+  private addVoice(sound: SoundHandle, src: AudioBufferSourceNode, gain: GainNode): void {
+    const now = this.ctx!.currentTime;
+    let same = 0;
+    for (const v of this.voices) if (v.sound === sound) same++;
+    if (same >= MAX_SAME_SOUND) this.release(this.voices.find((v) => v.sound === sound)!, now);
+    if (this.voices.length >= MAX_SFX) this.release(this.voices[0], now);
+    const voice: Voice = { sound, src, gain, done: false };
+    this.voices.push(voice);
+    src.addEventListener('ended', () => this.dropVoice(voice));
+  }
+
+  /** Makes room: the sound fades out in STEAL_FADE seconds and stops. */
+  private release(v: Voice, now: number): void {
+    v.gain.gain.setTargetAtTime(0, now, STEAL_FADE / 4);
+    v.src.stop(now + STEAL_FADE);
+    this.dropVoice(v);
+  }
+
+  private dropVoice(v: Voice): void {
+    if (v.done) return;
+    v.done = true;
+    const i = this.voices.indexOf(v);
+    if (i >= 0) this.voices.splice(i, 1);
+  }
+
+  /**
+   * The crowd's level for the effects' loudness, measured now: their power smoothed (up quickly, down
+   * slowly: no pumping), and past CROWD_RMS the level goes down.
+   */
+  private updateCrowd(): void {
+    const ctx = this.ctx;
+    if (!ctx || ctx.state !== 'running') return;
+    const buf = this.meterBuf;
+    this.sfxMeter.getFloatTimeDomainData(buf);
+    let sum = 0;
+    for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+    const power = sum / buf.length;
+    const tau = power > this.crowdPower ? CROWD_RISE : CROWD_FALL;
+    this.crowdPower += (power - this.crowdPower) * (1 - Math.exp(-CROWD_TICK / tau));
+    const rms = Math.sqrt(this.crowdPower);
+    const target = rms > CROWD_RMS ? (CROWD_RMS / rms) ** CROWD_EXP : 1;
+    if (Math.abs(target - this.crowdLevel) < 0.005) return;
+    this.sfxCrowd.gain.setTargetAtTime(target, ctx.currentTime, CROWD_TICK);
+    this.crowdLevel = target;
+  }
+
+  /** The effects playing now, the crowd's level and its loudness (the tests). */
+  get voiceStats(): { voices: number; level: number; rms: number } {
+    return { voices: this.voices.length, level: this.crowdLevel, rms: Math.sqrt(this.crowdPower) };
   }
 
   /** 2D sound (dksPlaySound). Returns the source so loops can be stopped (null: not played). */
   play(sound: SoundHandle | null | undefined, volume = 255, loop = false, bus: SoundBus = 'sfx'): AudioBufferSourceNode | null {
     if (!this.ctx || !sound?.buffer) return null;
     const src = this.ctx.createBufferSource();
-    if (!this.admit(sound, src, loop, bus)) return null;
     src.buffer = sound.buffer;
     src.loop = loop;
     const g = this.ctx.createGain();
-    g.gain.value = Math.max(0, Math.min(255, volume)) / 255;
+    const v = Math.max(0, Math.min(255, volume)) / 255;
+    g.gain.value = v;
     src.connect(g).connect(this.bus(bus));
     src.start();
+    if (!loop && bus === 'sfx') this.addVoice(sound, src, g);
     return src;
   }
 
@@ -226,7 +313,6 @@ class AudioSystem {
   ): { source: AudioBufferSourceNode; panner: PannerNode; gain: GainNode } | null {
     if (!this.ctx || !sound?.buffer) return null;
     const src = this.ctx.createBufferSource();
-    if (!this.admit(sound, src, loop, bus)) return null;
     src.buffer = sound.buffer;
     src.loop = loop;
     const panner = this.ctx.createPanner();
@@ -243,9 +329,11 @@ class AudioSystem {
       panner.setPosition(position.x, position.y, position.z);
     }
     const g = this.ctx.createGain();
-    g.gain.value = Math.max(0, Math.min(255, volume)) / 255;
+    const v = Math.max(0, Math.min(255, volume)) / 255;
+    g.gain.value = v;
     src.connect(g).connect(panner).connect(this.bus(bus));
     src.start();
+    if (!loop && bus === 'sfx') this.addVoice(sound, src, g);
     return { source: src, panner, gain: g };
   }
 

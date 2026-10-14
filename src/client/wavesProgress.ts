@@ -126,12 +126,15 @@ export function headStartPowers(startWave: number): number {
 
 /**
  * A wave survived (the next one began): 3 Cores plus one for every two waves of its number, times
- * WAVE_CORES_SCALE (30% more since 12/10/2026, Erick): 4 for the first, 10 for the 10th, 17 for the 20th.
+ * WAVE_CORES_SCALE: 5 for the first, 13 for the 10th, 21 for the 20th. Raised twice at Erick's asking: 30% more
+ * on 12/10/2026 (1.3), and on 14/10/2026 about 23% more on a whole run (1.6, a Core every 4 kills instead of 5,
+ * 30 for a boss instead of 25): waves 1 to 10 give 136 instead of 111, 1 to 20 380 instead of 310, 1 to 30 738
+ * instead of 601 (every enemy killed, no record).
  */
-export const WAVE_CORES_SCALE = 1.3;
+export const WAVE_CORES_SCALE = 1.6;
 export const waveCores = (n: number): number => Math.round(WAVE_CORES_SCALE * (3 + Math.floor(n / 2)));
-export const KILLS_PER_CORE = 5;
-export const BOSS_CORES = 25;
+export const KILLS_PER_CORE = 4;
+export const BOSS_CORES = 30;
 export const RECORD_CORES = 30;
 
 export interface RunCores {
