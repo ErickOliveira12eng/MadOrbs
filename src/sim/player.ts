@@ -79,6 +79,8 @@ const DASH_TOP = 3;
 /** The waves' recharging shield: seconds without a hit before it comes back, and seconds to fill up again. */
 const BARRIER_WAIT = 4;
 const BARRIER_REFILL = 2;
+/** The waves' Parallel shot card: how far beside the shot its volley starts (cells; 0.3 until 13/10/2026: too far). */
+const PARALLEL_OFFSET = 0.12;
 
 /** The waves' poison and ice shots: how long a hit poisons, and how long it slows. */
 const POISON_SECONDS = 3;
@@ -940,7 +942,7 @@ export class Player {
       this.cardShot = false;
       this.shotScale = 1;
     };
-    if (this.parallelShot > 0) volley(origin.add(new Vec3(-direction.y, direction.x, 0).mul(0.3)), direction, this.parallelShot);
+    if (this.parallelShot > 0) volley(origin.add(new Vec3(-direction.y, direction.x, 0).mul(PARALLEL_OFFSET)), direction, this.parallelShot);
     if (this.fanShot > 0) for (const a of [-22, 22]) volley(origin, rotateAboutAxis(direction, a, Z_AXIS), this.fanShot);
     if (mayRepeat && this.extraShotChance > 0 && this.extraShotIn <= 0 && Math.random() < this.extraShotChance) this.extraShotIn = 0.09;
   }

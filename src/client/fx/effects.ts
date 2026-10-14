@@ -334,6 +334,10 @@ export class Douille {
   }
 }
 
+/** The waves' card shots (Effects.spawnImpact): the tracer and glow colour, the smoke trail's. */
+const CARD_TRAIL: Color4 = [1, 0.78, 0.15, 1];
+const CARD_SMOKE: [number, number, number] = [1, 0.8, 0.3];
+
 /** Game.h Trail (bullet trail). trailType 0 = smoke trail + bullet glow, 1 = glow trail (photon). */
 export class Trail {
   p1: Vec3;
@@ -346,6 +350,8 @@ export class Trail {
   offset: number;
   trailType: number;
   color: [number, number, number, number];
+  /** The smoke trail's colour (trailType 0): the original's grey, or a tint (the waves' card shots). */
+  smoke: [number, number, number] = [0.7, 0.7, 0.7];
   right: Vec3;
   constructor(pP1: Vec3, pP2: Vec3, pSize: number, pColor: Color4, duration: number, inTrailType = 0) {
     this.trailType = inTrailType;
@@ -766,7 +772,7 @@ export class Effects {
    * Game::spawnImpact — trail(s), impact spark/smoke particles and ricochet sound.
    * Called by Weapon::shoot(net) for every direct weapon except the flame thrower, and by
    * ClientRecv (NET_SVCL_PLAYER_SHOOT) for our own shots / minibot shots (weaponID SMG, damage .08).
-   * `card`: a shot the waves' cards added (Double, Parallel, Fan, Ricochet): a gold trail that stands out.
+   * `card`: a shot the waves' cards added (Double, Parallel, Fan, Ricochet): the same trail, in gold.
    */
   spawnImpact(p1: Vec3, p2: Vec3, normal: Vec3, weaponID: number, damage: number, team: number, card = false): void {
     // CMatrix3x3f with right/front/up, RotateAboutFront(rand 0..360), RotateAboutRight(rand -30..30)
@@ -781,19 +787,16 @@ export class Effects {
     const front = front0.mul(c).add(up1.mul(s));
 
     const type = weaponID === WEAPON_PHOTON_RIFLE ? 1 : 0;
-    if (card) {
-      // The cards' extra shots: the bullet's tracer in gold, and a gold glow that widens as it fades (the
-      // photon's kind of trail: it starts thin and spreads), with a gold spark where it stops
-      this.addTrail(p1, p2, damage, [1, 0.8, 0.2, 1], damage * 4, 0);
-      this.addTrail(p1, p2, 0.6, [1, 0.72, 0.12, 1], 0.4, 1);
-      this.addTrail(p1, p2, 0.22, [1, 0.95, 0.65, 1], 0.28, 1);
-      this.dkp.dkpCreateParticle(p2, new Vec3(), [1, 0.85, 0.3, 1], [1, 0.6, 0.1, 0], 0.3, 0.5, 0.3, 0, 0, 0, this.tex_shotGlow, DKP_SRC_ALPHA, DKP_ONE, 0);
-    } else if (type === 0) {
-      this.addTrail(p1, p2, damage, [team === PLAYER_TEAM_RED ? 0.9 : 0.5, 0.5, team === PLAYER_TEAM_BLUE ? 0.9 : 0.5, 1], damage * 4, 0);
+    // The waves' card shots: the weapon's own trail, only in gold (its tracer, its smoke, the photon's glow)
+    const tint = (base: Color4): Color4 => (card ? CARD_TRAIL : base);
+    if (type === 0) {
+      const tr = this.addTrail(p1, p2, damage, tint([team === PLAYER_TEAM_RED ? 0.9 : 0.5, 0.5, team === PLAYER_TEAM_BLUE ? 0.9 : 0.5, 1]), damage * 4, 0);
+      if (card) tr.smoke = CARD_SMOKE;
     } else {
       if (weaponID === WEAPON_PHOTON_RIFLE) damage = 2.0;
-      const col: Color4 = [team === PLAYER_TEAM_RED ? 0.9 : 0.25, 0.25, team === PLAYER_TEAM_BLUE ? 0.9 : 0.25, 1];
-      this.addTrail(p1, p2, damage, col, damage * 4, 0);
+      const col = tint([team === PLAYER_TEAM_RED ? 0.9 : 0.25, 0.25, team === PLAYER_TEAM_BLUE ? 0.9 : 0.25, 1]);
+      const tr = this.addTrail(p1, p2, damage, col, damage * 4, 0);
+      if (card) tr.smoke = CARD_SMOKE;
       this.addTrail(p1, p2, damage / 4, col, damage, 1);
       this.addTrail(p1, p2, damage / 8, col, damage, 1);
       this.addTrail(p1, p2, damage / 16, col, damage, 1);
@@ -1252,7 +1255,8 @@ export class Effects {
       const hx = (tr.p2.x - tr.p1.x) * 0.5, hy = (tr.p2.y - tr.p1.y) * 0.5, hz = (tr.p2.z - tr.p1.z) * 0.5;
       const R = tr.right;
       if (tr.trailType === 0) {
-        tb.push(cx, cy, cz, R.x * w, R.y * w, R.z * w, hx, hy, hz, 0.7, 0.7, 0.7, (1 - delay) * 0.5, this.tex_smokeTrail, tr.dis, DKP_SRC_ALPHA, DKP_ONE_MINUS_SRC_ALPHA);
+        const s = tr.smoke;
+        tb.push(cx, cy, cz, R.x * w, R.y * w, R.z * w, hx, hy, hz, s[0], s[1], s[2], (1 - delay) * 0.5, this.tex_smokeTrail, tr.dis, DKP_SRC_ALPHA, DKP_ONE_MINUS_SRC_ALPHA);
       } else {
         tb.push(cx, cy, cz, R.x * w, R.y * w, R.z * w, hx, hy, hz, tr.color[0], tr.color[1], tr.color[2], 1 - delay, this.tex_glowTrail, tr.dis, DKP_SRC_ALPHA, DKP_ONE);
       }
