@@ -100,6 +100,8 @@ export interface HudFrame {
   waves: WavesHud | null;
   /** A private room's warm-up (host: we run the room), else null. */
   warmup: { host: boolean } | null;
+  /** Online with bots in this match: our kills on people, the ones that count (record, stats); else null. */
+  vsPeople: { kills: number } | null;
   /** The chat line being typed, or null. */
   chatInput: string | null;
   /** Sniper scope opacity: the crosshair fades out behind it. */
@@ -846,18 +848,23 @@ export class HudLayer {
     this.recordBefore = kills;
   }
 
-  /** End of a match, "Your match": our kills (a new personal record?), longest streak and deaths. */
+  /**
+   * End of a match, "Your match": our kills (a new personal record?), longest streak and deaths. With bots
+   * in the room only the kills on people count (as for the account's stats): those, and a note saying so.
+   */
   private updateMine(f: HudFrame): void {
     const me = f.me;
     const before = this.recordBefore;
+    const n = f.vsPeople ? f.vsPeople.kills : me.kills;
     // Like the account's stats: a match counts after 30 s played
-    const isRecord = before !== null && me.kills > before && me.kills > 0 && me.timePlayedCurGame >= 30;
-    const kills = t(me.kills === 1 ? 'end.oneKill' : 'end.kills', { n: me.kills });
+    const isRecord = before !== null && n > before && n > 0 && me.timePlayedCurGame >= 30;
+    const kills = t(n === 1 ? 'end.oneKill' : 'end.kills', { n });
     const head = isRecord
       ? `<div class="rec"><span>${t('end.newRecord')}</span><b>${kills}</b></div>`
       : `<div class="kills"><b>${kills}</b>${before ? `<small>${t('end.record', { n: before })}</small>` : ''}</div>`;
     const html =
       `<span class="h-label">${t('end.title')}</span>${head}` +
+      (f.vsPeople ? `<p class="note">${t('end.botsNote')}</p>` : '') +
       `<div class="row"><span>${t('end.bestStreak')}</span><b>${me.feats.bestStreak}</b></div>` +
       `<div class="row"><span>${t('table.deaths')}</span><b>${me.deaths}</b></div>`;
     if (html !== this.mineHtml) {
@@ -1391,8 +1398,9 @@ export class HudLayer {
       const big = p.radius > 0.3;
       const cls = `h-tag ${teamClass(f.game, p.teamID)}${hurt ? ' hurt' : ''}${big ? ' big' : ''}`.replace(/\s+/g, ' ').trim();
       if (el.className !== cls) el.className = cls;
-      // ping > 12 network frames: the original's *LAGGER* tag
-      setHTML(el.firstElementChild as HTMLElement, p.badges.map((b) => BADGE_ICON[b] ?? '').join('') + esc(p.name) + (p.pingFrames > 12 ? '<span class="lag">LAG</span>' : ''));
+      // ping > 12 network frames: the original's *LAGGER* tag; online, the bots filling the room say so
+      const mark = f.online && p.isBot ? `<span class="bot">${t('table.bot')}</span>` : p.pingFrames > 12 ? '<span class="lag">LAG</span>' : '';
+      setHTML(el.firstElementChild as HTMLElement, p.badges.map((b) => BADGE_ICON[b] ?? '').join('') + esc(p.name) + mark);
       if (hurt) {
         const bar = el.lastElementChild as HTMLElement;
         const fill = bar.lastElementChild as HTMLElement;
@@ -1546,14 +1554,17 @@ export class HudLayer {
     const row = (p: Player, i: number): string => {
       const cls = [p === f.me ? 'me' : '', i === 0 ? 'first' : '', p.isAlive ? '' : 'dead'].join(' ');
       const ms = p.pingFrames * 33;
+      // A person's player ID; online, a bot filling the room says it is one
+      const bot = f.online && p.isBot;
+      const id = bot ? `<em class="tag bot">${t('table.bot')}</em>` : p.tag ? `<em class="tag${p.tag.startsWith('ANON-') ? ' anon' : ''}">#${esc(p.tag)}</em>` : '';
       // CTF scores are captures: the frags are the kills there (GameShowStats "Kills" / "Caps")
       return (
-        `<tr class="${cls}"><td>${i + 1}</td><td class="pl"><div>${this.avatar(p.displaySkin)}<span>${esc(p.name)}</span>${p.tag ? `<em class="tag${p.tag.startsWith('ANON-') ? ' anon' : ''}">#${esc(p.tag)}</em>` : ''}${p.isAlive ? '' : `<small>${t('table.dead')}</small>`}</div></td>` +
+        `<tr class="${cls}"><td>${i + 1}</td><td class="pl"><div>${this.avatar(p.displaySkin)}<span>${esc(p.name)}</span>${id}${p.isAlive ? '' : `<small>${t('table.dead')}</small>`}</div></td>` +
         `<td class="k">${ctf ? p.kills : p.score}</td><td>${p.deaths}</td>` +
         (ctf ? `<td class="k">${p.score}</td><td>${p.returns}</td>` : '') +
         `<td>${bigNum(Math.round(p.dmg * 100))}</td>` +
         `<td class="fx">${featChips(p)}</td>` +
-        (f.online ? `<td style="color:${pingColor(ms)}"><span class="h-pdot"></span>${ms} ms</td>` : '') +
+        (f.online ? (bot ? '<td>—</td>' : `<td style="color:${pingColor(ms)}"><span class="h-pdot"></span>${ms} ms</td>`) : '') +
         '</tr>'
       );
     };

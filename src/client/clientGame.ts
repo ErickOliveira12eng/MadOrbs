@@ -48,7 +48,7 @@ import { applyFeatCounts, isAnnouncedToAll } from '../sim/feats';
 import type { GameEvent } from '../sim/events';
 import { Game, type ClientNet } from '../sim/game';
 import { sv, weaponDefs } from '../sim/gameVar';
-import { BotController, BOT_NAMES } from '../sim/bot';
+import { BotController, BOT_NAMES, randomSkin } from '../sim/bot';
 import { GameMap, THEME_LAVA, WEATHER_RAIN, loadMap } from '../sim/map';
 import { MiniBot, type Player, type SkinInfo } from '../sim/player';
 import { Projectile } from '../sim/projectile';
@@ -473,6 +473,12 @@ export class ClientGame {
   private frames = 0;
   private lastRound = GAME_PLAYING;
   private matchEnded = false;
+  /**
+   * Online: bots filled the room during this match, and our kills on people, the ones that count for the
+   * record and the account (src/server/gameServer.ts countDeath).
+   */
+  private matchBots = false;
+  private peopleKills = 0;
 
   /** The level being played: its clock, the boss and its guards, and how it ended. */
   private camp: {
@@ -973,9 +979,11 @@ export class ClientGame {
     this.matchAt = performance.now();
     this.frames = 0;
     this.matchEnded = false;
+    this.peopleKills = 0;
+    this.matchBots = this.online && this.game.players.some((p) => p?.isBot);
     if (this.camp) track('campaign_level_start', this.levelInfo());
     else if (this.waves && this.opts.waves) track('waves_start', { map: this.game.map.name, start_wave: this.opts.waves.startWave, weapon: this.opts.waves.startWeapon });
-    else track('match_start', { ...this.matchInfo(), ...(map ? { map } : {}), bots: this.online ? 0 : (this.opts.botCount ?? 0) });
+    else track('match_start', { ...this.matchInfo(), ...(map ? { map } : {}), bots: this.online ? this.botsNow() : (this.opts.botCount ?? 0) });
   }
 
   /** The round ended (time or score limit): how it went for us. */
@@ -998,7 +1006,14 @@ export class ClientGame {
       draw: round === GAME_DRAW,
       minutes: Math.round((performance.now() - this.matchAt) / 6000) / 10,
       fps: this.fps(),
+      // Online with the bots that fill the room: how many at the end, and our kills on people
+      ...(this.online && this.matchBots ? { bots: this.botsNow(), people_kills: Math.max(0, this.peopleKills) } : {}),
     });
+  }
+
+  /** The bots in the game now (online: the ones filling the room). */
+  private botsNow(): number {
+    return this.game.players.filter((p) => p?.isBot).length;
   }
 
   // ---------------------------------------------------------------- loop
@@ -1246,7 +1261,12 @@ export class ClientGame {
       p.name = info.name;
       p.tag = info.tag ?? '';
       p.teamID = info.team;
-      if (p !== this.me) p.skin = info.skin;
+      if (p !== this.me) {
+        p.skin = info.skin;
+        p.isBot = info.bot;
+      }
+      // Bots fill the room (the server's updateBots): this match's kills on them count for nothing
+      if (info.bot) this.matchBots = true;
     }
     for (const p of game.players) {
       if (p && p !== this.me && !present.has(p.playerID)) game.removePlayer(p.playerID);
@@ -1561,6 +1581,12 @@ export class ClientGame {
         }
         // Player::hit: the kill message (the killer may have left already)
         if (victim) this.hud.kill(killer ?? null, victim, e.weaponID, me);
+        // Online, our kills that count: on people (a suicide takes one away, as the score does)
+        if (online && victim && e.fromID === me.playerID) {
+          if (victim === me) {
+            if (game.gameType !== GAME_TYPE_CTF) this.peopleKills--;
+          } else if (!victim.isBot && !e.friendlyFire) this.peopleKills++;
+        }
         break;
       }
       case 'spawn': {
@@ -1631,14 +1657,16 @@ export class ClientGame {
         this.hud.announce(kind, who, game.players[e.victimID] ?? null, e.n, () => playAnnouncer(kind));
         break;
       }
-      case 'mapChange':
-        this.announceStart();
-        this.newMatch(e.mapName);
-        // The match that just ended may hold a new personal record (online, 30 s played at least; not in a private room)
-        if (this.online && !this.room && me.timePlayedCurGame >= 30 && me.kills > 0) {
-          saveBestKills(this.opts.mode, me.kills);
+      case 'mapChange': {
+        // The match that just ended may hold a new personal record (online, 30 s played at least; not in a
+        // private room); with bots in the room, only the kills on people count
+        const kills = this.matchBots ? this.peopleKills : me.kills;
+        if (this.online && !this.room && me.timePlayedCurGame >= 30 && kills > 0) {
+          saveBestKills(this.opts.mode, kills);
           this.hud.setRecord(Math.max(this.opts.bestKills ?? 0, bestKills(this.opts.mode)));
         }
+        this.announceStart();
+        this.newMatch(e.mapName);
         if (fromServer) {
           this.setVote(null);
           void this.changeMapOnline(e.mapName);
@@ -1649,6 +1677,7 @@ export class ClientGame {
         for (const b of this.babos.values()) b.dispose();
         this.babos.clear();
         break;
+      }
       case 'roundState':
         if (fromServer) game.roundState = e.state;
         break;
@@ -1715,6 +1744,7 @@ export class ClientGame {
       campaign: this.campaignHud(),
       waves: this.waves?.hud() ?? null,
       warmup: this.room?.warmup ? { host: this.room.host === this.me.playerID } : null,
+      vsPeople: this.online && !this.room && this.matchBots ? { kills: Math.max(0, this.peopleKills) } : null,
       chatInput: this.chat.active ? this.chat.text : null,
       scope,
       // Player::renderName: where a babo is on the screen (its drawn position), and just above it
@@ -1730,15 +1760,3 @@ export class ClientGame {
   }
 }
 
-/** Random skin + decal colours for bots (the player picks them in the start screen). */
-export function randomSkin(): SkinInfo {
-  const skins = Array.from({ length: 23 }, (_, i) => `skin${String(i + 1).padStart(2, '0')}`);
-  const c = (): [number, number, number] => [Math.random(), Math.random(), Math.random()];
-  const base = c();
-  return {
-    skin: skins[Math.floor(Math.random() * skins.length)],
-    redDecal: [Math.min(1, base[0] + 0.5), Math.min(1, base[1] + 0.5), Math.min(1, base[2] + 0.5)],
-    greenDecal: base,
-    blueDecal: [base[0] * 0.5, base[1] * 0.5, base[2] * 0.5],
-  };
-}

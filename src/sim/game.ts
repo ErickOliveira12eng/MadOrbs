@@ -292,7 +292,7 @@ export class Game {
   /**
    * Server::update + Server::autoBalance: when a team has 2 players more than the other for
    * sv_autoBalanceTime seconds, the extra players who played the least in this game switch (never
-   * the flag carrier).
+   * the flag carrier). Bots switch before people (the online rooms' fillers, the training).
    */
   private updateAutoBalance(delay: number): void {
     if (!this.isTeamGame || !sv.sv_autoBalance) {
@@ -315,7 +315,9 @@ export class Game {
     this.autoBalanceTimer = 0;
     const [big, target] = blues.length > reds.length ? [blues, PLAYER_TEAM_RED] : [reds, PLAYER_TEAM_BLUE];
     let nbToSwitch = Math.floor((Math.abs(blues.length - reds.length)) / 2);
-    const candidates = big.filter((p) => this.carriedFlag(p) < 0).sort((a, b) => a.timePlayedCurGame - b.timePlayedCurGame);
+    const candidates = big
+      .filter((p) => this.carriedFlag(p) < 0)
+      .sort((a, b) => Number(b.isBot) - Number(a.isBot) || a.timePlayedCurGame - b.timePlayedCurGame);
     for (const p of candidates) {
       if (nbToSwitch-- <= 0) break;
       this.switchTeam(p, target);

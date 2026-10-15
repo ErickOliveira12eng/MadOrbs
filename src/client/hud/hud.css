@@ -232,7 +232,8 @@
   color: #9fd3ff;
 }
 
-.h-tag .lag {
+.h-tag .lag,
+.h-tag .bot {
   margin-left: 6px;
   padding: 0 5px;
   border-radius: 4px;
@@ -240,6 +241,13 @@
   font-weight: 900;
   color: #fff;
   background: #d0305a;
+}
+
+/* Online: a bot filling the room */
+.h-tag .bot {
+  color: #0d1424;
+  background: #9fb4d6;
+  letter-spacing: 0.05em;
 }
 
 .h-tag.killer {
@@ -1190,6 +1198,13 @@
   color: transparent;
 }
 
+/* Bots in the room: only the kills on people count */
+.h-mine .note {
+  margin: -2px 0 0;
+  color: var(--h-muted);
+  font: 600 12px/1.35 var(--h-ui);
+}
+
 .h-mine .row {
   display: flex;
   justify-content: space-between;
@@ -1449,6 +1464,17 @@
 
 .h-table td.pl em.tag.anon {
   opacity: 0.6;
+}
+
+/* Online: a bot filling the room, in place of a player ID */
+.h-table td.pl em.tag.bot {
+  margin-left: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: #0d1424;
+  background: #9fb4d6;
+  font-size: 10px;
+  font-weight: 900;
 }
 
 .h-table td.k {

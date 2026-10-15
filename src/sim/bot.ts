@@ -1,5 +1,6 @@
-// Simple AI opponents for local play (not part of the original game). A bot only produces
-// PlayerInput, exactly like a human, so it obeys the same movement/weapon rules.
+// Simple AI opponents (not part of the original game): the offline modes, and the online rooms while few
+// people play (src/server/gameServer.ts). A bot only produces PlayerInput, exactly like a human, so it
+// obeys the same movement/weapon rules.
 import {
   FLAG_DROPPED,
   GAME_TYPE_CTF,
@@ -15,7 +16,7 @@ import {
 import { isWeaponEnabled } from './gameVar';
 import { emptyInput } from './input';
 import type { Game } from './game';
-import type { Player } from './player';
+import type { Player, SkinInfo } from './player';
 import { Vec3, distance, randRange } from './vec';
 
 interface Node {
@@ -376,3 +377,16 @@ export const BOT_NAMES = [
   'Bobo', 'Rolling Thunder', 'Ball Buster', 'Sir Rolls-a-Lot', 'Pinball', 'Bowling Ball', 'Meatball',
   'Snowball', 'Fireball', 'Oddball', 'Screwball', 'Hairball', 'Goofball', 'Gumball', 'Cannonball', 'Eyeball',
 ];
+
+/** A bot's skin: one of the original 23 and random decal colours (the player picks theirs in the start screen). */
+export function randomSkin(): SkinInfo {
+  const skins = Array.from({ length: 23 }, (_, i) => `skin${String(i + 1).padStart(2, '0')}`);
+  const c = (): [number, number, number] => [Math.random(), Math.random(), Math.random()];
+  const base = c();
+  return {
+    skin: skins[Math.floor(Math.random() * skins.length)],
+    redDecal: [Math.min(1, base[0] + 0.5), Math.min(1, base[1] + 0.5), Math.min(1, base[2] + 0.5)],
+    greenDecal: base,
+    blueDecal: [base[0] * 0.5, base[1] * 0.5, base[2] * 0.5],
+  };
+}
