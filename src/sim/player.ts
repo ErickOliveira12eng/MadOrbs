@@ -30,6 +30,7 @@ import {
   WEAPON_SMG,
   WEAPON_SNIPER,
   PI,
+  TICK,
 } from './constants';
 import { CoordFrame } from './coordFrame';
 import { sv, weaponDefs } from './gameVar';
@@ -42,6 +43,21 @@ import type { Game } from './game';
 const Z_AXIS = new Vec3(0, 0, 1);
 /** Frames of position history kept for lag compensation (1.5 s). */
 const HISTORY_FRAMES = 45;
+/**
+ * Client: the other babos are drawn this many frames (100 ms) behind their newest keyframe, between two
+ * keyframes already here (Player.playBack). Following the newest one at once (CoordFrame::interpolate, the
+ * original), a keyframe a little early or late changed their speed on screen: they moved in jerks, the bots
+ * most (Erick, 14/10/2026). The keyframes come every 2 frames; one frame more covers their jitter.
+ */
+const NET_DELAY_FRAMES = 3;
+
+/** Client: a keyframe of a babo driven elsewhere, on its own timeline (its frameID). */
+interface NetKey {
+  frame: number;
+  pos: Vec3;
+  vel: Vec3;
+  mouse: Vec3;
+}
 
 /** The little bot dropped by the "Nuke Bot" secondary weapon (CMiniBot with nukeBot = true). */
 export class MiniBot {
@@ -253,6 +269,9 @@ export class Player {
   netCF0 = new CoordFrame();
   netCF1 = new CoordFrame();
   cFProgression = 0;
+  /** Client: the keyframes received (oldest first), and the frame of the babo's timeline drawn now (playBack). */
+  private netKeys: NetKey[] = [];
+  private playFrame = 0;
   /** Client ping in network frames (33 ms), shown in the score table. */
   pingFrames = 0;
   // Server: where this babo was, one sample per frame, to check shots against what the shooter
@@ -561,6 +580,17 @@ export class Player {
    * for the others). Out-of-order keyframes are ignored.
    */
   setCoordFrame(frameID: number, position: Vec3, vel: Vec3, mousePosOnMap: Vec3): void {
+    if (this.game.mode === 'client') {
+      const last = this.netKeys[this.netKeys.length - 1];
+      if (last && frameID <= last.frame) {
+        // An old or repeated one; far behind: its timeline started over (it rejoined, a new map)
+        if (last.frame - frameID < 60) return;
+        this.resetNetKeys();
+      }
+      this.netKeys.push({ frame: frameID, pos: position.clone(), vel: vel.clone(), mouse: mousePosOnMap.clone() });
+      if (this.netKeys.length > 16) this.netKeys.shift();
+      return;
+    }
     if (this.netCF1.frameID > frameID) return;
     if (this.netCF1.frameID === frameID && frameID !== 0) return;
     // Our last keyframe becomes where we are now
@@ -575,8 +605,60 @@ export class Player {
     if (this.netCF0.frameID === 0) this.netCF0.copyFrom(this.netCF1);
   }
 
+  /** Client: the keyframes start over (a spawn, a new map). */
+  resetNetKeys(): void {
+    this.netKeys.length = 0;
+    this.playFrame = 0;
+    this.netCF1.frameID = 0;
+  }
+
+  /**
+   * Client: the babo where its timeline was NET_DELAY_FRAMES before its newest keyframe: a cubic spline between
+   * the two keyframes around that frame (their velocities as tangents, like CoordFrame::interpolate), past the
+   * newest one its velocity for a moment. The timeline moves a frame a tick, and eases back when the keyframes
+   * come faster or slower (another clock, a stall); far off, it jumps.
+   */
+  private playBack(): void {
+    const keys = this.netKeys;
+    if (!keys.length) return;
+    const newest = keys[keys.length - 1];
+    const target = newest.frame - NET_DELAY_FRAMES;
+    this.playFrame += 1;
+    const off = target - this.playFrame;
+    if (Math.abs(off) > 15) this.playFrame = target;
+    else this.playFrame += off * 0.1;
+    const f = this.playFrame;
+    const cf = this.currentCF;
+    const next = keys.findIndex((k) => k.frame >= f);
+    if (next < 0) {
+      // Past the newest keyframe: its velocity a little, then wait
+      cf.position.copy(newest.pos).addScaledIn(newest.vel, Math.min(f - newest.frame, 10) * TICK);
+      cf.vel.copy(newest.vel);
+      cf.mousePosOnMap.copy(newest.mouse);
+    } else if (next === 0) {
+      cf.position.copy(keys[0].pos);
+      cf.vel.copy(keys[0].vel);
+      cf.mousePosOnMap.copy(keys[0].mouse);
+    } else {
+      const a = keys[next - 1];
+      const b = keys[next];
+      const t = (f - a.frame) / (b.frame - a.frame);
+      const reach = ((b.frame - a.frame) * TICK) / 3;
+      cf.position = cubicSpline(a.pos, a.pos.add(a.vel.mul(reach)), b.pos.sub(b.vel.mul(reach)), b.pos, t);
+      cf.vel = a.vel.add(b.vel.sub(a.vel).mul(t));
+      cf.mousePosOnMap = a.mouse.add(b.mouse.sub(a.mouse).mul(t));
+      // The keyframes behind are done with
+      if (next > 1) keys.splice(0, next - 1);
+    }
+  }
+
   /** CoordFrame::interpolate (cl_cubicMotion): cubic spline to the last keyframe, then dead reckoning. */
   private interpolate(delay: number): void {
+    // In the browser the other babos play back their keyframes a moment late, smoothly (the server keeps this)
+    if (this.game.mode === 'client') {
+      this.playBack();
+      return;
+    }
     const cf = this.currentCF;
     const from = this.netCF0;
     const to = this.netCF1;
@@ -655,6 +737,8 @@ export class Player {
     this.netCF0.frameID = 0;
     this.netCF1.frameID = 0;
     this.cFProgression = 0;
+    this.netKeys.length = 0;
+    this.playFrame = 0;
     this.shotTokens = 3;
     this.grenadeDelay = 0;
     this.meleeDelay = 0;

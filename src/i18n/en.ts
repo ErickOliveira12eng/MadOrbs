@@ -73,7 +73,7 @@ export const en = {
   'home.news20': 'Online Deathmatch and Team Deathmatch now rotate through the Capture the Flag maps too: about seventy maps in all, three of them in the vote at the end of each match.',
   'home.news19Date': 'October 14, 2026',
   'home.news19Title': 'Online: bots while people arrive',
-  'home.news19': 'Walk into an empty online room and bots play with you until people arrive: each person who joins sends one away. They wear a BOT tag, and only your kills on players count for the ranking and your record.',
+  'home.news19': 'Walk into an empty online room and bots play with you until people arrive: each person who joins sends one away. They wear a BOT tag, and only your kills on players count for the ranking and your record. Other Orbs also move more smoothly on screen.',
   'home.news18Date': 'October 14, 2026',
   'home.news18Title': 'Waves: more Cores, steadier sound',
   'home.news18': "Waves runs give many more Cores, above all in the first waves: each wave survived gives from 10 on the first to 42 on the 40th, plus 1 for every 4 kills and 30 for each boss, and the daily reward now goes from 50 to 200. And the sound no longer stutters: every shot of your gun plays, and a crowd of effects gets a little louder without blowing out.",

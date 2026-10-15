@@ -71,7 +71,7 @@ export const es: Record<Key, string> = {
   'home.news20': 'El Deathmatch y el Team Deathmatch online ahora también rotan por los mapas de Captura la Bandera: unos setenta mapas en total, tres de ellos en la votación del final de cada partida.',
   'home.news19Date': '14 de octubre de 2026',
   'home.news19Title': 'Online: bots mientras llega gente',
-  'home.news19': '¿Entraste en una sala online vacía? Los bots juegan contigo hasta que llega gente, y cada persona que entra saca un bot. Aparecen con la etiqueta BOT, y solo tus bajas a jugadores cuentan para el ranking y tu récord.',
+  'home.news19': '¿Entraste en una sala online vacía? Los bots juegan contigo hasta que llega gente, y cada persona que entra saca un bot. Aparecen con la etiqueta BOT, y solo tus bajas a jugadores cuentan para el ranking y tu récord. Las otras Orbs también se mueven más suaves en pantalla.',
   'home.news18Date': '14 de octubre de 2026',
   'home.news18Title': 'Oleadas: más Núcleos, sonido más firme',
   'home.news18': "Las partidas de las Oleadas dan muchos más Núcleos, sobre todo en las primeras oleadas: cada oleada superada da de 10 en la primera a 42 en la 40.ª, más 1 cada 4 bajas y 30 por cada jefe, y la recompensa diaria ahora va de 50 a 200. Y el sonido ya no falla: suenan todos los disparos de tu arma, y la multitud de efectos sube un poco sin saturar.",

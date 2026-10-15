@@ -813,7 +813,7 @@ export class ClientGame {
       const map = await loadMap(name);
       if (!this.running || this.pendingMap !== name) return;
       this.game.changeMap(map);
-      for (const p of this.game.players) if (p && p !== this.me) p.netCF1.frameID = 0;
+      for (const p of this.game.players) if (p && p !== this.me) p.resetNetKeys();
     } catch (e) {
       console.error('map load failed', e);
     } finally {

@@ -71,7 +71,7 @@ export const pt: Record<Key, string> = {
   'home.news20': 'O Deathmatch e o Team Deathmatch online agora também giram pelos mapas de Capture a Bandeira: uns setenta mapas ao todo, três deles na votação do fim de cada partida.',
   'home.news19Date': '14 de outubro de 2026',
   'home.news19Title': 'Online: bots enquanto chega gente',
-  'home.news19': 'Entrou numa sala online vazia? Bots jogam com você até chegar gente, e cada pessoa que entra tira um bot. Eles aparecem com a etiqueta BOT, e só os abates em jogadores contam para o ranking e o seu recorde.',
+  'home.news19': 'Entrou numa sala online vazia? Bots jogam com você até chegar gente, e cada pessoa que entra tira um bot. Eles aparecem com a etiqueta BOT, e só os abates em jogadores contam para o ranking e o seu recorde. As outras Orbs também andam mais suaves na tela.',
   'home.news18Date': '14 de outubro de 2026',
   'home.news18Title': 'Ondas: mais Núcleos, som mais firme',
   'home.news18': "As partidas das Ondas dão bem mais Núcleos, principalmente nas primeiras ondas: cada onda vencida dá de 10 na primeira a 42 na 40ª, mais 1 a cada 4 abates e 30 por chefão, e a recompensa diária agora vai de 50 a 200. E o som não falha mais: todos os tiros da sua arma tocam, e a multidão de efeitos sobe um pouco sem estourar.",
