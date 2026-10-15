@@ -68,7 +68,7 @@ export const es: Record<Key, string> = {
   'home.newsTitle': 'Novedades',
   'home.news18Date': '14 de octubre de 2026',
   'home.news18Title': 'Oleadas: más Núcleos, sonido más firme',
-  'home.news18': 'Cada partida de las Oleadas da cerca de un 23% más de Núcleos: más por cada oleada superada, 1 cada 4 bajas y 30 por cada jefe. Y el sonido ya no falla: suenan todos los disparos de tu arma, y la multitud de efectos sube un poco sin saturar.',
+  'home.news18': "Las partidas de las Oleadas dan muchos más Núcleos, sobre todo en las primeras oleadas: cada oleada superada da de 10 en la primera a 42 en la 40.ª, más 1 cada 4 bajas y 30 por cada jefe, y la recompensa diaria ahora va de 50 a 200. Y el sonido ya no falla: suenan todos los disparos de tu arma, y la multitud de efectos sube un poco sin saturar.",
   'home.news17Date': '13 de octubre de 2026',
   'home.news17Title': 'Oleadas: una carta cada 5 oleadas',
   'home.news17': 'Al final de las oleadas 5, 15, 25... ahora también eliges una carta común, y el jefe sigue trayendo las épicas y las legendarias. La Lluvia de Misiles reparte sus cohetes, y el lanzallamas y el fotón ya no pierden alcance ni daño con las cartas.',

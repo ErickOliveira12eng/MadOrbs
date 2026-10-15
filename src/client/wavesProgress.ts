@@ -125,14 +125,16 @@ export function headStartPowers(startWave: number): number {
 // ------------------------------------------------------------------ Cores of a run
 
 /**
- * A wave survived (the next one began): 3 Cores plus one for every two waves of its number, times
- * WAVE_CORES_SCALE: 5 for the first, 13 for the 10th, 21 for the 20th. Raised twice at Erick's asking: 30% more
- * on 12/10/2026 (1.3), and on 14/10/2026 about 23% more on a whole run (1.6, a Core every 4 kills instead of 5,
- * 30 for a boss instead of 25): waves 1 to 10 give 136 instead of 111, 1 to 20 380 instead of 310, 1 to 30 738
- * instead of 601 (every enemy killed, no record).
+ * A wave survived (the next one began): WAVE_CORES_BASE Cores plus one for every two waves of its number, times
+ * WAVE_CORES_SCALE: 10 for the first, 18 for the 10th, 26 for the 20th, 42 for the 40th. Raised three times at
+ * Erick's asking: 30% more on 12/10/2026 (scale 1.3); about 23% more on a whole run on 14/10/2026 (scale 1.6, a
+ * Core every 4 kills instead of 5, 30 for a boss instead of 25); and the same day, the start found hard, a base
+ * of 6 instead of 3, which weighs most on the first waves: a run dying on wave 8 gives 96 instead of 63, on wave
+ * 11 184 instead of 136, on 21 476 instead of 380, on 41 1407 instead of 1215 (every enemy killed, no record).
  */
+export const WAVE_CORES_BASE = 6;
 export const WAVE_CORES_SCALE = 1.6;
-export const waveCores = (n: number): number => Math.round(WAVE_CORES_SCALE * (3 + Math.floor(n / 2)));
+export const waveCores = (n: number): number => Math.round(WAVE_CORES_SCALE * (WAVE_CORES_BASE + Math.floor(n / 2)));
 export const KILLS_PER_CORE = 4;
 export const BOSS_CORES = 30;
 export const RECORD_CORES = 30;
@@ -240,9 +242,10 @@ export function saveProgress(p: WavesProgress): void {
 
 /**
  * Cores for coming back each day (in the Workshop): more each day in a row, up to the 7th, then the
- * week starts again; a day missed starts it over.
+ * week starts again; a day missed starts it over. Raised twice at Erick's asking: 20 to 100 at first, 30 to 150
+ * on 12/10/2026, 50 to 200 on 14/10/2026 (725 a week; the first day's buys a first upgrade).
  */
-export const DAILY_CORES = [30, 40, 50, 60, 80, 100, 150];
+export const DAILY_CORES = [50, 60, 75, 90, 110, 140, 200];
 
 /** A date as YYYY-MM-DD, by this computer's clock (the reward turns at its midnight). */
 function dayOf(d: Date): string {

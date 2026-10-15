@@ -68,7 +68,7 @@ export const pt: Record<Key, string> = {
   'home.newsTitle': 'Novidades',
   'home.news18Date': '14 de outubro de 2026',
   'home.news18Title': 'Ondas: mais Núcleos, som mais firme',
-  'home.news18': 'Cada partida das Ondas dá cerca de 23% mais Núcleos: mais por onda vencida, 1 a cada 4 abates e 30 por chefão. E o som não falha mais: todos os tiros da sua arma tocam, e a multidão de efeitos sobe um pouco sem estourar.',
+  'home.news18': "As partidas das Ondas dão bem mais Núcleos, principalmente nas primeiras ondas: cada onda vencida dá de 10 na primeira a 42 na 40ª, mais 1 a cada 4 abates e 30 por chefão, e a recompensa diária agora vai de 50 a 200. E o som não falha mais: todos os tiros da sua arma tocam, e a multidão de efeitos sobe um pouco sem estourar.",
   'home.news17Date': '13 de outubro de 2026',
   'home.news17Title': 'Ondas: uma carta a cada 5 ondas',
   'home.news17': 'No fim das ondas 5, 15, 25... agora você também escolhe uma carta comum, e o chefão continua trazendo as épicas e as lendárias. A Chuva de Mísseis espalha os foguetes, e o lança-chamas e o fóton não perdem mais alcance e dano com as cartas.',
