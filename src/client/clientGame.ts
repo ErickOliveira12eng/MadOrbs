@@ -388,7 +388,7 @@ export class ClientGame {
         this.renderer.domElement.style.cursor = 'auto';
         audio.play(this.sounds.equip, 255);
         this.hud.showCards(
-          offer.map((id) => ({ id, level: this.waves?.cardLevel(id) ?? 0 })),
+          offer.map(({ id, up }) => ({ id, up, level: this.waves?.cardLevel(id) ?? 0 })),
           (i) => {
             this.hud.hideCards();
             // The pick may bring the next offer (the boss's and wave 15's at once)

@@ -680,14 +680,17 @@ export class HudLayer {
    * middle of the screen, the game stopped, the banner under them and the system's cursor. A click or the
    * keys 1, 2, 3 take one (after a moment: the shot that killed the boss must not pick a card by itself).
    */
-  showCards(offer: { id: CardID; level: number }[], onPick: (i: number) => void, wave?: number): void {
+  showCards(offer: { id: CardID; level: number; up: number }[], onPick: (i: number) => void, wave?: number): void {
     const cards = offer
-      .map(({ id, level }, i) => {
+      .map(({ id, level, up }, i) => {
         const def = cardDef(id);
-        const next = level + 1;
+        const next = Math.min(def.max, level + up);
         const lv = level ? t('cards.level', { from: level, to: next }) : t('cards.new');
+        // A card of yours two levels at once: a ribbon, and it glows
+        const double = next - level > 1;
         return (
-          `<button type="button" class="h-card ${def.rarity}" data-card="${i}">` +
+          `<button type="button" class="h-card ${def.rarity}${double ? ' double' : ''}" data-card="${i}">` +
+          (double ? `<span class="up2">${t('cards.double', { n: next - level })}</span>` : '') +
           `<span class="rar">${t(`cards.${def.rarity}`)}</span>${cardIcon(id)}` +
           `<b>${t(`card.${id}`)}</b><em>${lv}</em>` +
           `<p>${next === 1 && (id === 'pierce' || id === 'ricochet' || id === 'shadow') ? t(`card.${id}.descOne`) : t(`card.${id}.desc`, { v: cardValue(id, next) })}</p>` +

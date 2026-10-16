@@ -3683,6 +3683,43 @@
   margin-top: auto;
 }
 
+/* A card of yours climbing two levels at once (offerCards): it stands out, beside a new rare one most of all */
+.h-campend .h-card.double {
+  --uc: 70, 240, 170;
+  border-color: rgb(var(--uc));
+  box-shadow: 0 0 30px rgba(var(--uc), 0.5), inset 0 0 22px rgba(var(--uc), 0.18);
+  animation:
+    card-in 0.35s cubic-bezier(0.2, 1.3, 0.4, 1) both,
+    card-double 1.6s ease-in-out 0.4s infinite;
+}
+
+@keyframes card-double {
+  50% {
+    box-shadow: 0 0 48px rgba(70, 240, 170, 0.75), inset 0 0 30px rgba(70, 240, 170, 0.3);
+  }
+}
+
+.h-campend .h-card.double em {
+  color: rgb(var(--uc));
+  font-size: 15px;
+}
+
+.h-campend .h-card .up2 {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  padding: 4px 13px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #8affd6, #2fd99a);
+  color: #052418;
+  font: 900 12.5px var(--h-ui);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(47, 217, 154, 0.55);
+}
+
 /* The cards taken: small icons with their levels (the corner panel, the end of a run) */
 .h-wcards {
   display: flex;

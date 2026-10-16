@@ -1,5 +1,6 @@
 // The waves' cards (Erick, 12/10/2026, in the style of Archero): each time the boss falls (wave 10, 20,
-// 30...) the game stops and offers 3 cards; the player takes one, for the rest of the run. Taking a
+// 30...) the game stops and offers 3 cards, and every 3 waves 3 common ones (offerCards: one of them a card
+// already taken, sometimes two levels at once); the player takes one, for the rest of the run. Taking a
 // card again raises its level. Commons have 5 levels, the epics 3 (shadow allies, the reflector shield),
 // the legendaries 3 too, offered from wave 40 only (missiles falling, the silver bullet, the necromancer).
 // What each level does lives here; WavesRun applies it to the player (src/sim/player.ts: extra volleys,
@@ -36,6 +37,9 @@ export const CARDS: CardDef[] = [
   { id: 'silver', rarity: 'legendary', max: 3, from: 40 },
   { id: 'necro', rarity: 'legendary', max: 3, from: 40 },
 ];
+
+/** A choice of common cards after every this many waves (not the boss's: its choice has every rarity). */
+export const COMMON_CARDS_EVERY = 3;
 
 /** How likely each rarity is in an offer (by weight). */
 const RARITY_WEIGHT: Record<Rarity, number> = { common: 70, epic: 25, legendary: 8 };
@@ -150,3 +154,53 @@ export function rollCards(n: number, owned: CardLevels, count = 3, commonOnly = 
 }
 
 export const cardDef = (id: CardID): CardDef => CARDS.find((c) => c.id === id)!;
+
+/** A card offered, and the levels it gives (2: a card already taken climbing two at once, shown apart). */
+export interface CardOffer {
+  id: CardID;
+  up: number;
+}
+
+/** The chance a card already taken is offered two levels at once (beside a new epic or legendary: always). */
+export const DOUBLE_CHANCE = 0.2;
+
+/**
+ * What a choice offers (Erick, 15/10/2026, after Vampire Survivors: build on what you have): three cards
+ * (rollCards), one of them always a card already taken that isn't at its top, in place of a new common one
+ * (never of a rarer card); that one sometimes climbs two levels at once (DOUBLE_CHANCE), and always when a new
+ * epic or legendary is offered beside it: a level 1 of the rare card, or two levels of yours.
+ */
+export function offerCards(n: number, owned: CardLevels, commonOnly: boolean): CardOffer[] {
+  const ids = rollCards(n, owned, 3, commonOnly);
+  if (!ids.length) return [];
+  const level = (id: CardID) => owned[id] ?? 0;
+  const left = (id: CardID) => cardDef(id).max - level(id);
+  const mine = CARDS.filter((c) => level(c.id) > 0 && left(c.id) > 0 && n >= (c.from ?? 0) && (!commonOnly || c.rarity === 'common')).map((c) => c.id);
+  const offer = ids.map((id) => ({ id, up: 1 }));
+  if (!mine.length) return offer;
+  const rareNew = ids.some((id) => cardDef(id).rarity !== 'common' && level(id) === 0);
+  const double = rareNew || Math.random() < DOUBLE_CHANCE;
+  const pickMine = (from: CardID[]) => {
+    const two = from.filter((id) => left(id) >= 2);
+    const pool = double && two.length ? two : from;
+    return pool[Math.floor(Math.random() * pool.length)];
+  };
+  // The one of yours: already offered, else in place of a new common card (the last one), else the last card
+  let slot = ids.findIndex((id) => mine.includes(id) && (!double || left(id) >= 2));
+  if (slot < 0) slot = ids.findIndex((id) => mine.includes(id));
+  if (slot < 0 || (double && left(ids[slot]) < 2 && mine.some((id) => left(id) >= 2 && !ids.includes(id)))) {
+    if (slot < 0) {
+      slot = ids.length - 1;
+      for (let i = ids.length - 1; i >= 0; i--) {
+        if (cardDef(ids[i]).rarity === 'common' && level(ids[i]) === 0) {
+          slot = i;
+          break;
+        }
+      }
+    }
+    const id = pickMine(mine.filter((m) => !ids.includes(m)));
+    if (id) offer[slot] = { id, up: 1 };
+  }
+  if (double && left(offer[slot].id) >= 2) offer[slot].up = 2;
+  return offer;
+}

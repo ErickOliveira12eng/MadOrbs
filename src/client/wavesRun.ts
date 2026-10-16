@@ -11,7 +11,7 @@ import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
-import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, cardDef, rollCards, type CardID, type CardLevels } from './wavesCards';
+import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
@@ -100,7 +100,7 @@ export interface WavesContext {
    * Three cards to choose from (the game waits for WavesRun.pick): the boss fell, or wave `afterWave`
    * (5, 15, 25...) ended (the commons only).
    */
-  onCards: (offer: CardID[], afterWave?: number) => void;
+  onCards: (offer: CardOffer[], afterWave?: number) => void;
   /** The Blast card: a kill's blast went off there, this far (drawn light, a few a second at most). */
   onKillBlast: (position: Vec3, radius: number) => void;
   /** The Shadow card's allies' name, the Necromancer's risen enemies' one. */
@@ -153,8 +153,8 @@ export class WavesRun {
   private shockWait = 0;
   /** The cards taken, the offer waiting for a choice (null: none), the kills already paid by Vampire, the Grenadier's clock. */
   private readonly cards: CardLevels = {};
-  private offer: CardID[] | null = null;
-  /** The last wave (5, 15, 25...) whose common cards were offered; one whose cards wait for the offer on screen (0: none). */
+  private offer: CardOffer[] | null = null;
+  /** The last wave (3, 6, 9...) whose common cards were offered; one whose cards wait for the offer on screen (0: none). */
   private commonCardsAt = 0;
   private owedCards = 0;
   private killsSeen = 0;
@@ -344,30 +344,31 @@ export class WavesRun {
   // ---------------------------------------------------------------- waves
 
   /**
-   * Three cards to choose from, the game waiting: of every rarity when the boss falls, the commons only
-   * after wave `afterWave` (5, 15, 25...: Erick, 13/10/2026, a choice every 5 waves).
+   * Three cards to choose from, the game waiting (offerCards: one of them a card already taken, maybe two
+   * levels at once): of every rarity when the boss falls, the commons only after wave `afterWave` (every 3
+   * waves: Erick, 15/10/2026; it was every 10 from wave 5, and the cards were far too few to build anything).
    */
   private offerCards(afterWave?: number): void {
-    const offer = rollCards(this.wave, this.cards, 3, afterWave !== undefined);
+    const offer = dealCards(this.wave, this.cards, afterWave !== undefined);
     if (!offer.length) return;
     this.offer = offer;
-    track('waves_cards', { wave: this.wave, offer: offer.join(','), boss: afterWave === undefined });
+    track('waves_cards', { wave: this.wave, offer: offer.map((o) => (o.up > 1 ? `${o.id}+${o.up}` : o.id)).join(','), boss: afterWave === undefined });
     this.ctx.onCards(offer, afterWave);
   }
 
   /**
-   * Waves 5, 15, 25...: their common cards once the wave is over (cleared, or its time up), once; after
-   * the boss's if both come at the same moment (a late boss falling as the last enemy of wave 15).
+   * Waves 3, 6, 9... (not the boss's, 10, 20, 30...): their common cards once the wave is over (cleared, or its
+   * time up), once; after the boss's if both come at the same moment (a late boss falling as the last enemy).
    */
   private commonCardsAfter(n: number): void {
-    if (n % 10 !== 5 || this.commonCardsAt >= n) return;
+    if (n % COMMON_CARDS_EVERY !== 0 || n % 10 === 0 || this.commonCardsAt >= n) return;
     this.commonCardsAt = n;
     if (this.offer) this.owedCards = n;
     else this.offerCards(n);
   }
 
   private startWave(): void {
-    // The wave that ends on its time: its cards (waves 5, 15, 25...) if it wasn't cleared
+    // The wave that ends on its time: its cards (waves 3, 6, 9...) if it wasn't cleared
     this.commonCardsAfter(this.wave);
     // The bots (and the boss) the last wave still had to send come too
     const carried = this.pending;
@@ -598,7 +599,7 @@ export class WavesRun {
   }
 
   /** Cards to choose from now (the game waits), or null. */
-  get choosing(): CardID[] | null {
+  get choosing(): CardOffer[] | null {
     return this.offer;
   }
 
@@ -607,13 +608,14 @@ export class WavesRun {
     return this.cards[id] ?? 0;
   }
 
-  /** The player took card `i` of the offer: one level more, and the run goes on (or the next offer comes). */
+  /** The player took card `i` of the offer: its levels (one, or two), and the run goes on (or the next offer comes). */
   pick(i: number): void {
-    const id = this.offer?.[i];
-    if (!id) return;
-    this.cards[id] = (this.cards[id] ?? 0) + 1;
+    const o = this.offer?.[i];
+    if (!o) return;
+    const id = o.id;
+    this.cards[id] = Math.min(cardDef(id).max, (this.cards[id] ?? 0) + o.up);
     this.offer = null;
-    track('waves_card', { card: id, level: this.cards[id]!, wave: this.wave });
+    track('waves_card', { card: id, level: this.cards[id]!, up: o.up, wave: this.wave });
     if (id === 'shadow') this.reviveAllies();
     if (this.owedCards) {
       const n = this.owedCards;
