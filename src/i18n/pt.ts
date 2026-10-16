@@ -68,7 +68,7 @@ export const pt: Record<Key, string> = {
   'home.newsTitle': 'Novidades',
   'home.news21Date': '15 de outubro de 2026',
   'home.news21Title': 'Ondas: cartas para montar o seu estilo',
-  'home.news21': 'Em cada escolha de cartas, uma das três agora é sempre uma que você já tem, para montar o seu estilo. Às vezes ela sobe dois níveis de uma vez, em verde, e sempre que aparece uma carta rara nova: a rara no nível 1 ou dois níveis da sua?',
+  'home.news21': 'Em cada escolha de cartas, uma das três agora é sempre uma que você já tem, para montar o seu estilo. Às vezes ela sobe dois níveis de uma vez, em verde, e no chefão vem sempre uma carta rara e uma sua subindo dois níveis: a rara ou dois níveis da sua?',
   'home.news20Date': '14 de outubro de 2026',
   'home.news20Title': 'Deathmatch e TDM: uns 70 mapas',
   'home.news20': 'O Deathmatch e o Team Deathmatch online agora também giram pelos mapas de Capture a Bandeira: uns setenta mapas ao todo, três deles na votação do fim de cada partida.',

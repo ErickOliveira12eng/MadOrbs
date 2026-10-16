@@ -70,7 +70,7 @@ export const en = {
   'home.newsTitle': "What's new",
   'home.news21Date': 'October 15, 2026',
   'home.news21Title': 'Waves: cards to build on',
-  'home.news21': 'In every choice of cards, one of the three is now always a card you already have, to build your style. Sometimes it climbs two levels at once, shown in green, and always when a new rare card shows up: the rare one at level 1, or two levels of yours?',
+  'home.news21': 'In every choice of cards, one of the three is now always a card you already have, to build your style. Sometimes it climbs two levels at once, shown in green, and the boss always brings a rare card and one of yours two levels up: the rare one, or two levels of yours?',
   'home.news20Date': 'October 14, 2026',
   'home.news20Title': 'Deathmatch and TDM: about 70 maps',
   'home.news20': 'Online Deathmatch and Team Deathmatch now rotate through the Capture the Flag maps too: about seventy maps in all, three of them in the vote at the end of each match.',

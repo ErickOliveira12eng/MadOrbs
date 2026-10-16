@@ -171,39 +171,55 @@ export const DOUBLE_CHANCE = 0.2;
  * What a choice offers (Erick, 15/10/2026, after Vampire Survivors: build on what you have): three cards
  * (rollCards), one of them always a card already taken that isn't at its top, in place of a new common one
  * (never of a rarer card); that one sometimes climbs two levels at once (DOUBLE_CHANCE), and always when a new
- * epic or legendary is offered beside it: a level 1 of the rare card, or two levels of yours.
+ * epic or legendary is offered beside it: a level 1 of the rare card, or two levels of yours. The boss's offer
+ * (`commonOnly` false; Erick, 15/10/2026) always has a card of yours two levels up (an epic one too) and an epic
+ * or legendary card besides it (the legendaries from their wave).
  */
 export function offerCards(n: number, owned: CardLevels, commonOnly: boolean): CardOffer[] {
   const ids = rollCards(n, owned, 3, commonOnly);
   if (!ids.length) return [];
   const level = (id: CardID) => owned[id] ?? 0;
   const left = (id: CardID) => cardDef(id).max - level(id);
-  const mine = CARDS.filter((c) => level(c.id) > 0 && left(c.id) > 0 && n >= (c.from ?? 0) && (!commonOnly || c.rarity === 'common')).map((c) => c.id);
-  const offer = ids.map((id) => ({ id, up: 1 }));
-  if (!mine.length) return offer;
-  const rareNew = ids.some((id) => cardDef(id).rarity !== 'common' && level(id) === 0);
-  const double = rareNew || Math.random() < DOUBLE_CHANCE;
-  const pickMine = (from: CardID[]) => {
-    const two = from.filter((id) => left(id) >= 2);
-    const pool = double && two.length ? two : from;
-    return pool[Math.floor(Math.random() * pool.length)];
+  const open = (c: CardDef) => left(c.id) > 0 && n >= (c.from ?? 0);
+  const offer: CardOffer[] = ids.map((id) => ({ id, up: 1 }));
+  const has = (id: CardID) => offer.some((o) => o.id === id);
+  // Where a card goes in: a new common one's place (the last), else the last card; never `keep`'s
+  const placeFor = (keep: number): number => {
+    for (let i = offer.length - 1; i >= 0; i--) if (i !== keep && cardDef(offer[i].id).rarity === 'common' && level(offer[i].id) === 0) return i;
+    for (let i = offer.length - 1; i >= 0; i--) if (i !== keep) return i;
+    return -1;
   };
-  // The one of yours: already offered, else in place of a new common card (the last one), else the last card
-  let slot = ids.findIndex((id) => mine.includes(id) && (!double || left(id) >= 2));
-  if (slot < 0) slot = ids.findIndex((id) => mine.includes(id));
-  if (slot < 0 || (double && left(ids[slot]) < 2 && mine.some((id) => left(id) >= 2 && !ids.includes(id)))) {
-    if (slot < 0) {
-      slot = ids.length - 1;
-      for (let i = ids.length - 1; i >= 0; i--) {
-        if (cardDef(ids[i]).rarity === 'common' && level(ids[i]) === 0) {
-          slot = i;
+  const mine = CARDS.filter((c) => level(c.id) > 0 && open(c) && (!commonOnly || c.rarity === 'common')).map((c) => c.id);
+  const rareNew = offer.some((o) => cardDef(o.id).rarity !== 'common' && level(o.id) === 0);
+  const double = !commonOnly || rareNew || Math.random() < DOUBLE_CHANCE;
+  const fits = (id: CardID) => !double || left(id) >= 2;
+  // The one of yours: already offered, else in place of a new common card
+  let slot = offer.findIndex((o) => mine.includes(o.id) && fits(o.id));
+  if (slot < 0 && mine.length) {
+    const free = mine.filter((id) => !has(id));
+    const pool = free.some(fits) ? free.filter(fits) : free;
+    if (pool.length) {
+      slot = placeFor(-1);
+      if (slot >= 0) offer[slot] = { id: pool[Math.floor(Math.random() * pool.length)], up: 1 };
+    } else slot = offer.findIndex((o) => mine.includes(o.id));
+  }
+  if (slot >= 0 && double && left(offer[slot].id) >= 2) offer[slot].up = 2;
+  // The boss: always an epic or legendary card besides that one
+  if (!commonOnly && !offer.some((o, i) => i !== slot && cardDef(o.id).rarity !== 'common')) {
+    const rares = CARDS.filter((c) => c.rarity !== 'common' && open(c) && !has(c.id));
+    const at = placeFor(slot);
+    if (rares.length && at >= 0) {
+      let r = Math.random() * rares.reduce((sum, c) => sum + RARITY_WEIGHT[c.rarity], 0);
+      let pick = rares[rares.length - 1];
+      for (const c of rares) {
+        r -= RARITY_WEIGHT[c.rarity];
+        if (r <= 0) {
+          pick = c;
           break;
         }
       }
+      offer[at] = { id: pick.id, up: 1 };
     }
-    const id = pickMine(mine.filter((m) => !ids.includes(m)));
-    if (id) offer[slot] = { id, up: 1 };
   }
-  if (double && left(offer[slot].id) >= 2) offer[slot].up = 2;
   return offer;
 }
