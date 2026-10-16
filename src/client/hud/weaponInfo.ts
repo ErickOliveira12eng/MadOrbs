@@ -139,7 +139,7 @@ export function weaponInfo(id: number): WeaponInfo {
     // Square roots: the SMG's 10 and the shotgun's 105 both read on the same bar
     info.stats = [
       { label: t('stat.damage'), value: Math.sqrt(Math.min(1, dmg / 105)), text: dmgText },
-      { label: t('stat.rate'), value: Math.sqrt(Math.min(1, rate / 10)), text: t('stat.perSecond', { n: num(rate) }) },
+      { label: t('stat.rateShort'), value: Math.sqrt(Math.min(1, rate / 10)), text: t('stat.perSecond', { n: num(rate) }) },
       accuracy(id),
     ];
   } else if ((SECONDARY_WEAPONS as readonly number[]).includes(id)) {

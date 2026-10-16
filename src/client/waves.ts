@@ -54,6 +54,13 @@ export const WAVES = {
   escorts: 2,
 };
 
+/**
+ * The first waves, easier (Erick, 15/10/2026: everybody who starts playing should get through them): on wave 1 the
+ * bots hit half as hard (hit) and take 20% more damage (take), back to the curve step by step by wave `until`
+ * (wave 2: x0.63 and x1.15, 3: x0.75 and x1.1, 4: x0.88 and x1.05); from there on nothing changes.
+ */
+export const EASE = { until: 5, hit: 0.5, take: 1.2 };
+
 export interface WaveSpec {
   n: number;
   /** A boss wave (every WAVES.bossEvery). */
@@ -81,8 +88,11 @@ export interface WaveSpec {
  * damage (as if their life were ×1.6 on wave 10, ×2.3 on 20, ×3.7 on 40) and hit 1 + 0.04 (n-1) as hard
  * (×1.4, ×1.8, ×2.6; on top of WAVES.playerDamage): Erick, 12/10/2026, the gentler 0.035 and 0.015 went
  * unnoticed against the player's power-ups. The better weapons come a few waves later than they used to.
+ * The first waves are easier still (EASE): nobody new should die on them.
  */
 export function waveSpec(n: number): WaveSpec {
+  // 1 on wave 1, down to 0 on wave EASE.until
+  const ease = Math.max(0, Math.min(1, (EASE.until - n) / (EASE.until - 1)));
   const boss = n % WAVES.bossEvery === 0;
   const weapons = [WEAPON_SMG];
   if (n >= 4) weapons.push(WEAPON_SHOTGUN);
@@ -100,8 +110,8 @@ export function waveSpec(n: number): WaveSpec {
     spawnGap: Math.max(0.25, 0.9 - n * 0.02),
     seconds: Math.min(60, 30 + n),
     skill: 0.92 - 0.77 * Math.exp(-(n - 1) / 18),
-    toughness: 1 / (1 + 0.07 * (n - 1)),
-    hitBoost: 1 + 0.04 * (n - 1),
+    toughness: (1 / (1 + 0.07 * (n - 1))) * (1 + (EASE.take - 1) * ease),
+    hitBoost: (1 + 0.04 * (n - 1)) * (1 - (1 - EASE.hit) * ease),
     weapons,
   };
 }

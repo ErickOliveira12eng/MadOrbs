@@ -40,13 +40,16 @@ export const UPGRADES: Upgrade[] = [
 ];
 
 /**
- * What a level does: life +10% (a bigger bar, 100 to 150 points: Player.lifeMax; until 15/10/2026 it only
- * shrank the damage taken, like the defence, and the bar stayed at 100), defence 4% less damage taken, damage and fire rate +5%, speed +4%, one more life, one more grenade at each spawn,
+ * What a level does: life +20 points (a bigger bar, 100 to 200: Player.lifeMax; until 15/10/2026 it only
+ * shrank the damage taken, like the defence, and the bar stayed at 100), defence 6% less damage taken, damage and
+ * attack speed +10% (what a crate's permanent power-up gives), moving speed +6% (15/10/2026, Erick: the Workshop
+ * weighed too little in a run; it was life +10%, defence 4%, damage and attack speed 5%, speed 4%), one more
+ * life, one more grenade at each spawn,
  * +10% chance that a crate drops a permanent power-up, +5 points on the chance a fallen bot drops a
  * life pack (WAVES.lifePackChance), life back between waves (20%, 35%, 50%), and once a run a blow
  * that would kill leaves half the life.
  */
-export const UPGRADE_STEP = { life: 0.1, armor: 0.04, damage: 0.05, fire: 0.05, speed: 0.04, luck: 0.1, drops: 0.05 };
+export const UPGRADE_STEP = { life: 0.2, armor: 0.06, damage: 0.1, fire: 0.1, speed: 0.06, luck: 0.1, drops: 0.05 };
 export const BREATHER = [0, 0.2, 0.35, 0.5];
 export const SECOND_WIND_LIFE = 0.5;
 
@@ -128,17 +131,18 @@ export function headStartPowers(startWave: number): number {
 
 /**
  * A wave survived (the next one began): WAVE_CORES_BASE Cores plus one for every two waves of its number, times
- * WAVE_CORES_SCALE: 10 for the first, 18 for the 10th, 26 for the 20th, 42 for the 40th. Raised three times at
+ * WAVE_CORES_SCALE: 11 for the first, 21 for the 10th, 30 for the 20th, 49 for the 40th. Raised four times at
  * Erick's asking: 30% more on 12/10/2026 (scale 1.3); about 23% more on a whole run on 14/10/2026 (scale 1.6, a
  * Core every 4 kills instead of 5, 30 for a boss instead of 25); and the same day, the start found hard, a base
  * of 6 instead of 3, which weighs most on the first waves: a run dying on wave 8 gives 96 instead of 63, on wave
- * 11 184 instead of 136, on 21 476 instead of 380, on 41 1407 instead of 1215 (every enemy killed, no record).
+ * 11 184 instead of 136, on 21 476 instead of 380, on 41 1407 instead of 1215 (every enemy killed, no record);
+ * on 15/10/2026 about 22% more again (scale 1.9, a Core every 3 kills, 40 for a boss): 224, 585, 1729.
  */
 export const WAVE_CORES_BASE = 6;
-export const WAVE_CORES_SCALE = 1.6;
+export const WAVE_CORES_SCALE = 1.9;
 export const waveCores = (n: number): number => Math.round(WAVE_CORES_SCALE * (WAVE_CORES_BASE + Math.floor(n / 2)));
-export const KILLS_PER_CORE = 4;
-export const BOSS_CORES = 30;
+export const KILLS_PER_CORE = 3;
+export const BOSS_CORES = 40;
 export const RECORD_CORES = 30;
 
 export interface RunCores {
