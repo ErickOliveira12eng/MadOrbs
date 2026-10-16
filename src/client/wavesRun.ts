@@ -154,7 +154,7 @@ export class WavesRun {
   /** The cards taken, the offer waiting for a choice (null: none), the kills already paid by Vampire, the Grenadier's clock. */
   private readonly cards: CardLevels = {};
   private offer: CardOffer[] | null = null;
-  /** The last wave (3, 6, 9...) whose common cards were offered; one whose cards wait for the offer on screen (0: none). */
+  /** The last wave (5, 15, 25...) whose common cards were offered; one whose cards wait for the offer on screen (0: none). */
   private commonCardsAt = 0;
   private owedCards = 0;
   private killsSeen = 0;
@@ -345,8 +345,8 @@ export class WavesRun {
 
   /**
    * Three cards to choose from, the game waiting (offerCards: one of them a card already taken, maybe two
-   * levels at once): of every rarity when the boss falls, the commons only after wave `afterWave` (every 3
-   * waves: Erick, 15/10/2026; it was every 10 from wave 5, and the cards were far too few to build anything).
+   * levels at once): of every rarity when the boss falls, the commons only after wave `afterWave` (5, 15, 25...:
+   * a choice every 5 waves, Erick, 13/10/2026).
    */
   private offerCards(afterWave?: number): void {
     const offer = dealCards(this.wave, this.cards, afterWave !== undefined);
@@ -357,7 +357,7 @@ export class WavesRun {
   }
 
   /**
-   * Waves 3, 6, 9... (not the boss's, 10, 20, 30...): their common cards once the wave is over (cleared, or its
+   * Waves 5, 15, 25... (COMMON_CARDS_EVERY, not the boss's 10, 20, 30...): their common cards once the wave is over (cleared, or its
    * time up), once; after the boss's if both come at the same moment (a late boss falling as the last enemy).
    */
   private commonCardsAfter(n: number): void {
@@ -368,7 +368,7 @@ export class WavesRun {
   }
 
   private startWave(): void {
-    // The wave that ends on its time: its cards (waves 3, 6, 9...) if it wasn't cleared
+    // The wave that ends on its time: its cards (waves 5, 15, 25...) if it wasn't cleared
     this.commonCardsAfter(this.wave);
     // The bots (and the boss) the last wave still had to send come too
     const carried = this.pending;

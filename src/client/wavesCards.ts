@@ -1,5 +1,5 @@
 // The waves' cards (Erick, 12/10/2026, in the style of Archero): each time the boss falls (wave 10, 20,
-// 30...) the game stops and offers 3 cards, and every 3 waves 3 common ones (offerCards: one of them a card
+// 30...) the game stops and offers 3 cards, and after waves 5, 15, 25... 3 common ones (offerCards: one of them a card
 // already taken, sometimes two levels at once); the player takes one, for the rest of the run. Taking a
 // card again raises its level. Commons have 5 levels, the epics 3 (shadow allies, the reflector shield),
 // the legendaries 3 too, offered from wave 40 only (missiles falling, the silver bullet, the necromancer).
@@ -38,8 +38,11 @@ export const CARDS: CardDef[] = [
   { id: 'necro', rarity: 'legendary', max: 3, from: 40 },
 ];
 
-/** A choice of common cards after every this many waves (not the boss's: its choice has every rarity). */
-export const COMMON_CARDS_EVERY = 3;
+/**
+ * A choice of common cards after every this many waves, not the boss's (10, 20, 30...: its choice has every rarity),
+ * so 5, 15, 25... (Erick, 15/10/2026: a choice every 5 waves stays; every 3 was tried, too many).
+ */
+export const COMMON_CARDS_EVERY = 5;
 
 /** How likely each rarity is in an offer (by weight). */
 const RARITY_WEIGHT: Record<Rarity, number> = { common: 70, epic: 25, legendary: 8 };
