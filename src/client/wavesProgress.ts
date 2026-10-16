@@ -4,10 +4,10 @@
 // Kept in this browser (madorbs.wavesProgress) and, signed in, in the account (waves_progress).
 import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_FLAME_THROWER, WEAPON_SHOTGUN, WEAPON_SMG } from '../sim/constants';
 
-export type UpgradeID = 'life' | 'armor' | 'damage' | 'fire' | 'speed' | 'lives' | 'grenades' | 'luck' | 'drops' | 'breather' | 'secondWind' | 'cap' | 'dash' | 'barrier' | 'shock';
+export type UpgradeID = 'life' | 'armor' | 'damage' | 'fire' | 'speed' | 'lives' | 'grenades' | 'luck' | 'drops' | 'breather' | 'secondWind' | 'cap' | 'dash' | 'barrier' | 'shock' | 'reroll';
 
-/** The Workshop's kinds of upgrade (its list, src/menu/wavesModal.ts): the last two are in the other tab. */
-export type UpgradeGroup = 'attack' | 'defense' | 'survival' | 'abilities' | 'limits';
+/** The Workshop's kinds of upgrade (its list, src/menu/wavesModal.ts): the last three are in the other tab. */
+export type UpgradeGroup = 'attack' | 'defense' | 'survival' | 'abilities' | 'cards' | 'limits';
 
 export interface Upgrade {
   id: UpgradeID;
@@ -34,12 +34,14 @@ export const UPGRADES: Upgrade[] = [
   { id: 'dash', costs: [200, 350, 550, 800, 1100], group: 'abilities' },
   { id: 'barrier', costs: [250, 400, 600, 850, 1200], group: 'abilities' },
   { id: 'shock', costs: [300, 500, 750, 1050, 1400], group: 'abilities' },
+  // The cards' reroll (Erick, 15/10/2026, after Vampire Survivors): 1 to 3 a run
+  { id: 'reroll', costs: [250, 500, 900], group: 'cards' },
   { id: 'cap', costs: [150, 300, 500, 800, 1200, 1800, 2600, 3600], group: 'limits' },
 ];
 
 /**
- * What a level does: life +10% (the damage taken shrinks as if the life were bigger), defence 4% less
- * damage taken, damage and fire rate +5%, speed +4%, one more life, one more grenade at each spawn,
+ * What a level does: life +10% (a bigger bar, 100 to 150 points: Player.lifeMax; until 15/10/2026 it only
+ * shrank the damage taken, like the defence, and the bar stayed at 100), defence 4% less damage taken, damage and fire rate +5%, speed +4%, one more life, one more grenade at each spawn,
  * +10% chance that a crate drops a permanent power-up, +5 points on the chance a fallen bot drops a
  * life pack (WAVES.lifePackChance), life back between waves (20%, 35%, 50%), and once a run a blow
  * that would kill leaves half the life.
@@ -50,7 +52,7 @@ export const SECOND_WIND_LIFE = 0.5;
 
 export type Levels = Record<UpgradeID, number>;
 
-export const NO_LEVELS: Levels = { life: 0, armor: 0, damage: 0, fire: 0, speed: 0, lives: 0, grenades: 0, luck: 0, drops: 0, breather: 0, secondWind: 0, cap: 0, dash: 0, barrier: 0, shock: 0 };
+export const NO_LEVELS: Levels = { life: 0, armor: 0, damage: 0, fire: 0, speed: 0, lives: 0, grenades: 0, luck: 0, drops: 0, breather: 0, secondWind: 0, cap: 0, dash: 0, barrier: 0, shock: 0, reroll: 0 };
 
 /**
  * What only the Workshop gives. The run's limits: each permanent power-up of a run stops at

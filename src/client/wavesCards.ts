@@ -51,8 +51,8 @@ const RARITY_WEIGHT: Record<Rarity, number> = { common: 70, epic: 25, legendary:
  * What a card does at a level (1..max): Double shot, chance of a second volley right after (more on one
  * target); Parallel, the share of the damage of its two volleys, one on each side opening a little (the
  * enemies beside the target); Fan, the two diagonal volleys' share; Pierce, enemies a bullet
- * goes through; Critical, chance of double damage; Vampire, life back per kill; Rage, extra damage at
- * no life left (it grows as the life goes down); Dodge, chance a hit misses; Grenadier, seconds for a
+ * goes through; Critical, chance of double damage; Vampire, life back per kill; Berserker ('rage'), extra
+ * damage below BERSERK_BELOW of the life; Dodge, chance a hit misses; Grenadier, seconds for a
  * grenade to come back by itself; Blast, the power of the blast a kill makes (a bot's life, before its
  * toughness; BLAST_RADIUS); Ricochet, enemies a hit jumps on to; Missiles, rockets falling every
  * MISSILE_EVERY seconds; Shadow, allies at the player's side; Reflector, seconds the shield stays up
@@ -77,6 +77,9 @@ export const CARD_LEVELS: Record<CardID, number[]> = {
   silver: [0, 5, 4, 3],
   necro: [0, 0.2, 0.3, 0.4],
 };
+
+/** Berserker (the card 'rage'): its extra damage counts below this share of the life (15/10/2026, Erick). */
+export const BERSERK_BELOW = 0.5;
 
 /** Blast: how far a kill's blast reaches (cells), by level. */
 export const BLAST_RADIUS = [0, 1.5, 1.75, 2, 2.25, 2.5];

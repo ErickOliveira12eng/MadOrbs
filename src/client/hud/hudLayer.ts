@@ -680,7 +680,7 @@ export class HudLayer {
    * middle of the screen, the game stopped, the banner under them and the system's cursor. A click or the
    * keys 1, 2, 3 take one (after a moment: the shot that killed the boss must not pick a card by itself).
    */
-  showCards(offer: { id: CardID; level: number; up: number }[], onPick: (i: number) => void, wave?: number): void {
+  showCards(offer: { id: CardID; level: number; up: number }[], onPick: (i: number) => void, wave?: number, reroll?: { left: number; onReroll: () => void }): void {
     const cards = offer
       .map(({ id, level, up }, i) => {
         const def = cardDef(id);
@@ -699,7 +699,11 @@ export class HudLayer {
       })
       .join('');
     const sub = wave === undefined ? t('cards.sub') : t('cards.subWave', { n: wave });
-    setHTML(this.r.campcard, `<div class="t">${t('cards.title')}</div><div class="lvl">${sub}</div><div class="h-cards">${cards}</div>`);
+    // The Workshop's Reroll cards: three others (R)
+    const swapButton = reroll
+      ? `<button type="button" class="h-reroll" data-reroll${reroll.left > 0 ? '' : ' disabled'}><span>${t('cards.reroll', { n: reroll.left })}</span><span class="h-key">R</span></button>`
+      : '';
+    setHTML(this.r.campcard, `<div class="t">${t('cards.title')}</div><div class="lvl">${sub}</div><div class="h-cards">${cards}</div>${swapButton}`);
     this.r.campcard.classList.remove('waves');
     this.r.campcard.classList.add('cards');
     this.r.campend.classList.remove('preload');
@@ -713,11 +717,26 @@ export class HudLayer {
       if (performance.now() < readyAt || i < 0 || i >= offer.length) return;
       onPick(i);
     };
+    const swap = () => {
+      if (performance.now() < readyAt || !reroll || reroll.left <= 0) return;
+      reroll.onReroll();
+    };
     this.r.campend.onclick = (ev) => {
-      const b = (ev.target as HTMLElement).closest<HTMLElement>('[data-card]');
+      const target = ev.target as HTMLElement;
+      if (target.closest('[data-reroll]')) {
+        swap();
+        return;
+      }
+      const b = target.closest<HTMLElement>('[data-card]');
       if (b) pick(Number(b.dataset.card));
     };
     this.cardKeys = (ev: KeyboardEvent) => {
+      if (ev.code === 'KeyR') {
+        ev.preventDefault();
+        ev.stopPropagation();
+        swap();
+        return;
+      }
       const m = /^(?:Digit|Numpad)([1-3])$/.exec(ev.code);
       if (!m) return;
       ev.preventDefault();
@@ -1297,7 +1316,8 @@ export class HudLayer {
 
   private updateHealth(me: Player): void {
     const life = Math.max(0, Math.min(1, me.life));
-    const n = life > 0 ? Math.max(1, Math.round(life * 100)) : 0;
+    // The points: a full bar holds 100 (the waves' Workshop Life: up to 150)
+    const n = life > 0 ? Math.max(1, Math.round(life * 100 * me.lifeMax)) : 0;
     setText(this.r.hp, String(n));
     // The original colours: (1 - life, life, 0), blinking below a quarter
     const color = rgb([1 - life, life, 0]);

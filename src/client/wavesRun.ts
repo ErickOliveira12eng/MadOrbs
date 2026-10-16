@@ -11,7 +11,7 @@ import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
-import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
+import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
@@ -154,6 +154,9 @@ export class WavesRun {
   /** The cards taken, the offer waiting for a choice (null: none), the kills already paid by Vampire, the Grenadier's clock. */
   private readonly cards: CardLevels = {};
   private offer: CardOffer[] | null = null;
+  /** What the offer on screen is (the wave of a common one, undefined: the boss's), and the rerolls left (the Workshop). */
+  private offerAfter: number | undefined = undefined;
+  private rerolls = 0;
   /** The last wave (5, 15, 25...) whose common cards were offered; one whose cards wait for the offer on screen (0: none). */
   private commonCardsAt = 0;
   private owedCards = 0;
@@ -183,6 +186,7 @@ export class WavesRun {
     this.wave = ctx.startWave - 1;
     this.spec = waveSpec(ctx.startWave);
     this.permCap = PERM_CAP_BASE + PERM_CAP_STEP * ctx.levels.cap;
+    this.rerolls = ctx.levels.reroll;
     for (let i = 0; i < headStartPowers(ctx.startWave); i++) {
       const k = rollPerm(this.full);
       if (k) this.perms[k]++;
@@ -278,7 +282,9 @@ export class WavesRun {
     const lv = this.ctx.levels;
     me.speedBoost = Math.min(2, (1 + UPGRADE_STEP.speed * lv.speed) * (1 + PERM_STEP * perm.permSpeed) * (this.timers.speed > 0 ? BOOSTS.speed : 1));
     me.fireBoost = (1 + UPGRADE_STEP.fire * lv.fire) * (1 + PERM_STEP * perm.permFire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1);
-    me.armorBoost = (((1 - PERM_STEP) ** perm.permArmor * (this.timers.shield > 0 ? BOOSTS.shield : 1)) / (1 + UPGRADE_STEP.life * lv.life)) * (1 - UPGRADE_STEP.armor * lv.armor);
+    me.armorBoost = (1 - PERM_STEP) ** perm.permArmor * (this.timers.shield > 0 ? BOOSTS.shield : 1) * (1 - UPGRADE_STEP.armor * lv.armor);
+    // The Workshop's Life: a bigger bar (100 to 150 points), not a smaller blow
+    me.lifeMax = 1 + UPGRADE_STEP.life * lv.life;
     me.damageBoost = (1 + UPGRADE_STEP.damage * lv.damage) * (1 + PERM_STEP * perm.permDamage) * (this.timers.fury > 0 ? BOOSTS.fury : 1);
     // The cards (wavesCards.ts)
     const card = (id: CardID) => CARD_LEVELS[id][this.cards[id] ?? 0];
@@ -322,11 +328,12 @@ export class WavesRun {
         this.missiles(card('missiles'));
       }
     }
-    // Rage: more damage the less life is left
-    if (this.cards.rage) me.damageBoost *= 1 + card('rage') * (1 - Math.max(0, Math.min(1, me.life)));
+    // Berserker: below half the life, more damage (Erick, 15/10/2026; it was "Rage", more the less life was left)
+    if (this.cards.rage && me.life < BERSERK_BELOW) me.damageBoost *= 1 + card('rage');
     // Vampire: life back for each kill
     if (me.kills > this.killsSeen) {
-      if (this.cards.vampire && me.isAlive) me.life = Math.min(1, me.life + card('vampire') * (me.kills - this.killsSeen));
+      // (points of life: a bigger bar fills less of it)
+      if (this.cards.vampire && me.isAlive) me.life = Math.min(1, me.life + (card('vampire') * (me.kills - this.killsSeen)) / me.lifeMax);
       this.killsSeen = me.kills;
     }
     // Grenadier: a grenade comes back by itself now and then
@@ -352,6 +359,7 @@ export class WavesRun {
     const offer = dealCards(this.wave, this.cards, afterWave !== undefined);
     if (!offer.length) return;
     this.offer = offer;
+    this.offerAfter = afterWave;
     track('waves_cards', { wave: this.wave, offer: offer.map((o) => (o.up > 1 ? `${o.id}+${o.up}` : o.id)).join(','), boss: afterWave === undefined });
     this.ctx.onCards(offer, afterWave);
   }
@@ -624,6 +632,27 @@ export class WavesRun {
     }
   }
 
+  /** Rerolls left in this run, and a run's (the Workshop's Reroll cards level; 0: no button). */
+  get rerollsLeft(): number {
+    return this.rerolls;
+  }
+
+  get rerollsBought(): number {
+    return this.ctx.levels.reroll;
+  }
+
+  /** The offer on screen is swapped for three other cards of the same kind (a reroll spent). */
+  reroll(): boolean {
+    if (!this.offer || this.rerolls <= 0) return false;
+    const offer = dealCards(this.wave, this.cards, this.offerAfter !== undefined);
+    if (!offer.length) return false;
+    this.rerolls--;
+    this.offer = offer;
+    track('waves_reroll', { wave: this.wave, left: this.rerolls, boss: this.offerAfter === undefined });
+    this.ctx.onCards(offer, this.offerAfter);
+    return true;
+  }
+
   // ---------------------------------------------------------------- the testers' tools
 
   /** Every card with its level now (the testers' tools). */
@@ -695,6 +724,9 @@ export class WavesRun {
         break;
       case 'lives':
         me.lives = Math.max(0, me.lives + lv - before);
+        break;
+      case 'reroll':
+        this.rerolls = lv;
         break;
     }
   }
@@ -870,7 +902,7 @@ export class WavesRun {
    */
   private allyStrength(p: Player): void {
     const me = this.ctx.me;
-    p.damageScale = me.damageScale * me.armorBoost * SHADOW_ALLY.takes;
+    p.damageScale = ((me.damageScale * me.armorBoost) / me.lifeMax) * SHADOW_ALLY.takes;
     p.armorBoost = 1;
     p.damageBoost = me.damageBoost * SHADOW_ALLY.deals;
   }

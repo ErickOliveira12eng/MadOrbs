@@ -63,6 +63,7 @@ const UPGRADE_ICON: Record<UpgradeID, IconName> = {
   dash: 'wind',
   barrier: 'shieldHalf',
   shock: 'radio',
+  reroll: 'shuffle',
 };
 
 /** The list's kinds, in order, each in its tab. */
@@ -71,6 +72,7 @@ const GROUPS: { id: UpgradeGroup; tab: Tab }[] = [
   { id: 'defense', tab: 'stats' },
   { id: 'survival', tab: 'stats' },
   { id: 'abilities', tab: 'skills' },
+  { id: 'cards', tab: 'skills' },
   { id: 'limits', tab: 'skills' },
 ];
 
@@ -93,6 +95,7 @@ function upgradeValue(id: UpgradeID, level: number): string {
   const pct = (x: number) => `+${Math.round(x * 100)}%`;
   switch (id) {
     case 'life':
+      return String(Math.round(100 * (1 + UPGRADE_STEP.life * level)));
     case 'damage':
     case 'fire':
     case 'speed':
@@ -118,6 +121,8 @@ function upgradeValue(id: UpgradeID, level: number): string {
       return level ? `${num(SHOCK_COOLDOWN[level])} s` : '—';
     case 'barrier':
       return `${Math.round(BARRIER_SIZE[level] * 100)}%`;
+    case 'reroll':
+      return String(level);
   }
 }
 

@@ -3683,6 +3683,34 @@
   margin-top: auto;
 }
 
+/* The Workshop's Reroll cards: three other cards (R), under them */
+.h-campend .h-reroll {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px auto 0;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(70, 240, 170, 0.75);
+  background: rgba(70, 240, 170, 0.12);
+  color: #8affd6;
+  font: 900 14px var(--h-ui);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.12s;
+}
+
+.h-campend .h-reroll:hover:not(:disabled) {
+  background: rgba(70, 240, 170, 0.22);
+  transform: translateY(-2px);
+}
+
+.h-campend .h-reroll:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* A card of yours climbing two levels at once (offerCards): it stands out, beside a new rare one most of all */
 .h-campend .h-card.double {
   --uc: 70, 240, 170;

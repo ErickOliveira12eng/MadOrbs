@@ -398,6 +398,8 @@ export class ClientGame {
             this.input.requestPointerLock();
           },
           afterWave,
+          // The Workshop's Reroll cards (none bought: no button)
+          this.waves && this.waves.rerollsBought > 0 ? { left: this.waves.rerollsLeft, onReroll: () => void this.waves?.reroll() } : undefined,
         );
       },
       onKillBlast: (position, radius) => {

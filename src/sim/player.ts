@@ -219,6 +219,12 @@ export class Player {
   private extraShotIn = 0;
   /** Marks shown before the name over the orb (the waves' elites: 'fast', 'brute', 'sniper', 'tank'). */
   badges: readonly string[] = [];
+  /**
+   * How much life a full bar holds (1: the original's 100 points; the waves' Workshop Life: up to 1.5, 150).
+   * `life` stays the share of the bar: what reaches it after the recharging shield is divided by this, and
+   * the heals given as a share of the bar heal as much of it.
+   */
+  lifeMax = 1;
   /** Power-ups of the waves mode (src/client/wavesRun.ts): damage dealt, damage taken, moving and firing. */
   damageBoost = 1;
   armorBoost = 1;
@@ -913,6 +919,8 @@ export class Player {
       cdamage -= taken;
       this.barrierWait = BARRIER_WAIT;
     }
+    // A bigger life bar (the waves' Workshop): the same blow takes a smaller share of it
+    cdamage /= this.lifeMax;
 
     if (this.status !== PLAYER_STATUS_ALIVE) return false;
 
@@ -961,7 +969,7 @@ export class Player {
       if (this.poisonLeft <= 0) this.poisonDps = 0;
       return;
     }
-    this.applyDamage(this.poisonDps * delay * this.damageScale * this.armorBoost, from, from.weapon?.weaponID ?? WEAPON_SMG, true);
+    this.applyDamage((this.poisonDps * delay * this.damageScale * this.armorBoost) / this.lifeMax, from, from.weapon?.weaponID ?? WEAPON_SMG, true);
     if (this.life <= Number.EPSILON && !this.secondChance()) this.dieSV(from, from.weapon?.weaponID ?? WEAPON_SMG, false);
   }
 

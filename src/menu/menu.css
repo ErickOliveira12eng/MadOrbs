@@ -3485,6 +3485,12 @@ input[type='range'] {
   --tone-text: #a9b8ff;
 }
 
+/* The cards' upgrades (the reroll): the green of the +2 card */
+.waves-modal .cards {
+  --tone: 70, 240, 170;
+  --tone-text: #5ef0b4;
+}
+
 .waves-modal .modal-head h2 {
   display: flex;
   flex-direction: column;
