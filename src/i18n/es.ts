@@ -68,7 +68,7 @@ export const es: Record<Key, string> = {
   'home.newsTitle': 'Novedades',
   'home.news22Date': '15 de octubre de 2026',
   'home.news22Title': 'Oleadas: vida de verdad y cambiar cartas',
-  'home.news22': 'En el Taller, la Vida ahora aumenta tu barra de 100 hasta 150, y llegó Cambiar cartas: hasta 3 cambios por partida cuando ninguna carta sirve (R). La carta Furia ahora es Berserker: más daño por debajo del 50% de vida.',
+  'home.news22': 'En el Taller, la Vida ahora aumenta tu barra de 100 hasta 150, y llegó Cambiar cartas: hasta 3 cambios por partida cuando ninguna carta sirve (R). La carta Furia ahora es Berserker: más daño por debajo del 50% de vida. Y las mejoras temporales de las cajas aparecen mucho menos.',
   'home.news21Date': '15 de octubre de 2026',
   'home.news21Title': 'Oleadas: cartas para armar tu estilo',
   'home.news21': 'En cada elección de cartas, una de las tres ahora es siempre una que ya tienes, para armar tu estilo. A veces sube dos niveles de una vez, en verde, y el jefe siempre trae una carta rara y una tuya subiendo dos niveles: ¿la rara o dos niveles de la tuya?',

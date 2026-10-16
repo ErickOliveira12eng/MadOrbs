@@ -70,7 +70,7 @@ export const en = {
   'home.newsTitle': "What's new",
   'home.news22Date': 'October 15, 2026',
   'home.news22Title': 'Waves: real life, card rerolls',
-  'home.news22': 'In the Workshop, Health now grows your bar from 100 up to 150, and Reroll cards is new: up to 3 rerolls a run when no card fits (R). The Rage card is now Berserker: more damage below 50% life.',
+  'home.news22': 'In the Workshop, Health now grows your bar from 100 up to 150, and Reroll cards is new: up to 3 rerolls a run when no card fits (R). The Rage card is now Berserker: more damage below 50% life. And timed power-ups from crates show up much less.',
   'home.news21Date': 'October 15, 2026',
   'home.news21Title': 'Waves: cards to build on',
   'home.news21': 'In every choice of cards, one of the three is now always a card you already have, to build your style. Sometimes it climbs two levels at once, shown in green, and the boss always brings a rare card and one of yours two levels up: the rare one, or two levels of yours?',

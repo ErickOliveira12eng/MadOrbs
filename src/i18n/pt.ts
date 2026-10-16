@@ -68,7 +68,7 @@ export const pt: Record<Key, string> = {
   'home.newsTitle': 'Novidades',
   'home.news22Date': '15 de outubro de 2026',
   'home.news22Title': 'Ondas: vida de verdade e trocar cartas',
-  'home.news22': 'Na Oficina, a Vida agora aumenta a sua barra de 100 até 150, e chegou Trocar cartas: até 3 trocas por partida quando nenhuma carta serve (R). A carta Fúria virou Berserker: mais dano abaixo de 50% de vida.',
+  'home.news22': 'Na Oficina, a Vida agora aumenta a sua barra de 100 até 150, e chegou Trocar cartas: até 3 trocas por partida quando nenhuma carta serve (R). A carta Fúria virou Berserker: mais dano abaixo de 50% de vida. E as melhorias temporárias das caixas aparecem bem menos.',
   'home.news21Date': '15 de outubro de 2026',
   'home.news21Title': 'Ondas: cartas para montar o seu estilo',
   'home.news21': 'Em cada escolha de cartas, uma das três agora é sempre uma que você já tem, para montar o seu estilo. Às vezes ela sobe dois níveis de uma vez, em verde, e no chefão vem sempre uma carta rara e uma sua subindo dois níveis: a rara ou dois níveis da sua?',
