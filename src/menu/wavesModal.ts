@@ -6,6 +6,7 @@
 // the milestones' track.
 import { orbName, prizeText, weaponLook } from '../client/wavesPrize';
 import { loadWavesRecord, WAVES } from '../client/waves';
+import { wavesPower } from '../client/wavesPower';
 import {
   BREATHER,
   CHECKPOINT,
@@ -177,6 +178,7 @@ export class WavesModal {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-buy]');
       if (!b || b.disabled) return;
       const id = b.dataset.buy as UpgradeID;
+      const before = this.power();
       const p = buy(id);
       if (!p) return;
       track('waves_upgrade', { upgrade: id, level: p.levels[id] });
@@ -187,6 +189,7 @@ export class WavesModal {
       $('wvDetail').classList.add('bought');
       $('wvUpgrades').querySelector(`[data-pick="${id}"]`)?.classList.add('bought');
       $('wvCores').classList.add('bought');
+      this.popPower(this.power() - before);
     });
     $('wvTabs').addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLElement>('[data-tab]');
@@ -288,6 +291,11 @@ export class WavesModal {
     $('wvCores').innerHTML = `${coreIcon(26)}<b>${bigNum(cash)}</b><span>${t('workshop.cores')}</span>`;
     $('wvRecord').innerHTML = record ? `${icon('trophy', 16)}${t('waves.record', { n: record })}` : '';
     $('wvRecord').hidden = !record;
+    // The Power (src/client/wavesPower.ts): the starting weapon and the Workshop, 100 for a new player
+    const pow = wavesPower(p.levels, startWeapon);
+    $('wvPower').classList.remove('bought');
+    $('wvPower').title = t('workshop.powerTip', { a: num(pow.attack, 1), d: num(pow.toughness, 1) });
+    $('wvPower').innerHTML = `${icon('zap', 18)}<b>${bigNum(pow.power)}</b><span>${t('workshop.power')}</span><i class="wv-pop" hidden></i>`;
 
     this.renderList(p, cash);
     this.renderDetail(p, cash);
@@ -383,6 +391,21 @@ export class WavesModal {
     );
   }
 
+  /** The Power now, with the starting weapon chosen. */
+  private power(): number {
+    return wavesPower(loadProgress().levels, WavesModal.startChoice(this.account.debugTools.zoom).startWeapon).power;
+  }
+
+  /** A purchase: the Power chip flashes and shows what it gained. */
+  private popPower(gain: number): void {
+    const chip = $('wvPower');
+    chip.classList.add('bought');
+    const pop = chip.querySelector<HTMLElement>('.wv-pop');
+    if (!pop || gain <= 0) return;
+    pop.textContent = `+${bigNum(gain)}`;
+    pop.hidden = false;
+  }
+
   /** The chosen upgrade: what it does now and at the next level, the levels after, the button. */
   private renderDetail(p: WavesProgress, cash: number): void {
     const u = UPGRADES.find((x) => x.id === this.selected)!;
@@ -401,10 +424,14 @@ export class WavesModal {
         later.push(`<li><span>${t('workshop.levelN', { n: l })}</span><b>${upgradeValue(u.id, l)}</b><span>${coreIcon(12)}${bigNum(u.costs[l - 1])}</span></li>`);
       }
       const short = cost > cash;
+      // What its next level adds to the Power
+      const weapon = WavesModal.startChoice(this.account.debugTools.zoom).startWeapon;
+      const gain = wavesPower({ ...p.levels, [u.id]: level + 1 }, weapon).power - wavesPower(p.levels, weapon).power;
       body =
         `<div class="wv-compare"><div class="wv-now"><small>${t('workshop.now')}</small><b>${upgradeValue(u.id, level)}</b></div>` +
         `<span class="wv-arrow">${icon('arrowRight', 28)}</span>` +
         `<div class="wv-now on"><small>${t('workshop.levelN', { n: level + 1 })}</small><b>${upgradeValue(u.id, level + 1)}</b></div></div>` +
+        (gain > 0 ? `<div class="wv-gain">${icon('zap', 15)}${t('workshop.powerGain', { n: bigNum(gain) })}</div>` : '') +
         (later.length ? `<ul class="wv-later">${later.join('')}</ul>` : '') +
         `<div class="wv-buyzone"><button type="button" class="wv-buy" data-buy="${u.id}"${short ? ' disabled' : ''}>` +
         `${t('workshop.upgradeTo', { n: level + 1 })}<span class="wv-cost">${coreIcon(15)}${bigNum(cost)}</span></button>` +
