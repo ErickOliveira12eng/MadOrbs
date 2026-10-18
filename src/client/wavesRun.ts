@@ -897,14 +897,24 @@ export class WavesRun {
   }
 
   /**
-   * A Shadow ally's strength, from the player's as it is now (his armour, the Workshop's, the run's power-ups):
-   * it takes SHADOW_ALLY.takes of the damage he takes and deals SHADOW_ALLY.deals of his. Never stronger than him.
+   * A Shadow ally's strength, from the player's as it is now (the Workshop, the run's power-ups, the cards):
+   * SHADOW_ALLY.share of each of his bonuses (damage, attack speed, speed, protection from his defence and life,
+   * criticals, poison, ice). Never stronger than him.
    */
   private allyStrength(p: Player): void {
     const me = this.ctx.me;
-    p.damageScale = ((me.damageScale * me.armorBoost) / me.lifeMax) * SHADOW_ALLY.takes;
+    const share = SHADOW_ALLY.share;
+    const part = (mine: number) => 1 + (mine - 1) * share;
+    // What reaches him of a blow (defence, timed shield, a bigger life bar), from his own base
+    const protect = Math.min(1, me.armorBoost / me.lifeMax);
+    p.damageScale = me.damageScale * (1 - (1 - protect) * share);
     p.armorBoost = 1;
-    p.damageBoost = me.damageBoost * SHADOW_ALLY.deals;
+    p.damageBoost = part(me.damageBoost);
+    p.fireBoost = part(me.fireBoost);
+    p.speedBoost = part(me.speedBoost);
+    p.critChance = me.critChance * share;
+    p.poisonShot = me.poisonShot * share;
+    p.iceShot = me.iceShot * share;
   }
 
   /** The Shadow card: as many allies as its level, the fallen ones back beside the player. */

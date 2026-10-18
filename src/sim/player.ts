@@ -110,6 +110,9 @@ const CARD_ROCKET_SIZE = 0.6;
 const POISON_SECONDS = 3;
 const CHILL_SECONDS = 1.5;
 
+/** The weapons whose hits carry the waves' poison and ice (the bullets: not fire, blasts or knives). */
+const AILING_WEAPONS = new Set([WEAPON_SMG, WEAPON_SHOTGUN, WEAPON_SNIPER, WEAPON_DUAL_MACHINE_GUN, WEAPON_CHAIN_GUN, WEAPON_PHOTON_RIFLE]);
+
 export class Player {
   readonly game: Game;
   readonly playerID: number;
@@ -940,8 +943,9 @@ export class Player {
         this.dieSV(from, fromWeaponID, false);
         return true;
       }
-      // The waves' poison and ice shots stick to whoever they hurt
-      if (cdamage > 0 && from !== this) {
+      // The waves' poison and ice shots stick to whoever they hurt: bullets only (18/10/2026, Erick: not the
+      // fire, the grenades, the rockets' blasts, the knives)
+      if (cdamage > 0 && from !== this && AILING_WEAPONS.has(fromWeaponID)) {
         if (from.poisonShot > 0) {
           this.poisonLeft = POISON_SECONDS;
           this.poisonDps = Math.max(this.poisonDps, from.poisonShot);

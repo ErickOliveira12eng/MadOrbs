@@ -64,7 +64,8 @@ export const CARD_LEVELS: Record<CardID, number[]> = {
   parallel: [0, 0.35, 0.45, 0.55, 0.65, 0.75],
   fan: [0, 0.3, 0.4, 0.5, 0.6, 0.7],
   pierce: [0, 1, 2, 3, 4, 5],
-  crit: [0, 0.06, 0.12, 0.18, 0.24, 0.3],
+  // (18/10/2026, Erick: 6% a level was too little to feel)
+  crit: [0, 0.15, 0.22, 0.29, 0.37, 0.45],
   vampire: [0, 0.02, 0.04, 0.06, 0.08, 0.1],
   rage: [0, 0.2, 0.4, 0.6, 0.8, 1],
   dodge: [0, 0.05, 0.1, 0.15, 0.2, 0.25],
@@ -105,7 +106,11 @@ export const SILVER_LIFE = 1.05;
  * when the wave's bots have more), the seconds a fallen one takes to come back, how far from the player they
  * go to fight, and the room they keep beside him. They take none of his other upgrades.
  */
-export const SHADOW_ALLY = { takes: 1.15, deals: 0.9, skill: 0.8, respawn: 8, slack: 4.5, gap: 0.8 };
+/**
+ * Shadow allies: `share` of each of the player's bonuses (18/10/2026, Erick: a share of his attributes; it was 1.15x
+ * the damage he takes and 0.9x his damage): with none they're an ordinary orb, with his they follow, never past him.
+ */
+export const SHADOW_ALLY = { share: 0.8, skill: 0.8, respawn: 8, slack: 4.5, gap: 0.8 };
 /**
  * The allies' colours in place of the blue team's (Player.teamTint; 13/10/2026: the same blue as the player,
  * he lost himself among them): the Shadow's a light cyan blue, the Necromancer's risen a ghostly green.

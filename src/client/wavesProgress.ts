@@ -41,15 +41,17 @@ export const UPGRADES: Upgrade[] = [
 
 /**
  * What a level does: life +20 points (a bigger bar, 100 to 200: Player.lifeMax; until 15/10/2026 it only
- * shrank the damage taken, like the defence, and the bar stayed at 100), defence 6% less damage taken, damage and
- * attack speed +10% (what a crate's permanent power-up gives), moving speed +6% (15/10/2026, Erick: the Workshop
- * weighed too little in a run; it was life +10%, defence 4%, damage and attack speed 5%, speed 4%), one more
+ * shrank the damage taken, like the defence, and the bar stayed at 100), defence 12% less damage taken, damage
+ * +25%, attack speed +20%, moving speed +10%. 18/10/2026, Erick: dying, buying a level and going past where the run
+ * ended must work; around waves 8 to 12 a wave asks ~11-15% more firepower and ~15-22% more toughness than the one
+ * before (bots x toughness, bots x damage x skill), and a level gave +10% (defence 6%, speed 6%). On 15/10/2026 they
+ * were raised once already (from life +10%, defence 4%, damage and attack speed 5%, speed 4%). One more
  * life, one more grenade at each spawn,
  * +10% chance that a crate drops a permanent power-up, +5 points on the chance a fallen bot drops a
  * life pack (WAVES.lifePackChance), life back between waves (20%, 35%, 50%), and once a run a blow
  * that would kill leaves half the life.
  */
-export const UPGRADE_STEP = { life: 0.2, armor: 0.06, damage: 0.1, fire: 0.1, speed: 0.06, luck: 0.1, drops: 0.05 };
+export const UPGRADE_STEP = { life: 0.2, armor: 0.12, damage: 0.25, fire: 0.2, speed: 0.1, luck: 0.1, drops: 0.05 };
 export const BREATHER = [0, 0.2, 0.35, 0.5];
 export const SECOND_WIND_LIFE = 0.5;
 
