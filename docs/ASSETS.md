@@ -76,3 +76,8 @@ The start screen background (`public/menu-bg.webp`, `tools/make-menu-bg.mjs`), t
 (`public/og-image*.jpg`, `tools/make-og-image.mjs`) and the guide pages' pictures
 (`public/guia/`, `tools/make-guide.mjs`) are rendered by the game; rerun those tools when the
 models or textures change (they live in the private repository with the other browser-driven tools).
+
+The site icon (`public/brand/icon.png`: the commando orb's head, camouflage and a red bandana) is not from the
+original game: Mad Orbs had it drawn by OpenAI's GPT Image 2.5 on 2026-10-17 (OpenAI's terms give the output to whoever
+asked for it) and publishes it with the rest under the GPL v3. `tools/make-icons.mjs` makes the favicons
+(`public/favicon-*.png`, `favicon.ico`, `icon-192.png`, `apple-touch-icon.png`) and the logos (`public/brand/`) from it.
