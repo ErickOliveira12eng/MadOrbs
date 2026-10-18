@@ -19,6 +19,7 @@ import { StatsModal } from './statsModal';
 import { BOSS_SKIN, CampaignModal } from './campaignModal';
 import { AdblockModal } from './adblockModal';
 import { RankingModal } from './rankingModal';
+import { PcOnlyModal, sendLink, touchOnly } from './pcOnly';
 import { RoomModal, type PrivateRoomJoin } from './roomModal';
 import type { CampaignLevel } from '../client/campaign';
 import { isOldGeneratedName, randomGuestName } from './guestNames';
@@ -80,6 +81,8 @@ export class StartScreen {
   private readonly campaign: CampaignModal;
   private readonly waves: WavesModal;
   private readonly adblock = new AdblockModal();
+  /** Phones and tablets: the window that says where to play (src/menu/pcOnly.ts) */
+  private readonly pcModal = new PcOnlyModal(() => this.ranking.open());
   private readonly ranking: RankingModal;
   private readonly room: RoomModal;
   /** The account whose Orb was already brought into this page's settings. */
@@ -225,8 +228,9 @@ export class StartScreen {
 
     this.setupLanguage();
 
-    // Phones and tablets: the game needs a keyboard and a mouse
-    $('touchNotice').hidden = !(matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches);
+    // Phones and tablets: the game needs a keyboard and a mouse; the rest of the page works (src/menu/pcOnly.ts)
+    $('touchNotice').hidden = !touchOnly();
+    $('touchShare').addEventListener('click', () => void sendLink('card', $('touchCopied')));
 
     this.fit();
     window.addEventListener('resize', () => this.fit());
@@ -316,10 +320,16 @@ export class StartScreen {
     this.campaign.close();
     this.ranking.close();
     this.adblock.close();
+    this.pcModal.close();
     this.controls.hidden = true;
     cancelAnimationFrame(this.rafId);
     clearTimeout(this.statusTimer);
     this.embers?.clear();
+  }
+
+  /** A phone or a tablet tried to play (src/main.ts startGame): `from`, what (for the analytics). */
+  pcOnly(from: string): void {
+    this.pcModal.open(from);
   }
 
   /** `start`: false only gives the player a name (the campaign starts on its own). */
@@ -488,7 +498,8 @@ export class StartScreen {
   private fit(reloadAds = false): void {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    const narrow = w < NARROW_WIDTH;
+    // (a tablet too, however wide: one column, the card on top)
+    const narrow = w < NARROW_WIDTH || touchOnly();
     this.root.classList.toggle('narrow', narrow);
     // A narrow window's top bar may take two rows: the lobby starts under it
     if (narrow) document.documentElement.style.setProperty('--top-room', `${Math.ceil(document.querySelector<HTMLElement>('.topbar')!.getBoundingClientRect().bottom) + 18}px`);

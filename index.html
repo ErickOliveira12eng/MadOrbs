@@ -105,6 +105,13 @@
       </nav>
 
       <main class="lobby">
+        <!-- Phones and tablets (src/menu/pcOnly.ts): what can be done here, and the link to send to the computer -->
+        <div id="touchNotice" class="touch-card" hidden>
+          <span class="touch-ico" data-icon="monitor"></span>
+          <div class="touch-text"><b data-i18n="pc.title">Play it on a computer</b><span data-i18n="pc.short">Mad Orbs is played with a keyboard and a mouse. Here you can see the ranking and your stats, and read about the game.</span></div>
+          <button id="touchShare" class="btn-ghost touch-send" type="button"><span data-icon="send"></span><span data-i18n="pc.send">Send me the link</span></button>
+          <small id="touchCopied" class="touch-copied" hidden data-i18n="pc.copied">Link copied: open it on your computer.</small>
+        </div>
         <form id="startForm" class="lobby-grid" autocomplete="off">
           <!-- Your Orb on its pedestal: the arrows switch the style, a click (or Customize) opens the picker -->
           <section class="hero">
@@ -159,7 +166,6 @@
             <button id="btnControls" class="dock-tile" type="button"><span data-icon="help"></span><span data-i18n="menu.controls">Controls</span></button>
           </nav>
         </form>
-        <p id="touchNotice" class="touch-notice" hidden data-i18n="menu.touch">Mad Orbs needs a keyboard and a mouse: open it on a computer to play.</p>
       </main>
 
       <footer class="footer">
@@ -280,6 +286,25 @@
     </div>
 
     <!-- Ad blocker on (src/menu/adblockModal.ts) -->
+    <!-- Trying to play on a phone or a tablet: src/menu/pcOnly.ts -->
+    <div id="pcModal" class="modal" hidden>
+      <div class="modal-card pc-modal" role="dialog" aria-modal="true" aria-labelledby="pcTitle">
+        <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>
+        <div class="pc-ico"><span data-icon="monitor"></span></div>
+        <h2 id="pcTitle" data-i18n="pc.title">Play it on a computer</h2>
+        <p class="pc-intro" data-i18n="pc.intro">Mad Orbs is played with a keyboard and a mouse, so it does not run on phones or tablets. Open madorbs.com on your computer: it is free and there is nothing to install.</p>
+        <p class="pc-here" data-i18n="pc.here">Here you can still see the ranking, your stats and your Orb, and read about the game.</p>
+        <div class="pc-buttons">
+          <button id="pcShare" class="btn-play pc-send" type="button"><span data-icon="send"></span><span data-i18n="pc.send">Send me the link</span></button>
+          <div class="pc-more">
+            <button id="pcRanking" class="btn-ghost" type="button"><span data-icon="bars"></span><span data-i18n="menu.ranking">Ranking</span></button>
+            <button id="pcAbout" class="btn-ghost" type="button"><span data-icon="help"></span><span data-i18n="pc.about">About the game</span></button>
+          </div>
+        </div>
+        <small id="pcCopied" class="pc-copied" hidden data-i18n="pc.copied">Link copied: open it on your computer.</small>
+      </div>
+    </div>
+
     <div id="adblockModal" class="modal" hidden>
       <div class="modal-card adblock-modal" role="dialog" aria-modal="true" aria-labelledby="adblockTitle">
         <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>

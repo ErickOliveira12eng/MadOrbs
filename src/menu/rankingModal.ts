@@ -131,8 +131,10 @@ export class RankingModal {
       body.innerHTML = `<p class="ranking-note">${t('ranking.empty')}</p>`;
       return;
     }
-    const cols = COLUMNS[mode];
-    const grid = `grid-template-columns: 44px minmax(0, 1fr) repeat(${cols.length}, minmax(60px, 84px))`;
+    // A phone: the mode's first two numbers (what it ranks by and the next), the name keeps its room
+    const narrow = matchMedia('(max-width: 520px)').matches;
+    const cols = narrow ? COLUMNS[mode].slice(0, 2) : COLUMNS[mode];
+    const grid = `grid-template-columns: ${narrow ? 34 : 44}px minmax(0, 1fr) repeat(${cols.length}, minmax(${narrow ? 46 : 60}px, ${narrow ? 66 : 84}px))`;
     let html = `<div class="rk-row head" style="${grid}"><span>#</span><span>${t('ranking.player')}</span>${cols.map((c, i) => `<span${i === 0 ? ' class="by"' : ''}>${t(c.head)}</span>`).join('')}</div>`;
     let last = 0;
     for (const r of rows) {

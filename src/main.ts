@@ -15,6 +15,7 @@ import { WAVES_MAP } from './client/waves';
 import { loadProgress as loadWavesProgress } from './client/wavesProgress';
 import { WavesModal } from './menu/wavesModal';
 import { StartScreen, type PlayMode } from './menu/menu';
+import { touchOnly } from './menu/pcOnly';
 import { debugZoomOn } from './menu/accountModal';
 import type { PrivateRoomJoin } from './menu/roomModal';
 import { ROOM_LINK_RE } from './net/protocol';
@@ -61,6 +62,11 @@ const langRoot = () => (lang() === 'en' ? '' : `/${lang()}`);
 
 /** `level`: a campaign level (offline, src/client/campaign.ts); `room`: a private room (online). */
 async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, room?: PrivateRoomJoin): Promise<void> {
+  // Phones and tablets play nothing (a keyboard and a mouse): a window says where to (src/menu/pcOnly.ts)
+  if (touchOnly()) {
+    screen.pcOnly(room ? 'room' : waves ? 'waves' : level ? 'campaign' : mode);
+    return;
+  }
   audio.unlock();
   // The game music streams while the models and the map load
   audio.prepareMusic(gameSounds().gameMusic);

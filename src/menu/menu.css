@@ -1197,11 +1197,72 @@ kbd.mouse .icon {
   color: var(--focus);
 }
 
-.touch-notice {
-  max-width: 470px;
-  margin: 18px 0 0;
-  color: var(--gold-1);
+/* Phones and tablets (src/menu/pcOnly.ts): a card on top of the lobby, what works here and the link to send */
+.touch-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px 14px;
+  width: 560px;
+  max-width: 100%;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+  border-radius: 18px;
+  border: 1.5px solid rgba(255, 194, 58, 0.55);
+  background: linear-gradient(180deg, rgba(64, 44, 10, 0.92), rgba(30, 20, 6, 0.92));
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4), 0 0 24px rgba(255, 170, 40, 0.18);
+}
+
+.touch-card[hidden] {
+  display: none;
+}
+
+.touch-ico {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(255, 194, 58, 0.16);
+  color: #ffc23a;
+}
+
+.touch-ico .icon {
+  width: 28px;
+  height: 28px;
+}
+
+.touch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.touch-text b {
+  color: #ffe9a8;
+  font: 400 21px/1.1 var(--font-display);
+  letter-spacing: 0.5px;
+}
+
+.touch-text span {
+  color: #f1dcae;
   font-weight: 700;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+
+.touch-send {
+  grid-column: 1 / -1;
+  justify-content: center;
+}
+
+.touch-copied,
+.pc-copied {
+  grid-column: 1 / -1;
+  color: #9ff6c0;
+  font-weight: 800;
+  font-size: 13px;
   text-align: center;
 }
 
@@ -1269,6 +1330,87 @@ kbd.mouse .icon {
 /* Ad blocker on (src/menu/adblockModal.ts): above the other windows (back from a level, the levels window opens too) */
 #adblockModal {
   z-index: 31;
+}
+
+/* Trying to play on a phone or a tablet (src/menu/pcOnly.ts) */
+.modal-card.pc-modal {
+  width: min(440px, 100%);
+  padding: 26px 24px 22px;
+  text-align: center;
+}
+
+.pc-modal .modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.pc-ico {
+  display: inline-grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe27a, #f0a21c);
+  box-shadow: 0 8px 26px rgba(240, 162, 28, 0.45);
+  color: #3a2400;
+}
+
+.pc-ico .icon {
+  width: 34px;
+  height: 34px;
+}
+
+.pc-modal h2 {
+  margin: 14px 0 8px;
+  font: 400 30px var(--font-display);
+  letter-spacing: 1px;
+}
+
+.pc-intro,
+.pc-here {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.pc-here {
+  color: #d8dcff;
+}
+
+.pc-buttons {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.pc-send {
+  width: 100%;
+  justify-content: center;
+  padding: 12px 14px 10px;
+  font-size: 19px;
+  white-space: nowrap;
+}
+
+.pc-send .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.pc-more {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pc-more .btn-ghost {
+  justify-content: center;
+}
+
+.pc-copied {
+  display: block;
+  margin-top: 12px;
 }
 
 .modal-card.adblock-modal {
@@ -2477,6 +2619,17 @@ input[type='range'] {
 
 .ranking-modes {
   margin-top: 14px;
+}
+
+/* A phone: the five modes in two rows rather than one cut at the edge */
+@media (max-width: 520px) {
+  .ranking-modes {
+    flex-wrap: wrap;
+  }
+
+  .ranking-modes button {
+    flex: 1 0 30%;
+  }
 }
 
 .ranking-body {
