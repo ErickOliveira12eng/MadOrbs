@@ -67,11 +67,12 @@ header {
   text-decoration: none;
 }
 
+/* The logo picture (public/brand/logo-wide.webp) */
 .home img {
-  width: 28px;
-  height: 28px;
-  margin-right: 8px;
-  vertical-align: -7px;
+  display: block;
+  width: auto;
+  height: 46px;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
 }
 
 main {

@@ -11,8 +11,8 @@ export const en = {
   'meta.ogTitle': 'Mad Orbs: online shooter in your browser',
   'meta.ogDescription': 'Orb deathmatch in your browser. Call your friends and play right away, nothing to install.',
   /** The link preview picture (tools/make-og-image.mjs); __ORIGIN__ is filled in by the server. */
-  'meta.ogImage': '__ORIGIN__/og-image.jpg',
-  'meta.ogImageAlt': 'Colorful Orbs trading shots in a Mad Orbs arena',
+  'meta.ogImage': '__ORIGIN__/og-image.jpg?v=2',
+  'meta.ogImageAlt': 'The Mad Orbs logo over a row of colorful Orbs',
   'meta.ldDescription':
     'Multiplayer online shooting game in the browser, with Orbs rolling around the arena: Deathmatch, Team Deathmatch and Capture the Flag, plus offline training against bots.',
   'meta.ldGenres': 'Shooter|Action|Multiplayer',
@@ -68,6 +68,9 @@ export const en = {
   'home.modeTraining': 'You and the bots, on any map and in any mode, with no internet needed. Choose how many bots and how well they play.',
   'home.modesMore': 'More about the game modes',
   'home.newsTitle': "What's new",
+  'home.news24Date': 'October 17, 2026',
+  'home.news24Title': 'A new face for Mad Orbs',
+  'home.news24': 'New logo and icon: the commando Orb, in camouflage and a red bandana, is now the face of the game, on the start screen and in your browser tab.',
   'home.news23Date': 'October 15, 2026',
   'home.news23Title': 'Waves: a stronger Workshop, more Cores',
   'home.news23': 'The Workshop upgrades weigh more in a run: Damage and Fire rate give 10% a level (5% before), Health takes the bar up to 200, Defence takes 6% off each hit and Speed gives 6%. And every run earns about 22% more Cores. The first waves are easier: on wave 1 the bots deal half the damage.',

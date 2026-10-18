@@ -143,7 +143,8 @@
   right: 18px;
   z-index: 12;
   display: flex;
-  align-items: center;
+  /* The page's buttons stay at the top: the logo is taller than them */
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   pointer-events: none;
@@ -157,6 +158,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-top: 8px;
 }
 
 .brand {
@@ -649,47 +651,19 @@ select:focus-visible {
   border-color: rgba(255, 255, 255, 0.24);
 }
 
-/* Chunky two-colour letters: a dark outline and a dropped edge behind the gradient fill */
+/* The logo: a picture (public/brand/logo-wide.webp, made by tools/make-icons.mjs from brand/logo-full.png) */
 .logo {
-  position: relative;
-  isolation: isolate;
-  display: flex;
-  gap: 10px;
-  margin: 0;
-  font: 400 44px/0.95 var(--font-display);
-  letter-spacing: 1px;
+  margin: 0 0 0 -6px;
+  line-height: 0;
   user-select: none;
 }
 
-.logo > span[data-text] {
-  position: relative;
-  display: inline-block;
-  padding: 0 4px;
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-}
-
-.logo > span[data-text]::before {
-  content: attr(data-text);
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  padding: 0 4px;
-  color: #1a1042;
-  -webkit-text-stroke: 7px #1a1042;
-  /* No filter on the letters themselves: it would put this layer above the fill */
-  text-shadow: 0 4px 0 #110a2e, 0 8px 14px rgba(0, 0, 0, 0.6), 0 0 22px var(--glow);
-}
-
-.logo-mad {
-  --glow: rgba(170, 160, 255, 0.35);
-  background-image: linear-gradient(180deg, #ffffff 0%, #f1eeff 42%, #c3bbf5 58%, #e4e0ff 100%);
-}
-
-.logo-orbs {
-  --glow: rgba(255, 140, 30, 0.55);
-  background-image: linear-gradient(180deg, #fff27d 0%, #ffc526 40%, #ff8f0a 60%, #ffb43d 100%);
+.logo img {
+  display: block;
+  width: auto;
+  /* Bigger with the lobby on big screens (the top bar itself is not zoomed) */
+  height: clamp(74px, calc(64px * var(--menu-k, 1)), 104px);
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.55));
 }
 
 .tagline {
@@ -1906,6 +1880,10 @@ input[type='range'] {
 .screen.narrow .topbar {
   position: absolute;
   flex-wrap: wrap;
+}
+
+.screen.narrow .logo img {
+  height: 56px;
 }
 
 .screen.narrow .lobby {
