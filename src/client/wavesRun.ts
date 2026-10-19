@@ -197,6 +197,8 @@ export class WavesRun {
     ctx.me.secondWind = ctx.levels.secondWind;
     // The Workshop's grenades make the bag bigger too: what lies on the floor fills it up to that
     ctx.me.maxGrenades = Math.max(ctx.me.maxGrenades, 2 + ctx.levels.grenades);
+    // and get only part of the damage bonuses
+    ctx.me.grenadeBonus = WAVES.grenadeBonus;
     this.windLeft = ctx.levels.secondWind;
     this.dropCrates(WAVES.crates.perBreak);
     window.addEventListener('pagehide', this.onPageHide);
@@ -915,6 +917,7 @@ export class WavesRun {
     p.critChance = me.critChance * share;
     p.poisonShot = me.poisonShot * share;
     p.iceShot = me.iceShot * share;
+    p.grenadeBonus = me.grenadeBonus;
   }
 
   /** The Shadow card: as many allies as its level, the fallen ones back beside the player. */

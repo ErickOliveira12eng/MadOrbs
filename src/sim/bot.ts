@@ -25,7 +25,7 @@ interface Node {
 }
 
 /** A* on the map grid (8-connected, no corner cutting). Returns cell centres. */
-function findPath(game: Game, from: Vec3, to: Vec3): Vec3[] {
+export function findPath(game: Game, from: Vec3, to: Vec3): Vec3[] {
   const map = game.map;
   const [w, h] = map.size;
   const sx = Math.floor(from.x);

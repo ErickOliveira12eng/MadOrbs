@@ -28,6 +28,13 @@ export const WAVES = {
   /** Share of the damage the player takes: the bots hit a quarter as hard as elsewhere. */
   playerDamage: 0.25,
   /**
+   * The share of the player's damage bonuses (the Workshop's and the crates' damage, fury, berserker, a critical's
+   * double) his grenades get (Player.grenadeBonus; Erick, 19/10/2026: with all of them a grenade killed wave 20 bots
+   * at a blow up to a block away). With the Workshop's damage at the top, one at the bot's feet kills up to wave 18,
+   * a step off up to 12 (were 30 and 22).
+   */
+  grenadeBonus: 0.5,
+  /**
    * Life packs: what one gives back (half elsewhere) and the chance a fallen bot drops one (always
    * elsewhere; the boss always does).
    */

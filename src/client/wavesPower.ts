@@ -47,7 +47,9 @@ export interface WavesPower {
 export function wavesPower(lv: Levels, weapon: number): WavesPower {
   const hit = 1 + UPGRADE_STEP.damage * lv.damage;
   const shock = lv.shock ? (SHOCK_TARGETS * SHOCK.damage * SHOCK_USE) / SHOCK_COOLDOWN[lv.shock] : 0;
-  const attack = (WEAPON_POWER[weapon] ?? 1) * hit * (1 + UPGRADE_STEP.fire * lv.fire) + hit * (shock + GRENADE_ATTACK * lv.grenades);
+  // (the grenades get only part of the damage: WAVES.grenadeBonus)
+  const grenades = GRENADE_ATTACK * lv.grenades * (1 + (hit - 1) * WAVES.grenadeBonus);
+  const attack = (WEAPON_POWER[weapon] ?? 1) * hit * (1 + UPGRADE_STEP.fire * lv.fire) + hit * shock + grenades;
 
   const lives = WAVES.lives + lv.lives;
   const toughness =

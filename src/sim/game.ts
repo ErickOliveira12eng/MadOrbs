@@ -1174,6 +1174,7 @@ export class Game {
     const from = this.players[fromID];
     if (!from) return;
     const weaponDamage = (weaponID === WEAPON_BAZOOKA ? bazookaDamage() : weaponDefs[weaponID].damage) * share;
+    const bonus = weaponID === WEAPON_GRENADE ? from.grenadeBonus : 1;
     for (const player of this.players) {
       if (!player) continue;
       if (player.playerID === fromID && weaponID === WEAPON_KNIVES) continue;
@@ -1182,7 +1183,7 @@ export class Game {
       if (dis < radius) {
         const normal = new Vec3();
         if (!this.map.rayTest(position.clone(), player.currentCF.position.clone(), normal)) {
-          player.hitSV(weaponID, from, (sameDmg ? 1 : 1 - dis / radius) * weaponDamage);
+          player.hitSV(weaponID, from, (sameDmg ? 1 : 1 - dis / radius) * weaponDamage, bonus);
         }
       }
     }
@@ -1191,7 +1192,7 @@ export class Game {
       const dis = distance(crate.position, position);
       if (dis >= radius + CRATE_RADIUS) continue;
       if (this.map.rayTest(position.clone(), crate.position.clone(), new Vec3())) continue;
-      this.hitCrate(crate, (sameDmg ? 1 : Math.max(0.2, 1 - dis / radius)) * weaponDamage * from.damageBoost, from);
+      this.hitCrate(crate, (sameDmg ? 1 : Math.max(0.2, 1 - dis / radius)) * weaponDamage * (1 + (from.damageBoost - 1) * bonus), from);
     }
   }
 

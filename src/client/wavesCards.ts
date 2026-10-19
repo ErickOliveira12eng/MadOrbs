@@ -109,8 +109,9 @@ export const SILVER_LIFE = 1.05;
 /**
  * Shadow allies: `share` of each of the player's bonuses (18/10/2026, Erick: a share of his attributes; it was 1.15x
  * the damage he takes and 0.9x his damage): with none they're an ordinary orb, with his they follow, never past him.
+ * 80% on 18/10, half since 19/10/2026 (Erick: they got too strong).
  */
-export const SHADOW_ALLY = { share: 0.8, skill: 0.8, respawn: 8, slack: 4.5, gap: 0.8 };
+export const SHADOW_ALLY = { share: 0.5, skill: 0.8, respawn: 8, slack: 4.5, gap: 0.8 };
 /**
  * The allies' colours in place of the blue team's (Player.teamTint; 13/10/2026: the same blue as the player,
  * he lost himself among them): the Shadow's a light cyan blue, the Necromancer's risen a ghostly green.
