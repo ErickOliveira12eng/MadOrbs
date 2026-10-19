@@ -257,6 +257,27 @@ footer {
   font-size: 14px;
 }
 
+/* The profiles (tools/make-pages.ts, src/menu/social.ts) */
+footer .social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 14px 0 0;
+}
+
+footer .social a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+footer .social a:hover {
+  color: #fff;
+}
+
 /* The maps page: the top view, crisp, beside the text */
 .map .weapon-pic {
   flex-basis: 190px;

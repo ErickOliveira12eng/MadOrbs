@@ -176,6 +176,12 @@
         <a data-i18n-attr="href=link.privacy" href="/privacy" target="_blank" rel="noopener" data-i18n="footer.privacy">Privacy</a>
         <a data-i18n-attr="href=link.terms" href="/terms" target="_blank" rel="noopener" data-i18n="footer.terms">Terms of use</a>
         <a href="#" data-cookie-settings data-i18n="footer.cookies">Cookies</a>
+        <!-- The profiles (src/menu/social.ts has the same list) -->
+        <span class="footer-social">
+          <a href="https://www.tiktok.com/@madorbs" target="_blank" rel="noopener me" title="TikTok @madorbs" aria-label="TikTok @madorbs"><span data-icon="tiktok"></span></a>
+          <a href="https://www.youtube.com/@playmadorbs" target="_blank" rel="noopener me" title="YouTube @playmadorbs" aria-label="YouTube @playmadorbs"><span data-icon="youtube"></span></a>
+          <a href="https://www.instagram.com/playmadorbs" target="_blank" rel="noopener me" title="Instagram @playmadorbs" aria-label="Instagram @playmadorbs"><span data-icon="instagram"></span></a>
+        </span>
       </footer>
 
       <!-- Below the lobby, seen only when scrolling (the lobby keeps the whole first screen): about the game, how
@@ -218,6 +224,7 @@
             <section class="info-block">
               <h2 data-i18n="home.newsTitle">What's new</h2>
               <ul class="info-news">
+                <li><time datetime="2026-10-18" data-i18n="home.news26Date">October 18, 2026</time><b data-i18n="home.news26Title">Mad Orbs on social media</b><span data-i18n="home.news26">Follow Mad Orbs for clips of the matches and the news: @madorbs on TikTok, @playmadorbs on YouTube and Instagram. The links are at the bottom of this page.</span></li>
                 <li><time datetime="2026-10-18" data-i18n="home.news25Date">October 18, 2026</time><b data-i18n="home.news25Title">Waves: a Workshop that takes you further</b><span data-i18n="home.news25">Each Workshop level now counts: Damage +25%, Attack speed +20%, Defence −12% and Speed +10% a level, so a level you buy takes you past where you fell. Shadow Allies fight with 80% of your upgrades, the Critical card hits from 15% up to 45%, and poison and ice now come only from bullets. On top of the Workshop, a new Power number shows how strong you start: 100 for a new player, and each upgrade shows what it adds.</span></li>
                 <li><time datetime="2026-10-17" data-i18n="home.news24Date">October 17, 2026</time><b data-i18n="home.news24Title">A new face for Mad Orbs</b><span data-i18n="home.news24">New logo and icon: the commando Orb, in camouflage and a red bandana, is now the face of the game, on the start screen and in your browser tab.</span></li>
                 <li><time datetime="2026-10-15" data-i18n="home.news23Date">October 15, 2026</time><b data-i18n="home.news23Title">Waves: a stronger Workshop, more Cores</b><span data-i18n="home.news23">The Workshop upgrades weigh more in a run: Damage and Fire rate give 10% a level (5% before), Health takes the bar up to 200, Defence takes 6% off each hit and Speed gives 6%. And every run earns about 22% more Cores. The first waves are easier: on wave 1 the bots deal half the damage.</span></li>
@@ -263,6 +270,17 @@
               </dl>
             </section>
           </div>
+
+          <!-- The profiles (src/menu/social.ts has the same list) -->
+          <section class="info-block info-follow" aria-labelledby="followTitle">
+            <h2 id="followTitle" data-i18n="home.followTitle">Follow Mad Orbs</h2>
+            <p data-i18n="home.follow">Clips of the matches, news and what is coming next:</p>
+            <div class="follow-links">
+              <a class="follow tiktok" href="https://www.tiktok.com/@madorbs" target="_blank" rel="noopener me"><span data-icon="tiktok"></span><b>TikTok</b><small>@madorbs</small></a>
+              <a class="follow youtube" href="https://www.youtube.com/@playmadorbs" target="_blank" rel="noopener me"><span data-icon="youtube"></span><b>YouTube</b><small>@playmadorbs</small></a>
+              <a class="follow instagram" href="https://www.instagram.com/playmadorbs" target="_blank" rel="noopener me"><span data-icon="instagram"></span><b>Instagram</b><small>@playmadorbs</small></a>
+            </div>
+          </section>
 
           <nav class="info-guides" aria-labelledby="guidesTitle">
             <h2 id="guidesTitle" data-i18n="home.guidesTitle">Guides</h2>

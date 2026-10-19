@@ -6,6 +6,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { LANGS, hasKey, setLang, t, type Lang } from '../src/i18n';
+import { SOCIAL } from '../src/menu/social';
 
 const dist = process.argv[2] ?? 'dist';
 const template = readFileSync(join(dist, 'index.html'), 'utf8');
@@ -45,6 +46,8 @@ function structuredData(l: Lang): string {
         isAccessibleForFree: true,
         offers: { '@type': 'Offer', price: '0', priceCurrency: l === 'pt' ? 'BRL' : 'USD' },
         author: { '@type': 'Person', name: 'Érick Matheus de Oliveira' },
+        // Its profiles (src/menu/social.ts): search engines tie them to the game
+        sameAs: SOCIAL.map((s) => s.url),
       },
     ],
   };

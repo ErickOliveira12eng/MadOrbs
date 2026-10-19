@@ -66,6 +66,9 @@ export const es: Record<Key, string> = {
   'home.modeTraining': 'Tú y los bots, en cualquier mapa y modo, sin necesidad de internet. Elige cuántos bots y qué tan bien juegan.',
   'home.modesMore': 'Más sobre los modos de juego',
   'home.newsTitle': 'Novedades',
+  'home.news26Date': '18 de octubre de 2026',
+  'home.news26Title': 'Mad Orbs en las redes sociales',
+  'home.news26': 'Sigue a Mad Orbs para ver videos de las partidas y las novedades: @madorbs en TikTok, @playmadorbs en YouTube e Instagram. Los enlaces están al final de esta página.',
   'home.news25Date': '18 de octubre de 2026',
   'home.news25Title': 'Oleadas: el Taller te lleva más lejos',
   'home.news25': 'Cada nivel del Taller ahora cuenta: Daño +25%, Velocidad de ataque +20%, Defensa −12% y Velocidad +10% por nivel, para que la mejora que compras te lleve más allá de donde caíste. La Sombra Aliada lucha con el 80% de tus mejoras, la carta Crítico va del 15% al 45%, y el veneno y el hielo ahora solo vienen de las balas. Arriba del Taller, el nuevo número de Poder muestra tu fuerza al empezar: 100 para quien empieza, y cada mejora muestra cuánto suma.',
@@ -154,6 +157,8 @@ export const es: Record<Key, string> = {
   'home.a5': 'No, los invitados juegan todos los modos. Con una cuenta (Entrar, con Google) guardas un ID de jugador permanente, tu Orb, tus estadísticas de cada modo, tu progreso en la campaña y tu lugar en el ranking.',
   'home.q6': '¿Qué es Babo Violent 2?',
   'home.a6': 'Un juego de disparos multijugador visto desde arriba, lanzado en 2006 por RndLabs y recordado por sus partidas rápidas y su física peculiar. Sus creadores publicaron después el código fuente, y Mad Orbs se rehízo a partir de él para traer el juego de vuelta, ahora en el navegador.',
+  'home.followTitle': 'Sigue a Mad Orbs',
+  'home.follow': 'Videos de las partidas, novedades y lo que viene:',
   'home.guidesTitle': 'Guías',
 
   'menu.searching': 'Buscando el servidor...',

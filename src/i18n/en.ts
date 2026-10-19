@@ -68,6 +68,9 @@ export const en = {
   'home.modeTraining': 'You and the bots, on any map and in any mode, with no internet needed. Choose how many bots and how well they play.',
   'home.modesMore': 'More about the game modes',
   'home.newsTitle': "What's new",
+  'home.news26Date': 'October 18, 2026',
+  'home.news26Title': 'Mad Orbs on social media',
+  'home.news26': 'Follow Mad Orbs for clips of the matches and the news: @madorbs on TikTok, @playmadorbs on YouTube and Instagram. The links are at the bottom of this page.',
   'home.news25Date': 'October 18, 2026',
   'home.news25Title': 'Waves: a Workshop that takes you further',
   'home.news25': 'Each Workshop level now counts: Damage +25%, Attack speed +20%, Defence −12% and Speed +10% a level, so a level you buy takes you past where you fell. Shadow Allies fight with 80% of your upgrades, the Critical card hits from 15% up to 45%, and poison and ice now come only from bullets. On top of the Workshop, a new Power number shows how strong you start: 100 for a new player, and each upgrade shows what it adds.',
@@ -156,6 +159,8 @@ export const en = {
   'home.a5': 'No, guests play every mode. With an account (Sign in, with Google) you keep a permanent player ID, your Orb, your stats in each mode, your campaign progress and your place in the ranking.',
   'home.q6': 'What is Babo Violent 2?',
   'home.a6': 'A multiplayer shooter seen from above, released in 2006 by RndLabs and remembered for its fast matches and its peculiar physics. Its creators later published the source code, and Mad Orbs was rebuilt from it to bring the game back, now in the browser.',
+  'home.followTitle': 'Follow Mad Orbs',
+  'home.follow': 'Clips of the matches, news and what is coming next:',
   'home.guidesTitle': 'Guides',
 
   // ---- start screen

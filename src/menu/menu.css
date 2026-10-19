@@ -1291,6 +1291,90 @@ kbd.mouse .icon {
   text-decoration: underline;
 }
 
+/* The profiles (src/menu/social.ts): three small marks at the footer's end */
+.footer-social {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-social a {
+  display: inline-flex;
+}
+
+.footer-social .icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* "Follow Mad Orbs" in the text below the lobby */
+.follow-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.follow {
+  flex: 1 1 180px;
+  max-width: 260px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: center;
+  justify-items: start;
+  padding: 12px 18px 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  text-decoration: none;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.follow:hover,
+.follow:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.follow > span {
+  grid-row: 1 / 3;
+  grid-column: 1;
+  display: inline-flex;
+}
+
+.follow .icon {
+  width: 30px;
+  height: 30px;
+}
+
+.follow b {
+  grid-column: 2;
+  font: 900 16px/1.1 var(--font-ui);
+}
+
+.follow small {
+  grid-column: 2;
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.follow.tiktok .icon {
+  color: #fff;
+  filter: drop-shadow(-1.5px -1px 0 #25f4ee) drop-shadow(1.5px 1px 0 #fe2c55);
+}
+
+.follow.youtube .icon {
+  color: #ff2b2b;
+}
+
+.follow.instagram .icon {
+  color: #ff5fa2;
+}
+
 /* ------------------------------------------------------------------ banners (src/client/ads.ts)
    In the gutter left of the lobby (menu.ts makes room for it and shows it where it fits). */
 
