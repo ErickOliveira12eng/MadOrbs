@@ -123,6 +123,8 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
           waves: { ...WavesModal.startChoice(account.debugTools.zoom), levels: loadWavesProgress().levels },
           // The testers' tools on the Esc screen (the accounts the server allows)
           testTools: account.debugTools.zoom,
+          // The run's report says whose it is (src/client/wavesReport.ts)
+          authToken: await account.accessToken(),
           onWavesEnd: (end) => {
             void account.saveWaves(end.wave, end.kills);
             void account.saveWavesProgress();

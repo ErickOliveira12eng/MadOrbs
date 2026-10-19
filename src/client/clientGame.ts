@@ -92,6 +92,8 @@ import { WavesRun, type WavesEnd } from './wavesRun';
 import { cardDef, type CardID } from './wavesCards';
 import { POWERS, WAVES, type PermKind, type PowerKind } from './waves';
 import type { Levels, UpgradeID } from './wavesProgress';
+import { wavesPower } from './wavesPower';
+import { newRunId, reportWavesRun } from './wavesReport';
 import { ViewOverlay, scopeAlpha } from './ui/viewOverlay';
 import { VIEW_ASPECT, fitView, type ViewRect } from './view';
 import { modeName, modeOfGameType, teamName } from './modes';
@@ -121,7 +123,7 @@ export interface ClientGameOptions {
   mapRotation?: string[];
   // --- online only
   serverUrl?: string;
-  /** The signed-in player's session (Supabase access token): the server checks it. */
+  /** The signed-in player's session (Supabase access token): the server checks it (also on a waves run's report). */
   authToken?: string;
   /** The most kills we made in one online match of this mode, before this game (records.ts, account). */
   bestKills?: number;
@@ -457,7 +459,34 @@ export class ClientGame {
     this.hud.preloadCampaignAd();
   }
 
+  /**
+   * The run's end told to the server: died (`end`, the run's own numbers), left by the menu, or the tab closing (the
+   * numbers as they are). Once.
+   */
+  private reportWavesEnd(result: 'died' | 'quit' | 'closed', end?: WavesEnd | null): void {
+    const run = this.waves;
+    if (!this.wavesRunId || !run) return;
+    const id = this.wavesRunId;
+    this.wavesRunId = '';
+    window.removeEventListener('pagehide', this.onPageHide);
+    reportWavesRun({
+      phase: 'end',
+      id,
+      wave: end?.wave ?? run.waveNumber,
+      kills: end?.kills ?? this.me.kills,
+      seconds: Math.round(end?.seconds ?? (performance.now() - this.matchAt) / 1000),
+      cores: end?.cores.total ?? 0,
+      bosses: end?.cores.bosses ?? 0,
+      cards: end?.cards ?? run.cardLevels().filter((c) => c.level > 0).map((c) => ({ id: c.id, level: c.level })),
+      result,
+      best: end?.isBest ?? false,
+      test: end?.test ?? run.tested,
+      fps: this.fps(),
+    });
+  }
+
   private endWaves(end: WavesEnd): void {
+    this.reportWavesEnd('died', end);
     track('waves_end', { wave: end.wave, kills: end.kills, seconds: Math.round(end.seconds), new_best: end.isBest, start_wave: end.startWave, cores: end.cores.total, fps: this.fps() });
     // A tester's run counts for nothing: the account keeps what it had
     if (!end.test) this.opts.onWavesEnd?.(end);
@@ -472,6 +501,9 @@ export class ClientGame {
   /** Analytics (src/client/analytics.ts): when the match or level began, frames drawn since (the
    * average fps), the round state seen last, and whether its end was sent. */
   private matchAt = 0;
+  /** The waves run told to the server (src/client/wavesReport.ts): its id, and the closing tab's last word */
+  private wavesRunId = '';
+  private readonly onPageHide = () => this.reportWavesEnd('closed');
   private frames = 0;
   private lastRound = GAME_PLAYING;
   private matchEnded = false;
@@ -861,6 +893,7 @@ export class ClientGame {
       track('waves_quit', { wave: this.waves.waveNumber, kills: this.me.kills, seconds });
       // Leaving counts: the wave reached goes to the record and to the account
       const left = this.waves.leave();
+      this.reportWavesEnd('quit', left);
       if (left && !left.test) this.opts.onWavesEnd?.(left);
     }
     else if (!this.camp && !this.waves && !this.matchEnded) track('match_quit', { ...this.matchInfo(), seconds, kills: this.me.kills, deaths: this.me.deaths, reason: reason ? 'closed' : 'menu' });
@@ -984,7 +1017,16 @@ export class ClientGame {
     this.peopleKills = 0;
     this.matchBots = this.online && this.game.players.some((p) => p?.isBot);
     if (this.camp) track('campaign_level_start', this.levelInfo());
-    else if (this.waves && this.opts.waves) track('waves_start', { map: this.game.map.name, start_wave: this.opts.waves.startWave, weapon: this.opts.waves.startWeapon });
+    else if (this.waves && this.opts.waves) {
+      const w = this.opts.waves;
+      track('waves_start', { map: this.game.map.name, start_wave: w.startWave, weapon: w.startWeapon });
+      this.wavesRunId = newRunId();
+      reportWavesRun(
+        { phase: 'start', id: this.wavesRunId, startWave: w.startWave, weapon: w.startWeapon, power: wavesPower(w.levels, w.startWeapon).power, levels: { ...w.levels } },
+        this.opts.authToken,
+      );
+      window.addEventListener('pagehide', this.onPageHide);
+    }
     else track('match_start', { ...this.matchInfo(), ...(map ? { map } : {}), bots: this.online ? this.botsNow() : (this.opts.botCount ?? 0) });
   }
 
