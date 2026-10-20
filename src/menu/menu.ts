@@ -31,7 +31,7 @@ import { FREE_SKINS, availableSkins, saveSettings, skinInfo, type Settings } fro
 import { TrainingModal } from './training';
 import { WavesModal, coreIcon } from './wavesModal';
 import { versioned } from '../sim/assetVersion';
-import { adsAllowed, mountAd, onAdBlockFound, onAdsAllowed, refreshAd, type AdSlot } from '../client/ads';
+import { adBlocked, adsAllowed, mountAd, onAdBlockFound, onAdsAllowed, refreshAd, type AdSlot } from '../client/ads';
 import { track } from '../client/analytics';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -238,11 +238,8 @@ export class StartScreen {
       this.fit(true);
       this.checkAdBlock();
     });
-    // Found later by the banners themselves (Brave): the request now, if the start screen shows
-    onAdBlockFound(() => {
-      this.fit();
-      if (this.visible) this.adblock.open();
-    });
+    // Found later by the banners themselves: their spots go (the request waits for a match, beforePlay)
+    onAdBlockFound(() => this.fit());
     // The waves card's boss: the campaign's eye
     void studio.picture(BOSS_SKIN, 144, undefined, true).then((src) => {
       const img = $<HTMLImageElement>('wavesArt');
@@ -306,9 +303,17 @@ export class StartScreen {
     this.checkAdBlock();
   }
 
-  /** Every time the start screen opens: an ad blocker found asks (kindly) to be turned off. */
+  /**
+   * Every time the start screen opens: whether an ad blocker is on (its banners' spots go). It no longer asks
+   * here (20/10/2026: the window covered the page for visitors the ad network sent nothing to): beforePlay.
+   */
   private checkAdBlock(): void {
-    void this.adblock.check(() => this.visible).then(() => this.fit());
+    void adBlocked().then(() => this.fit());
+  }
+
+  /** A match is about to start (src/main.ts startGame): counted, and from the second one an ad blocker asks first. */
+  beforePlay(): Promise<void> {
+    return this.adblock.beforePlay();
   }
 
   hide(): void {

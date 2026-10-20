@@ -9,7 +9,7 @@
 import { starsFor, type CampaignLevel } from '../campaign';
 import type { FeatKind } from '../../sim/feats';
 import { drawMapPreview } from '../mapPreview';
-import { adsAllowed, mountAd, refreshAd } from '../ads';
+import { adBlockFound, adsAllowed, mountAd, refreshAd } from '../ads';
 import type { WavesEnd, WavesHud } from '../wavesRun';
 import { MILESTONES, affordable, balance, checkpoints, nextMilestone } from '../wavesProgress';
 import { orbName, prizeText, weaponLook } from '../wavesPrize';
@@ -550,7 +550,7 @@ export class HudLayer {
    */
   preloadCampaignAd(): void {
     const ad = this.r.campad;
-    if (!mountAd(ad.lastElementChild as HTMLElement, 'wide')) return;
+    if (!this.adOrPlea(ad.lastElementChild as HTMLElement, 'wide')) return;
     ad.hidden = false;
     this.r.campend.classList.add('preload');
     show(this.r.campend, true);
@@ -710,7 +710,7 @@ export class HudLayer {
     this.r.campend.classList.remove('preload');
     show(this.r.campend, true);
     const ad = this.r.campad;
-    if (ad.hidden && mountAd(ad.lastElementChild as HTMLElement, 'wide')) ad.hidden = false;
+    if (ad.hidden && this.adOrPlea(ad.lastElementChild as HTMLElement, 'wide')) ad.hidden = false;
     this.cursorFree = true;
     this.root.classList.add('free-cursor');
     const readyAt = performance.now() + 700;
@@ -771,7 +771,7 @@ export class HudLayer {
     show(this.r.campend, true);
     // The banner under the panel: loaded when the level started (preloadCampaignAd), or now
     const ad = this.r.campad;
-    if (ad.hidden && mountAd(ad.lastElementChild as HTMLElement, 'wide')) ad.hidden = false;
+    if (ad.hidden && this.adOrPlea(ad.lastElementChild as HTMLElement, 'wide')) ad.hidden = false;
     const waiting = [...this.r.campcard.querySelectorAll<HTMLButtonElement>('button:disabled')];
     const count = this.r.campcard.querySelector<HTMLElement>('.wait');
     const tick = () => {
@@ -992,8 +992,11 @@ export class HudLayer {
    */
   private updateSideAd(want: boolean, menu: boolean): void {
     const host = this.r.sidead.lastElementChild as HTMLElement;
-    let on = want && adsAllowed();
-    if (on && !this.sideAdOn) {
+    // An ad blocker on: the spot asks for support instead (nothing to load)
+    const plea = want && !adsAllowed() && adBlockFound();
+    if (plea && !host.querySelector('.h-plea')) this.adOrPlea(host, 'rect');
+    let on = plea || (want && adsAllowed());
+    if (on && !plea && !this.sideAdOn) {
       // Loaded at the start of the match (preloadSideAd); a new ad after a while, swapped in once loaded
       if (!host.firstChild) {
         if (mountAd(host, 'rect')) this.sideAdAt = this.time;
@@ -1010,6 +1013,20 @@ export class HudLayer {
       show(this.r.sidead, on || (!!host.firstChild && adsAllowed()));
     }
     this.picker.el.classList.toggle('with-ad', on && menu);
+  }
+
+  /**
+   * A banner in `host`, or with an ad blocker on, a kind word in its place (Erick, 20/10/2026: "want to support this
+   * free project? Turn off the ad blocker"); false: neither, the spot stays hidden (no ads here, or refused).
+   */
+  private adOrPlea(host: HTMLElement, slot: 'rect' | 'wide'): boolean {
+    const plea = !mountAd(host, slot) && adBlockFound();
+    host.parentElement?.classList.toggle('plea', plea);
+    if (!plea) return !!host.firstChild;
+    host.innerHTML =
+      `<div class="h-plea${slot === 'wide' ? ' wide' : ''}">${PLEA_HEART}` +
+      `<div><b>${esc(t('ads.pleaTitle'))}</b><span>${esc(t('ads.pleaText'))}</span></div></div>`;
+    return true;
   }
 
   /** A match starts: the side banner loads now, unseen, so the first death or Esc shows it ready. */
@@ -1728,6 +1745,10 @@ const CARD_PATHS: Record<CardID, string> = {
 };
 const cardIcon = (id: CardID, cls = 'h-cardico') =>
   `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CARD_PATHS[id]}</svg>`;
+
+/** The ad spots' plea while an ad blocker is on (HudLayer.adOrPlea). */
+const PLEA_HEART =
+  '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
 
 /** The waves' Workshop abilities on the HUD: the dash (Shift), the shock wave (Q). */
 const ABILITY_ICON = {

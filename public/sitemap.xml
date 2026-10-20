@@ -193,6 +193,30 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/maps" />
   </url>
   <url>
+    <loc>https://madorbs.com/about</loc>
+    <lastmod>2026-10-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/about" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/sobre" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/acerca-de" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/about" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/pt/sobre</loc>
+    <lastmod>2026-10-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/about" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/sobre" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/acerca-de" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/about" />
+  </url>
+  <url>
+    <loc>https://madorbs.com/es/acerca-de</loc>
+    <lastmod>2026-10-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/about" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/sobre" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://madorbs.com/es/acerca-de" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://madorbs.com/about" />
+  </url>
+  <url>
     <loc>https://madorbs.com/privacy</loc>
     <lastmod>2026-10-20</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://madorbs.com/privacy" />

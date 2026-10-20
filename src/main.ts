@@ -67,6 +67,8 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
     screen.pcOnly(room ? 'room' : waves ? 'waves' : level ? 'campaign' : mode);
     return;
   }
+  // From the second match this browser plays, an ad blocker on asks (once a visit) to be turned off
+  await screen.beforePlay();
   audio.unlock();
   // The game music streams while the models and the map load
   audio.prepareMusic(gameSounds().gameMusic);

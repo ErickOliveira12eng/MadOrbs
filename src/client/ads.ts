@@ -146,6 +146,11 @@ export function adBlocked(): Promise<boolean> {
   return blockCheck.then(() => blocked);
 }
 
+/** An ad blocker was found on this page (adBlocked or the banners): the ad spots ask for support instead. */
+export function adBlockFound(): boolean {
+  return blocked;
+}
+
 /** Banners may show here and now (agreed to, on madorbs.com, and the frames' origin answers). */
 export function adsAllowed(): boolean {
   return reachable && !blocked && rightHost() && consented();
