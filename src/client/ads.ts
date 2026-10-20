@@ -90,11 +90,12 @@ function baitHidden(): Promise<boolean> {
 
 // ------------------------------------------------------------------ what the banners say
 // Each banner page (public/ad-frame.html) says 'ready', then 'filled', 'empty' or 'blocked'. Blockers
-// that only stop the ad's picture (Brave's Shields) or the banner page itself (the lists' rule for
-// "ads." addresses) are seen here: the requests above don't show them.
+// that stop the banner page itself (the lists' rule for "ads." addresses) are seen here: the requests
+// above don't show them. 'empty' (no picture) is never taken for a blocker since 20/10/2026: the ad network
+// sends nothing to many visitors with none (a country without ads, an office network, a datacenter, the
+// AdSense reviewer's browser), and they got the "turn off your blocker" window over the page (AdSense
+// rejected the site again that day). Brave's Shields, which only stop the picture, go unseen.
 
-/** A banner showed its picture: an empty one later is a missing ad, not a blocker. */
-let filledAny = false;
 /** Banner pages that answered. */
 const answered = new WeakSet<object>();
 const blockListeners: (() => void)[] = [];
@@ -126,8 +127,7 @@ window.addEventListener('message', (e) => {
   if (!frameOrigin() || e.origin !== frameOrigin() || !e.source) return;
   const state = (e.data as { madorbsAd?: unknown } | null)?.madorbsAd;
   if (state === 'ready') answered.add(e.source);
-  else if (state === 'filled') filledAny = true;
-  else if (state === 'blocked' || (state === 'empty' && !filledAny)) blockerFound();
+  else if (state === 'blocked') blockerFound();
   if (state === 'filled' || state === 'empty' || state === 'blocked') waiting.get(e.source)?.(state);
 });
 
