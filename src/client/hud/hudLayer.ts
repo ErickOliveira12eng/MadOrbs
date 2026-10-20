@@ -820,7 +820,7 @@ export class HudLayer {
 
   /** The waves' header: the wave, what is going on (the break's countdown, the enemies left), the lives, the power-ups on. */
   private updateWavesHeader(w: WavesHud): void {
-    const hearts = '♥'.repeat(Math.min(6, Math.max(0, w.lives))) + (w.lives > 6 ? `+${w.lives - 6}` : '');
+    const hearts = '♥'.repeat(Math.min(6, Math.max(0, w.lives))) + (w.lives > 6 ? `+${w.lives - 6}` : '') + (w.livesFull ? `<b class="max">${t('waves.livesMax')}</b>` : '');
     const doing =
       w.phase === 'break'
         ? t('waves.nextIn', { s: Math.ceil(w.breakLeft) })

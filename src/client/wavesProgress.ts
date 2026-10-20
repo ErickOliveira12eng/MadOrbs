@@ -47,11 +47,11 @@ export const UPGRADES: Upgrade[] = [
  * before (bots x toughness, bots x damage x skill), and a level gave +10% (defence 6%, speed 6%). On 15/10/2026 they
  * were raised once already (from life +10%, defence 4%, damage and attack speed 5%, speed 4%). One more
  * life, one more grenade at each spawn,
- * +10% chance that a crate drops a permanent power-up, +5 points on the chance a fallen bot drops a
- * life pack (WAVES.lifePackChance), life back between waves (20%, 35%, 50%), and once a run a blow
+ * +10% chance that a crate drops a permanent power-up, +1 point on the chance a fallen bot drops a
+ * life pack (WAVES.lifePackChance; +5 until 19/10/2026, a fifth like the chance itself), life back between waves (20%, 35%, 50%), and once a run a blow
  * that would kill leaves half the life.
  */
-export const UPGRADE_STEP = { life: 0.2, armor: 0.12, damage: 0.25, fire: 0.2, speed: 0.1, luck: 0.1, drops: 0.05 };
+export const UPGRADE_STEP = { life: 0.2, armor: 0.12, damage: 0.25, fire: 0.2, speed: 0.1, luck: 0.1, drops: 0.01 };
 export const BREATHER = [0, 0.2, 0.35, 0.5];
 export const SECOND_WIND_LIFE = 0.5;
 

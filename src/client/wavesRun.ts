@@ -27,6 +27,8 @@ export interface WavesHud {
   left: number;
   total: number;
   lives: number;
+  /** The lives at WAVES.maxLives: the hearts say so. */
+  livesFull: boolean;
   kills: number;
   /** The timed power-ups on, with their seconds left. */
   powers: { kind: PowerKind; left: number }[];
@@ -204,6 +206,9 @@ export class WavesRun {
     ctx.me.maxGrenades = Math.max(ctx.me.maxGrenades, 2 + ctx.levels.grenades);
     // and get only part of the damage bonuses
     ctx.me.grenadeBonus = WAVES.grenadeBonus;
+    // The player's own death leaves nothing on the floor (the life and the grenades come from the crates)
+    ctx.me.lifePackChance = 0;
+    ctx.me.grenadeDropChance = 0;
     this.windLeft = ctx.levels.secondWind;
     this.dropCrates(WAVES.crates.perBreak);
     window.addEventListener('pagehide', this.onPageHide);
@@ -468,8 +473,8 @@ export class WavesRun {
     // What lies on the floor (life packs, grenades) is the player's; a fallen bot doesn't always leave one
     p.takesLifePacks = false;
     p.lifePackChance = WAVES.lifePackChance + UPGRADE_STEP.drops * this.ctx.levels.drops;
-    // Grenades: one, at the life pack's chance (they used to drop all they had)
-    p.grenadeDropChance = WAVES.lifePackChance;
+    // Grenades: none (only the crates give them, since 19/10/2026; one at the life pack's chance before)
+    p.grenadeDropChance = 0;
     // They come in from the map's edges, never out of its middle
     p.edgeSpawn = true;
     // An elite, maybe (waves.ts): its traits on top of the wave's numbers
@@ -507,6 +512,8 @@ export class WavesRun {
       p.edgeSpawn = true;
       p.damageScale = WAVES.boss.damageScale;
       p.takesLifePacks = false;
+      // It always leaves a life pack, never its grenades (only the crates give them)
+      p.grenadeDropChance = 0;
       // The eye (skin14), in the red team's colours
       p.skin = { ...this.ctx.randomSkin(), skin: 'skin14' };
       this.boss = p;
@@ -569,9 +576,13 @@ export class WavesRun {
   onCrate(crateID: number, position: Vec3, broken: boolean): void {
     this.renderer.crateHit(crateID, position.x, position.y, broken);
     if (!broken || this.over) return;
-    let kind = rollPower(this.full);
-    // The Workshop's crate luck: a better chance of a permanent one (not one at its limit)
-    if (!POWERS[kind].perm && Math.random() < UPGRADE_STEP.luck * this.ctx.levels.luck) kind = rollPerm(this.full) ?? kind;
+    // Hurt (below WAVES.lowLife.below of the life), more of the crates give life
+    const me = this.ctx.me;
+    const { below, most } = WAVES.lowLife;
+    const hurt = me.isAlive && me.life < below ? 1 - Math.max(0, me.life) / below : 0;
+    let kind = rollPower(this.full, 1 + (most - 1) * hurt, this.livesFull);
+    // The Workshop's crate luck: a better chance of a permanent one (not one at its limit; not the life a hurt player got)
+    if (!POWERS[kind].perm && !(kind === 'life' && hurt > 0) && Math.random() < UPGRADE_STEP.luck * this.ctx.levels.luck) kind = rollPerm(this.full) ?? kind;
     if (kind === 'weapon') {
       // A real weapon on the floor: the player takes it (F) or leaves it
       const options = POWER_WEAPONS.filter((w) => w !== this.ctx.me.weapon?.weaponID);
@@ -603,7 +614,8 @@ export class WavesRun {
         break;
       }
       case 'extraLife':
-        me.lives++;
+        // Up to WAVES.maxLives (one already on the floor when the lives filled up gives nothing)
+        if (!this.livesFull) me.lives++;
         break;
       case 'bomb':
         this.bomb();
@@ -614,6 +626,12 @@ export class WavesRun {
     }
     track('powerup_pick', { kind, wave: this.wave });
     this.ctx.onPower(kind, weaponID);
+  }
+
+  /** The lives at WAVES.maxLives (the one being played counted): no extra life from the crates. */
+  get livesFull(): boolean {
+    const me = this.ctx.me;
+    return me.lives + (me.isAlive ? 1 : 0) >= WAVES.maxLives;
   }
 
   /** Cards to choose from now (the game waits), or null. */
@@ -1085,6 +1103,7 @@ export class WavesRun {
       left: this.phase === 'fight' ? this.pending + standing + (this.bossPending ? 1 : 0) : 0,
       total: this.spec.total + (this.spec.boss ? 1 + WAVES.escorts : 0),
       lives: me.lives + (me.isAlive ? 1 : 0),
+      livesFull: this.livesFull,
       kills: me.kills,
       powers: (Object.keys(this.timers) as TimedPower[]).filter((k) => this.timers[k] > 0).map((k) => ({ kind: k, left: this.timers[k] })),
       perms: PERM_KINDS.filter((k) => this.perms[k] > 0).map((k) => ({ kind: k, level: this.perms[k], full: this.perms[k] >= this.permCap })),

@@ -2690,6 +2690,19 @@
   text-shadow: 0 0 8px rgba(255, 93, 122, 0.6);
 }
 
+/* The lives at their most (WAVES.maxLives) */
+.h-camp .hearts .max {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 5px;
+  font: 900 10px/1.5 var(--h-ui);
+  letter-spacing: 0.5px;
+  vertical-align: 2px;
+  color: #fff;
+  background: #e8405f;
+  text-shadow: none;
+}
+
 .h-powers {
   display: inline-flex;
   gap: 4px;

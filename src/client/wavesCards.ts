@@ -68,7 +68,8 @@ export const CARD_LEVELS: Record<CardID, number[]> = {
   crit: [0, 0.15, 0.22, 0.29, 0.37, 0.45],
   vampire: [0, 0.02, 0.04, 0.06, 0.08, 0.1],
   rage: [0, 0.2, 0.4, 0.6, 0.8, 1],
-  dodge: [0, 0.05, 0.1, 0.15, 0.2, 0.25],
+  // (5% to 25% until 19/10/2026: Erick, too weak)
+  dodge: [0, 0.08, 0.14, 0.2, 0.26, 0.32],
   grenadier: [0, 20, 16, 12, 9, 6],
   blast: [0, 0.5, 0.6, 0.7, 0.85, 1],
   ricochet: [0, 1, 2, 3, 4, 5],

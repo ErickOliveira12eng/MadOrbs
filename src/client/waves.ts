@@ -25,6 +25,11 @@ export const WAVES = {
   maxOrbs: 256,
   /** Lives: spawns at the start and after each death. */
   lives: 3,
+  /**
+   * The most lives a run holds (the one being played counted: the hearts on top). The crates' extra life stops there
+   * (Erick, 19/10/2026: they piled up); the Workshop's starting lives go up to it.
+   */
+  maxLives: 5,
   /** Share of the damage the player takes: the bots hit a quarter as hard as elsewhere. */
   playerDamage: 0.25,
   /**
@@ -36,10 +41,17 @@ export const WAVES = {
   grenadeBonus: 0.5,
   /**
    * Life packs: what one gives back (half elsewhere) and the chance a fallen bot drops one (always
-   * elsewhere; the boss always does).
+   * elsewhere; the boss always does). 7% since 19/10/2026 (Erick, a test: a fifth of the 35% it was, the life comes
+   * from the crates instead, more often when the player is hurt: lowLife). Grenades: none from the fallen, only the
+   * crates' (they dropped one at this same chance).
    */
   lifePackHeal: 0.25,
-  lifePackChance: 0.35,
+  lifePackChance: 0.07,
+  /**
+   * The crates for a hurt player: below `below` of his life, the life power-up's weight (POWERS) grows, up to `most`
+   * times at none (with half the life ~22% of the crates give life, with a quarter ~41%, near none ~53%).
+   */
+  lowLife: { below: 0.5, most: 4 },
   /** The bots' speed (they hunt the player down: a little slower, so there is room to run). */
   botSpeed: 0.7,
   /** The player's weapons, the same at each spawn (better ones come from the crates). */
@@ -241,10 +253,13 @@ export const BOMB = { radius: 10, lives: 3 };
 
 /** A level of a permanent one: +10% fire rate, damage and moving speed; 10% less damage taken. */
 export const PERM_STEP = 0.1;
-/** Poison: life per second per level (a bot has 1); ice: speed lost per level, at most ICE_MAX. */
-export const POISON_DPS = 0.08;
-export const ICE_SLOW = 0.15;
-export const ICE_MAX = 0.6;
+/**
+ * Poison: life per second per level (a bot has 1); ice: speed lost per level, at most ICE_MAX. Half of what they were
+ * since 19/10/2026 (Erick; 0.08, 0.15 and 0.6).
+ */
+export const POISON_DPS = 0.04;
+export const ICE_SLOW = 0.075;
+export const ICE_MAX = 0.3;
 
 /** Weapons a "new weapon" power-up can give (better than the SMG). */
 export const POWER_WEAPONS = [WEAPON_DUAL_MACHINE_GUN, WEAPON_CHAIN_GUN, WEAPON_SHOTGUN, WEAPON_BAZOOKA, WEAPON_PHOTON_RIFLE, WEAPON_FLAME_THROWER, WEAPON_SNIPER];
@@ -265,11 +280,14 @@ export function rollPerm(full: (k: PermKind) => boolean = () => false): PermKind
 }
 
 /** A crate's power-up, by the weights, leaving out the permanent ones at their limit (`full`). */
-export function rollPower(full: (k: PermKind) => boolean = () => false): PowerKind {
-  const kinds = (Object.keys(POWERS) as PowerKind[]).filter((k) => !POWERS[k].perm || !full(k as PermKind));
-  let r = Math.random() * kinds.reduce((s, k) => s + POWERS[k].weight, 0);
+export function rollPower(full: (k: PermKind) => boolean = () => false, lifeWeight = 1, livesFull = false): PowerKind {
+  // (no extra life with the lives at WAVES.maxLives)
+  const kinds = (Object.keys(POWERS) as PowerKind[]).filter((k) => (!POWERS[k].perm || !full(k as PermKind)) && !(k === 'extraLife' && livesFull));
+  // (`lifeWeight`: times the life power-up's weight, a hurt player: WAVES.lowLife)
+  const weight = (k: PowerKind) => POWERS[k].weight * (k === 'life' ? lifeWeight : 1);
+  let r = Math.random() * kinds.reduce((s, k) => s + weight(k), 0);
   for (const k of kinds) {
-    r -= POWERS[k].weight;
+    r -= weight(k);
     if (r <= 0) return k;
   }
   return 'life';

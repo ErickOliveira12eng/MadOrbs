@@ -112,6 +112,9 @@ export interface GameOptions {
 
 /** Player.edgeSpawn: a spawn point this close to the map's edge (cells) counts as on the edge. */
 const EDGE_SPAWN = 4;
+/** Player.edgeSpawn: the share that comes in at any edge point instead of the far side, and how far from us at least. */
+const EDGE_SPAWN_RANDOM = 0.3;
+const EDGE_SPAWN_SAFE = 7;
 
 /** Map::flagState, the flag touching distances of Server::updateCTF. */
 const FLAG_POD_REACH = 0.25;
@@ -396,6 +399,30 @@ export class Game {
     this.spawnPlayer(player);
   }
 
+  /**
+   * The waves' bots (Player.edgeSpawn): most come in at a point on the far side from their enemies (one of the
+   * farther half, at random), EDGE_SPAWN_RANDOM of them at any point at least EDGE_SPAWN_SAFE away (Erick, 19/10/2026:
+   * they all came out of the one farthest point). -1: no enemy standing (the usual rule: anywhere).
+   */
+  private edgeSpawnIndex(player: Player, spawns: Vec3[]): number {
+    const near = spawns.map((s) => {
+      let d = Infinity;
+      for (const p of this.players) {
+        if (!p || p === player || p.status !== PLAYER_STATUS_ALIVE || p.teamID === player.teamID) continue;
+        d = Math.min(d, distanceSquared(s, p.currentCF.position));
+      }
+      return d;
+    });
+    if (near.every((d) => d === Infinity)) return -1;
+    const order = near.map((_, i) => i).sort((a, b) => near[b] - near[a]);
+    if (Math.random() < EDGE_SPAWN_RANDOM) {
+      const safe = order.filter((i) => near[i] >= EDGE_SPAWN_SAFE * EDGE_SPAWN_SAFE);
+      if (safe.length > 0) return safe[Math.floor(Math.random() * safe.length)];
+    }
+    const far = order.slice(0, Math.ceil(order.length / 2));
+    return far[Math.floor(Math.random() * far.length)];
+  }
+
   /** Game::spawnPlayer — DM: the spawn point farthest from the closest alive player. */
   spawnPlayer(player: Player): boolean {
     if (player.teamID !== PLAYER_TEAM_BLUE && player.teamID !== PLAYER_TEAM_RED) return false;
@@ -411,8 +438,10 @@ export class Game {
     }
     if (spawns.length === 0) return false;
     let currentScore = 0;
-    let bestFound = 0;
-    for (let i = 0; i < spawns.length; ++i) {
+    // (the waves' bots have their own: edgeSpawnIndex)
+    const spread = player.edgeSpawn ? this.edgeSpawnIndex(player, spawns) : -1;
+    let bestFound = Math.max(0, spread);
+    for (let i = 0; spread < 0 && i < spawns.length; ++i) {
       let nearestPlayer = 100000;
       let nbPlayer = 0;
       for (const p of this.players) {

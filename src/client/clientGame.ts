@@ -375,7 +375,12 @@ export class ClientGame {
         this.hud.announceText(t('waves.cleared', { n }), t('waves.breakHint'), banner('#c8ffd4', '#2fd35c'), 2.6);
       },
       onPower: (kind: PowerKind, weaponID?: number) => {
-        const sub = kind === 'weapon' && weaponID !== undefined ? t('power.weapon.sub', { weapon: weaponInfo(weaponID).name }) : t(`power.${kind}.sub` as const);
+        const sub =
+          kind === 'weapon' && weaponID !== undefined
+            ? t('power.weapon.sub', { weapon: weaponInfo(weaponID).name })
+            : kind === 'extraLife' && this.waves?.livesFull
+              ? t('power.extraLife.max', { n: WAVES.maxLives })
+              : t(`power.${kind}.sub` as const);
         this.hud.announceText(t(`power.${kind}` as const), sub, banner('#ffffff', POWERS[kind].color), 1.6);
         audio.play(kind === 'life' || kind === 'extraLife' ? this.sounds.lifePack : this.sounds.equip, 255);
       },
