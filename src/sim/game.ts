@@ -906,12 +906,12 @@ export class Game {
     } else if (weapon.weaponID === WEAPON_CHAIN_GUN) {
       // The waves' card volleys don't add to the spread (else they spoilt the next shots)
       if (!player.cardShot) weapon.currentImp = Math.min(weapon.impressision, weapon.currentImp + 3);
-      let imp = player.cardSteady ? 0 : weapon.currentImp;
+      let imp = player.cardSteady ? 0 : weapon.currentImp * player.spreadScale;
       if (sv.sv_serverType === SERVER_TYPE_PRO && player.currentCF.vel.length() < 1.15) imp /= 2.7;
       for (let i = 0; i < weapon.nbShot; ++i) out.push(this.pellet(player, imp, p1.clone(), p2.clone()));
     } else {
       if (!player.cardShot) weapon.currentImp = Math.min(weapon.impressision, weapon.currentImp + 3);
-      const imp = player.cardSteady ? 0 : weapon.currentImp;
+      const imp = player.cardSteady ? 0 : weapon.currentImp * player.spreadScale;
       for (let i = 0; i < weapon.nbShot; ++i) out.push(this.pellet(player, imp, p1.clone(), p2.clone()));
     }
     return out;

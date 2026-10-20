@@ -521,9 +521,12 @@ export class WavesRun {
     p.wallRadius = WAVES.boss.radius;
     p.damageScale = WAVES.boss.damageScale * this.spec.toughness * strength.tough;
     p.damageBoost = this.spec.hitBoost * strength.hit;
-    const heavy = this.spec.weapons[this.spec.weapons.length - 1];
     p.speedBoost = WAVES.botSpeed;
-    const bot = new BotController(p, Math.min(1, this.spec.skill + 0.1), { primary: heavy, secondary: WEAPON_KNIVES });
+    // Its weapon, and the best shot of the wave (WAVES.boss)
+    p.spreadScale = WAVES.boss.spread;
+    const bot = new BotController(p, 1, { primary: WAVES.boss.weapon, secondary: WEAPON_KNIVES });
+    bot.aimScale = WAVES.boss.aim;
+    bot.lead = 0;
     bot.hunt = this.ctx.me;
     const i = bots.findIndex((b) => b.player === p);
     if (i >= 0) bots[i] = bot;

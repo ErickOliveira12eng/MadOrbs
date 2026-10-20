@@ -102,6 +102,11 @@ export class BotController {
   hunt: Player | null = null;
   /** Times the aim's error (below 1: a better shot than the skill alone gives; the waves' sharpshooters). */
   aimScale = 1;
+  /**
+   * How far ahead of a moving target it aims (times the usual). The bullets land at once, so leading it makes a
+   * target that keeps moving hard to hit: the bots miss that way; the waves' boss doesn't (0).
+   */
+  lead = 1;
   /** Someone to walk beside (the waves' boss: its two escorts), on this side of it (-1 or 1). */
   escort: Player | null = null;
   escortSide = 1;
@@ -303,7 +308,7 @@ export class BotController {
     }
     if (target) {
       // Lead the target a bit
-      const lead = target.currentCF.vel.mul(Math.min(0.4, best / 20));
+      const lead = target.currentCF.vel.mul(Math.min(0.4, best / 20) * this.lead);
       input.mousePosOnMap = target.currentCF.position.add(lead).add(this.aimError);
       input.mousePosOnMap.z = 0;
       const weapon = p.weapon?.weaponID ?? 0;

@@ -54,9 +54,15 @@ export const WAVES = {
   /** Seconds a power-up waits on the floor, and how long the timed ones last. */
   powerOnFloor: 30,
   powerSeconds: 15,
-  /** A boss every so many waves: its size and the share of the damage it takes (before the wave's toughness). */
+  /**
+   * A boss every so many waves: its size against the walls (drawn and hit bigger: bossStrength), the share of the
+   * damage it takes (before the wave's toughness), its weapon, its aim's error and its weapon's spread (times a bot's).
+   * Since 19/10/2026 (Erick: with the photon rifle, the last weapon of the wave, it was easy to hit and to dodge; it
+   * must aim better than the rest and hit hard enough to make you run): the chain gun, long bursts that run hot and
+   * stop, a window to hit back.
+   */
   bossEvery: 10,
-  boss: { radius: 0.45, damageScale: 0.25 },
+  boss: { radius: 0.45, damageScale: 0.25, weapon: WEAPON_CHAIN_GUN, aim: 0.3, spread: 0.35 },
   /** Bots that come with the boss and walk beside it. */
   escorts: 2,
 };
@@ -163,7 +169,7 @@ export function eliteStrength(n: number): { speed: number; hit: number; aim: num
  */
 export function bossStrength(n: number): { radius: number; hit: number; tough: number } {
   const k = Math.max(0, Math.floor(n / WAVES.bossEvery) - 1);
-  return { radius: Math.min(1, WAVES.boss.radius + 0.1 * k), hit: 1.5 + 0.75 * k, tough: 1 / (1 + 0.2 * k) };
+  return { radius: Math.min(1.1, 0.6 + 0.1 * k), hit: 2.5 + k, tough: 1 / (1 + 0.2 * k) };
 }
 
 /** A bot's traits on wave n: none (most), one, or two later on. */

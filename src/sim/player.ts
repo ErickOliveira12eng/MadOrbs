@@ -208,6 +208,8 @@ export class Player {
   cardShot = false;
   /** The Parallel card's volleys fly without a spread of their own: they open exactly PARALLEL_SPREAD. */
   cardSteady = false;
+  /** Times its weapons' spread (the waves' boss: a better shot than anyone, WAVES.boss.spread). */
+  spreadScale = 1;
   /**
    * The waves' allies (the Shadow card, the Necromancer's risen): their own side walks and shoots through
    * them, and they through it (Game.performPlayerCollisions, Game.passesThrough).
