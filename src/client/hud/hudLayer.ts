@@ -292,6 +292,7 @@ export class HudLayer {
   <div class="h-panel h-slot" data-r="molo"><img data-r="moloImg" alt="Molotov"><div class="cnt"><span data-r="moloN"></span>${mouseIcon('middle')}</div><i class="h-cool" data-r="moloCool" hidden></i></div>
   <div class="h-panel h-slot h-abil" data-r="dash" hidden title="${t('up.dash')}">${ABILITY_ICON.dash}<span class="h-key">Shift</span><i class="h-cool" data-r="dashCool" hidden></i></div>
   <div class="h-panel h-slot h-abil" data-r="shock" hidden title="${t('up.shock')}">${ABILITY_ICON.shock}<span class="h-key">Q</span><i class="h-cool" data-r="shockCool" hidden></i></div>
+  <div class="h-panel h-slot h-abil h-refl" data-r="refl" hidden title="${t('card.reflect')}">${cardIcon('reflect', 'h-abico')}<span class="h-key" data-r="reflLeft"></span><i class="h-cool" data-r="reflCool" hidden></i></div>
 </div>
 <div class="h-abs h-panel h-spec" data-r="spec" hidden>${t('hud.spectating')} <span>${t('hud.specHint')}</span></div>
 
@@ -1339,6 +1340,15 @@ export class HudLayer {
       const cool = r[`${kind}Cool`];
       show(cool, !ready);
       if (!ready) setStyle(cool, '--p', `${Math.round(a.ready * 100)}%`);
+    }
+    // The Reflector card: the seconds before its shield comes up, or (lit) before it goes down
+    const rf = live ? w?.reflector : null;
+    show(r.refl, !!rf);
+    if (rf) {
+      r.refl.classList.toggle('on', rf.on);
+      show(r.reflCool, !rf.on);
+      if (!rf.on) setStyle(r.reflCool, '--p', `${Math.round(rf.ready * 100)}%`);
+      setText(r.reflLeft, `${Math.ceil(rf.left)} s`);
     }
     const b = live ? w?.barrier : null;
     show(r.shbar, !!b);

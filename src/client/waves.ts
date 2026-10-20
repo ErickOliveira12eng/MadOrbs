@@ -28,10 +28,10 @@ export const WAVES = {
   /** Share of the damage the player takes: the bots hit a quarter as hard as elsewhere. */
   playerDamage: 0.25,
   /**
-   * The share of the player's damage bonuses (the Workshop's and the crates' damage, fury, berserker, a critical's
-   * double) his grenades get (Player.grenadeBonus; Erick, 19/10/2026: with all of them a grenade killed wave 20 bots
-   * at a blow up to a block away). With the Workshop's damage at the top, one at the bot's feet kills up to wave 18,
-   * a step off up to 12 (were 30 and 22).
+   * The share of the player's damage bonuses (the Workshop's and the crates' damage, fury, berserker) his grenades get
+   * (Player.grenadeBonus; Erick, 19/10/2026: with all of them a grenade killed wave 20 bots at a blow up to a block
+   * away). With the Workshop's damage at the top, one at the bot's feet kills up to wave 18, a step off up to 12 (were
+   * 30 and 22). And no critical hits for grenades and molotovs (Game.radiusHit).
    */
   grenadeBonus: 0.5,
   /**
@@ -224,6 +224,14 @@ export const POWERS: Record<PowerKind, { weight: number; timed: boolean; perm: b
 
 /** The timed ones' effect on the player. */
 export const BOOSTS = { speed: 1.35, rapid: 1.6, shield: 0.5, fury: 2 };
+
+/**
+ * The bomb: its reach (cells, enemies in sight) and its damage in the middle, in lives of an ordinary enemy of the
+ * wave, down to half of it at the edge: the ordinary ones fall anywhere in it, the tanks and the boss lose a share
+ * (Erick, 19/10/2026: its reach was too short; it was 6 cells and 3 lives whatever the wave, so later on it killed
+ * only the ones at the player's feet).
+ */
+export const BOMB = { radius: 10, lives: 3 };
 
 /** A level of a permanent one: +10% fire rate, damage and moving speed; 10% less damage taken. */
 export const PERM_STEP = 0.1;

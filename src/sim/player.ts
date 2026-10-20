@@ -234,8 +234,9 @@ export class Player {
   speedBoost = 1;
   fireBoost = 1;
   /**
-   * The share of the damage bonuses (damageBoost, a critical's double) this player's grenades get: the waves' player
-   * gets half (WAVES.grenadeBonus; Erick, 19/10/2026: with the Workshop's damage a grenade killed wave 20 at a blow).
+   * The share of the damage bonuses (damageBoost) this player's grenades get: the waves' player gets half
+   * (WAVES.grenadeBonus; Erick, 19/10/2026: with the Workshop's damage a grenade killed wave 20 at a blow). Grenades
+   * and molotovs are never critical hits (Game.radiusHit).
    */
   grenadeBonus = 1;
   /**
@@ -853,9 +854,10 @@ export class Player {
 
   /**
    * Player::hitSV — server-side damage. `damage < 0` means "use the weapon's damage". `bonus`: the share of the
-   * shooter's damage bonuses it gets (a grenade: Player.grenadeBonus). Returns true if the player died.
+   * shooter's damage bonuses it gets (a grenade: Player.grenadeBonus); `canCrit`: false for what can't be a
+   * critical hit (the grenade and the molotov). Returns true if the player died.
    */
-  hitSV(fromWeaponID: number, from: Player, damage = -1, bonus = 1): boolean {
+  hitSV(fromWeaponID: number, from: Player, damage = -1, bonus = 1, canCrit = true): boolean {
     const game = this.game;
     let cdamage = damage;
     const fromDef = weaponDefs[fromWeaponID];
@@ -912,7 +914,7 @@ export class Player {
     cdamage *= this.damageScale * this.armorBoost;
     if (from !== this) cdamage *= (1 + (from.damageBoost - 1) * bonus) * from.shotScale;
     // The waves' cards: a critical hit (double damage), a dodged one
-    if (from !== this && from.critChance > 0 && Math.random() < from.critChance) cdamage *= 1 + bonus;
+    if (from !== this && canCrit && from.critChance > 0 && Math.random() < from.critChance) cdamage *= 2;
     if (from !== this && this.dodgeChance > 0 && this.status === PLAYER_STATUS_ALIVE && Math.random() < this.dodgeChance) return false;
     // The Reflector card's shield: nothing of the enemies' gets through (their bullets go back: Game.applyBullet)
     if (from !== this && this.reflectTime > 0 && from.teamID !== this.teamID && this.status === PLAYER_STATUS_ALIVE) return false;

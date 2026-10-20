@@ -74,7 +74,8 @@ export const CARD_LEVELS: Record<CardID, number[]> = {
   ricochet: [0, 1, 2, 3, 4, 5],
   missiles: [0, 3, 5, 7],
   shadow: [0, 1, 2, 3],
-  reflect: [0, 2, 3, 4],
+  // (2, 3 and 4 s until 19/10/2026: Erick, too weak, a crowd's worth of shots got through the rest of the time)
+  reflect: [0, 4, 6, 8],
   silver: [0, 5, 4, 3],
   necro: [0, 0.2, 0.3, 0.4],
 };

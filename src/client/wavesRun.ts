@@ -10,7 +10,7 @@ import type { Player, SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
-import { BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
@@ -36,6 +36,11 @@ export interface WavesHud {
   abilities: { kind: 'dash' | 'shock'; ready: number }[];
   /** The Workshop's recharging shield (share of a life), or null without it. */
   barrier: { now: number; max: number } | null;
+  /**
+   * The Reflector card (null without it): whether its shield is up, the seconds it has left (up) or before it comes
+   * (down: the clock runs only while a wave is on), and how far that clock is (1: up).
+   */
+  reflector: { on: boolean; left: number; ready: number } | null;
   /** The cards taken (after each boss), with their levels. */
   cards: { id: CardID; level: number }[];
   bossLife: { name: string; life: number } | null;
@@ -1006,16 +1011,18 @@ export class WavesRun {
   private bomb(): void {
     const { game, me } = this.ctx;
     const pos = me.currentCF.position.clone();
-    const radius = 6;
+    const { radius, lives } = BOMB;
     for (const p of this.reds()) {
       if (!p.isAlive) continue;
       const d = Math.hypot(p.currentCF.position.x - pos.x, p.currentCF.position.y - pos.y);
       if (d >= radius || game.map.rayTest(pos.clone(), p.currentCF.position.clone(), new Vec3())) continue;
-      p.hitSV(WEAPON_NUCLEAR, me, 3 * (1 - d / (radius * 1.5)));
+      p.hitSV(WEAPON_NUCLEAR, me, (lives / this.spec.toughness) * (1 - d / (radius * 2)));
     }
     for (const c of [...game.crates]) {
       if (Math.hypot(c.position.x - pos.x, c.position.y - pos.y) < radius) game.hitCrate(c, 10, me);
     }
+    // Its reach on the floor, as the Blast card's ring
+    this.renderer.blastRing(pos.x, pos.y, radius);
     this.ctx.onBomb(pos);
   }
 
@@ -1083,6 +1090,11 @@ export class WavesRun {
         ...(this.ctx.levels.shock > 0 ? [{ kind: 'shock' as const, ready: 1 - this.shockWait / SHOCK_COOLDOWN[this.ctx.levels.shock] }] : []),
       ],
       barrier: me.barrierMax > 0 ? { now: me.barrier, max: me.barrierMax } : null,
+      reflector: !this.cards.reflect
+        ? null
+        : me.reflectTime > 0
+          ? { on: true, left: me.reflectTime, ready: 1 }
+          : { on: false, left: REFLECT_EVERY - this.reflectClock, ready: this.reflectClock / REFLECT_EVERY },
       cards: this.cardList(),
       bossLife: boss && this.spec.boss && this.phase === 'fight' && (boss.isAlive || boss.lives > 0) ? { name: boss.name, life: boss.isAlive ? boss.life : 1 } : null,
       record: this.record?.wave ?? null,
