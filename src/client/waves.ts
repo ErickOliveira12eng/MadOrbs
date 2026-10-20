@@ -74,6 +74,11 @@ export const WAVES = {
    * stop, a window to hit back.
    */
   bossEvery: 10,
+  /**
+   * A boss wave's bots: this share of the wave's, up to wave `fullFrom`; from there all of them (Erick, 19/10/2026: on
+   * wave 60 the boss didn't make up for some 40 bots less: 61 against 99 on wave 59).
+   */
+  bossWave: { share: 0.6, fullFrom: 30 },
   boss: { radius: 0.45, damageScale: 0.25, weapon: WEAPON_CHAIN_GUN, aim: 0.3, spread: 0.35 },
   /** Bots that come with the boss and walk beside it. */
   escorts: 2,
@@ -130,8 +135,8 @@ export function waveSpec(n: number): WaveSpec {
   return {
     n,
     boss,
-    // A boss wave: fewer bots around the boss
-    total: boss ? Math.ceil(total * 0.6) : total,
+    // A boss wave: fewer bots around the boss, until it's late enough (WAVES.bossWave)
+    total: boss && n < WAVES.bossWave.fullFrom ? Math.ceil(total * WAVES.bossWave.share) : total,
     spawnGap: Math.max(0.25, 0.9 - n * 0.02),
     seconds: Math.min(60, 30 + n),
     skill: 0.92 - 0.77 * Math.exp(-(n - 1) / 18),
