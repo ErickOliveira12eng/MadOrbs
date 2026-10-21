@@ -30,6 +30,12 @@ export interface GameSounds {
   gameMusic: string;
 }
 
+/**
+ * The menu's music, apart from the rest: the start page plays it without loading the game's sounds (gameSounds loads
+ * them all, ~3 MB of WAV that every visitor of the start page downloaded until 20/10/2026, the crawlers too).
+ */
+export const MENU_MUSIC = '/assets/sounds/Menu.ogg';
+
 let sounds: GameSounds | null = null;
 
 export function gameSounds(): GameSounds {
@@ -55,7 +61,7 @@ export function gameSounds(): GameSounds {
     flagTookEnemy: S('etook.wav'),
     flagReturn: S('return.wav'),
     cheer: [S('cheerBlueTeam.wav'), S('cheerRedTeam.wav')],
-    menuMusic: '/assets/sounds/Menu.ogg',
+    menuMusic: MENU_MUSIC,
     gameMusic: '/assets/sounds/Music.ogg',
   };
   return sounds;

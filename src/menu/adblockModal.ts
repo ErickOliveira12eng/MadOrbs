@@ -14,9 +14,18 @@ const PLAYS_KEY = 'madorbs.plays';
 /** From this match on, a blocker is asked about. */
 const ASK_FROM = 2;
 
+/** Matches this browser started so far (0: none yet, a first visit maybe). */
+export function matchesPlayed(): number {
+  try {
+    return Math.max(0, Number(localStorage.getItem(PLAYS_KEY)) || 0);
+  } catch {
+    return 0;
+  }
+}
+
 function countPlay(): number {
   try {
-    const n = Math.max(0, Number(localStorage.getItem(PLAYS_KEY)) || 0) + 1;
+    const n = matchesPlayed() + 1;
     localStorage.setItem(PLAYS_KEY, String(n));
     return n;
   } catch {

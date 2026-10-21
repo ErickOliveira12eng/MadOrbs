@@ -5,7 +5,7 @@ import './menu/menu.css';
 import { audio } from './client/audio/audio';
 import { ClientGame } from './client/clientGame';
 import { DM_MAPS, MAP_LIST } from './client/mapList';
-import { gameSounds } from './client/sounds';
+import { MENU_MUSIC, gameSounds } from './client/sounds';
 import type { CampaignLevel } from './client/campaign';
 import { bestKills } from './client/records';
 import { Account } from './menu/account';
@@ -16,6 +16,7 @@ import { loadProgress as loadWavesProgress } from './client/wavesProgress';
 import { WavesModal } from './menu/wavesModal';
 import { StartScreen, type PlayMode } from './menu/menu';
 import { touchOnly } from './menu/pcOnly';
+import { matchesPlayed } from './menu/adblockModal';
 import { debugZoomOn } from './menu/accountModal';
 import type { PrivateRoomJoin } from './menu/roomModal';
 import { ROOM_LINK_RE } from './net/protocol';
@@ -94,7 +95,7 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
         return;
       }
       screen.show(reason);
-      void audio.playMusic(gameSounds().menuMusic, 255);
+      void audio.playMusic(MENU_MUSIC, 255);
       // The server saves the account's stats when the player leaves: read them once they are in
       if (account.signedIn) setTimeout(() => void account.refreshProfile(), 2000);
     },
@@ -137,7 +138,7 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
                 ? () => void startGame('offline', undefined, true)
                 : () => {
                     screen.show();
-                    void audio.playMusic(gameSounds().menuMusic, 255);
+                    void audio.playMusic(MENU_MUSIC, 255);
                     if (action === 'shop') screen.openWaves();
                   };
             game.quit();
@@ -161,7 +162,7 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
                 ? () => {
                     screen.show();
                     screen.openCampaign(target);
-                    void audio.playMusic(gameSounds().menuMusic, 255);
+                    void audio.playMusic(MENU_MUSIC, 255);
                   }
                 : () => void startGame('offline', target);
             game.quit();
@@ -189,12 +190,12 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
 }
 
 // Menu music: browsers only let a page make sound after the visitor clicks or presses a key
-// (autoplay policy), except on sites they already trust. Try right away, then on the first click
-// or key press anywhere; it downloads right away either way.
-audio.prepareMusic(gameSounds().menuMusic);
+// (autoplay policy), except on sites they already trust. It loads (1.4 MB) and plays at the first click or key
+// press anywhere; right away for someone who played here before (the browser may trust the site by then).
+// Until 20/10/2026 it downloaded at once for every visitor, the crawlers too.
 const startMenuMusic = () => {
   audio.unlock();
-  if (screen.visible) void audio.playMusic(gameSounds().menuMusic, 255);
+  if (screen.visible) void audio.playMusic(MENU_MUSIC, 255);
 };
 const firstGesture = (e: Event) => {
   // Escape and modifier keys don't count as a gesture for the browser
@@ -205,4 +206,4 @@ const firstGesture = (e: Event) => {
 };
 window.addEventListener('pointerdown', firstGesture);
 window.addEventListener('keydown', firstGesture);
-startMenuMusic();
+if (matchesPlayed() > 0) startMenuMusic();
