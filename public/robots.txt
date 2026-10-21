@@ -3,6 +3,5 @@ Allow: /
 Disallow: /r/
 Disallow: /pt/r/
 Disallow: /es/r/
-Disallow: /admin
 
 Sitemap: https://madorbs.com/sitemap.xml
