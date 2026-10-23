@@ -40,6 +40,8 @@ export type GameEvent =
   | { type: 'hit'; playerID: number; fromID: number; weaponID: number; damage: number; life: number; position: Vec3; dot?: boolean; crit?: boolean }
   /** The waves' Dodge card: a hit on playerID missed (offline only, like the cards: never on the wire). */
   | { type: 'dodge'; playerID: number; fromID: number; position: Vec3 }
+  /** A tutorial's target that this weapon can't hurt (Player.hurtOnlyBy) was hit (offline only, never on the wire). */
+  | { type: 'immune'; playerID: number; fromID: number; position: Vec3 }
   /** A player died (kill message, death sound, blood). */
   | { type: 'death'; playerID: number; fromID: number; weaponID: number; friendlyFire: boolean; position: Vec3 }
   /** A kill feat of playerID (src/sim/feats.ts); n: the streak (kills without dying); Mission Failed: victimID is the killer (-1: none). */

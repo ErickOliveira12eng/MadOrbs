@@ -29,6 +29,8 @@ import { OrbPicker } from './orbPicker';
 import { turning, type OrbStudio } from './orbStudio';
 import { FREE_SKINS, availableSkins, saveSettings, skinInfo, type Settings } from './settings';
 import { TrainingModal } from './training';
+import { TutorialModal, tutorialSeen, type TutorialAnswer } from './tutorialModal';
+import type { TutorialKind } from '../client/tutorial';
 import { WavesModal, coreIcon } from './wavesModal';
 import { versioned } from '../sim/assetVersion';
 import { adBlocked, adsAllowed, mountAd, onAdBlockFound, onAdsAllowed, refreshAd, type AdSlot } from '../client/ads';
@@ -83,6 +85,8 @@ export class StartScreen {
   private readonly adblock = new AdblockModal();
   /** Phones and tablets: the window that says where to play (src/menu/pcOnly.ts) */
   private readonly pcModal = new PcOnlyModal(() => this.ranking.open());
+  /** The first time in the waves or online: the tutorial, or play now */
+  private readonly tutorialAsk = new TutorialModal();
   private readonly ranking: RankingModal;
   private readonly room: RoomModal;
   /** The account whose Orb was already brought into this page's settings. */
@@ -114,6 +118,8 @@ export class StartScreen {
     onWaves: () => void,
     /** A private room to join (made here, or an invitation). */
     onPrivate: (room: PrivateRoomJoin) => void,
+    /** A tutorial (src/client/tutorial.ts): asked the first time, or chosen in Training. */
+    onTutorial: (kind: TutorialKind) => void,
   ) {
     for (const el of document.querySelectorAll<HTMLElement>('[data-icon]')) el.innerHTML = icon(el.dataset.icon as IconName, 20);
 
@@ -176,9 +182,20 @@ export class StartScreen {
       () => this.accountModal.open(),
       () => this.renderProgress(),
     );
+    // The first time: the tutorial, or a run at once (no Workshop yet: nothing to buy)
+    const tutorial = (kind: TutorialKind) => {
+      this.play('offline', false);
+      onTutorial(kind);
+    };
     $('btnWaves').addEventListener('click', () => {
       track('menu_open', { window: 'waves' });
-      this.waves.open();
+      void this.firstTime('waves').then((a) => {
+        if (a === 'tutorial') tutorial('waves');
+        else if (a === 'play') {
+          this.play('offline', false);
+          onWaves();
+        } else if (a === 'none') this.waves.open();
+      });
     });
     account.onChange(() => this.renderAccount());
     this.renderAccount();
@@ -191,6 +208,7 @@ export class StartScreen {
         this.play('offline');
       },
       () => this.markMode(),
+      tutorial,
     );
     this.buildModes();
     for (const id of ['orbButton', 'orbCustomize']) $(id).addEventListener('click', () => this.picker.open());
@@ -199,7 +217,11 @@ export class StartScreen {
     $('training').addEventListener('click', () => this.training.open());
     $<HTMLFormElement>('startForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      this.play('online');
+      // The first time: the shooting range's tutorial, or the match
+      void this.firstTime('pvp').then((a) => {
+        if (a === 'tutorial') tutorial('pvp');
+        else if (a === 'play' || a === 'none') this.play('online');
+      });
     });
 
     // Controls window
@@ -316,6 +338,21 @@ export class StartScreen {
     return this.adblock.beforePlay();
   }
 
+  /**
+   * The first time in a mode (the waves, online), the tutorial or play now (src/menu/tutorialModal.ts); 'none': not
+   * asked (asked before, played the mode before, or a touch-only device, which plays nothing).
+   */
+  private firstTime(kind: TutorialKind): Promise<TutorialAnswer | 'none'> {
+    if (touchOnly() || tutorialSeen(kind) || this.playedBefore(kind)) return Promise.resolve('none');
+    return this.tutorialAsk.ask(kind);
+  }
+
+  /** That mode played before: this browser's records and Cores, the account's. */
+  private playedBefore(kind: TutorialKind): boolean {
+    if (kind === 'waves') return !!loadWavesRecord() || loadWavesProgress().earned > 0 || !!this.account.waves;
+    return ROOM_MODES.some((m) => bestKills(m) > 0 || (this.account.stats[m]?.matches ?? 0) > 0);
+  }
+
   hide(): void {
     this.root.hidden = true;
     this.picker.close();
@@ -326,6 +363,7 @@ export class StartScreen {
     this.ranking.close();
     this.adblock.close();
     this.pcModal.close();
+    this.tutorialAsk.close();
     this.controls.hidden = true;
     cancelAnimationFrame(this.rafId);
     clearTimeout(this.statusTimer);

@@ -25,11 +25,11 @@ export const UPGRADES: Upgrade[] = [
   { id: 'life', costs: [60, 120, 200, 320, 500], group: 'defense' },
   { id: 'armor', costs: [80, 150, 250, 400, 600], group: 'defense' },
   { id: 'lives', costs: [300, 600], group: 'defense' },
-  // (1,500 for one until 24/10/2026: one of the false choices, tools/waves-sim.ts gave +0.45 wave for it, 0.03 per 100 Cores)
+  // (1,500 for one until 23/10/2026: one of the false choices, tools/waves-sim.ts gave +0.45 wave for it, 0.03 per 100 Cores)
   { id: 'secondWind', costs: [250, 600], group: 'defense' },
   { id: 'speed', costs: [50, 100, 180, 280, 400], group: 'survival' },
   { id: 'luck', costs: [50, 100, 180, 280, 400], group: 'survival' },
-  // The crates' healing (it was "life pack chance" until 24/10/2026, worth nothing once the bots dropped a fifth of the packs)
+  // The crates' healing (it was "life pack chance" until 23/10/2026, worth nothing once the bots dropped a fifth of the packs)
   { id: 'drops', costs: [40, 80, 140, 220, 320], group: 'survival' },
   { id: 'breather', costs: [120, 250, 450], group: 'survival' },
   // Only the Workshop gives these (Erick, 12/10/2026: its numbers got lost among the run's power-ups)
@@ -54,7 +54,7 @@ export const UPGRADES: Upgrade[] = [
  * that would kill leaves half the life.
  */
 /**
- * 24/10/2026 (Erick: "improve the Workshop's false choices"): tools/waves-sim.ts measured the waves each upgrade adds per
+ * 23/10/2026 (Erick: "improve the Workshop's false choices"): tools/waves-sim.ts measured the waves each upgrade adds per
  * 100 Cores on a mid profile: life 0.28, defence 0.24, the shield 0.23, lives 0.21, attack speed 0.16, damage 0.14, speed
  * 0.12, grenades 0.11; and far behind the life pack chance ~0 (a fifth of the packs since 19/10), luck 0.06, the shock wave
  * 0.05, the breather 0.04, the dash 0.04, the second wind 0.03 (1,500 Cores). Those got cheaper and/or stronger: `drops`

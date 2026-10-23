@@ -161,6 +161,216 @@
   text-transform: uppercase;
 }
 
+/* A tutorial's target our weapon can't hurt */
+.h-dmg.immune {
+  color: #c9cfe6;
+  font: 900 14px/1 var(--h-ui);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* The shooting range (src/client/tutorial.ts): under each target, the damage of the last burst and its DPS */
+.h-meter {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  padding: 2px 8px 3px;
+  border-radius: 999px;
+  background: rgba(8, 10, 24, 0.72);
+  border: 1px solid rgba(255, 224, 102, 0.35);
+  color: var(--h-gold-1);
+  font: 800 12px var(--h-ui);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+  will-change: transform;
+}
+
+/* A tutorial's objective: on the right, under the waves' corner panel (alone: in its place) */
+.h-tut {
+  right: 14px;
+  top: 168px;
+  width: 244px;
+  padding: 10px 12px 11px;
+  box-sizing: border-box;
+}
+
+.h-tut.alone {
+  top: 14px;
+}
+
+.h-tut .goal {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 7px;
+  font: 800 15px/1.35 var(--h-ui);
+}
+
+.h-tut .goal .tick {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  color: transparent;
+}
+
+.h-tut .goal .tick svg {
+  width: 13px;
+  height: 13px;
+}
+
+.h-tut .goal.done .tick {
+  background: #2fd35c;
+  border-color: #2fd35c;
+  color: #fff;
+  animation: feat-pop 0.3s ease-out;
+}
+
+.h-tut .goal.done span {
+  color: #b8ffc9;
+}
+
+.h-tut .goal .h-key {
+  vertical-align: 1px;
+}
+
+.h-tut .goal .h-mouse {
+  vertical-align: -3px;
+  color: #fff;
+}
+
+.h-tut .cnt {
+  margin-left: auto;
+  font: 400 20px/1 var(--h-display);
+  color: var(--h-gold-1);
+}
+
+/* A tutorial's card, low in the middle of the screen (the game waits for it): what it speaks of shows above it */
+.h-tutcard {
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.h-tutbox {
+  width: 540px;
+  padding: 22px 26px 18px;
+  box-sizing: border-box;
+  border-radius: 22px;
+  background: var(--h-panel-strong);
+  border: 1px solid var(--h-line-strong);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  animation: feat-pop 0.4s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.h-tutbox h3 {
+  margin: 6px 0 8px;
+  font: 400 38px/1.05 var(--h-display);
+  letter-spacing: 1px;
+  background: linear-gradient(180deg, var(--h-gold-1) 25%, var(--h-gold-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.h-tutbox p {
+  margin: 0;
+  color: #dfe5ff;
+  font: 700 16px/1.45 var(--h-ui);
+}
+
+.h-tutbox .keys {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.h-tutbox .kk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--h-line);
+  font: 800 14px var(--h-ui);
+}
+
+.h-tutbox .kk .h-key {
+  font-size: 14px;
+  padding: 2px 8px;
+}
+
+.h-tutbox .kk .h-mouse {
+  width: 18px;
+  height: 26px;
+  color: #fff;
+}
+
+.h-tutbox .kk em {
+  font-style: normal;
+  color: var(--h-muted);
+}
+
+.h-tutbox .btns {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.h-tutbox button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--h-line-strong);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--h-text);
+  font: 800 15px var(--h-ui);
+  cursor: pointer;
+}
+
+.h-tutbox button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.h-tutbox button.primary {
+  background: linear-gradient(180deg, #5fe27d, #24b24e);
+  border-color: #167a35;
+  color: #08240f;
+}
+
+.h-tutbox button.primary .h-key {
+  color: #08240f;
+  border-color: rgba(8, 36, 15, 0.35);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.h-tutbox button.leave {
+  margin-right: auto;
+  padding-left: 4px;
+  border-color: transparent;
+  background: none;
+  color: var(--h-muted);
+  font-weight: 700;
+}
+
+.h-tutbox button.leave:hover {
+  color: var(--h-text);
+}
+
 .h-tag {
   position: absolute;
   left: 0;

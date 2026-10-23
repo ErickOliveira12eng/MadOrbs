@@ -20,6 +20,8 @@ export interface WavesHud {
   boss: boolean;
   /** 'break': between waves (breakLeft seconds to the next one); 'fight': a wave is on. */
   phase: 'break' | 'fight';
+  /** The break's and the wave's clocks shown (not in the tutorial: its script brings the waves). */
+  timer: boolean;
   breakLeft: number;
   /** Seconds before the next wave comes anyway (during a wave). */
   waveLeft: number;
@@ -134,6 +136,11 @@ export interface WavesContext {
   startWave: number;
   startWeapon: number;
   levels: Levels;
+  /**
+   * The waves' tutorial (src/client/tutorial.ts): no waves, crates or cards of the run's own, the script brings them
+   * (scriptWave, scriptCrate), and nothing counts (like a tester's run).
+   */
+  tutorial?: boolean;
 }
 
 export class WavesRun {
@@ -201,9 +208,15 @@ export class WavesRun {
   private firstWaveAt: number | null = null;
   private readonly splits: Record<number, number> = {};
   over = false;
+  /** The tutorial's run (WavesContext.tutorial): what each of its crates drops, and the enemies of its wave. */
+  private readonly script: boolean;
+  private readonly scriptDrops = new Map<number, PowerKind>();
+  private scriptTotal = 0;
 
   constructor(private readonly ctx: WavesContext) {
     this.renderer = new WavesRenderer(ctx.scene);
+    this.script = !!ctx.tutorial;
+    this.tested = this.script;
     ctx.game.lifePackHeal = WAVES.lifePackHeal;
     // A run from a checkpoint: the wave before it counts as done, and a head start of power-ups
     this.wave = ctx.startWave - 1;
@@ -226,7 +239,7 @@ export class WavesRun {
     ctx.me.lifePackChance = 0;
     ctx.me.grenadeDropChance = 0;
     this.windLeft = ctx.levels.secondWind;
-    this.dropCrates(WAVES.crates.perBreak);
+    if (!this.script) this.dropCrates(WAVES.crates.perBreak);
     window.addEventListener('pagehide', this.onPageHide);
   }
 
@@ -275,8 +288,10 @@ export class WavesRun {
     }
 
     // The clocks of the break and of the wave stop while the player is dead: dying (and waiting)
-    // doesn't bring the waves on, so it can't climb the record
-    if (this.phase === 'break') {
+    // doesn't bring the waves on, so it can't climb the record. (The tutorial's script brings its own.)
+    if (this.script) {
+      // nothing: scriptWave, scriptBreak
+    } else if (this.phase === 'break') {
       if (me.isAlive) this.breakLeft -= TICK;
       if (this.breakLeft <= 0) this.startWave();
     } else {
@@ -284,7 +299,7 @@ export class WavesRun {
     }
 
     // Crates now and then during a wave
-    if (this.phase === 'fight') {
+    if (this.phase === 'fight' && !this.script) {
       this.nextCrate -= TICK;
       if (this.nextCrate <= 0) {
         this.nextCrate = WAVES.crates.every;
@@ -602,20 +617,42 @@ export class WavesRun {
     const me = this.ctx.me;
     const { below, most } = WAVES.lowLife;
     const hurt = me.isAlive && me.life < below ? 1 - Math.max(0, me.life) / below : 0;
-    let kind = rollPower(this.full, 1 + (most - 1) * hurt, this.livesFull);
+    // (the tutorial's crates drop what its script says)
+    let kind = this.scriptDrops.get(crateID) ?? rollPower(this.full, 1 + (most - 1) * hurt, this.livesFull);
     // The Workshop's crate luck: a better chance of a permanent one (not one at its limit; not the life a hurt player got)
-    if (!POWERS[kind].perm && !(kind === 'life' && hurt > 0) && Math.random() < UPGRADE_STEP.luck * this.ctx.levels.luck) kind = rollPerm(this.full) ?? kind;
+    if (!this.script && !POWERS[kind].perm && !(kind === 'life' && hurt > 0) && Math.random() < UPGRADE_STEP.luck * this.ctx.levels.luck) kind = rollPerm(this.full) ?? kind;
     if (kind === 'weapon') {
       // A real weapon on the floor: the player takes it (F) or leaves it
       const options = POWER_WEAPONS.filter((w) => w !== this.ctx.me.weapon?.weaponID);
       const weaponID = options[Math.floor(Math.random() * options.length)];
       this.ctx.game.spawnProjectile(position.clone(), new Vec3(0, 0, 2), this.ctx.me.playerID, PROJECTILE_DROPED_WEAPON, weaponID);
-      track('crate_break', { wave: this.wave, drop: 'weapon' });
+      if (!this.script) track('crate_break', { wave: this.wave, drop: 'weapon' });
       this.ctx.onWeaponDrop(weaponID);
       return;
     }
-    this.powers.push({ id: this.nextPowerID++, kind, x: position.x, y: position.y, age: 0, life: WAVES.powerOnFloor });
-    track('crate_break', { wave: this.wave, drop: kind });
+    // (the tutorial's stay until they're taken)
+    this.powers.push({ id: this.nextPowerID++, kind, x: position.x, y: position.y, age: 0, life: this.script ? Infinity : WAVES.powerOnFloor });
+    if (!this.script) track('crate_break', { wave: this.wave, drop: kind });
+  }
+
+  /** The tutorial: wave `n` begins now (its banner and its siren), with `total` enemies to beat (the script brings them). */
+  scriptWave(n: number, total: number): void {
+    this.wave = n;
+    this.spec = waveSpec(n);
+    this.phase = 'fight';
+    this.scriptTotal = total;
+    this.ctx.onWave(this.spec);
+  }
+
+  /** The tutorial: the wave is over (its banner; between waves, the crates). */
+  scriptBreak(): void {
+    this.phase = 'break';
+    this.ctx.onCleared(this.wave);
+  }
+
+  /** The tutorial: a crate there, that drops `drop` when it breaks. */
+  scriptCrate(x: number, y: number, drop: PowerKind): void {
+    this.scriptDrops.set(this.ctx.game.addCrate(x, y).id, drop);
   }
 
   private take(kind: PowerKind): void {
@@ -647,7 +684,7 @@ export class WavesRun {
         if (POWERS[kind].perm) this.perms[kind as PermKind] = Math.min(this.permCap, this.perms[kind as PermKind] + 1);
         else this.timers[kind as TimedPower] = WAVES.powerSeconds;
     }
-    track('powerup_pick', { kind, wave: this.wave });
+    if (!this.script) track('powerup_pick', { kind, wave: this.wave });
     this.ctx.onPower(kind, weaponID);
   }
 
@@ -1127,8 +1164,9 @@ export class WavesRun {
       phase: this.phase,
       breakLeft: Math.max(0, this.breakLeft),
       waveLeft: Math.max(0, this.waveLeft),
+      timer: !this.script,
       left: this.phase === 'fight' ? this.pending + standing + (this.bossPending ? 1 : 0) : 0,
-      total: this.spec.total + (this.spec.boss ? 1 + WAVES.escorts : 0),
+      total: this.script ? this.scriptTotal : this.spec.total + (this.spec.boss ? 1 + WAVES.escorts : 0),
       lives: me.lives + (me.isAlive ? 1 : 0),
       livesFull: this.livesFull,
       kills: me.kills,
@@ -1146,10 +1184,11 @@ export class WavesRun {
           : { on: false, left: REFLECT_EVERY - this.reflectClock, ready: this.reflectClock / REFLECT_EVERY },
       cards: this.cardList(),
       bossLife: boss && this.spec.boss && this.phase === 'fight' && (boss.isAlive || boss.lives > 0) ? { name: boss.name, life: boss.isAlive ? boss.life : 1 } : null,
-      record: this.record?.wave ?? null,
+      // (the tutorial's run counts for nothing: no record, scale or Cores to show)
+      record: this.script ? null : (this.record?.wave ?? null),
       // How much tougher and harder hitting the wave's bots are than on wave 1
-      scale: { life: 1 / this.spec.toughness, hit: this.spec.hitBoost },
-      cores: runCores(this.ctx.startWave, Math.max(this.ctx.startWave, this.wave), me.kills, this.bosses, false).total,
+      scale: this.script ? { life: 1, hit: 1 } : { life: 1 / this.spec.toughness, hit: this.spec.hitBoost },
+      cores: this.script ? 0 : runCores(this.ctx.startWave, Math.max(this.ctx.startWave, this.wave), me.kills, this.bosses, false).total,
       over: this.over,
     };
   }

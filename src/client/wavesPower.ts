@@ -55,11 +55,11 @@ export function wavesPower(lv: Levels, weapon: number): WavesPower {
   const toughness =
     ((1 + UPGRADE_STEP.life * lv.life) / (1 - UPGRADE_STEP.armor * lv.armor)) *
     // the shield takes its share of a life, again and again (it refills after a few seconds unhurt): worth about twice
-    // its size (tools/waves-sim.ts, 24/10/2026: a level adds as much a Core as the life does)
+    // its size (tools/waves-sim.ts, 23/10/2026: a level adds as much a Core as the life does)
     (1 + 2 * BARRIER_SIZE[lv.barrier]) *
     // faster, fewer blows land
     Math.sqrt(1 + UPGRADE_STEP.speed * lv.speed) *
-    // (untouchable while it lasts since 24/10/2026)
+    // (untouchable while it lasts since 23/10/2026)
     (lv.dash ? 1 + 0.6 / DASH_COOLDOWN[lv.dash] : 1) *
     (1 + 0.4 * BREATHER[lv.breather]) *
     // the crates' healing: life when a crate gives some

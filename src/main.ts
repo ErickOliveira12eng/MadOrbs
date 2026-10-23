@@ -12,7 +12,10 @@ import { Account } from './menu/account';
 import { AudioPanel } from './menu/audioPanel';
 import { setUserProperty, track } from './client/analytics';
 import { WAVES_MAP } from './client/waves';
-import { loadProgress as loadWavesProgress } from './client/wavesProgress';
+import { NO_LEVELS, loadProgress as loadWavesProgress } from './client/wavesProgress';
+import { RANGE_MAP, type TutorialKind } from './client/tutorial';
+import { markTutorial } from './menu/tutorialModal';
+import { WEAPON_SMG } from './sim/constants';
 import { WavesModal } from './menu/wavesModal';
 import { StartScreen, type PlayMode } from './menu/menu';
 import { touchOnly } from './menu/pcOnly';
@@ -49,6 +52,7 @@ const screen = new StartScreen(
   (level) => void startGame('offline', level),
   () => void startGame('offline', undefined, true),
   (room) => void startGame('online', undefined, false, room),
+  (tutorial) => void startGame('offline', undefined, false, undefined, tutorial),
 );
 /** What to do when the game closes, instead of the start screen (a campaign level's buttons). */
 let afterQuit: (() => void) | null = null;
@@ -61,11 +65,14 @@ if (invite) screen.openRoom(invite[2].toUpperCase());
 /** The start page's address in this page's language ('' for English, at the root). */
 const langRoot = () => (lang() === 'en' ? '' : `/${lang()}`);
 
-/** `level`: a campaign level (offline, src/client/campaign.ts); `room`: a private room (online). */
-async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, room?: PrivateRoomJoin): Promise<void> {
+/**
+ * `level`: a campaign level (offline, src/client/campaign.ts); `room`: a private room (online); `tutorial`: one of the
+ * tutorials (offline, src/client/tutorial.ts).
+ */
+async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, room?: PrivateRoomJoin, tutorial?: TutorialKind): Promise<void> {
   // Phones and tablets play nothing (a keyboard and a mouse): a window says where to (src/menu/pcOnly.ts)
   if (touchOnly()) {
-    screen.pcOnly(room ? 'room' : waves ? 'waves' : level ? 'campaign' : mode);
+    screen.pcOnly(room ? 'room' : tutorial ? 'tutorial' : waves ? 'waves' : level ? 'campaign' : mode);
     return;
   }
   // From the second match this browser plays, an ad blocker on asks (once a visit) to be turned off
@@ -114,6 +121,31 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
       // The record to beat: this browser's or the account's, the higher
       const record = Math.max(bestKills(settings.mode), account.stats[settings.mode]?.bestKills ?? 0);
       game = await ClientGame.createOnline($('game'), { ...common, authToken: await account.accessToken(), bestKills: record }, onProgress);
+    } else if (tutorial) {
+      // A tutorial: the waves' on their map (nothing bought, the SMG), or the shooting range
+      markTutorial(tutorial, 'asked');
+      game = await ClientGame.create(
+        $('game'),
+        {
+          ...common,
+          mode: tutorial === 'waves' ? 'tdm' : 'dm',
+          mapName: tutorial === 'waves' ? WAVES_MAP : RANGE_MAP,
+          tutorial,
+          ...(tutorial === 'waves' ? { waves: { startWave: 1, startWeapon: WEAPON_SMG, levels: { ...NO_LEVELS } } } : {}),
+          onTutorialDone: () => markTutorial(tutorial, 'done'),
+          onTutorialAction: (action) => {
+            afterQuit =
+              action === 'play'
+                ? () => void (tutorial === 'waves' ? startGame('offline', undefined, true) : startGame('online'))
+                : () => {
+                    screen.show();
+                    void audio.playMusic(MENU_MUSIC, 255);
+                  };
+            game.quit();
+          },
+        },
+        onProgress,
+      );
     } else if (waves) {
       // The waves mode (src/client/waves.ts) on its map
       game = await ClientGame.create(
@@ -181,7 +213,7 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
     (window as unknown as { madorbs: ClientGame }).madorbs = game;
   } catch (e) {
     console.error(e);
-    track('join_failed', { mode: waves ? 'waves' : level ? 'campaign' : (room?.mode ?? settings.mode), online: mode === 'online', reason: String((e as Error).message).slice(0, 100), ...(room ? { private_room: true } : {}) });
+    track('join_failed', { mode: tutorial ? 'tutorial' : waves ? 'waves' : level ? 'campaign' : (room?.mode ?? settings.mode), online: mode === 'online', reason: String((e as Error).message).slice(0, 100), ...(room ? { private_room: true } : {}) });
     if (ROOM_LINK_RE.test(location.pathname)) history.replaceState(null, '', `${langRoot()}/`);
     screen.show(t('menu.joinFailed', { reason: (e as Error).message }));
   } finally {

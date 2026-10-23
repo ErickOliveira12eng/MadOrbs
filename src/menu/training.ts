@@ -1,8 +1,9 @@
 // Offline training: game mode, map (with a top view drawn from the map file), number of bots,
-// difficulty.
+// difficulty; and the tutorials (src/client/tutorial.ts).
 import { drawMapPreview } from '../client/mapPreview';
 import { CTF_MAPS, DM_MAPS, MAP_LIST } from '../client/mapList';
 import { modeName, modeShort } from '../client/modes';
+import type { TutorialKind } from '../client/tutorial';
 import { t } from '../i18n';
 import { ROOM_MODES, type RoomMode } from '../net/protocol';
 import { loadMap, type GameMap } from '../sim/map';
@@ -26,7 +27,13 @@ export class TrainingModal {
     private readonly settings: Settings,
     private readonly onStart: () => void,
     private readonly onModeChange: () => void,
+    onTutorial: (kind: TutorialKind) => void,
   ) {
+    for (const [id, kind] of [['tutorialPvp', 'pvp'], ['tutorialWaves', 'waves']] as const)
+      $(id).addEventListener('click', () => {
+        this.close();
+        onTutorial(kind);
+      });
     const modes = $('trainingMode');
     for (const mode of ROOM_MODES) {
       const b = document.createElement('button');

@@ -20,8 +20,10 @@ import {
   PLAYER_TEAM_RED,
   PLAYER_TEAM_SPECTATOR,
   GAME_TYPE_CTF,
+  GAME_TYPE_DM,
   GAME_TYPE_TDM,
   WEAPON_KNIVES,
+  WEAPON_SMG,
   PROJECTILE_COCKTAIL_MOLOTOV,
   PROJECTILE_DIRECT,
   PROJECTILE_DROPED_GRENADE,
@@ -95,6 +97,7 @@ import { POWERS, WAVES, type PermKind, type PowerKind } from './waves';
 import type { Levels, UpgradeID } from './wavesProgress';
 import { wavesPower } from './wavesPower';
 import { newRunId, reportWavesRun } from './wavesReport';
+import { PvpTutorial, WavesTutorial, type Tutorial, type TutorialCard, type TutorialHost, type TutorialKind } from './tutorial';
 import { ViewOverlay, scopeAlpha } from './ui/viewOverlay';
 import { VIEW_ASPECT, fitView, type ViewRect } from './view';
 import { modeName, modeOfGameType, teamName } from './modes';
@@ -154,6 +157,15 @@ export interface ClientGameOptions {
    * wave. A run they changed counts for nothing.
    */
   testTools?: boolean;
+  /**
+   * A tutorial (src/client/tutorial.ts) instead of a match: the waves' (with `waves`, on their map) or the shooting
+   * range's (Deathmatch, RANGE_MAP). Nothing hurts the player, nothing counts.
+   */
+  tutorial?: TutorialKind;
+  /** The tutorial's end card: play for real, or back to the menu. */
+  onTutorialAction?: (action: 'play' | 'menu') => void;
+  /** The tutorial's last lesson was done. */
+  onTutorialDone?: () => void;
 }
 
 export class ClientGame {
@@ -251,13 +263,14 @@ export class ClientGame {
     menu.room = () => this.roomView();
     menu.onRoomAction = (a, extra) => this.conn?.send({ t: 'host', a, ...extra });
     // Pressing Escape while the mouse is captured releases it: open the menu like k_menuAccess. Not when the
-    // game itself lets the mouse go (the waves' cards after a boss: only the cards show)
+    // game itself lets the mouse go (the waves' cards after a boss, a tutorial's card: only the cards show)
+    const freeMouse = () => !!this.camp?.over || !!this.waves?.over || !!this.waves?.choosing || !!this.tutorial?.waiting;
     this.input.onPointerLockChange = (locked) => {
-      if (!locked && this.running && !menu.visible && !this.camp?.over && !this.waves?.over && !this.waves?.choosing) menu.show();
+      if (!locked && this.running && !menu.visible && !freeMouse()) menu.show();
     };
     // Capture the mouse on a click in the arena (also after the menu closes, see onVisibilityChange)
     this.renderer.domElement.addEventListener('mousedown', () => {
-      if (this.running && !menu.visible && !this.input.locked && !this.camp?.over && !this.waves?.over && !this.waves?.choosing) this.input.requestPointerLock();
+      if (this.running && !menu.visible && !this.input.locked && !freeMouse()) this.input.requestPointerLock();
     });
     window.addEventListener('keydown', this.onChatKey, true);
 
@@ -309,6 +322,10 @@ export class ClientGame {
       this.startCampaign(map, this.opts.campaign);
       return;
     }
+    if (this.opts.tutorial === 'pvp') {
+      this.startRange(map);
+      return;
+    }
     if (this.opts.waves) {
       this.startWaves(map, this.opts.waves);
       return;
@@ -356,7 +373,8 @@ export class ClientGame {
     this.me.skin = this.opts.skin;
     this.me.teamID = PLAYER_TEAM_BLUE;
     this.me.lives = WAVES.lives + setup.levels.lives;
-    this.me.damageScale = WAVES.playerDamage;
+    // (nothing hurts the player in the tutorial)
+    this.me.damageScale = this.opts.tutorial ? 0 : WAVES.playerDamage;
     this.me.nextSpawnWeapon = setup.startWeapon;
     this.me.nextMeleeWeapon = WEAPON_KNIVES;
     const banner = (c1: string, c2: string) => ({ c1, c2, glow: `${c2}77` });
@@ -384,6 +402,7 @@ export class ClientGame {
               : t(`power.${kind}.sub` as const);
         this.hud.announceText(t(`power.${kind}` as const), sub, banner('#ffffff', POWERS[kind].color), 1.6);
         audio.play(kind === 'life' || kind === 'extraLife' ? this.sounds.lifePack : this.sounds.equip, 255);
+        this.tutorial?.onPower(kind);
       },
       onWeaponDrop: (weaponID) => {
         this.hud.announceText(weaponInfo(weaponID).name, t('waves.weaponDrop'), banner('#ffffff', POWERS.weapon.color), 2);
@@ -437,6 +456,7 @@ export class ClientGame {
       },
       onEnd: (end) => this.endWaves(end),
       ...setup,
+      tutorial: this.opts.tutorial === 'waves',
     });
     this.onMapLoaded(map);
     this.beginLoop();
@@ -444,7 +464,7 @@ export class ClientGame {
     this.hud.picker.pauseOnly = true;
     // The testers' tools beside it (the cards, the wave)
     const run = this.waves;
-    this.hud.picker.tools = this.opts.testTools
+    this.hud.picker.tools = this.opts.testTools && !this.opts.tutorial
       ? {
           wave: () => run.waveNumber,
           goToWave: (n, clear) => run.goToWave(n, clear),
@@ -461,8 +481,80 @@ export class ClientGame {
       : null;
     this.hud.picker.hide();
     this.game.requestSpawn(this.me);
+    if (this.opts.tutorial === 'waves') {
+      this.startTutorial(new WavesTutorial(this.tutorialHost()));
+      return;
+    }
     // The banner of the end panel loads now
     this.hud.preloadCampaignAd();
+  }
+
+  // ---------------------------------------------------------------- tutorials
+
+  /** The tutorial being played (src/client/tutorial.ts), or null. */
+  private tutorial: Tutorial | null = null;
+
+  /**
+   * The PvP tutorial's shooting range: Deathmatch with the player and the tutorial's targets, no limits. The
+   * weapons lie on the floor, so Esc is a pause screen.
+   */
+  private startRange(map: GameMap): void {
+    this.svBackup = { ...sv };
+    sv.sv_scoreLimit = 0;
+    sv.sv_winLimit = 0;
+    sv.sv_gameTimeLimit = 0;
+    this.game = new Game(map, { gameType: GAME_TYPE_DM, onMapChangeRequest: () => {} });
+    this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
+    this.me.skin = this.opts.skin;
+    // Nothing hurts the player here (the targets don't shoot; its own rockets and grenades neither)
+    this.me.damageScale = 0;
+    this.me.nextSpawnWeapon = WEAPON_SMG;
+    this.me.nextMeleeWeapon = WEAPON_KNIVES;
+    this.onMapLoaded(map);
+    this.beginLoop();
+    this.hud.picker.pauseOnly = true;
+    this.hud.picker.hide();
+    this.game.requestSpawn(this.me);
+    this.startTutorial(new PvpTutorial(this.tutorialHost()));
+  }
+
+  private startTutorial(tutorial: Tutorial): void {
+    this.tutorial = tutorial;
+    tutorial.start();
+    // Where the tutorial put the player
+    this.cam.setCameraPos(this.me.currentCF.position);
+  }
+
+  private tutorialHost(): TutorialHost {
+    return {
+      game: this.game,
+      me: this.me,
+      bots: this.bots,
+      waves: this.waves,
+      names: [...BOT_NAMES].sort(() => Math.random() - 0.5),
+      randomSkin,
+      showCard: (card) => this.showTutorialCard(card),
+      onGoal: () => audio.play(this.sounds.flagReturn, 200),
+      onDone: () => this.opts.onTutorialDone?.(),
+    };
+  }
+
+  /** A tutorial's card in the middle of the screen: the game waits, with the system's cursor for its buttons. */
+  private showTutorialCard(card: TutorialCard): void {
+    this.input.exitPointerLock();
+    this.renderer.domElement.style.cursor = 'auto';
+    this.hud.showTutorialCard(card, (action) => {
+      this.hud.hideTutorialCard();
+      if (action === 'leave') this.quit();
+      else if (action === 'play' || action === 'menu') this.opts.onTutorialAction?.(action);
+      else {
+        // 'next', 'practice': the game goes on (the click on the card isn't a shot)
+        this.renderer.domElement.style.cursor = 'none';
+        this.requireFreshPress = true;
+        this.tutorial?.resume();
+        this.input.requestPointerLock();
+      }
+    });
   }
 
   /**
@@ -762,8 +854,9 @@ export class ClientGame {
 
   /** A match begins: the announcer's "Start". */
   private announceStart(): void {
-    // The waves mode has no announcer voice (Erick's call): its banners and the siren say enough
-    if (!this.waves) playAnnouncer('start');
+    // The waves mode has no announcer voice (Erick's call): its banners and the siren say enough; nor the
+    // tutorials (their first card is up)
+    if (!this.waves && !this.opts.tutorial) playAnnouncer('start');
   }
 
   private beginLoop(): void {
@@ -894,7 +987,11 @@ export class ClientGame {
     if (!this.running) return;
     // Left before the end (the menu, a closed connection): how long it lasted
     const seconds = Math.round((performance.now() - this.matchAt) / 1000);
-    if (this.camp && !this.camp.over) track('campaign_level_quit', { ...this.levelInfo(), seconds });
+    if (this.tutorial) {
+      this.tutorial.left();
+      // (the waves tutorial's run counts for nothing: it keeps nothing)
+      this.waves?.leave();
+    } else if (this.camp && !this.camp.over) track('campaign_level_quit', { ...this.levelInfo(), seconds });
     else if (this.waves && !this.waves.over) {
       track('waves_quit', { wave: this.waves.waveNumber, kills: this.me.kills, seconds });
       // Leaving counts: the wave reached goes to the record and to the account
@@ -1023,6 +1120,7 @@ export class ClientGame {
     this.peopleKills = 0;
     this.matchBots = this.online && this.game.players.some((p) => p?.isBot);
     if (this.camp) track('campaign_level_start', this.levelInfo());
+    else if (this.opts.tutorial) track('tutorial_start', { kind: this.opts.tutorial });
     else if (this.waves && this.opts.waves) {
       const w = this.opts.waves;
       track('waves_start', { map: this.game.map.name, start_wave: w.startWave, weapon: w.startWeapon });
@@ -1068,9 +1166,14 @@ export class ClientGame {
 
   // ---------------------------------------------------------------- loop
 
-  /** The waves mode stops while its pause screen (Esc) is up, and while the boss's cards wait for a choice. */
+  /**
+   * The waves mode and the tutorials stop while their pause screen (Esc) is up, while the boss's cards wait for a
+   * choice, and while a tutorial's card waits for the player.
+   */
   private get paused(): boolean {
-    return !!this.waves && !this.waves.over && (this.hud.picker.visible || !!this.waves.choosing);
+    if (this.tutorial?.waiting) return true;
+    const stops = (!!this.waves && !this.waves.over) || !!this.tutorial;
+    return stops && (this.hud.picker.visible || !!this.waves?.choosing);
   }
 
   private frame(now: number): void {
@@ -1180,6 +1283,7 @@ export class ClientGame {
     this.updateCampaign();
     // The Workshop's abilities: Shift dashes, Q sends a shock wave
     this.waves?.update({ dash: input.wasPressed('ShiftLeft') || input.wasPressed('ShiftRight'), shock: input.wasPressed('KeyQ') });
+    this.tutorial?.update();
 
     if (this.conn) {
       // NET_CLSV_SVCL_PLAYER_COORD_FRAME every sv_minSendInterval frames
@@ -1481,6 +1585,8 @@ export class ClientGame {
     const me = this.me;
     const S = this.sounds;
     const online = this.online;
+    // A tutorial follows the kills, the pickups, the hits (offline)
+    if (this.tutorial && !fromServer) this.tutorial.onEvent(e);
     switch (e.type) {
       case 'fire': {
         const p = game.players[e.playerID];
@@ -1629,6 +1735,12 @@ export class ClientGame {
         if (target === me) this.hud.dodge(me);
         break;
       }
+      case 'immune': {
+        // A tutorial's target that our weapon can't hurt (only a grenade, a molotov, the Bomb...)
+        const target = game.players[e.playerID];
+        if (target && e.fromID === me.playerID) this.hud.immune(target);
+        break;
+      }
       case 'death': {
         this.effects.playerDeath(e.position);
         // The waves' Blast card (offline: the run decides)
@@ -1686,8 +1798,8 @@ export class ClientGame {
         break;
       case 'playerJoin': {
         const p = game.players[e.playerID];
-        // Offline the page says who joined; not in the campaign or the waves (the bots are the game itself)
-        if (p && !online && !this.camp && !this.waves) this.hud.addChat(null, t('chat.joined', { name: p.name }));
+        // Offline the page says who joined; not in the campaign, the waves or the tutorials (the bots are the game itself)
+        if (p && !online && !this.camp && !this.waves && !this.opts.tutorial) this.hud.addChat(null, t('chat.joined', { name: p.name }));
         break;
       }
       case 'chat': {
@@ -1706,8 +1818,9 @@ export class ClientGame {
       }
       case 'feat': {
         // Not in the campaign (dying ends the level there, the announcer has its own lines), nor in the
-        // waves (killing a lot is the mode itself: "Unstoppable" all the time; Erick's call)
-        if (this.camp || this.waves) break;
+        // waves (killing a lot is the mode itself: "Unstoppable" all the time; Erick's call), nor in the
+        // tutorials (their targets)
+        if (this.camp || this.waves || this.opts.tutorial) break;
         // The big ones for everybody, the others only for the one who made them
         const who = game.players[e.playerID] ?? null;
         if (who !== me && !isAnnouncedToAll(e.feat)) break;
@@ -1803,6 +1916,7 @@ export class ClientGame {
       showScores: this.input.isDown(bindings.showScore) && !this.chat.active,
       campaign: this.campaignHud(),
       waves: this.waves?.hud() ?? null,
+      tutorial: this.tutorial?.hud() ?? null,
       warmup: this.room?.warmup ? { host: this.room.host === this.me.playerID } : null,
       vsPeople: this.online && !this.room && this.matchBots ? { kills: Math.max(0, this.peopleKills) } : null,
       chatInput: this.chat.active ? this.chat.text : null,
@@ -1814,7 +1928,9 @@ export class ClientGame {
         const c = this.cam.project(pos, view.w, view.h);
         if (!c.visible) return null;
         const t = this.cam.project(top.set(pos.x, pos.y + 0.3, pos.z + 0.25), view.w, view.h);
-        return { x: c.x + view.x, y: c.y + view.y, top: t.y + view.y };
+        // (and just under it, on the floor: the shooting range's damage and DPS)
+        const b = this.cam.project(top.set(pos.x, pos.y - p.radius - 0.05, 0), view.w, view.h);
+        return { x: c.x + view.x, y: c.y + view.y, top: t.y + view.y, bottom: b.y + view.y };
       },
     };
   }

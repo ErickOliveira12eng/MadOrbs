@@ -225,6 +225,11 @@ export class Player {
   /** Marks shown before the name over the orb (the waves' elites: 'fast', 'brute', 'sniper', 'tank'). */
   badges: readonly string[] = [];
   /**
+   * The tutorials' targets (src/client/tutorial.ts, offline): only these weapons hurt it, the others' hits are an
+   * 'immune' event (shown over it). Null: anything hurts it, as always online.
+   */
+  hurtOnlyBy: readonly number[] | null = null;
+  /**
    * How much life a full bar holds (1: the original's 100 points; the waves' Workshop Life: up to 1.5, 150).
    * `life` stays the share of the bar: what reaches it after the recharging shield is divided by this, and
    * the heals given as a share of the bar heal as much of it.
@@ -861,6 +866,11 @@ export class Player {
    */
   hitSV(fromWeaponID: number, from: Player, damage = -1, bonus = 1, canCrit = true): boolean {
     const game = this.game;
+    // A tutorial's target that only some weapons take down (the grenade's lesson, the Bomb's)
+    if (this.hurtOnlyBy && !this.hurtOnlyBy.includes(fromWeaponID)) {
+      if (from !== this && this.status === PLAYER_STATUS_ALIVE) game.events.push({ type: 'immune', playerID: this.playerID, fromID: from.playerID, position: this.currentCF.position.clone() });
+      return false;
+    }
     let cdamage = damage;
     const fromDef = weaponDefs[fromWeaponID];
     if (damage === -1) {

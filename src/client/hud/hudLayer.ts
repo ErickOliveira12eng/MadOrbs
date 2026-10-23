@@ -11,6 +11,7 @@ import type { FeatKind } from '../../sim/feats';
 import { drawMapPreview } from '../mapPreview';
 import { adBlockFound, adsAllowed, mountAd, refreshAd } from '../ads';
 import type { WavesEnd, WavesHud } from '../wavesRun';
+import type { TutorialAction, TutorialCard, TutorialHud } from '../tutorial';
 import { WAVES } from '../waves';
 import { MILESTONES, affordable, balance, checkpoints, nextMilestone } from '../wavesProgress';
 import { orbName, prizeText, weaponLook } from '../wavesPrize';
@@ -42,11 +43,12 @@ const MINIMAP_SIZE = 146;
 const RING_C = 2 * Math.PI * 17;
 const RESPAWN_C = 2 * Math.PI * 30;
 
-/** A player on the screen, in canvas CSS pixels: the centre of the orb and the top of it. */
+/** A player on the screen, in canvas CSS pixels: the centre of the orb, the top of it and just under it. */
 export interface ScreenPoint {
   x: number;
   y: number;
   top: number;
+  bottom: number;
 }
 
 /** What the HUD reads every frame. */
@@ -99,6 +101,8 @@ export interface HudFrame {
   campaign: CampaignHud | null;
   /** A run of the waves mode (offline), else null. */
   waves: WavesHud | null;
+  /** A tutorial (offline, src/client/tutorial.ts), else null. */
+  tutorial: TutorialHud | null;
   /** A private room's warm-up (host: we run the room), else null. */
   warmup: { host: boolean } | null;
   /** Online with bots in this match: our kills on people, the ones that count (record, stats); else null. */
@@ -178,6 +182,9 @@ export class HudLayer {
   private readonly stage: HTMLElement;
   private readonly r: Record<string, HTMLElement> = {};
   private readonly tagEls: HTMLElement[] = [];
+  /** The shooting range's lines under its targets; the keys of a tutorial's card (Enter). */
+  private readonly meterEls: HTMLElement[] = [];
+  private tutKeys: ((e: KeyboardEvent) => void) | null = null;
   /** The damage numbers on screen (damage, dodge). */
   private readonly damages: DamageNumber[] = [];
   /** Each name tag's life bar: the white trail of the last damage (its life, and until when it holds). */
@@ -262,6 +269,7 @@ export class HudLayer {
   private template(online: boolean): string {
     return `
 <div class="h-tags" data-r="tags"></div>
+<div class="h-meters" data-r="meters"></div>
 <div class="h-dmgs" data-r="dmgs"></div>
 <div class="h-kring" data-r="kring" hidden></div>
 <span class="h-tag killer" data-r="ktag" hidden></span>
@@ -308,6 +316,8 @@ export class HudLayer {
 </div>
 
 <div class="h-abs h-feat" data-r="feat" hidden></div>
+<div class="h-abs h-panel h-tut" data-r="tut" hidden></div>
+<div class="h-abs h-tutcard" data-r="tutcard" hidden></div>
 <div class="h-abs h-campend" data-r="campend" hidden><div class="h-campcard" data-r="campcard"></div><div class="h-campad" data-r="campad" hidden><span>${t('ads.label')}</span><div></div></div></div>
 <div class="h-abs h-sidead" data-r="sidead" hidden><span>${t('ads.label')}</span><div></div></div>
 <div class="h-abs h-banner" data-r="banner" hidden></div>
@@ -831,10 +841,16 @@ export class HudLayer {
   /** The waves' header: the wave, what is going on (the break's countdown, the enemies left), the lives, the power-ups on. */
   private updateWavesHeader(w: WavesHud): void {
     const hearts = '♥'.repeat(Math.min(6, Math.max(0, w.lives))) + (w.lives > 6 ? `+${w.lives - 6}` : '') + (w.livesFull ? `<b class="max">${t('waves.livesMax')}</b>` : '');
+    // (the tutorial has no clocks: its script brings the waves)
+    const left = w.left === 1 ? t('waves.leftOne') : t('waves.left', { n: w.left });
     const doing =
       w.phase === 'break'
-        ? t('waves.nextIn', { s: Math.ceil(w.breakLeft) })
-        : `${w.left === 1 ? t('waves.leftOne') : t('waves.left', { n: w.left })} · ${t('waves.nextIn', { s: Math.ceil(w.waveLeft) })}`;
+        ? w.timer
+          ? t('waves.nextIn', { s: Math.ceil(w.breakLeft) })
+          : t('waves.breakHint')
+        : w.timer
+          ? `${left} · ${t('waves.nextIn', { s: Math.ceil(w.waveLeft) })}`
+          : left;
     const powers = w.powers.length
       ? `<span class="h-powers">` +
         w.powers.map((p) => `<span title="${t(`power.${p.kind}` as Key)}"><img src="${powerIconUrl(p.kind)}" alt="" /><i style="width:${Math.round((p.left / 15) * 100)}%"></i></span>`).join('') +
@@ -946,7 +962,8 @@ export class HudLayer {
     const r = this.r;
     show(r.feed, !menu && !table);
     show(r.match, !menu && !table);
-    show(r.board, !menu && !table);
+    // (the shooting range has no scores to show: its objective instead)
+    show(r.board, !menu && !table && !(f.tutorial && !f.waves));
     show(r.chat, !menu && !table);
     show(r.minimap, !menu && !table && !deadScreen);
     show(r.health, liveHud);
@@ -960,6 +977,11 @@ export class HudLayer {
     show(r.scores, table);
     show(r.banner, !menu && !playing);
     this.updateFeat(playing, !menu && !table && !f.campaign?.over && !f.waves?.over);
+    // A tutorial's objective, and under the range's targets their damage and DPS
+    show(r.tut, !menu && !table && !!f.tutorial);
+    r.tut.classList.toggle('alone', !f.waves);
+    if (f.tutorial && !menu && !table) this.updateTutorial(f.tutorial);
+    this.updateMeters(f, !menu && !table && !deadScreen);
     // End of a match: our summary, then the map vote, beside the score table
     const endSide = !menu && !playing;
     this.voting = endSide && !!this.vote;
@@ -1115,6 +1137,10 @@ export class HudLayer {
     }
     if (f.waves) {
       this.updateWavesHeader(f.waves);
+      return;
+    }
+    if (f.tutorial?.title) {
+      setHTML(this.r.match, `<div class="h-mode"><b>${t('tut.label')}</b> · ${esc(f.tutorial.title)}</div>`);
       return;
     }
     const g = f.game;
@@ -1480,10 +1506,10 @@ export class HudLayer {
   }
 
   /**
-   * Damage we did to `target` (Erick, 24/10/2026), a share of its life bar shown in points (100 a full bar): the hits of
+   * Damage we did to `target` (Erick, 23/10/2026), a share of its life bar shown in points (100 a full bar): the hits of
    * a moment on one orb add up in one number, each kind its own colour (crit, poison, fire).
    */
-  damage(target: Player, amount: number, kind: Exclude<DamageKind, 'dodge'>): void {
+  damage(target: Player, amount: number, kind: Exclude<DamageKind, 'dodge' | 'immune'>): void {
     const now = performance.now() / 1000;
     const d = this.damages.find((x) => x.target === target && x.kind === kind && now - x.last < DAMAGE_MERGE);
     if (d) {
@@ -1495,6 +1521,14 @@ export class HudLayer {
   /** A hit on `target` that missed (the waves' Dodge card). */
   dodge(target: Player): void {
     this.addDamage(target, 'dodge', 0, performance.now() / 1000);
+  }
+
+  /** A hit on a tutorial's target that our weapon can't hurt: "Immune" (the hits of a moment in one word). */
+  immune(target: Player): void {
+    const now = performance.now() / 1000;
+    const d = this.damages.find((x) => x.target === target && x.kind === 'immune' && now - x.last < DAMAGE_MERGE);
+    if (d) d.last = now;
+    else this.addDamage(target, 'immune', 0, now);
   }
 
   private addDamage(target: Player, kind: DamageKind, value: number, now: number): void {
@@ -1524,7 +1558,8 @@ export class HudLayer {
       }
       if (!Number.isFinite(d.x)) continue;
       const points = d.value * 100;
-      const text = d.kind === 'dodge' ? t('hud.dodge') : (points >= 10 ? bigNum(Math.round(points)) : num(points, 1)) + (d.kind === 'crit' ? '!' : '');
+      const text =
+        d.kind === 'dodge' ? t('hud.dodge') : d.kind === 'immune' ? t('tut.immune') : (points >= 10 ? bigNum(Math.round(points)) : num(points, 1)) + (d.kind === 'crit' ? '!' : '');
       if (text !== d.text) d.el.textContent = d.text = text;
       // From above the name tag (and its life bar) upwards
       const rise = 30 + 32 * (age / DAMAGE_LIFE);
@@ -1783,11 +1818,96 @@ export class HudLayer {
     );
   }
 
+  // ---------------------------------------------------------------- tutorials
+
+  /** The tutorial's objective box: the lesson, what to do (with its keys) and its count, ticked once done. */
+  private updateTutorial(tut: TutorialHud): void {
+    const count = tut.count ? `<b class="cnt">${tut.count.n}/${tut.count.of}</b>` : '';
+    setHTML(
+      this.r.tut,
+      `<span class="h-label">${tut.step ? t('tut.stepOf', { n: tut.step, t: tut.steps }) : t('tut.label')}</span>` +
+        `<div class="goal${tut.done ? ' done' : ''}">${tut.step ? `<i class="tick">${TICK_SVG}</i>` : ''}<span>${tut.goal}</span>${count}</div>`,
+    );
+  }
+
+  /** Under the shooting range's targets: the damage of the last burst and its DPS. */
+  private updateMeters(f: HudFrame, visible: boolean): void {
+    const meters = f.tutorial?.meters;
+    let n = 0;
+    if (visible && meters?.size) {
+      for (const p of f.players) {
+        const text = p?.isAlive ? meters.get(p.playerID) : undefined;
+        if (!p || !text) continue;
+        const pt = f.project(p);
+        if (!pt) continue;
+        let el = this.meterEls[n];
+        if (!el) {
+          el = document.createElement('span');
+          el.className = 'h-meter';
+          this.r.meters.appendChild(el);
+          this.meterEls.push(el);
+        }
+        n++;
+        show(el, true);
+        setText(el, text);
+        const [x, y] = this.toStage(pt.x, pt.bottom);
+        el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, 0)`;
+      }
+    }
+    for (let i = n; i < this.meterEls.length; i++) show(this.meterEls[i], false);
+  }
+
+  /**
+   * A tutorial's card in the middle of the screen (the game waits): the lesson, what to do, its keys, its buttons
+   * (Enter: the first one), and a way out. The system's cursor; a moment before it answers (the shot that ended the
+   * step must not skip it).
+   */
+  showTutorialCard(card: TutorialCard, onAction: (action: TutorialAction) => void): void {
+    const label = card.step === null ? t('tut.label') : t('tut.stepOf', { n: card.step, t: card.steps });
+    const keys = card.keys.length ? `<div class="keys">${card.keys.map((k) => `<span class="kk">${k.key}<em>${esc(k.does)}</em></span>`).join('')}</div>` : '';
+    const buttons = card.buttons
+      .map((b, i) => `<button type="button"${i === 0 ? ' class="primary"' : ''} data-tut="${b.action}">${esc(b.label)}${i === 0 ? ' <span class="h-key">Enter</span>' : ''}</button>`)
+      .join('');
+    const leave = card.step === null ? '' : `<button type="button" class="leave" data-tut="leave">${t('tut.leave')}</button>`;
+    setHTML(this.r.tutcard, `<div class="h-tutbox"><span class="h-label">${label}</span><h3>${esc(card.title)}</h3><p>${esc(card.text)}</p>${keys}<div class="btns">${leave}${buttons}</div></div>`);
+    show(this.r.tutcard, true);
+    this.cursorFree = true;
+    this.root.classList.add('free-cursor');
+    const readyAt = performance.now() + 700;
+    const act = (a: TutorialAction) => {
+      if (performance.now() >= readyAt) onAction(a);
+    };
+    this.r.tutcard.onclick = (ev) => {
+      const b = (ev.target as HTMLElement).closest<HTMLElement>('[data-tut]');
+      if (b) act(b.dataset.tut as TutorialAction);
+    };
+    this.tutKeys = (ev: KeyboardEvent) => {
+      if (ev.code !== 'Enter' && ev.code !== 'NumpadEnter') return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      act(card.buttons[0].action);
+    };
+    window.addEventListener('keydown', this.tutKeys, true);
+  }
+
+  hideTutorialCard(): void {
+    if (this.tutKeys) window.removeEventListener('keydown', this.tutKeys, true);
+    this.tutKeys = null;
+    this.r.tutcard.onclick = null;
+    show(this.r.tutcard, false);
+    this.cursorFree = false;
+    this.root.classList.remove('free-cursor');
+  }
+
   dispose(): void {
     if (this.campEndKeys) window.removeEventListener('keydown', this.campEndKeys, true);
+    if (this.tutKeys) window.removeEventListener('keydown', this.tutKeys, true);
     this.root.remove();
   }
 }
+
+/** The tick of a tutorial's objective done. */
+const TICK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 /** Seconds before "Next level" / "Try again" work at the end of a campaign level. */
 /** The waves' cards (wavesCards.ts): each one's picture. */
@@ -1817,7 +1937,7 @@ const PLEA_HEART =
   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
 
 /** A damage number (HudLayer.damage): ours on an orb; a crit, poison and fire each their colour; a dodge says so. */
-type DamageKind = 'hit' | 'crit' | 'poison' | 'burn' | 'dodge';
+type DamageKind = 'hit' | 'crit' | 'poison' | 'burn' | 'dodge' | 'immune';
 interface DamageNumber {
   el: HTMLElement;
   target: Player;

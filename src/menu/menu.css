@@ -1582,6 +1582,98 @@ kbd.mouse .icon {
   height: 22px;
 }
 
+/* The tutorials' question (src/menu/tutorialModal.ts) */
+.modal-card.tutorial-modal {
+  width: min(440px, 100%);
+  padding: 26px 28px 20px;
+  text-align: center;
+}
+
+.tutorial-modal .modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.tutorial-ico {
+  display: inline-grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #8fe7ff, #2f8fe0);
+  box-shadow: 0 8px 26px rgba(47, 143, 224, 0.45);
+  color: #fff;
+}
+
+.tutorial-ico .icon {
+  width: 34px;
+  height: 34px;
+}
+
+.tutorial-modal h2 {
+  margin: 14px 0 8px;
+  font: 400 30px var(--font-display);
+  letter-spacing: 1px;
+}
+
+.tutorial-text {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.tutorial-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.tutorial-yes {
+  width: auto;
+  padding: 11px 20px 9px;
+  font-size: 22px;
+}
+
+.tutorial-yes .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.tutorial-later {
+  display: block;
+  margin-top: 14px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+/* The Training window's tutorials, a row of their own above its button */
+.training-tuts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.training-tuts-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.training-tuts .icon {
+  width: 16px;
+  height: 16px;
+}
+
 .modal {
   position: fixed;
   inset: 0;

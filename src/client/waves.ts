@@ -320,7 +320,7 @@ export interface WavesRecord {
   time: number | null;
   /**
    * The best total time to reach each checkpoint wave (10, 20, 30...: wavesProgress CHECKPOINT), the same count as
-   * `time`, from any run (Erick, 24/10/2026: reach wave 10 in 5 min, then start there and reach 20 in 4 more: the 20 is
+   * `time`, from any run (Erick, 23/10/2026: reach wave 10 in 5 min, then start there and reach 20 in 4 more: the 20 is
    * 9 min). A run begun at a checkpoint starts its clock there.
    */
   splits: Record<number, number>;
