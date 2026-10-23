@@ -25,15 +25,17 @@ export const UPGRADES: Upgrade[] = [
   { id: 'life', costs: [60, 120, 200, 320, 500], group: 'defense' },
   { id: 'armor', costs: [80, 150, 250, 400, 600], group: 'defense' },
   { id: 'lives', costs: [300, 600], group: 'defense' },
-  { id: 'secondWind', costs: [1500], group: 'defense' },
+  // (1,500 for one until 24/10/2026: one of the false choices, tools/waves-sim.ts gave +0.45 wave for it, 0.03 per 100 Cores)
+  { id: 'secondWind', costs: [250, 600], group: 'defense' },
   { id: 'speed', costs: [50, 100, 180, 280, 400], group: 'survival' },
-  { id: 'luck', costs: [70, 140, 240, 360, 520], group: 'survival' },
-  { id: 'drops', costs: [60, 120, 200, 300, 450], group: 'survival' },
-  { id: 'breather', costs: [180, 350, 600], group: 'survival' },
+  { id: 'luck', costs: [50, 100, 180, 280, 400], group: 'survival' },
+  // The crates' healing (it was "life pack chance" until 24/10/2026, worth nothing once the bots dropped a fifth of the packs)
+  { id: 'drops', costs: [40, 80, 140, 220, 320], group: 'survival' },
+  { id: 'breather', costs: [120, 250, 450], group: 'survival' },
   // Only the Workshop gives these (Erick, 12/10/2026: its numbers got lost among the run's power-ups)
-  { id: 'dash', costs: [200, 350, 550, 800, 1100], group: 'abilities' },
+  { id: 'dash', costs: [120, 220, 350, 520, 750], group: 'abilities' },
   { id: 'barrier', costs: [250, 400, 600, 850, 1200], group: 'abilities' },
-  { id: 'shock', costs: [300, 500, 750, 1050, 1400], group: 'abilities' },
+  { id: 'shock', costs: [200, 350, 550, 800, 1100], group: 'abilities' },
   // The cards' reroll (Erick, 15/10/2026, after Vampire Survivors): 1 to 3 a run
   { id: 'reroll', costs: [250, 500, 900], group: 'cards' },
   { id: 'cap', costs: [150, 300, 500, 800, 1200, 1800, 2600, 3600], group: 'limits' },
@@ -51,8 +53,17 @@ export const UPGRADES: Upgrade[] = [
  * life pack (WAVES.lifePackChance; +5 until 19/10/2026, a fifth like the chance itself), life back between waves (20%, 35%, 50%), and once a run a blow
  * that would kill leaves half the life.
  */
-export const UPGRADE_STEP = { life: 0.2, armor: 0.12, damage: 0.25, fire: 0.2, speed: 0.1, luck: 0.1, drops: 0.01 };
-export const BREATHER = [0, 0.2, 0.35, 0.5];
+/**
+ * 24/10/2026 (Erick: "improve the Workshop's false choices"): tools/waves-sim.ts measured the waves each upgrade adds per
+ * 100 Cores on a mid profile: life 0.28, defence 0.24, the shield 0.23, lives 0.21, attack speed 0.16, damage 0.14, speed
+ * 0.12, grenades 0.11; and far behind the life pack chance ~0 (a fifth of the packs since 19/10), luck 0.06, the shock wave
+ * 0.05, the breather 0.04, the dash 0.04, the second wind 0.03 (1,500 Cores). Those got cheaper and/or stronger: `drops`
+ * is now the crates' healing (their life power heals 50% + this a level), the breather gives 30/50/70%, the dash leaves
+ * you untouchable while it lasts (Player.hitSV), the shock wave hits by the wave's toughness (SHOCK.lives) and recharges
+ * sooner, the second wind has two levels (one save each).
+ */
+export const UPGRADE_STEP = { life: 0.2, armor: 0.12, damage: 0.25, fire: 0.2, speed: 0.1, luck: 0.1, drops: 0.1 };
+export const BREATHER = [0, 0.3, 0.5, 0.7];
 export const SECOND_WIND_LIFE = 0.5;
 
 export type Levels = Record<UpgradeID, number>;
@@ -68,9 +79,10 @@ export const NO_LEVELS: Levels = { life: 0, armor: 0, damage: 0, fire: 0, speed:
 export const PERM_CAP_BASE = 5;
 export const PERM_CAP_STEP = 2;
 export const DASH_COOLDOWN = [0, 6, 5, 4, 3, 2.2];
-export const SHOCK_COOLDOWN = [0, 20, 16, 13, 10, 8];
+export const SHOCK_COOLDOWN = [0, 15, 12, 10, 8, 6];
 export const BARRIER_SIZE = [0, 0.15, 0.25, 0.35, 0.45, 0.6];
-export const SHOCK = { radius: 3.5, damage: 1.2, push: 7 };
+/** The shock wave: its reach, its damage in the middle in lives of an ordinary enemy of the wave (falling off), its push. */
+export const SHOCK = { radius: 3.5, lives: 1.6, push: 7 };
 
 // ------------------------------------------------------------------ milestones and checkpoints
 

@@ -105,7 +105,7 @@ function upgradeValue(id: UpgradeID, level: number): string {
     case 'armor':
       return level ? `-${Math.round(UPGRADE_STEP.armor * level * 100)}%` : '0%';
     case 'drops':
-      return `${Math.round((WAVES.lifePackChance + UPGRADE_STEP.drops * level) * 100)}%`;
+      return `${Math.round((0.5 + UPGRADE_STEP.drops * level) * 100)}%`;
     case 'lives':
       return String(WAVES.lives + level);
     case 'grenades':

@@ -46,7 +46,7 @@ export interface WavesPower {
 
 export function wavesPower(lv: Levels, weapon: number): WavesPower {
   const hit = 1 + UPGRADE_STEP.damage * lv.damage;
-  const shock = lv.shock ? (SHOCK_TARGETS * SHOCK.damage * SHOCK_USE) / SHOCK_COOLDOWN[lv.shock] : 0;
+  const shock = lv.shock ? (SHOCK_TARGETS * SHOCK.lives * SHOCK_USE) / SHOCK_COOLDOWN[lv.shock] : 0;
   // (the grenades get only part of the damage: WAVES.grenadeBonus)
   const grenades = GRENADE_ATTACK * lv.grenades * (1 + (hit - 1) * WAVES.grenadeBonus);
   const attack = (WEAPON_POWER[weapon] ?? 1) * hit * (1 + UPGRADE_STEP.fire * lv.fire) + hit * shock + grenades;
@@ -54,13 +54,16 @@ export function wavesPower(lv: Levels, weapon: number): WavesPower {
   const lives = WAVES.lives + lv.lives;
   const toughness =
     ((1 + UPGRADE_STEP.life * lv.life) / (1 - UPGRADE_STEP.armor * lv.armor)) *
-    // the shield takes its share of a life, again and again: worth about its size
-    (1 + BARRIER_SIZE[lv.barrier]) *
+    // the shield takes its share of a life, again and again (it refills after a few seconds unhurt): worth about twice
+    // its size (tools/waves-sim.ts, 24/10/2026: a level adds as much a Core as the life does)
+    (1 + 2 * BARRIER_SIZE[lv.barrier]) *
     // faster, fewer blows land
     Math.sqrt(1 + UPGRADE_STEP.speed * lv.speed) *
-    (lv.dash ? 1 + 0.3 / DASH_COOLDOWN[lv.dash] : 1) *
+    // (untouchable while it lasts since 24/10/2026)
+    (lv.dash ? 1 + 0.6 / DASH_COOLDOWN[lv.dash] : 1) *
     (1 + 0.4 * BREATHER[lv.breather]) *
-    (1 + 0.6 * UPGRADE_STEP.drops * lv.drops) *
+    // the crates' healing: life when a crate gives some
+    (1 + 0.25 * UPGRADE_STEP.drops * lv.drops) *
     (1 + (SECOND_WIND_LIFE * lv.secondWind) / lives) *
     (lives / WAVES.lives);
 

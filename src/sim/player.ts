@@ -922,6 +922,8 @@ export class Player {
       game.events.push({ type: 'dodge', playerID: this.playerID, fromID: from.playerID, position: this.currentCF.position.clone() });
       return false;
     }
+    // The waves' dash (the Workshop): nothing of the enemies' lands while it lasts (DASH_TIME)
+    if (from !== this && this.dashLeft > 0 && from.teamID !== this.teamID && this.status === PLAYER_STATUS_ALIVE) return false;
     // The Reflector card's shield: nothing of the enemies' gets through (their bullets go back: Game.applyBullet)
     if (from !== this && this.reflectTime > 0 && from.teamID !== this.teamID && this.status === PLAYER_STATUS_ALIVE) return false;
     // Shield protection

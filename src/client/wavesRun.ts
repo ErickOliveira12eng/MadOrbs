@@ -494,7 +494,7 @@ export class WavesRun {
     p.speedBoost = WAVES.botSpeed;
     // What lies on the floor (life packs, grenades) is the player's; a fallen bot doesn't always leave one
     p.takesLifePacks = false;
-    p.lifePackChance = WAVES.lifePackChance + UPGRADE_STEP.drops * this.ctx.levels.drops;
+    p.lifePackChance = WAVES.lifePackChance;
     // Grenades: none (only the crates give them, since 19/10/2026; one at the life pack's chance before)
     p.grenadeDropChance = 0;
     // They come in from the map's edges, never out of its middle
@@ -623,7 +623,8 @@ export class WavesRun {
     let weaponID: number | undefined;
     switch (kind) {
       case 'life':
-        me.life = Math.min(1, me.life + 0.5);
+        // Half the bar, more with the Workshop's crate healing
+        me.life = Math.min(1, me.life + 0.5 + UPGRADE_STEP.drops * this.ctx.levels.drops);
         break;
       case 'ammo':
         me.nbGrenadeLeft = Math.min(Math.max(5, me.maxGrenades), me.nbGrenadeLeft + 2);
@@ -1040,7 +1041,7 @@ export class WavesRun {
       if (d >= SHOCK.radius + p.radius || game.map.rayTest(pos.clone(), p.currentCF.position.clone(), new Vec3())) continue;
       const away = new Vec3(p.currentCF.position.x - pos.x, p.currentCF.position.y - pos.y, 0);
       if (away.lengthSq() > 1e-6) p.currentCF.vel.addIn(away.normalizeIn().mul(SHOCK.push));
-      p.hitSV(WEAPON_NUCLEAR, me, SHOCK.damage * (1 - d / (SHOCK.radius * 1.5)));
+      p.hitSV(WEAPON_NUCLEAR, me, (SHOCK.lives / this.spec.toughness) * (1 - d / (SHOCK.radius * 1.5)));
     }
     for (const c of [...game.crates]) {
       if (Math.hypot(c.position.x - pos.x, c.position.y - pos.y) < SHOCK.radius) game.hitCrate(c, 10, me);
