@@ -75,7 +75,7 @@ export const en = {
   'home.newsTitle': "What's new",
   'home.news30Date': 'October 23, 2026',
   'home.news30Title': 'Waves: the ranking by time',
-  'home.news30': 'The Waves ranking now breaks ties by time instead of kills: on the same wave, whoever reached it sooner is ahead. Each death before it adds 30 seconds, and clearing a wave early brings the next one sooner. The end of a run shows your ranking time.',
+  'home.news30': 'The Waves ranking now breaks ties by time instead of kills: on the same wave, whoever reached it sooner is ahead. Each death before it adds 30 seconds, and clearing a wave early brings the next one sooner. The end of a run shows your ranking time. And the wave 10 milestone now gives the dual machine gun as a starting weapon, in place of the shotgun.',
   'home.news29Date': 'October 20, 2026',
   'home.news29Title': 'About the project',
   'home.news29': 'A new page tells what Mad Orbs is, where it comes from, how it stays free and how to reach us. It is linked at the bottom of every page.',

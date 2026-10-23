@@ -11,19 +11,19 @@
 //
 // What a run picks up (crates, cards) is left out: it's the power a run starts with. Pure: no DOM, the same numbers
 // anywhere (a ranking can recompute it from the levels the account keeps, waves_progress).
-import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_FLAME_THROWER, WEAPON_SHOTGUN, WEAPON_SMG } from '../sim/constants';
+import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_DUAL_MACHINE_GUN, WEAPON_FLAME_THROWER, WEAPON_SMG } from '../sim/constants';
 import { WAVES } from './waves';
 import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, SECOND_WIND_LIFE, SHOCK, SHOCK_COOLDOWN, UPGRADE_STEP, startWeapons, type Levels } from './wavesProgress';
 
 /**
  * The starting weapons against a crowd, the SMG = 1: one target's damage a second (the "Pro" rules: SMG 1.0,
- * shotgun 1.24, chain gun 1.6, bazooka 0.49, flame thrower 1.2 up close) times the enemies one shot reaches in the
- * waves' crowds (the shotgun's pellets spread onto the neighbours, the bazooka's blast takes a few, the flames go
+ * dual machine gun 1.4, chain gun 1.6, bazooka 0.49, flame thrower 1.2 up close) times the enemies one shot reaches in
+ * the waves' crowds (the dual gun spreads a little more and misses some, the bazooka's blast takes a few, the flames go
  * through them). An estimate, in the milestones' order.
  */
 export const WEAPON_POWER: Record<number, number> = {
   [WEAPON_SMG]: 1,
-  [WEAPON_SHOTGUN]: 1.35,
+  [WEAPON_DUAL_MACHINE_GUN]: 1.3,
   [WEAPON_CHAIN_GUN]: 1.6,
   [WEAPON_BAZOOKA]: 1.8,
   [WEAPON_FLAME_THROWER]: 2,

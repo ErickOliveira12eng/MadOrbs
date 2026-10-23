@@ -73,7 +73,7 @@ export const pt: Record<Key, string> = {
   'home.newsTitle': 'Novidades',
   'home.news30Date': '23 de outubro de 2026',
   'home.news30Title': 'Ondas: o ranking pelo tempo',
-  'home.news30': 'O ranking das Ondas agora desempata pelo tempo, não pelos abates: na mesma onda, fica na frente quem chegou a ela mais rápido. Cada morte antes dela soma 30 segundos, e limpar uma onda antes da hora adianta a próxima. O fim da partida mostra o seu tempo no ranking.',
+  'home.news30': 'O ranking das Ondas agora desempata pelo tempo, não pelos abates: na mesma onda, fica na frente quem chegou a ela mais rápido. Cada morte antes dela soma 30 segundos, e limpar uma onda antes da hora adianta a próxima. O fim da partida mostra o seu tempo no ranking. E o marco da onda 10 agora libera a metralhadora dupla como arma inicial, no lugar da escopeta.',
   'home.news29Date': '20 de outubro de 2026',
   'home.news29Title': 'Sobre o projeto',
   'home.news29': 'Uma página nova conta o que é o Mad Orbs, de onde ele vem, como se mantém grátis e como falar com a gente. O link está no fim de todas as páginas.',

@@ -73,7 +73,7 @@ export const es: Record<Key, string> = {
   'home.newsTitle': 'Novedades',
   'home.news30Date': '23 de octubre de 2026',
   'home.news30Title': 'Oleadas: el ranking por tiempo',
-  'home.news30': 'El ranking de las Oleadas ahora desempata por tiempo, no por bajas: en la misma oleada va delante quien llegó antes. Cada muerte antes de ella suma 30 segundos, y limpiar una oleada antes de tiempo adelanta la siguiente. El final de la partida muestra tu tiempo en el ranking.',
+  'home.news30': 'El ranking de las Oleadas ahora desempata por tiempo, no por bajas: en la misma oleada va delante quien llegó antes. Cada muerte antes de ella suma 30 segundos, y limpiar una oleada antes de tiempo adelanta la siguiente. El final de la partida muestra tu tiempo en el ranking. Y el hito de la oleada 10 ahora da la ametralladora doble como arma inicial, en lugar de la escopeta.',
   'home.news29Date': '20 de octubre de 2026',
   'home.news29Title': 'Sobre el proyecto',
   'home.news29': 'Una página nueva cuenta qué es Mad Orbs, de dónde viene, cómo se mantiene gratis y cómo contactarnos. El enlace está al final de todas las páginas.',

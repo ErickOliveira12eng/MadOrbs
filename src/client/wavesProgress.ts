@@ -2,7 +2,7 @@
 // survived, the kills, the bosses, a new record), spent in the Workshop on permanent upgrades; the
 // milestones of the record (starting weapons, exclusive Orbs) and the checkpoints to start from.
 // Kept in this browser (madorbs.wavesProgress) and, signed in, in the account (waves_progress).
-import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_FLAME_THROWER, WEAPON_SHOTGUN, WEAPON_SMG } from '../sim/constants';
+import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_DUAL_MACHINE_GUN, WEAPON_FLAME_THROWER, WEAPON_SMG } from '../sim/constants';
 
 export type UpgradeID = 'life' | 'armor' | 'damage' | 'fire' | 'speed' | 'lives' | 'grenades' | 'luck' | 'drops' | 'breather' | 'secondWind' | 'cap' | 'dash' | 'barrier' | 'shock' | 'reroll';
 
@@ -78,7 +78,8 @@ export type Milestone = { wave: number; weapon: number } | { wave: number; skin:
 
 /** Reach the wave once and the prize stays: a weapon to start with, or an Orb only won here. */
 export const MILESTONES: Milestone[] = [
-  { wave: 10, weapon: WEAPON_SHOTGUN },
+  // (the shotgun until 23/10/2026: the dual machine gun in its place, Erick)
+  { wave: 10, weapon: WEAPON_DUAL_MACHINE_GUN },
   { wave: 15, skin: 'skin24' },
   { wave: 20, weapon: WEAPON_CHAIN_GUN },
   { wave: 25, skin: 'skin25' },
