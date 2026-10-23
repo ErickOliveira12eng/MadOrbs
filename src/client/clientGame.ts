@@ -35,6 +35,7 @@ import {
   SOUND_PHOTON_START,
   TICK,
   WEAPON_BAZOOKA,
+  WEAPON_COCKTAIL_MOLOTOV,
   WEAPON_FLAME_THROWER,
   WEAPON_GRENADE,
   WEAPON_NUCLEAR,
@@ -1593,6 +1594,10 @@ export class ClientGame {
       }
       case 'hit': {
         const victim = game.players[e.playerID];
+        // The damage numbers: ours on the others (a crit, the poison, fire each their colour)
+        if (victim && e.fromID === me.playerID && e.playerID !== me.playerID && e.damage > 0) {
+          this.hud.damage(victim, e.damage, e.dot ? 'poison' : e.weaponID === WEAPON_FLAME_THROWER || e.weaponID === WEAPON_COCKTAIL_MOLOTOV ? 'burn' : e.crit ? 'crit' : 'hit');
+        }
         // The waves' poison: a little every tick, shown by its own effect (wavesRenderer), silent here
         if (e.dot) break;
         if (fromServer && victim) {
@@ -1616,6 +1621,12 @@ export class ClientGame {
           const realDamage = e.weaponID === WEAPON_BAZOOKA ? sv.sv_zookaDamage : weaponDefs[e.weaponID].damage;
           this.cam.viewShake += 2 - e.life / realDamage;
         }
+        break;
+      }
+      case 'dodge': {
+        // The waves' Dodge card: a hit on us that missed
+        const target = game.players[e.playerID];
+        if (target === me) this.hud.dodge(me);
         break;
       }
       case 'death': {

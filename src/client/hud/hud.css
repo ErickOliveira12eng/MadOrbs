@@ -126,6 +126,41 @@
 
 /* ------------------------------------------------------------------ world labels, cursors */
 
+/* Damage numbers over the orbs (HudLayer.damage): ours on the others; a crit, poison, fire and a dodge each their look */
+.h-dmg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  pointer-events: none;
+  color: #fff;
+  font: 400 19px/1 var(--h-display);
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55), 0 0 6px rgba(0, 0, 0, 0.6);
+  will-change: transform, opacity;
+}
+
+.h-dmg.crit {
+  color: #ffd24a;
+  font-size: 27px;
+  text-shadow: 0 2px 0 rgba(90, 50, 0, 0.75), 0 0 10px rgba(255, 190, 60, 0.75);
+}
+
+.h-dmg.poison {
+  color: #9df06a;
+}
+
+.h-dmg.burn {
+  color: #ff9a3c;
+}
+
+.h-dmg.dodge {
+  color: #8fe9ff;
+  font: 900 15px/1 var(--h-ui);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
 .h-tag {
   position: absolute;
   left: 0;

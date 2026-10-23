@@ -915,9 +915,13 @@ export class Player {
     // A tougher babo (the campaign's bosses); the waves' power-ups (fury on the shooter, shield here)
     cdamage *= this.damageScale * this.armorBoost;
     if (from !== this) cdamage *= (1 + (from.damageBoost - 1) * bonus) * from.shotScale;
-    // The waves' cards: a critical hit (double damage), a dodged one
-    if (from !== this && canCrit && from.critChance > 0 && Math.random() < from.critChance) cdamage *= 2;
-    if (from !== this && this.dodgeChance > 0 && this.status === PLAYER_STATUS_ALIVE && Math.random() < this.dodgeChance) return false;
+    // The waves' cards: a critical hit (double damage), a dodged one (both shown: the damage numbers)
+    const crit = from !== this && canCrit && from.critChance > 0 && Math.random() < from.critChance;
+    if (crit) cdamage *= 2;
+    if (from !== this && this.dodgeChance > 0 && this.status === PLAYER_STATUS_ALIVE && Math.random() < this.dodgeChance) {
+      game.events.push({ type: 'dodge', playerID: this.playerID, fromID: from.playerID, position: this.currentCF.position.clone() });
+      return false;
+    }
     // The Reflector card's shield: nothing of the enemies' gets through (their bullets go back: Game.applyBullet)
     if (from !== this && this.reflectTime > 0 && from.teamID !== this.teamID && this.status === PLAYER_STATUS_ALIVE) return false;
     // Shield protection
@@ -939,7 +943,7 @@ export class Player {
     const sameTeamRules = from.teamID === this.teamID && game.gameType !== GAME_TYPE_DM && game.gameType !== GAME_TYPE_SND;
     if (sameTeamRules) {
       if (sv.sv_friendlyFire || from.playerID === this.playerID) {
-        this.applyDamage(cdamage, from, fromWeaponID);
+        this.applyDamage(cdamage, from, fromWeaponID, false, crit);
       }
       if (sv.sv_reflectedDamage && from.playerID !== this.playerID) from.hitSV(fromWeaponID, from, cdamage);
       if (this.life <= Number.EPSILON) {
@@ -947,7 +951,7 @@ export class Player {
         return true;
       }
     } else {
-      this.applyDamage(cdamage, from, fromWeaponID);
+      this.applyDamage(cdamage, from, fromWeaponID, false, crit);
       if (this.life <= Number.EPSILON && !this.secondChance()) {
         this.dieSV(from, fromWeaponID, false);
         return true;
@@ -996,7 +1000,7 @@ export class Player {
   }
 
   /** `dot`: a little of a damage over time (the waves' poison): no blood, sound or hit marker for it. */
-  private applyDamage(cdamage: number, from: Player, fromWeaponID: number, dot = false): void {
+  private applyDamage(cdamage: number, from: Player, fromWeaponID: number, dot = false, crit = false): void {
     if (from !== this) from.dmg += cdamage < this.life ? cdamage : this.life;
     this.life -= cdamage;
     if (!dot) {
@@ -1004,7 +1008,7 @@ export class Player {
       if (this.screenHit > 1) this.screenHit = 1;
       if (cdamage > 1) this.screenHit = 0;
     }
-    this.game.events.push({ type: 'hit', playerID: this.playerID, fromID: from.playerID, weaponID: fromWeaponID, damage: cdamage, life: this.life, position: this.currentCF.position.clone(), ...(dot ? { dot: true } : {}) });
+    this.game.events.push({ type: 'hit', playerID: this.playerID, fromID: from.playerID, weaponID: fromWeaponID, damage: cdamage, life: this.life, position: this.currentCF.position.clone(), ...(dot ? { dot: true } : {}), ...(crit ? { crit: true } : {}) });
   }
 
   /** Death on the server: drop life pack, weapon and grenades, update scores (Player::hitSV). */

@@ -178,6 +178,8 @@ export class HudLayer {
   private readonly stage: HTMLElement;
   private readonly r: Record<string, HTMLElement> = {};
   private readonly tagEls: HTMLElement[] = [];
+  /** The damage numbers on screen (damage, dodge). */
+  private readonly damages: DamageNumber[] = [];
   /** Each name tag's life bar: the white trail of the last damage (its life, and until when it holds). */
   private readonly hpTrail = new Map<number, { life: number; holdUntil: number }>();
   private hpTime = 0;
@@ -260,6 +262,7 @@ export class HudLayer {
   private template(online: boolean): string {
     return `
 <div class="h-tags" data-r="tags"></div>
+<div class="h-dmgs" data-r="dmgs"></div>
 <div class="h-kring" data-r="kring" hidden></div>
 <span class="h-tag killer" data-r="ktag" hidden></span>
 <svg class="h-xhair" data-r="xhair" viewBox="-28 -28 56 56" aria-hidden="true">
@@ -976,6 +979,7 @@ export class HudLayer {
       this.updateChat(f, deadScreen);
     }
     if (!menu && !table && !deadScreen) this.updateTags(f);
+    if (!table) this.updateDamage(f);
     if (!menu && !table && !deadScreen) this.drawMinimap(f);
     if (liveHud) {
       this.updateHealth(me);
@@ -1475,6 +1479,61 @@ export class HudLayer {
     for (const [id] of this.hpTrail) if (!f.players[id]?.isAlive) this.hpTrail.delete(id);
   }
 
+  /**
+   * Damage we did to `target` (Erick, 24/10/2026), a share of its life bar shown in points (100 a full bar): the hits of
+   * a moment on one orb add up in one number, each kind its own colour (crit, poison, fire).
+   */
+  damage(target: Player, amount: number, kind: Exclude<DamageKind, 'dodge'>): void {
+    const now = performance.now() / 1000;
+    const d = this.damages.find((x) => x.target === target && x.kind === kind && now - x.last < DAMAGE_MERGE);
+    if (d) {
+      d.value += amount;
+      d.last = now;
+    } else this.addDamage(target, kind, amount, now);
+  }
+
+  /** A hit on `target` that missed (the waves' Dodge card). */
+  dodge(target: Player): void {
+    this.addDamage(target, 'dodge', 0, performance.now() / 1000);
+  }
+
+  private addDamage(target: Player, kind: DamageKind, value: number, now: number): void {
+    const el = document.createElement('span');
+    el.className = `h-dmg ${kind}`;
+    this.r.dmgs.appendChild(el);
+    // A little to one side at random; the poison and fire a step left and right of the hits, never on top of each other
+    const side = kind === 'poison' ? -30 : kind === 'burn' ? 30 : 0;
+    this.damages.push({ el, target, kind, value, last: now, x: NaN, y: NaN, dx: side + (Math.random() - 0.5) * 24, text: '' });
+    if (this.damages.length > DAMAGE_MAX) this.damages.shift()!.el.remove();
+  }
+
+  /** The numbers follow their orb (where it fell, once dead), stay while it keeps being hit, then rise and fade. */
+  private updateDamage(f: HudFrame): void {
+    const now = performance.now() / 1000;
+    for (let i = this.damages.length - 1; i >= 0; i--) {
+      const d = this.damages[i];
+      const age = now - d.last;
+      if (age > DAMAGE_LIFE) {
+        d.el.remove();
+        this.damages.splice(i, 1);
+        continue;
+      }
+      if (d.target.isAlive) {
+        const pt = f.project(d.target);
+        if (pt) [d.x, d.y] = this.toStage(pt.x, pt.top);
+      }
+      if (!Number.isFinite(d.x)) continue;
+      const points = d.value * 100;
+      const text = d.kind === 'dodge' ? t('hud.dodge') : (points >= 10 ? bigNum(Math.round(points)) : num(points, 1)) + (d.kind === 'crit' ? '!' : '');
+      if (text !== d.text) d.el.textContent = d.text = text;
+      // From above the name tag (and its life bar) upwards
+      const rise = 30 + 32 * (age / DAMAGE_LIFE);
+      const pop = age < 0.12 ? 1.25 - age * 2 : 1;
+      d.el.style.opacity = String(age < 0.55 ? 1 : 1 - (age - 0.55) / (DAMAGE_LIFE - 0.55));
+      d.el.style.transform = `translate(${(d.x + d.dx).toFixed(1)}px, ${(d.y - rise).toFixed(1)}px) translate(-50%, -100%) scale(${pop.toFixed(2)})`;
+    }
+  }
+
   /** The ring on the orb that killed us, and its name. */
   private updateKiller(f: HudFrame, deadScreen: boolean): void {
     const d = this.death;
@@ -1756,6 +1815,25 @@ const cardIcon = (id: CardID, cls = 'h-cardico') =>
 /** The ad spots' plea while an ad blocker is on (HudLayer.adOrPlea). */
 const PLEA_HEART =
   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
+
+/** A damage number (HudLayer.damage): ours on an orb; a crit, poison and fire each their colour; a dodge says so. */
+type DamageKind = 'hit' | 'crit' | 'poison' | 'burn' | 'dodge';
+interface DamageNumber {
+  el: HTMLElement;
+  target: Player;
+  kind: DamageKind;
+  value: number;
+  /** When it last grew (a new hit on the same orb within DAMAGE_MERGE adds up), where (the stage), a sideways nudge. */
+  last: number;
+  x: number;
+  y: number;
+  dx: number;
+  text: string;
+}
+/** Seconds a number stays after its last hit; the hits within this much of the last one add up; at most so many at once. */
+const DAMAGE_LIFE = 0.9;
+const DAMAGE_MERGE = 0.45;
+const DAMAGE_MAX = 40;
 
 /** The waves' Workshop abilities on the HUD: the dash (Shift), the shock wave (Q). */
 const ABILITY_ICON = {
