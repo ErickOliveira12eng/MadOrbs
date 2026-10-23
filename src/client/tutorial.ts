@@ -621,22 +621,23 @@ export class WavesTutorial extends Tutorial {
 // ---------------------------------------------------------------- the shooting range
 
 /**
- * KOTH-Imp's open floor (x 16 to 29, y 2 to 14), at its bottom edge, where the view shows from y 0 to 8.8: the player at
- * the bottom, the weapons in a row in front of him (from the second lesson, Erick: above the cards, which sit low), the
- * lanes above them.
+ * KOTH-Imp's open floor (x 16 to 29, y 2 to 14), at its bottom edge, where the view shows from y 0.3 to 8.9 with the
+ * mouse at rest (it follows the aim, 4/9 of the way: aiming at the far lane shows it all): the player at the bottom, the
+ * weapons in a row in front of him (from the second lesson, Erick: above the cards, which sit low), the lanes further on
+ * (Erick, 23/10/2026: further forward).
  */
 const RANGE = {
   start: [23, 2.8] as [number, number],
   weaponsY: 4.5,
   /** The lanes: their y and the targets' speed (the nearest one slow); they walk from x0 to x1 and back. */
   lanes: [
-    { y: 5.7, speed: 0.45 },
-    { y: 6.8, speed: 0.62 },
-    { y: 7.9, speed: 0.8 },
+    { y: 7, speed: 0.45 },
+    { y: 8.3, speed: 0.62 },
+    { y: 9.6, speed: 0.8 },
   ],
   x0: 17.5,
   x1: 28.5,
-  /** The grenade's lesson: all of them slowly, from x 21.5 to 24.5 (a throw from the start reaches them all). */
+  /** The grenade's lesson: all of them slowly, from x 21.5 to 24.5 (a throw reaches the near two from the start). */
   near: [21.5, 24.5] as [number, number],
 };
 /** Seconds before a fallen target comes back; how slow the nearest one walks for the knife, and all for the grenade. */
