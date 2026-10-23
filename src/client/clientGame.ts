@@ -854,9 +854,10 @@ export class ClientGame {
 
   /** A match begins: the announcer's "Start". */
   private announceStart(): void {
-    // The waves mode has no announcer voice (Erick's call): its banners and the siren say enough; nor the
-    // tutorials (their first card is up)
-    if (!this.waves && !this.opts.tutorial) playAnnouncer('start');
+    // The waves mode has no announcer voice (Erick's call: its banners and the siren say enough), but this "Start"
+    // when a run begins on wave 1 (Erick, 23/10/2026: only then, not at a checkpoint)
+    if (this.waves && (this.opts.waves?.startWave ?? 1) !== 1) return;
+    playAnnouncer('start');
   }
 
   private beginLoop(): void {

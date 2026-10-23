@@ -3,8 +3,17 @@
 // over a glowing ring). Plain materials, like the rest of the game's look.
 import * as THREE from 'three';
 import { CRATE_LIFE, type Crate } from '../../sim/crate';
+import { FX_RENDER_ORDER } from '../fx/effects';
 import { powerIcon } from '../powerIcons';
 import { POWERS, type PowerKind } from '../waves';
+
+/**
+ * The transparent pieces are drawn after the blood and marks on the floor (FX_RENDER_ORDER.floorMarks): before them,
+ * a pool of blood covered them (the tutorial's Bomb vanished under the blood of the three that fell there). The glows
+ * on the floor first, then what stands above it.
+ */
+const ON_FLOOR = FX_RENDER_ORDER.floorMarks + 1;
+const ABOVE_FLOOR = FX_RENDER_ORDER.floorMarks + 2;
 
 /** An enemy under the poison or ice shots (streaks over it and ripples where it goes, light green or light blue). */
 export interface AilmentMark {
@@ -139,6 +148,7 @@ export class WavesRenderer {
       new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
     );
     this.streakLines.frustumCulled = false;
+    this.streakLines.renderOrder = ABOVE_FLOOR;
     this.root.add(this.streakLines);
   }
 
@@ -212,6 +222,7 @@ export class WavesRenderer {
     if (!r) {
       const material = new THREE.MeshBasicMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
       const mesh = new THREE.Mesh(this.rippleGeometry, material);
+      mesh.renderOrder = ON_FLOOR;
       this.root.add(mesh);
       r = { mesh, material, age: 0 };
     }
@@ -231,6 +242,7 @@ export class WavesRenderer {
       const discMaterial = new THREE.MeshBasicMaterial({ color: 0xff5a14, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
       const ring = new THREE.Mesh(this.blastRingGeometry, ringMaterial);
       const disc = new THREE.Mesh(this.blastDiscGeometry, discMaterial);
+      ring.renderOrder = disc.renderOrder = ON_FLOOR;
       this.root.add(disc, ring);
       b = { ring, disc, ringMaterial, discMaterial, radius, age: 0 };
     }
@@ -322,11 +334,13 @@ export class WavesRenderer {
         tex.colorSpace = THREE.NoColorSpace;
         const icon = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false }));
         icon.scale.set(0.5, 0.5, 1);
+        icon.renderOrder = ABOVE_FLOOR;
         const ring = new THREE.Mesh(
           this.ringGeometry,
           new THREE.MeshBasicMaterial({ color: new THREE.Color(POWERS[p.kind].color), transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }),
         );
         ring.position.z = 0.02;
+        ring.renderOrder = ON_FLOOR;
         const group = new THREE.Group();
         group.add(ring, icon);
         this.root.add(group);

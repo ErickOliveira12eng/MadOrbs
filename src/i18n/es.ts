@@ -73,7 +73,7 @@ export const es: Record<Key, string> = {
   'home.newsTitle': 'Novedades',
   'home.news33Date': '23 de octubre de 2026',
   'home.news33Title': 'Tutoriales',
-  'home.news33': 'Dos tutoriales rápidos, de unos dos minutos, en Entrenar: el de Oleadas (las oleadas, las cajas, las granadas y la Bomba) y el de PvP, en un campo de tiro (moverse y disparar, las armas del suelo, el cuchillo, con tu daño y tu DPS debajo de cada blanco). La primera vez que abres Oleadas o juegas en línea, el juego pregunta si quieres hacer el tutorial antes.',
+  'home.news33': 'Dos tutoriales rápidos, de unos dos minutos, en Entrenar: el de Oleadas (las oleadas, las cajas, las granadas y la Bomba) y el de PvP, en un campo de tiro (moverse y disparar, las armas del suelo, el cuchillo, con tu daño y tu DPS debajo de cada blanco). La primera vez que abres Oleadas o juegas en línea, el juego pregunta si quieres hacer el tutorial antes. Y la partida de Oleadas que empieza en la oleada 1 ahora abre con la voz del locutor diciendo Start.',
   'home.news32Date': '23 de octubre de 2026',
   'home.news32Title': 'Taller: cada elección cuenta',
   'home.news32': 'Medimos lo que rinde cada mejora del Taller por Núcleo, y las más flojas quedaron más baratas o más fuertes: la Curación de las cajas (era la probabilidad de vida) hace que las cajas curen hasta la barra entera, el Respiro devuelve del 30% al 70%, el Impulso te deja intocable mientras dura, la Onda de choque crece con las oleadas y recarga antes, y el Segundo aliento cuesta 250 y tiene un segundo nivel. La Suerte también es más barata.',

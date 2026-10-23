@@ -341,11 +341,16 @@ export abstract class Tutorial {
     if (p.isAlive) place(p, x, y);
   }
 
-  /** Of these spots, the first one far enough from the player (else the farthest). */
+  /** Of these spots, the first one far enough from the player and in sight (else just far enough, else the farthest). */
   protected spot(spots: [number, number][], away: number): [number, number] {
     const at = this.host.me.currentCF.position;
     const d = (s: [number, number]) => Math.hypot(s[0] - at.x, s[1] - at.y);
-    return spots.find((s) => d(s) >= away) ?? spots.reduce((a, b) => (d(b) > d(a) ? b : a));
+    return spots.find((s) => d(s) >= away && this.inSight(s)) ?? spots.find((s) => d(s) >= away) ?? spots.reduce((a, b) => (d(b) > d(a) ? b : a));
+  }
+
+  /** No wall between the player and there. */
+  protected inSight([x, y]: [number, number]): boolean {
+    return !this.host.game.map.rayTest(this.host.me.currentCF.position.clone(), new Vec3(x, y, 0.25), new Vec3());
   }
 }
 
@@ -360,7 +365,8 @@ const NO_METERS: ReadonlyMap<number, string> = new Map();
  * grenade and the horde stand in the middle of it: the player too close is put back at the start (during the card).
  */
 const WAVES_PLACES = {
-  start: [24.5, 17.5] as [number, number],
+  // (in sight of the middle and 4 cells away: from the left the wall at x 24 to 26 hid it)
+  start: [33.5, 17.8] as [number, number],
   walk: [[27.5, 17.5], [31.5, 17.5], [31.5, 14], [27.5, 14]] as [number, number][],
   comers: [[35.5, 17.5], [34.5, 19.5], [23.5, 18.5], [28, 13.5]] as [number, number][],
   crates: [[28.5, 16], [30.5, 17], [27.5, 14.5], [25.5, 17.5], [33.5, 16.5]] as [number, number][],
@@ -575,12 +581,15 @@ export class WavesTutorial extends Tutorial {
     place(this.host.me, x, y);
   }
 
-  /** The middle of the scene (the grenade's three, the horde), the player put back at the start when closer than `room`. */
+  /**
+   * The middle of the scene (the grenade's three, the horde): the player is put back at the start (during the card)
+   * when closer than `room`, or where a wall hides it.
+   */
   private stage(room: number): [number, number] {
-    const [cx, cy] = WAVES_PLACES.middle;
+    const middle = WAVES_PLACES.middle;
     const me = this.host.me;
-    if (Math.hypot(me.currentCF.position.x - cx, me.currentCF.position.y - cy) < room) place(me, ...WAVES_PLACES.start);
-    return [cx, cy];
+    if (Math.hypot(me.currentCF.position.x - middle[0], me.currentCF.position.y - middle[1]) < room || !this.inSight(middle)) place(me, ...WAVES_PLACES.start);
+    return middle;
   }
 }
 

@@ -75,7 +75,7 @@ export const en = {
   'home.newsTitle': "What's new",
   'home.news33Date': 'October 23, 2026',
   'home.news33Title': 'Tutorials',
-  'home.news33': 'Two quick tutorials of about two minutes, in Training: Waves (the waves, the crates, the grenades and the Bomb) and PvP, at a shooting range (moving and shooting, the weapons on the floor, the knife, with your damage and DPS under each target). The first time you open the Waves or play online, the game asks if you want the tutorial first.',
+  'home.news33': 'Two quick tutorials of about two minutes, in Training: Waves (the waves, the crates, the grenades and the Bomb) and PvP, at a shooting range (moving and shooting, the weapons on the floor, the knife, with your damage and DPS under each target). The first time you open the Waves or play online, the game asks if you want the tutorial first. And a run of the Waves that begins on wave 1 now opens with the voice saying Start.',
   'home.news32Date': 'October 23, 2026',
   'home.news32Title': 'Workshop: every choice counts',
   'home.news32': 'We measured what each Workshop upgrade adds per Core, and the weakest got cheaper or stronger: Crate healing (it was the life pack chance) makes the crates heal up to the full bar, the Breather gives back 30% to 70%, the Dash leaves you untouchable while it lasts, the Shock wave grows with the waves and recharges sooner, and the Second wind costs 250 and has a second level. Luck is cheaper too.',

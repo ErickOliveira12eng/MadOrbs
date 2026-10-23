@@ -73,7 +73,7 @@ export const pt: Record<Key, string> = {
   'home.newsTitle': 'Novidades',
   'home.news33Date': '23 de outubro de 2026',
   'home.news33Title': 'Tutoriais',
-  'home.news33': 'Dois tutoriais rápidos, de uns dois minutos, no Treinar: o das Ondas (as ondas, as caixas, as granadas e a Bomba) e o do PvP, num estande de tiro (andar e atirar, as armas no chão, a faca, com o seu dano e o seu DPS embaixo de cada alvo). Na primeira vez que você abre as Ondas ou joga online, o jogo pergunta se você quer fazer o tutorial antes.',
+  'home.news33': 'Dois tutoriais rápidos, de uns dois minutos, no Treinar: o das Ondas (as ondas, as caixas, as granadas e a Bomba) e o do PvP, num estande de tiro (andar e atirar, as armas no chão, a faca, com o seu dano e o seu DPS embaixo de cada alvo). Na primeira vez que você abre as Ondas ou joga online, o jogo pergunta se você quer fazer o tutorial antes. E a partida das Ondas que começa na onda 1 agora abre com a voz do locutor dizendo Start.',
   'home.news32Date': '23 de outubro de 2026',
   'home.news32Title': 'Oficina: toda escolha conta',
   'home.news32': 'Medimos o que cada melhoria da Oficina rende por Núcleo, e as mais fracas ficaram mais baratas ou mais fortes: a Cura das caixas (era a chance de vida) faz as caixas curarem até a barra inteira, o Fôlego devolve de 30% a 70%, a Arrancada deixa você intocável enquanto dura, a Onda de choque cresce com as ondas e recarrega mais rápido, e o Segundo fôlego custa 250 e ganhou um segundo nível. A Sorte ficou mais barata também.',
