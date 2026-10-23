@@ -536,6 +536,7 @@ export class ClientGame {
       showCard: (card) => this.showTutorialCard(card),
       onGoal: () => audio.play(this.sounds.flagReturn, 200),
       onDone: () => this.opts.onTutorialDone?.(),
+      snapCamera: () => this.cam.setCameraPos(this.me.currentCF.position),
     };
   }
 
@@ -855,8 +856,7 @@ export class ClientGame {
   /** A match begins: the announcer's "Start". */
   private announceStart(): void {
     // The waves mode has no announcer voice (Erick's call: its banners and the siren say enough), but this "Start"
-    // when a run begins on wave 1 (Erick, 23/10/2026: only then, not at a checkpoint)
-    if (this.waves && (this.opts.waves?.startWave ?? 1) !== 1) return;
+    // when a run begins, on the wave it begins on (Erick, 23/10/2026: wave 1 or a checkpoint)
     playAnnouncer('start');
   }
 

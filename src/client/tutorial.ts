@@ -7,9 +7,9 @@
 //          siren and wave 2, two orbs coming; a crate and its upgrade; wave 3, three orbs standing close together
 //          that only a grenade or a molotov takes down; a crate and its weapon (F); and a horde around a crate that
 //          holds the Bomb
-//   pvp    a shooting range (Deathmatch, RANGE_MAP): every weapon on the floor to take with F, orbs walking from side
-//          to side that come back a few seconds after they fall, with the damage and the DPS under each one, and
-//          the knife
+//   pvp    a shooting range (Deathmatch, RANGE_MAP): orbs walking from side to side that come back a few seconds after
+//          they fall, with the damage and the DPS under each one; then every weapon on the floor to take with F, the
+//          knife, and a grenade
 import { BotController, findPath } from '../sim/bot';
 import {
   ITEM_WEAPON, PLAYER_TEAM_RED, PRIMARY_WEAPONS, PROJECTILE_COCKTAIL_MOLOTOV, PROJECTILE_DROPED_WEAPON, PROJECTILE_FLAME, PROJECTILE_GRENADE, TICK,
@@ -78,11 +78,16 @@ export interface TutorialHost {
   onGoal: () => void;
   /** The last lesson was done (the browser keeps it). */
   onDone: () => void;
+  /** The view straight onto the player (a tutorial put him somewhere else, during a card). */
+  snapCamera: () => void;
 }
 
 const key = (k: string) => `<span class="h-key">${k}</span>`;
 /** Seconds of play before the first card. */
 const FIRST_CARD = 0.5;
+/** What is thrown (and the molotov's fire): none of it left before the grenades come back, a moment later. */
+const THROWN = new Set([PROJECTILE_GRENADE, PROJECTILE_COCKTAIL_MOLOTOV, PROJECTILE_FLAME]);
+const REFILL_WAIT = 1.2;
 
 /** A step of a tutorial: set up as it begins (before its card: the scene shows behind it), done when `done` says. */
 interface Step {
@@ -185,6 +190,9 @@ export abstract class Tutorial {
   /** What the player did: kills of targets (and with the knife), the weapons taken, the power-ups taken. */
   protected kills = 0;
   protected knifeKills = 0;
+  protected grenadeKills = 0;
+  /** Seconds before the thrown ones come back (refill). */
+  private refillIn = -1;
   protected readonly weaponsTaken = new Set<number>();
   protected readonly powersTaken = new Set<PowerKind>();
 
@@ -280,6 +288,7 @@ export abstract class Tutorial {
     if (e.type === 'death' && e.fromID === me.playerID && this.targets.has(e.playerID)) {
       this.kills++;
       if (e.weaponID === WEAPON_KNIVES) this.knifeKills++;
+      if (e.weaponID === WEAPON_GRENADE) this.grenadeKills++;
     } else if (e.type === 'pickup' && e.playerID === me.playerID && e.itemType === ITEM_WEAPON) {
       this.weaponsTaken.add(e.itemFlag);
     }
@@ -338,7 +347,36 @@ export abstract class Tutorial {
     p.spawnRequested = false;
     p.timeToSpawn = 0;
     this.host.game.requestSpawn(p);
-    if (p.isAlive) place(p, x, y);
+    if (!p.isAlive) return;
+    place(p, x, y);
+    // No spawn protection: the player's first shots must count (the protection outlasted a card, the game waiting)
+    p.immuneTime = 0;
+  }
+
+  /**
+   * The grenades (and molotovs) given back a moment after the last one is gone, nothing thrown still flying or burning:
+   * up to `grenades` and `molotovs`.
+   */
+  protected refill(grenades: number, molotovs: number): void {
+    const me = this.host.me;
+    if (me.nbGrenadeLeft > 0 || (molotovs > 0 && me.nbMolotovLeft > 0)) {
+      this.refillIn = -1;
+      return;
+    }
+    const thrown = this.host.game.projectiles.some((p) => !p.needToBeDeleted && p.fromID === me.playerID && THROWN.has(p.projectileType));
+    if (thrown) return;
+    if (this.refillIn < 0) this.refillIn = REFILL_WAIT;
+    this.refillIn -= TICK;
+    if (this.refillIn > 0) return;
+    this.refillIn = -1;
+    me.nbGrenadeLeft = Math.max(me.nbGrenadeLeft, grenades);
+    me.nbMolotovLeft = Math.max(me.nbMolotovLeft, molotovs);
+  }
+
+  /** Puts the player there, the view with him (during a card: what it speaks of shows above it). */
+  protected bringBack([x, y]: [number, number]): void {
+    place(this.host.me, x, y);
+    this.host.snapCamera();
   }
 
   /** Of these spots, the first one far enough from the player and in sight (else just far enough, else the farthest). */
@@ -388,9 +426,6 @@ export class WavesTutorial extends Tutorial {
   private comers: Target[] = [];
   private group: Target[] = [];
   private horde: Target[] = [];
-  /** Seconds before the grenades come back (none left, the three still standing). */
-  private refillIn = -1;
-
   constructor(host: TutorialHost) {
     super(host, 'waves');
     const run = host.waves!;
@@ -493,17 +528,7 @@ export class WavesTutorial extends Tutorial {
         count: () => ({ n: this.group.length - alive(this.group), of: this.group.length }),
         // None left and nothing burning or flying: two more grenades and a molotov a moment later
         tick: () => {
-          if (down(this.group) || me.nbGrenadeLeft > 0 || me.nbMolotovLeft > 0) return;
-          const thrown = this.host.game.projectiles.some(
-            (p) => !p.needToBeDeleted && p.fromID === me.playerID && (p.projectileType === PROJECTILE_GRENADE || p.projectileType === PROJECTILE_COCKTAIL_MOLOTOV || p.projectileType === PROJECTILE_FLAME),
-          );
-          if (thrown) return;
-          if (this.refillIn < 0) this.refillIn = 1.2;
-          this.refillIn -= TICK;
-          if (this.refillIn > 0) return;
-          this.refillIn = -1;
-          me.nbGrenadeLeft = 2;
-          me.nbMolotovLeft = 1;
+          if (!down(this.group)) this.refill(2, 1);
         },
         done: () => down(this.group),
       },
@@ -588,7 +613,7 @@ export class WavesTutorial extends Tutorial {
   private stage(room: number): [number, number] {
     const middle = WAVES_PLACES.middle;
     const me = this.host.me;
-    if (Math.hypot(me.currentCF.position.x - middle[0], me.currentCF.position.y - middle[1]) < room || !this.inSight(middle)) place(me, ...WAVES_PLACES.start);
+    if (Math.hypot(me.currentCF.position.x - middle[0], me.currentCF.position.y - middle[1]) < room || !this.inSight(middle)) this.bringBack(WAVES_PLACES.start);
     return middle;
   }
 }
@@ -596,24 +621,30 @@ export class WavesTutorial extends Tutorial {
 // ---------------------------------------------------------------- the shooting range
 
 /**
- * KOTH-Imp's open floor (x 16 to 29, y 2 to 14), at its bottom edge, where the view shows from y 0 to 8.8: the weapons
- * in a row behind the player, the lanes in front.
+ * KOTH-Imp's open floor (x 16 to 29, y 2 to 14), at its bottom edge, where the view shows from y 0 to 8.8: the player at
+ * the bottom, the weapons in a row in front of him (from the second lesson, Erick: above the cards, which sit low), the
+ * lanes above them.
  */
 const RANGE = {
-  start: [23, 3.7] as [number, number],
-  weaponsY: 2.5,
+  start: [23, 2.8] as [number, number],
+  weaponsY: 4.5,
   /** The lanes: their y and the targets' speed (the nearest one slow); they walk from x0 to x1 and back. */
   lanes: [
-    { y: 5.4, speed: 0.45 },
-    { y: 6.6, speed: 0.62 },
-    { y: 7.8, speed: 0.8 },
+    { y: 5.7, speed: 0.45 },
+    { y: 6.8, speed: 0.62 },
+    { y: 7.9, speed: 0.8 },
   ],
   x0: 17.5,
   x1: 28.5,
+  /** The grenade's lesson: all of them slowly, from x 21.5 to 24.5 (a throw from the start reaches them all). */
+  near: [21.5, 24.5] as [number, number],
 };
-/** Seconds before a fallen target comes back; how slow the nearest one walks for the knife. */
+/** Seconds before a fallen target comes back; how slow the nearest one walks for the knife, and all for the grenade. */
 const COME_BACK = 3;
 const KNIFE_SPEED = 0.3;
+const GRENADE_SPEED = 0.2;
+/** The grenades the player gets back for that lesson (a spawn's). */
+const GRENADES = 2;
 /** A pause this long between hits starts a new burst (its damage and DPS). */
 const BURST_GAP = 2;
 const KILLS_TO_DO = 3;
@@ -633,7 +664,8 @@ export class PvpTutorial extends Tutorial {
   /** The targets with their lane, and how long each has been down. */
   private lanes: { bot: Target; lane: number; downFor: number }[] = [];
   private readonly bursts = new Map<number, Meter>();
-  private knifeLesson = false;
+  /** The lesson that slows the targets down (the knife: the nearest one; the grenade: all of them, near the middle). */
+  private lesson: 'knife' | 'grenade' | null = null;
 
   constructor(host: TutorialHost) {
     super(host, 'pvp');
@@ -656,6 +688,8 @@ export class PvpTutorial extends Tutorial {
       },
       {
         id: 'weapons',
+        // Only now on the floor: in front of the player, back at the start, the row above the card
+        begin: () => this.layWeapons(),
         card: {
           title: t('tut.p.weapons.title'),
           text: t('tut.p.weapons.text'),
@@ -668,11 +702,8 @@ export class PvpTutorial extends Tutorial {
       },
       {
         id: 'knife',
-        begin: () => {
-          // The nearest target slows down: easier to reach
-          this.knifeLesson = true;
-          for (const l of this.lanes) l.bot.player.speedBoost = this.speedOf(l.lane);
-        },
+        // The nearest target slows down: easier to reach
+        begin: () => this.teach('knife'),
         card: {
           title: t('tut.p.knife.title'),
           text: t('tut.p.knife.text'),
@@ -683,12 +714,26 @@ export class PvpTutorial extends Tutorial {
         done: () => this.knifeKills > 0,
       },
       {
+        id: 'grenade',
+        // The last lesson (Erick): all of them slowly, near the middle; the grenades back whenever they run out
+        begin: () => {
+          this.teach('grenade');
+          this.host.me.nbGrenadeLeft = Math.max(this.host.me.nbGrenadeLeft, GRENADES);
+        },
+        card: {
+          title: t('tut.p.grenade.title'),
+          text: t('tut.p.grenade.text'),
+          keys: [{ key: mouseIcon('right'), does: t('tut.key.grenade') }],
+          buttons: [{ action: 'next', label: t('tut.go') }],
+        },
+        goal: () => t('tut.p.grenade.goal', { grenade: mouseIcon('right') }),
+        tick: () => this.refill(GRENADES, 0),
+        done: () => this.grenadeKills > 0,
+      },
+      {
         id: 'end',
         end: true,
-        begin: () => {
-          this.knifeLesson = false;
-          for (const l of this.lanes) l.bot.player.speedBoost = this.speedOf(l.lane);
-        },
+        begin: () => this.teach(null),
         card: {
           title: t('tut.p.end.title'),
           text: t('tut.p.end.text'),
@@ -706,15 +751,7 @@ export class PvpTutorial extends Tutorial {
   }
 
   protected setup(): void {
-    const { game, me } = this.host;
-    const [x, y] = RANGE.start;
-    place(me, x, y);
-    // Every weapon on the floor, in a row in front of the player (staying there: clearDrops)
-    const weapons = PRIMARY_WEAPONS.filter((w) => isWeaponEnabled(w));
-    weapons.forEach((w, i) => {
-      const wx = x + (i - (weapons.length - 1) / 2);
-      if (game.spawnProjectile(new Vec3(wx, RANGE.weaponsY, 0.3), new Vec3(), me.playerID, PROJECTILE_DROPED_WEAPON, w)) game.projectiles[game.projectiles.length - 1].duration = Infinity;
-    });
+    place(this.host.me, ...RANGE.start);
     RANGE.lanes.forEach((_, lane) => {
       const bot = this.addTarget(RANGE.x0 + Math.random() * (RANGE.x1 - RANGE.x0), RANGE.lanes[lane].y, false);
       if (!bot) return;
@@ -723,15 +760,39 @@ export class PvpTutorial extends Tutorial {
     });
   }
 
+  /** Every weapon on the floor, in a row just in front of the start (the player back there; they stay: clearDrops). */
+  private layWeapons(): void {
+    const { game, me } = this.host;
+    const [x, y] = RANGE.start;
+    if (Math.hypot(me.currentCF.position.x - x, me.currentCF.position.y - y) > 1) this.bringBack(RANGE.start);
+    const weapons = PRIMARY_WEAPONS.filter((w) => isWeaponEnabled(w));
+    weapons.forEach((w, i) => {
+      const wx = x + (i - (weapons.length - 1) / 2);
+      if (game.spawnProjectile(new Vec3(wx, RANGE.weaponsY, 0.3), new Vec3(), me.playerID, PROJECTILE_DROPED_WEAPON, w)) game.projectiles[game.projectiles.length - 1].duration = Infinity;
+    });
+  }
+
+  /** A lesson that changes how the targets walk (null: back to their lanes): the standing ones set off again. */
+  private teach(lesson: 'knife' | 'grenade' | null): void {
+    this.lesson = lesson;
+    for (const l of this.lanes) if (l.bot.player.isAlive) this.sendOff(l.bot, l.lane);
+  }
+
   private speedOf(lane: number): number {
-    return this.knifeLesson && lane === 0 ? KNIFE_SPEED : RANGE.lanes[lane].speed;
+    return this.lesson === 'grenade' ? GRENADE_SPEED : this.lesson === 'knife' && lane === 0 ? KNIFE_SPEED : RANGE.lanes[lane].speed;
+  }
+
+  /** Where the lanes run now (the grenade's lesson: near the middle). */
+  private ends(): [number, number] {
+    return this.lesson === 'grenade' ? RANGE.near : [RANGE.x0, RANGE.x1];
   }
 
   /** Off along its lane, one way or the other. */
   private sendOff(bot: Target, lane: number): void {
     const y = RANGE.lanes[lane].y;
+    const [x0, x1] = this.ends();
     bot.player.speedBoost = this.speedOf(lane);
-    const ends = [new Vec3(RANGE.x0, y, 0), new Vec3(RANGE.x1, y, 0)];
+    const ends = [new Vec3(x0, y, 0), new Vec3(x1, y, 0)];
     bot.walk(Math.random() < 0.5 ? ends : ends.reverse());
   }
 
@@ -745,7 +806,8 @@ export class PvpTutorial extends Tutorial {
       l.downFor += TICK;
       if (l.downFor < COME_BACK) continue;
       l.downFor = 0;
-      this.revive(l.bot, Math.random() < 0.5 ? RANGE.x0 : RANGE.x1, RANGE.lanes[l.lane].y);
+      const [x0, x1] = this.ends();
+      this.revive(l.bot, Math.random() < 0.5 ? x0 : x1, RANGE.lanes[l.lane].y);
       this.sendOff(l.bot, l.lane);
     }
   }

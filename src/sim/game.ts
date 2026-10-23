@@ -545,6 +545,8 @@ export class Game {
         projectile.duration -= delay;
         while (projectile.rotation >= 360) projectile.rotation -= 360;
         while (projectile.rotation < 0) projectile.rotation += 360;
+        // Flown here between the server's corrections (every 2nd frame): the same flight, none of its effects
+        projectile.fly(delay, this);
         continue;
       }
       // Our predicted ones fly here, as on the server

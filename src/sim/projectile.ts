@@ -168,6 +168,55 @@ export class Projectile {
     game.radiusHit(pos, hitRadius * this.size, this.fromID, weaponID, false, this.rain ? this.fromID : -1, this.share);
   }
 
+  /**
+   * The flight alone, for an online page: the server's projectiles between two of its corrections (15 a second since
+   * 18/10/2026; until now they stood still in between and moved in jolts). The same physics and map as update(), and
+   * nothing of what it causes (blasts, damage, pickups, sounds, its end): the server sends those. What meets a wall
+   * waits there for the server's word, except what bounces.
+   */
+  fly(delay: number, game: Game): void {
+    const map = game.map;
+    this.lastCF.copyFrom(this.currentCF);
+    this.currentCF.frameID++;
+    this.timeSinceThrown += delay;
+    const cf = this.currentCF;
+    const type = this.projectileType;
+    /** Met a wall (or the floor) since the last tick: put just in front of it (`off`), with its normal. */
+    const wall = (off: number): Vec3 | null => {
+      const p2 = cf.position.clone();
+      const normal = new Vec3();
+      if (!map.rayTest(this.lastCF.position.clone(), p2, normal)) return null;
+      cf.position.copy(p2.add(normal.mul(off)));
+      return normal;
+    };
+    if (type === PROJECTILE_ROCKET) {
+      const speed = cf.vel.length();
+      if (speed > 10) cf.vel.mulIn(10 / speed);
+      cf.position.addScaledIn(cf.vel, delay);
+      cf.vel.addIn(cf.vel.mul(delay * 3));
+      if (wall(0.1)) cf.vel.set(0, 0, 0);
+      return;
+    }
+    if (type === PROJECTILE_COCKTAIL_MOLOTOV || (type === PROJECTILE_FLAME && !this.movementLock)) {
+      cf.position.addScaledIn(cf.vel, delay);
+      cf.vel.z -= 9.8 * delay;
+      if (wall(0.1)) {
+        cf.vel.set(0, 0, 0);
+        if (type === PROJECTILE_FLAME) this.movementLock = true;
+      }
+      return;
+    }
+    if (type !== PROJECTILE_GRENADE && type !== PROJECTILE_LIFE_PACK && type !== PROJECTILE_DROPED_WEAPON && type !== PROJECTILE_DROPED_GRENADE) return;
+    if (cf.vel.length() > 0.5 || cf.position.z > 0.2) {
+      cf.position.addScaledIn(cf.vel, delay);
+      cf.vel.z -= 9.8 * delay;
+      const normal = wall(0.01);
+      if (normal) cf.vel = reflect(cf.vel, normal).mul(0.65);
+    } else {
+      cf.vel.set(0, 0, 0);
+    }
+  }
+
   /** Projectile::update (server logic). */
   update(delay: number, game: Game): void {
     const map = game.map;

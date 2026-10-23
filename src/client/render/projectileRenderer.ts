@@ -13,10 +13,17 @@ import { weaponDefs } from '../../sim/gameVar';
 import type { Projectile } from '../../sim/projectile';
 import { Vec3, randRange } from '../../sim/vec';
 import { createDkoObject3D } from '../engine/dko';
+import { FX_RENDER_ORDER } from '../fx/effects';
 import { getModel, getTexture, MODEL_COCKTAIL_MOLOTOV, MODEL_GRENADE, MODEL_LIFE_PACK, MODEL_ROCKET, TEXTURES } from '../assets';
 
 /** The last seconds of an item on the floor, when it blinks. */
 const ITEM_BLINK_SECONDS = 5;
+/**
+ * The items on the floor (a life pack, a dropped weapon or grenade) are drawn after the blood and marks: they lie close
+ * to the floor, and a pool of blood drawn after them covered them (Erick, 23/10/2026: the life packs vanished, yet could
+ * be taken). In the transparent pass for that (fully opaque all the same), still writing the depth.
+ */
+const ITEM_RENDER_ORDER = FX_RENDER_ORDER.floorMarks + 2;
 
 function quad(x0: number, y0: number, x1: number, y1: number): THREE.BufferGeometry {
   const g = new THREE.BufferGeometry();
@@ -112,6 +119,14 @@ class ProjectileVisual {
     }
     if (modelPath) {
       this.model = createDkoObject3D(getModel(modelPath), 0);
+      if (this.type === PROJECTILE_LIFE_PACK || this.type === PROJECTILE_DROPED_WEAPON || this.type === PROJECTILE_DROPED_GRENADE) {
+        // (each object has its own materials: createDkoObject3D)
+        this.model.traverse((o) => {
+          if (!(o instanceof THREE.Mesh)) return;
+          (o.material as THREE.Material).transparent = true;
+          o.renderOrder = ITEM_RENDER_ORDER;
+        });
+      }
       this.modelHolder.add(this.model);
       this.modelHolder.scale.setScalar(scale * this.size);
       this.root.add(this.modelHolder);
