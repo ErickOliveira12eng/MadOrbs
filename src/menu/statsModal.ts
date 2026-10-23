@@ -89,7 +89,7 @@ export class StatsModal {
     const w = this.account.waves;
     const waves =
       mode === 'all' && w
-        ? `<div class="stats-waves"><span>${t('menu.waves')}</span><b>${t('ranking.bestWave', { n: w.wave })}</b><small>${t(w.kills === 1 ? 'end.oneKill' : 'end.kills', { n: w.kills })}</small></div>`
+        ? `<div class="stats-waves"><span>${t('menu.waves')}</span><b>${t('ranking.bestWave', { n: w.wave })}</b><small>${w.time !== null ? t('waves.rankTime', { time: `${Math.floor(w.time / 60)}:${String(w.time % 60).padStart(2, '0')}` }) : t(w.kills === 1 ? 'end.oneKill' : 'end.kills', { n: w.kills })}</small></div>`
         : '';
     if (s.matches === 0 && s.kills === 0 && s.deaths === 0) {
       $('statsBody').innerHTML = `<p class="stats-empty">${t(mode === 'all' ? 'account.noStats' : 'account.noStatsMode')}</p>${waves}`;

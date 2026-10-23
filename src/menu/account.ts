@@ -8,7 +8,7 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { lang } from '../i18n';
 import type { RoomMode } from '../net/protocol';
 import { mergeProgress } from '../client/campaign';
-import { mergeWavesRecord, type WavesRecord } from '../client/waves';
+import { betterRun, mergeWavesRecord, type WavesRecord } from '../client/waves';
 import { cleanLevels, loadProgress as loadWavesProgress, mergeProgress as mergeWavesProgress } from '../client/wavesProgress';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../net/supabase';
 
@@ -157,7 +157,8 @@ export class Account {
       client.from('profiles').select(PROFILE_COLUMNS).eq('id', id).maybeSingle(),
       client.from('player_stats').select(STATS_COLUMNS).eq('user_id', id),
       client.from('campaign_progress').select('level, best_seconds').eq('user_id', id),
-      client.from('waves_records').select('best_wave, best_kills').eq('user_id', id).maybeSingle(),
+      // (every column: best_time only exists once 20261023120000_waves_time.sql ran)
+      client.from('waves_records').select('*').eq('user_id', id).maybeSingle(),
       client.from('waves_progress').select('earned, levels').eq('user_id', id).maybeSingle(),
     ]);
     void this.loadDebugTools();
@@ -171,11 +172,11 @@ export class Account {
     // The waves: the account's best run and this browser's, the better one in both
     if (waves.error) console.warn('[account] cannot read the waves', waves.error.message);
     else {
-      const row = waves.data as { best_wave: number; best_kills: number } | null;
-      const remote = row ? { wave: row.best_wave, kills: row.best_kills } : null;
+      const row = waves.data as { best_wave: number; best_kills: number; best_time?: number | null } | null;
+      const remote = row ? { wave: row.best_wave, kills: row.best_kills, time: row.best_time ?? null } : null;
       const upload = mergeWavesRecord(remote);
       this.waves = upload ?? remote;
-      if (upload) void this.saveWaves(upload.wave, upload.kills);
+      if (upload) void this.saveWaves(upload.wave, upload.kills, upload.time);
     }
     // The campaign: the account's progress and this browser's, the better time of each level
     if (campaign.error) console.warn('[account] cannot read the campaign', campaign.error.message);
@@ -276,12 +277,14 @@ export class Account {
 
   /** A campaign level won: its time goes to the account (which keeps the better one). */
   /** A waves run ended: the account keeps its best one. */
-  async saveWaves(wave: number, kills: number): Promise<void> {
+  async saveWaves(wave: number, kills: number, time: number | null): Promise<void> {
     if (!this.client || !this.session) return;
-    const { error } = await this.client.rpc('record_waves', { p_wave: wave, p_kills: kills });
+    let { error } = await this.client.rpc('record_waves', { p_wave: wave, p_kills: kills, p_time: time });
+    // A database without the time yet (20261023120000_waves_time.sql): the wave and kills as before
+    if (error && (error.code === 'PGRST202' || /record_waves/.test(error.message))) ({ error } = await this.client.rpc('record_waves', { p_wave: wave, p_kills: kills }));
     if (error) console.warn('[account] cannot save the waves', error.message);
-    else if (!this.waves || wave > this.waves.wave || (wave === this.waves.wave && kills > this.waves.kills)) {
-      this.waves = { wave, kills };
+    else if (betterRun({ wave, kills, time }, this.waves)) {
+      this.waves = { wave, kills, time };
       this.emit();
     }
   }

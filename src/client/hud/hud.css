@@ -2946,6 +2946,18 @@
   font: 400 30px var(--h-display);
 }
 
+/* The waves' ranking time (and the deaths' seconds in it) */
+.h-campend .rtime {
+  margin-top: 4px;
+  color: #cfe0ff;
+  font: 800 15px var(--h-ui);
+}
+
+.h-campend .rtime small {
+  color: var(--h-muted);
+  font-weight: 700;
+}
+
 .h-campend .best {
   margin-top: 2px;
   color: var(--h-muted);

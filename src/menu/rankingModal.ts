@@ -44,7 +44,8 @@ const COLUMNS: Record<RankingMode, { head: Key; cell: (r: RankingRow) => string 
   ],
   waves: [
     { head: 'ranking.wave', cell: (r) => bigNum(r.stats.wave) },
-    { head: 'account.kills', cell: (r) => bigNum(r.stats.kills) },
+    // Who reached it sooner (deaths add WAVES.deathPenalty each); none: from a checkpoint, or an older record
+    { head: 'ranking.reachTime', cell: (r) => (typeof r.stats.time === 'number' ? clock(r.stats.time) : '—') },
     { head: 'ranking.runs', cell: (r) => bigNum(r.stats.runs) },
   ],
 };

@@ -75,6 +75,9 @@ export interface WavesEnd {
   cards: { id: CardID; level: number }[];
   /** A tester changed the run (WavesRun.setCard, goToWave): it counts for nothing (no record, Cores or ranking). */
   test: boolean;
+  /** The ranking's time to reach `wave` (WavesRecord.time; null: begun at a checkpoint, or a tester's), and the deaths it counts. */
+  time: number | null;
+  deaths: number;
 }
 
 type TimedPower = 'speed' | 'rapid' | 'shield' | 'fury';
@@ -182,8 +185,14 @@ export class WavesRun {
   private allyClock = 0;
   /** A tester changed the run (the waves' Esc screen, DEBUG_USER_IDS accounts): it counts for nothing. */
   tested = false;
-  /** Seconds since the first spawn. */
+  /** Seconds since the first spawn (dead time too; not the pauses: Esc, the cards). */
   elapsed = 0;
+  /**
+   * The ranking's time when the wave being played began: the clock, plus WAVES.deathPenalty for each death before it,
+   * and the deaths that counts. Null: a run begun at a checkpoint (its time isn't comparable).
+   */
+  private reachedAt: number | null = null;
+  private deathsBefore = 0;
   over = false;
 
   constructor(private readonly ctx: WavesContext) {
@@ -396,6 +405,8 @@ export class WavesRun {
     this.wave++;
     this.spec = waveSpec(this.wave);
     this.phase = 'fight';
+    this.deathsBefore = this.ctx.me.deaths;
+    this.reachedAt = this.ctx.startWave === 1 ? this.elapsed + WAVES.deathPenalty * this.deathsBefore : null;
     this.waveLeft = this.spec.seconds;
     this.pending = this.spec.total + carried;
     this.spawnWait = 0.5;
@@ -1068,7 +1079,8 @@ export class WavesRun {
     const kills = this.ctx.me.kills;
     const wave = Math.max(this.ctx.startWave, this.wave);
     const test = this.tested;
-    const isBest = !test && saveWavesRun(wave, kills);
+    const time = test || this.reachedAt === null ? null : Math.round(this.reachedAt);
+    const isBest = !test && saveWavesRun(wave, kills, time);
     const cores = test
       ? { waves: 0, waveCores: 0, kills, killCores: 0, bosses: this.bosses, bossCores: 0, recordCores: 0, total: 0 }
       : runCores(this.ctx.startWave, wave, kills, this.bosses, isBest);
@@ -1086,6 +1098,8 @@ export class WavesRun {
       unlocked: test ? [] : MILESTONES.filter((m) => m.wave > before && m.wave <= wave),
       cards: this.cardList(),
       test,
+      time,
+      deaths: this.deathsBefore,
     };
   }
 

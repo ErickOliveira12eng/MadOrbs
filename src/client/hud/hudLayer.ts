@@ -11,6 +11,7 @@ import type { FeatKind } from '../../sim/feats';
 import { drawMapPreview } from '../mapPreview';
 import { adBlockFound, adsAllowed, mountAd, refreshAd } from '../ads';
 import type { WavesEnd, WavesHud } from '../wavesRun';
+import { WAVES } from '../waves';
 import { MILESTONES, affordable, balance, checkpoints, nextMilestone } from '../wavesProgress';
 import { orbName, prizeText, weaponLook } from '../wavesPrize';
 import { cardDef, cardValue, type CardID } from '../wavesCards';
@@ -590,13 +591,19 @@ export class HudLayer {
     const head =
       `<div class="wave-reached"><span>${t('waves.label')}</span><b>${e.wave}</b></div>` +
       `<div class="time">${kills} · ${clock(e.seconds)}</div>` +
+      // The ranking's time: to reach the wave, the deaths' seconds in it (none from a checkpoint)
+      (e.test
+        ? ''
+        : e.time !== null
+          ? `<div class="rtime">${t('waves.rankTime', { time: clock(e.time) })}${e.deaths ? ` <small>${t('waves.rankDeaths', { n: e.deaths, s: e.deaths * WAVES.deathPenalty })}</small>` : ''}</div>`
+          : `<div class="rtime"><small>${t('waves.rankNoTime')}</small></div>`) +
       // A tester's run (the Esc screen's tools) counts for nothing
       (e.test
         ? `<div class="best">${t('test.run')}</div>`
         : e.isBest
           ? `<div class="best new">${t('waves.newBest')}</div>`
           : e.best
-            ? `<div class="best">${t('waves.record', { n: e.best.wave })}</div>`
+            ? `<div class="best">${e.best.time !== null ? t('waves.recordTime', { n: e.best.wave, time: clock(e.best.time) }) : t('waves.record', { n: e.best.wave })}</div>`
             : '') +
       (e.cards.length
         ? `<div class="h-wcards end">${e.cards.map((c) => `<span class="${cardDef(c.id).rarity}" title="${t(`card.${c.id}`)}">${cardIcon(c.id, 'h-cardmini')}<b>${c.level}</b></span>`).join('')}</div>`

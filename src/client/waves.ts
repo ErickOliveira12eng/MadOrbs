@@ -30,6 +30,12 @@ export const WAVES = {
    * (Erick, 19/10/2026: they piled up); the Workshop's starting lives go up to it.
    */
   maxLives: 5,
+  /**
+   * The ranking's time (WavesRun.reachedAt): each death before the best wave adds this many seconds to it (Erick,
+   * 23/10/2026: the ranking by time, dying must cost). A wave lasts 30 to 50 s up to wave 20 (a run there takes 13 to
+   * 15 min, tools/waves-sim.ts --times): a death costs about a wave, more than playing it carefully saves.
+   */
+  deathPenalty: 30,
   /** Share of the damage the player takes: the bots hit a quarter as hard as elsewhere. */
   playerDamage: 0.25,
   /**
@@ -306,20 +312,33 @@ export interface WavesRecord {
   /** The highest wave reached (the one being fought when the last life went). */
   wave: number;
   kills: number;
+  /**
+   * Seconds to reach that wave (the run's clock when it began, dead time included, plus WAVES.deathPenalty a death
+   * before it); null: a run begun at a checkpoint (it skipped the first waves), or one from before 23/10/2026.
+   */
+  time: number | null;
 }
 
 export function loadWavesRecord(): WavesRecord | null {
   try {
     const r = JSON.parse(localStorage.getItem(KEY) ?? 'null') as WavesRecord | null;
-    return r && Number.isFinite(r.wave) && r.wave > 0 ? r : null;
+    return r && Number.isFinite(r.wave) && r.wave > 0 ? { wave: r.wave, kills: r.kills, time: Number.isFinite(r.time) ? r.time : null } : null;
   } catch {
     return null;
   }
 }
 
-/** Whether run `a` beats run `b` (a higher wave, or the same with more kills). */
+/**
+ * Whether run `a` beats run `b`: a higher wave; the same wave sooner (one with a time beats one without); as soon,
+ * more kills. The database decides the same way (waves_run_better).
+ */
 export function betterRun(a: WavesRecord, b: WavesRecord | null): boolean {
-  return !b || a.wave > b.wave || (a.wave === b.wave && a.kills > b.kills);
+  if (!b) return true;
+  if (a.wave !== b.wave) return a.wave > b.wave;
+  const ta = a.time ?? Infinity;
+  const tb = b.time ?? Infinity;
+  if (ta !== tb) return ta < tb;
+  return a.kills > b.kills;
 }
 
 /**
@@ -339,12 +358,12 @@ export function mergeWavesRecord(remote: WavesRecord | null): WavesRecord | null
   return local && betterRun(local, remote) ? local : null;
 }
 
-/** Saves a run; true when it beats the record (a higher wave, or the same with more kills). */
-export function saveWavesRun(wave: number, kills: number): boolean {
-  const best = loadWavesRecord();
-  if (best && (best.wave > wave || (best.wave === wave && best.kills >= kills))) return false;
+/** Saves a run; true when it beats the record (betterRun). */
+export function saveWavesRun(wave: number, kills: number, time: number | null): boolean {
+  const run: WavesRecord = { wave, kills, time };
+  if (!betterRun(run, loadWavesRecord())) return false;
   try {
-    localStorage.setItem(KEY, JSON.stringify({ wave, kills }));
+    localStorage.setItem(KEY, JSON.stringify(run));
   } catch {
     /* storage unavailable: the record lasts for this page */
   }
