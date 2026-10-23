@@ -8,7 +8,7 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { lang } from '../i18n';
 import type { RoomMode } from '../net/protocol';
 import { mergeProgress } from '../client/campaign';
-import { betterRun, mergeWavesRecord, type WavesRecord } from '../client/waves';
+import { betterRun, cleanSplits, mergeSplits, mergeWavesRecord, type WavesRecord } from '../client/waves';
 import { cleanLevels, loadProgress as loadWavesProgress, mergeProgress as mergeWavesProgress } from '../client/wavesProgress';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../net/supabase';
 
@@ -172,11 +172,11 @@ export class Account {
     // The waves: the account's best run and this browser's, the better one in both
     if (waves.error) console.warn('[account] cannot read the waves', waves.error.message);
     else {
-      const row = waves.data as { best_wave: number; best_kills: number; best_time?: number | null } | null;
-      const remote = row ? { wave: row.best_wave, kills: row.best_kills, time: row.best_time ?? null } : null;
-      const upload = mergeWavesRecord(remote);
-      this.waves = upload ?? remote;
-      if (upload) void this.saveWaves(upload.wave, upload.kills, upload.time);
+      const row = waves.data as { best_wave: number; best_kills: number; best_time?: number | null; best_splits?: unknown } | null;
+      const remote = row ? { wave: row.best_wave, kills: row.best_kills, time: row.best_time ?? null, splits: cleanSplits(row.best_splits) } : null;
+      const { record, upload } = mergeWavesRecord(remote);
+      this.waves = record;
+      if (record && upload) void this.saveWaves(record.wave, record.kills, record.time, record.splits);
     }
     // The campaign: the account's progress and this browser's, the better time of each level
     if (campaign.error) console.warn('[account] cannot read the campaign', campaign.error.message);
@@ -277,16 +277,27 @@ export class Account {
 
   /** A campaign level won: its time goes to the account (which keeps the better one). */
   /** A waves run ended: the account keeps its best one. */
-  async saveWaves(wave: number, kills: number, time: number | null): Promise<void> {
+  async saveWaves(wave: number, kills: number, time: number | null, splits: Record<number, number>): Promise<void> {
     if (!this.client || !this.session) return;
-    let { error } = await this.client.rpc('record_waves', { p_wave: wave, p_kills: kills, p_time: time });
-    // A database without the time yet (20261023120000_waves_time.sql): the wave and kills as before
-    if (error && (error.code === 'PGRST202' || /record_waves/.test(error.message))) ({ error } = await this.client.rpc('record_waves', { p_wave: wave, p_kills: kills }));
-    if (error) console.warn('[account] cannot save the waves', error.message);
-    else if (betterRun({ wave, kills, time }, this.waves)) {
-      this.waves = { wave, kills, time };
-      this.emit();
+    // The newest record_waves first; a database without it yet answers "no such function": the one before
+    // (20261024120000_waves_splits.sql: the checkpoint times; 20261023120000_waves_time.sql: the time)
+    const tries = [
+      { p_wave: wave, p_kills: kills, p_time: time, p_splits: splits },
+      { p_wave: wave, p_kills: kills, p_time: time },
+      { p_wave: wave, p_kills: kills },
+    ];
+    let error: { code?: string; message: string } | null = null;
+    for (const args of tries) {
+      ({ error } = await this.client.rpc('record_waves', args));
+      if (!error || !(error.code === 'PGRST202' || /record_waves/.test(error.message))) break;
     }
+    if (error) {
+      console.warn('[account] cannot save the waves', error.message);
+      return;
+    }
+    const run = { wave, kills, time, splits: mergeSplits(this.waves?.splits, splits) };
+    this.waves = betterRun(run, this.waves) ? run : this.waves && { ...this.waves, splits: run.splits };
+    this.emit();
   }
 
   /** Testers: deletes this account's waves or campaign progress in the database (the server checks who asks). */

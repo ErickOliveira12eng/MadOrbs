@@ -553,7 +553,7 @@ export const en = {
   'waves.lives': 'Lives',
   'waves.rankTime': 'Ranking time: {time}',
   'waves.rankDeaths': '(deaths: {n}, +{s} s)',
-  'waves.rankNoTime': 'Begun at a checkpoint: no ranking time',
+  'waves.rankNoTime': 'No time saved for this checkpoint yet: reach it from wave 1 to get a ranking time',
   'waves.recordTime': 'Record: wave {n} in {time}',
   'waves.record': 'Record: wave {n}',
   'waves.over': 'Game over',

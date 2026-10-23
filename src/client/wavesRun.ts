@@ -12,7 +12,7 @@ import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
-import { BARRIER_SIZE, BREATHER, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
+import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
 export interface WavesHud {
@@ -75,9 +75,13 @@ export interface WavesEnd {
   cards: { id: CardID; level: number }[];
   /** A tester changed the run (WavesRun.setCard, goToWave): it counts for nothing (no record, Cores or ranking). */
   test: boolean;
-  /** The ranking's time to reach `wave` (WavesRecord.time; null: begun at a checkpoint, or a tester's), and the deaths it counts. */
+  /**
+   * The ranking's time to reach `wave` (WavesRecord.time; null: begun at a checkpoint never reached with a time, or a
+   * tester's), the deaths it counts, and the checkpoint waves this run reached with their times (WavesRecord.splits).
+   */
   time: number | null;
   deaths: number;
+  splits: Record<number, number>;
 }
 
 type TimedPower = 'speed' | 'rapid' | 'shield' | 'fury';
@@ -189,10 +193,13 @@ export class WavesRun {
   elapsed = 0;
   /**
    * The ranking's time when the wave being played began: the clock, plus WAVES.deathPenalty for each death before it,
-   * and the deaths that counts. Null: a run begun at a checkpoint (its time isn't comparable).
+   * and the deaths that counts. A run begun at a checkpoint starts from that checkpoint's best time (WavesRecord.splits,
+   * counted from its first wave); null: none known. The checkpoint waves this run reached, with their times.
    */
   private reachedAt: number | null = null;
   private deathsBefore = 0;
+  private firstWaveAt: number | null = null;
+  private readonly splits: Record<number, number> = {};
   over = false;
 
   constructor(private readonly ctx: WavesContext) {
@@ -406,7 +413,11 @@ export class WavesRun {
     this.spec = waveSpec(this.wave);
     this.phase = 'fight';
     this.deathsBefore = this.ctx.me.deaths;
-    this.reachedAt = this.ctx.startWave === 1 ? this.elapsed + WAVES.deathPenalty * this.deathsBefore : null;
+    this.firstWaveAt ??= this.elapsed;
+    const fromStart = this.ctx.startWave === 1;
+    const base = fromStart ? 0 : (this.record?.splits[this.ctx.startWave] ?? null);
+    this.reachedAt = base === null ? null : base + this.elapsed - (fromStart ? 0 : this.firstWaveAt) + WAVES.deathPenalty * this.deathsBefore;
+    if (this.reachedAt !== null && this.wave % CHECKPOINT === 0) this.splits[this.wave] = Math.round(this.reachedAt);
     this.waveLeft = this.spec.seconds;
     this.pending = this.spec.total + carried;
     this.spawnWait = 0.5;
@@ -1080,7 +1091,7 @@ export class WavesRun {
     const wave = Math.max(this.ctx.startWave, this.wave);
     const test = this.tested;
     const time = test || this.reachedAt === null ? null : Math.round(this.reachedAt);
-    const isBest = !test && saveWavesRun(wave, kills, time);
+    const isBest = !test && saveWavesRun(wave, kills, time, this.splits);
     const cores = test
       ? { waves: 0, waveCores: 0, kills, killCores: 0, bosses: this.bosses, bossCores: 0, recordCores: 0, total: 0 }
       : runCores(this.ctx.startWave, wave, kills, this.bosses, isBest);
@@ -1100,6 +1111,7 @@ export class WavesRun {
       test,
       time,
       deaths: this.deathsBefore,
+      splits: test ? {} : { ...this.splits },
     };
   }
 

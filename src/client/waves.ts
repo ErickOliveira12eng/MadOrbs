@@ -314,17 +314,58 @@ export interface WavesRecord {
   kills: number;
   /**
    * Seconds to reach that wave (the run's clock when it began, dead time included, plus WAVES.deathPenalty a death
-   * before it); null: a run begun at a checkpoint (it skipped the first waves), or one from before 23/10/2026.
+   * before it; a run begun at a checkpoint starts from that checkpoint's time, `splits`); null: no time known (a run
+   * from a checkpoint never reached from wave 1, or one from before 23/10/2026).
    */
   time: number | null;
+  /**
+   * The best total time to reach each checkpoint wave (10, 20, 30...: wavesProgress CHECKPOINT), the same count as
+   * `time`, from any run (Erick, 24/10/2026: reach wave 10 in 5 min, then start there and reach 20 in 4 more: the 20 is
+   * 9 min). A run begun at a checkpoint starts its clock there.
+   */
+  splits: Record<number, number>;
 }
+
+/** Only sound times: checkpoint waves (whole numbers) to whole seconds within a day. */
+export function cleanSplits(raw: unknown): Record<number, number> {
+  const out: Record<number, number> = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    const wave = Number(k);
+    if (Number.isInteger(wave) && wave > 0 && wave <= 100000 && typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 86400) out[wave] = Math.round(v);
+  }
+  return out;
+}
+
+/** The best of two sets of checkpoint times: the lower one of each wave. */
+export function mergeSplits(a: Record<number, number> | undefined, b: Record<number, number> | undefined): Record<number, number> {
+  const out: Record<number, number> = { ...(a ?? {}) };
+  for (const [k, v] of Object.entries(b ?? {})) {
+    const wave = Number(k);
+    out[wave] = out[wave] === undefined ? v : Math.min(out[wave], v);
+  }
+  return out;
+}
+
+const sameSplits = (a: Record<number, number>, b: Record<number, number>): boolean =>
+  Object.keys(a).length === Object.keys(b).length && Object.entries(a).every(([k, v]) => b[Number(k)] === v);
 
 export function loadWavesRecord(): WavesRecord | null {
   try {
     const r = JSON.parse(localStorage.getItem(KEY) ?? 'null') as WavesRecord | null;
-    return r && Number.isFinite(r.wave) && r.wave > 0 ? { wave: r.wave, kills: r.kills, time: Number.isFinite(r.time) ? r.time : null } : null;
+    return r && Number.isFinite(r.wave) && r.wave > 0
+      ? { wave: r.wave, kills: r.kills, time: Number.isFinite(r.time) ? r.time : null, splits: cleanSplits(r.splits) }
+      : null;
   } catch {
     return null;
+  }
+}
+
+function storeWavesRecord(r: WavesRecord): void {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(r));
+  } catch {
+    /* storage unavailable: the record lasts for this page */
   }
 }
 
@@ -342,30 +383,28 @@ export function betterRun(a: WavesRecord, b: WavesRecord | null): boolean {
 }
 
 /**
- * The account's best run merged into this browser's (the better one stays here). Returns this
- * browser's when it beats the account's, to send to it; else null.
+ * The account's best run and this browser's, the better one in both, with the best checkpoint times of the two.
+ * `upload`: the account lacks something this browser has (a better run, a better checkpoint time).
  */
-export function mergeWavesRecord(remote: WavesRecord | null): WavesRecord | null {
+export function mergeWavesRecord(remote: WavesRecord | null): { record: WavesRecord | null; upload: boolean } {
   const local = loadWavesRecord();
-  if (remote && betterRun(remote, local)) {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(remote));
-    } catch {
-      /* storage unavailable */
-    }
-    return null;
-  }
-  return local && betterRun(local, remote) ? local : null;
+  const best = remote && betterRun(remote, local) ? remote : local;
+  if (!best) return { record: null, upload: false };
+  const record = { ...best, splits: mergeSplits(local?.splits, remote?.splits) };
+  storeWavesRecord(record);
+  const upload = !remote || betterRun(record, remote) || !sameSplits(record.splits, remote.splits);
+  return { record, upload };
 }
 
-/** Saves a run; true when it beats the record (betterRun). */
-export function saveWavesRun(wave: number, kills: number, time: number | null): boolean {
-  const run: WavesRecord = { wave, kills, time };
-  if (!betterRun(run, loadWavesRecord())) return false;
-  try {
-    localStorage.setItem(KEY, JSON.stringify(run));
-  } catch {
-    /* storage unavailable: the record lasts for this page */
-  }
-  return true;
+/**
+ * Saves a run: its checkpoint times join the best ones (always), and the run becomes the record when it beats it
+ * (betterRun). True when it did.
+ */
+export function saveWavesRun(wave: number, kills: number, time: number | null, splits: Record<number, number>): boolean {
+  const best = loadWavesRecord();
+  const merged = mergeSplits(best?.splits, splits);
+  const run: WavesRecord = { wave, kills, time, splits: merged };
+  const isBest = betterRun(run, best);
+  storeWavesRecord(isBest ? run : { ...best!, splits: merged });
+  return isBest;
 }

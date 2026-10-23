@@ -543,7 +543,7 @@ export const pt: Record<Key, string> = {
   'waves.lives': 'Vidas',
   'waves.rankTime': 'Tempo no ranking: {time}',
   'waves.rankDeaths': '(mortes: {n}, +{s} s)',
-  'waves.rankNoTime': 'Começou num checkpoint: sem tempo no ranking',
+  'waves.rankNoTime': 'Ainda sem tempo nesse checkpoint: chegue a ele desde a onda 1 para ter tempo no ranking',
   'waves.recordTime': 'Recorde: onda {n} em {time}',
   'waves.record': 'Recorde: onda {n}',
   'waves.over': 'Fim de jogo',

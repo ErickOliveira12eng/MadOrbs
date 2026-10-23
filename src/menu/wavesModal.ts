@@ -304,11 +304,14 @@ export class WavesModal {
     const open = checkpoints(record);
     const reached = open.slice(1).slice(-2);
     const next = open.length * CHECKPOINT;
+    // A checkpoint's best time to reach it: a run begun there starts the ranking's clock from it (WavesRecord.splits)
+    const splits = loadWavesRecord()?.splits ?? {};
+    const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
     $('wvStarts').innerHTML =
       [1, ...(tester ? [TEST_START] : []), ...reached]
         .map(
           (w) =>
-            `<button type="button" class="wv-opt${w === startWave ? ' on' : ''}" data-start="${w}"><b>${w}</b><small>${w === 1 ? t('workshop.fromStart') : w === TEST_START && tester ? t('workshop.testStart') : t('workshop.unlocked')}</small></button>`,
+            `<button type="button" class="wv-opt${w === startWave ? ' on' : ''}" data-start="${w}"><b>${w}</b><small>${w === 1 ? t('workshop.fromStart') : w === TEST_START && tester ? t('workshop.testStart') : splits[w] !== undefined ? clock(splits[w]) : t('workshop.unlocked')}</small></button>`,
         )
         .join('') + `<button type="button" class="wv-opt locked" disabled title="${t('workshop.reach', { n: next + CHECKPOINT })}"><b>${icon('lock', 13)}${next}</b><small>${t('workshop.locked')}</small></button>`;
     $('wvStartNote').textContent =
