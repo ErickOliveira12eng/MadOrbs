@@ -1059,6 +1059,14 @@ select:focus-visible {
   font-weight: 900;
 }
 
+/* The waves' time beside the wave */
+.lr-row .val small {
+  margin-left: 6px;
+  color: #8d97bf;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .lr-row.me {
   background: rgba(95, 226, 125, 0.14);
   box-shadow: inset 0 0 0 1px rgba(95, 226, 125, 0.45);
@@ -1099,7 +1107,7 @@ select:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 10px 6px;
+  padding: 10px 3px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   text-align: center;
@@ -1110,14 +1118,21 @@ select:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #8d97bf;
-  font: 800 10.5px var(--font-ui);
-  letter-spacing: 0.05em;
+  font: 800 9px var(--font-ui);
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
 .perf-cell b {
   color: #fff;
-  font: 400 22px/1 var(--font-display);
+  font: 400 21px/1 var(--font-display);
+  white-space: nowrap;
+}
+
+.perf-cell > small:last-child:not(:first-child) {
+  color: #c9d2f5;
+  font-size: 11px;
+  letter-spacing: 0;
 }
 
 .perf-cell.top b {
@@ -3311,13 +3326,45 @@ input[type='range'] {
 
 .stats-waves {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   margin-top: 14px;
   padding: 10px 14px;
   border-radius: 14px;
   background: rgba(255, 77, 109, 0.1);
   border: 1px solid rgba(255, 77, 109, 0.3);
+}
+
+.sw-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+/* The best time to each checkpoint: one chip each */
+.sw-splits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.sw-splits em {
+  margin-right: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.sw-splits i {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #ffe1e5;
+  font-size: 12.5px;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .stats-waves span {

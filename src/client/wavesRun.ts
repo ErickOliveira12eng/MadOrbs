@@ -10,7 +10,7 @@ import type { Player, SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
-import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, ELITE, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
@@ -84,6 +84,14 @@ export interface WavesEnd {
   time: number | null;
   deaths: number;
   splits: Record<number, number>;
+  /**
+   * What `time` adds up (Erick, 24/10/2026: the end shows the sum): the checkpoint's best time the run began from (0
+   * from wave 1), the clock played until `wave` began; and the best checkpoint times before this run (a new one is a
+   * record).
+   */
+  startTime: number;
+  playTime: number;
+  splitsBefore: Record<number, number>;
 }
 
 type TimedPower = 'speed' | 'rapid' | 'shield' | 'fury';
@@ -519,10 +527,20 @@ export class WavesRun {
     const strength = eliteStrength(this.wave);
     p.badges = traits;
     p.radius = 0.25;
+    p.lifeMax = 1;
+    p.teamTint = null;
+    // Every elite: twice the life, a little more damage and defense, a little bigger, darker red (ELITE)
+    if (traits.length) {
+      p.lifeMax = ELITE.life;
+      p.damageBoost *= ELITE.hit;
+      p.damageScale *= ELITE.tough;
+      p.radius = ELITE.radius;
+      p.teamTint = ELITE.tint;
+    }
     if (traits.includes('fast')) p.speedBoost = Math.min(1.9, WAVES.botSpeed * strength.speed);
     if (traits.includes('brute')) {
       p.damageBoost *= strength.hit;
-      p.radius = 0.3;
+      p.radius = 0.33;
     }
     if (traits.includes('tank')) p.damageScale *= strength.tough;
     bots[i] = new BotController(p, traits.includes('sniper') ? 1 : this.spec.skill, loadout);
@@ -564,6 +582,7 @@ export class WavesRun {
     p.radius = strength.radius;
     p.wallRadius = WAVES.boss.radius;
     p.damageScale = WAVES.boss.damageScale * this.spec.toughness * strength.tough;
+    p.lifeMax = WAVES.boss.life;
     p.damageBoost = this.spec.hitBoost * strength.hit;
     p.speedBoost = WAVES.botSpeed;
     // Its weapon, and the best shot of the wave (WAVES.boss)
@@ -1134,6 +1153,9 @@ export class WavesRun {
       ? { waves: 0, waveCores: 0, kills, killCores: 0, bosses: this.bosses, bossCores: 0, recordCores: 0, total: 0 }
       : runCores(this.ctx.startWave, wave, kills, this.bosses, isBest);
     const before = this.record?.wave ?? 0;
+    const startTime = this.ctx.startWave === 1 ? 0 : (this.record?.splits[this.ctx.startWave] ?? 0);
+    const playTime = time === null ? 0 : Math.max(0, time - startTime - WAVES.deathPenalty * this.deathsBefore);
+    const splitsBefore = { ...(this.record?.splits ?? {}) };
     return {
       wave,
       kills,
@@ -1150,6 +1172,9 @@ export class WavesRun {
       time,
       deaths: this.deathsBefore,
       splits: test ? {} : { ...this.splits },
+      startTime,
+      playTime,
+      splitsBefore,
     };
   }
 

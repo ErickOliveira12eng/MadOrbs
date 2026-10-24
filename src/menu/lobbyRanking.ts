@@ -12,6 +12,13 @@ import { COLUMNS, esc, orbStyle } from './rankingModal';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s) % 60).padStart(2, '0')}`;
+/**
+ * The waves' time to reach the best wave, beside it (Erick, 24/10/2026: the time breaks the ties, it should be seen
+ * and raced); none for a run from a checkpoint never reached with a time.
+ */
+const wavesTime = (mode: RankingMode, r: RankingRow) => (mode === 'waves' && typeof r.stats.time === 'number' ? `<small>${clock(r.stats.time)}</small>` : '');
+
 type Tab = 'online' | 'waves' | 'campaign';
 
 /** What each list goes by, said under the tabs. */
@@ -109,7 +116,7 @@ export class LobbyRanking {
         `<span class="pos">${bigNum(r.rank)}</span>` +
         `<i class="orb" style="${orbStyle(r)}"></i>` +
         `<b class="who">${r.is_me ? t('ranking.you') : esc(r.name || 'Orb')}</b>` +
-        `<span class="val">${by.cell(r)}</span></li>`;
+        `<span class="val">${by.cell(r)}${wavesTime(mode, r)}</span></li>`;
     }
     list.innerHTML = html || `<li class="lr-note">${t('ranking.empty')}</li>`;
     this.renderPerf(mode, rows.find((r) => r.is_me) ?? null, total);
@@ -129,12 +136,13 @@ export class LobbyRanking {
       return;
     }
     const by = COLUMNS[mode][0];
-    // Never "Top 0%": the best player is in the top 1%
-    const share = total > 0 ? Math.max(1, Math.ceil((me.rank / total) * 100)) : 0;
+    // The share of the ranked players ahead of this one (Erick, 24/10/2026: the first of 3 read "Top 34%"): the first
+    // is in the top 1%, the 128th of 1,045 in the top 13%
+    const share = total > 0 ? Math.min(100, Math.max(1, Math.ceil(((me.rank - 1) / total) * 100))) : 0;
     box.innerHTML =
       `<div class="perf-grid">` +
       `<span class="perf-cell"><small>${t('lobby.perfPlace')}</small><b>#${bigNum(me.rank)}</b></span>` +
-      `<span class="perf-cell"><small>${t(by.head)}</small><b>${by.cell(me)}</b></span>` +
+      `<span class="perf-cell"><small>${t(by.head)}</small><b>${by.cell(me)}</b>${wavesTime(mode, me)}</span>` +
       (share ? `<span class="perf-cell top"><small>${t('lobby.perfOf', { n: bigNum(total) })}</small><b>${t('lobby.perfTop', { n: share })}</b></span>` : '') +
       `</div>`;
   }

@@ -13,6 +13,7 @@ import {
   WEAPON_SMG,
   WEAPON_SNIPER,
 } from '../sim/constants';
+import type { SkinInfo } from '../sim/player';
 
 /** The map of the first version (chosen by Erick from tools/debug/map-gallery.ts). */
 export const WAVES_MAP = 'CTF-Invaders';
@@ -85,7 +86,7 @@ export const WAVES = {
    * wave 60 the boss didn't make up for some 40 bots less: 61 against 99 on wave 59).
    */
   bossWave: { share: 0.6, fullFrom: 30 },
-  boss: { radius: 0.45, damageScale: 0.25, weapon: WEAPON_CHAIN_GUN, aim: 0.3, spread: 0.35 },
+  boss: { radius: 0.45, damageScale: 0.22, weapon: WEAPON_CHAIN_GUN, aim: 0.3, spread: 0.35, life: 2 },
   /** Bots that come with the boss and walk beside it. */
   escorts: 2,
 };
@@ -180,6 +181,19 @@ export function eliteDoubleChance(n: number): number {
  * the brute's damage (×), the sharpshooter's aim error (×, and the best skill), the tank's share of the
  * damage it takes.
  */
+/**
+ * What every elite has on top of its traits (Erick, 24/10/2026: they must be stronger and stand out): twice the life
+ * (Player.lifeMax), a little more damage and defense, a little bigger, and a darker blood red than the red team's, its
+ * three tones all darker, whatever the skin (Player.teamTint; not purple nor gold).
+ */
+export const ELITE = {
+  life: 2,
+  hit: 1.15,
+  tough: 0.88,
+  radius: 0.28,
+  tint: { redDecal: [0.55, 0.06, 0.05], greenDecal: [0.3, 0, 0.02], blueDecal: [0.06, 0, 0] } as Omit<SkinInfo, 'skin'>,
+};
+
 export function eliteStrength(n: number): { speed: number; hit: number; aim: number; tough: number } {
   const k = Math.max(0, n - ELITE_FROM);
   return { speed: 1.3 + 0.02 * k, hit: 1.6 + 0.06 * k, aim: 0.3, tough: 1 / (2 + 0.06 * k) };
@@ -188,11 +202,12 @@ export function eliteStrength(n: number): { speed: number; hit: number; aim: num
 /**
  * The boss grows each time it comes (wave 10, 20, 30...; Erick, 12/10/2026): bigger (hit and drawn at
  * that size; against the walls it keeps WAVES.boss.radius), much harder hitting, a bit tougher.
- * `k` is how many times it came before.
+ * `k` is how many times it came before. 24/10/2026 (Erick: it must be harder): ~15% more damage (it was 2.5 + k),
+ * its defense in WAVES.boss.damageScale (0.22, was 0.25) and twice the life (WAVES.boss.life).
  */
 export function bossStrength(n: number): { radius: number; hit: number; tough: number } {
   const k = Math.max(0, Math.floor(n / WAVES.bossEvery) - 1);
-  return { radius: Math.min(1.1, 0.6 + 0.1 * k), hit: 2.5 + k, tough: 1 / (1 + 0.2 * k) };
+  return { radius: Math.min(1.1, 0.6 + 0.1 * k), hit: 2.9 + 1.15 * k, tough: 1 / (1 + 0.2 * k) };
 }
 
 /** A bot's traits on wave n: none (most), one, or two later on. */

@@ -85,11 +85,19 @@ export class StatsModal {
     const all = this.account.stats;
     const mode = this.statsMode;
     const s = mode === 'all' ? sumStats(ROOM_MODES.map((m) => all[m] ?? NO_STATS)) : (all[mode] ?? NO_STATS);
-    // The waves (offline): the best run, under "All"
+    // The waves (offline), under "All": the best run, how long it took to reach its wave (what the ranking compares on
+    // a tie: Erick, 24/10/2026), and the best time to each checkpoint
     const w = this.account.waves;
+    const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec) % 60).padStart(2, '0')}`;
+    const splits = w ? Object.entries(w.splits).map(([n, sec]) => [Number(n), sec] as const).sort((a, b) => a[0] - b[0]) : [];
     const waves =
       mode === 'all' && w
-        ? `<div class="stats-waves"><span>${t('menu.waves')}</span><b>${t('ranking.bestWave', { n: w.wave })}</b><small>${w.time !== null ? t('waves.rankTime', { time: `${Math.floor(w.time / 60)}:${String(w.time % 60).padStart(2, '0')}` }) : t(w.kills === 1 ? 'end.oneKill' : 'end.kills', { n: w.kills })}</small></div>`
+        ? `<div class="stats-waves"><div class="sw-top"><span>${t('menu.waves')}</span><b>${t('ranking.bestWave', { n: w.wave })}</b>` +
+          `<small>${w.time !== null ? t('stats.wavesReached', { n: w.wave, time: clock(w.time) }) : t('stats.wavesNoTime')}</small></div>` +
+          (splits.length
+            ? `<div class="sw-splits"><em>${t('stats.wavesSplits')}</em>${splits.map(([n, sec]) => `<i>${t('stats.wavesSplit', { n, time: clock(sec) })}</i>`).join('')}</div>`
+            : '') +
+          `</div>`
         : '';
     if (s.matches === 0 && s.kills === 0 && s.deaths === 0) {
       $('statsBody').innerHTML = `<p class="stats-empty">${t(mode === 'all' ? 'account.noStats' : 'account.noStatsMode')}</p>${waves}`;

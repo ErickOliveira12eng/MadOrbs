@@ -603,13 +603,7 @@ export class HudLayer {
     const kills = t(e.kills === 1 ? 'end.oneKill' : 'end.kills', { n: e.kills });
     const head =
       `<div class="wave-reached"><span>${t('waves.label')}</span><b>${e.wave}</b></div>` +
-      `<div class="time">${kills} · ${clock(e.seconds)}</div>` +
-      // The ranking's time: to reach the wave, the deaths' seconds in it (none from a checkpoint)
-      (e.test
-        ? ''
-        : e.time !== null
-          ? `<div class="rtime">${t('waves.rankTime', { time: clock(e.time) })}${e.deaths ? ` <small>${t('waves.rankDeaths', { n: e.deaths, s: e.deaths * WAVES.deathPenalty })}</small>` : ''}</div>`
-          : `<div class="rtime"><small>${t('waves.rankNoTime')}</small></div>`) +
+      `<div class="time">${kills}</div>` +
       // A tester's run (the Esc screen's tools) counts for nothing
       (e.test
         ? `<div class="best">${t('test.run')}</div>`
@@ -638,7 +632,32 @@ export class HudLayer {
     // The milestones: those reached now, the next one with how far it is
     const prizeArt = (m: (typeof MILESTONES)[number]) =>
       'weapon' in m ? `<img class="w" src="${weaponLook(m.weapon).picture}" alt="" />` : `<img class="o" data-orb="${m.skin}" alt="" />`;
-    let side = '';
+    // The ranking's time to reach the wave, added up (Erick, 24/10/2026): the checkpoint it began from, the time
+    // played, the deaths' seconds, the total (a record?), and the checkpoints reached with their times (records starred)
+    const trow = (label: string, v: string) => `<div class="wc-row"><span>${label}</span><b>${v}</b></div>`;
+    const splits = Object.entries(e.splits)
+      .map(([n, sec]) => [Number(n), sec] as const)
+      .filter(([n]) => n > e.startWave)
+      .sort((a, b) => a[0] - b[0]);
+    const timeBox = e.test
+      ? ''
+      : `<div class="wc-box wt-box"><div class="wc-head"><span class="wt-ico">⏱</span>${t('wend.time', { n: e.wave })}</div>` +
+        (e.time === null
+          ? `<div class="wt-none">${t('waves.rankNoTime')}</div>`
+          : (e.startWave > 1 ? trow(t('wend.timeStart', { n: e.startWave }), clock(e.startTime)) : '') +
+            trow(t('wend.timePlayed'), clock(e.playTime)) +
+            (e.deaths ? trow(t('wend.timeDeaths', { n: e.deaths, s: WAVES.deathPenalty }), `+${clock(e.deaths * WAVES.deathPenalty)}`) : '') +
+            `<div class="wc-total"><span>${t('wend.total')}${e.isBest ? ` <em class="wt-rec">${t('wend.timeRecord')}</em>` : ''}</span><b>${clock(e.time)}</b></div>` +
+            (splits.length
+              ? `<div class="wt-splits">${splits
+                  .map(([n, sec]) => {
+                    const rec = e.splitsBefore[n] === undefined || sec < e.splitsBefore[n];
+                    return `<span class="${rec ? 'rec' : ''}">${t('stats.wavesSplit', { n, time: clock(sec) })}${rec ? ' ★' : ''}</span>`;
+                  })
+                  .join('')}</div>`
+              : '')) +
+        `</div>`;
+    let side = timeBox;
     // One prize: a card; several (a first long run): small chips, two a row, so the panel stays on screen
     if (e.unlocked.length === 1) {
       const m = e.unlocked[0];

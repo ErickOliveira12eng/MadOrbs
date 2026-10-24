@@ -3191,18 +3191,6 @@
   font: 400 30px var(--h-display);
 }
 
-/* The waves' ranking time (and the deaths' seconds in it) */
-.h-campend .rtime {
-  margin-top: 4px;
-  color: #cfe0ff;
-  font: 800 15px var(--h-ui);
-}
-
-.h-campend .rtime small {
-  color: var(--h-muted);
-  font-weight: 700;
-}
-
 .h-campend .best {
   margin-top: 2px;
   color: var(--h-muted);
@@ -3698,6 +3686,75 @@
 }
 
 .wc-bal b {
+  color: #ffd34d;
+}
+
+/* The waves' time to the wave reached, added up (HudLayer.showWavesEnd) */
+.wc-box.wt-box {
+  gap: 4px;
+  padding: 12px 14px;
+  border-color: rgba(255, 211, 77, 0.45);
+  background: linear-gradient(180deg, rgba(54, 40, 10, 0.9), rgba(26, 20, 40, 0.9));
+}
+
+.wt-box .wc-head {
+  font-size: 18px;
+}
+
+.wt-box .wc-row {
+  font-size: 13.5px;
+}
+
+.wt-box .wc-row b {
+  color: #ffe9a8;
+}
+
+.wt-box .wc-total {
+  padding-top: 6px;
+  border-top-color: rgba(255, 211, 77, 0.3);
+}
+
+.wt-box .wc-total b {
+  color: #ffd34d;
+  font-size: 28px;
+}
+
+.wt-ico {
+  font-size: 17px;
+}
+
+.wt-rec {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #ffd34d;
+  color: #2b1d00;
+  font: 900 11.5px var(--h-ui);
+  font-style: normal;
+}
+
+.wt-none {
+  color: var(--h-muted);
+  font: 700 13px var(--h-ui);
+}
+
+.wt-splits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.wt-splits span {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #e6e8ff;
+  font: 800 12px var(--h-ui);
+}
+
+.wt-splits span.rec {
+  background: rgba(255, 211, 77, 0.18);
   color: #ffd34d;
 }
 
