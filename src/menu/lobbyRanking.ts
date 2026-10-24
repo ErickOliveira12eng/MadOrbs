@@ -40,6 +40,10 @@ export class LobbyRanking {
   private readonly cache = new Map<string, { at: number; rows: RankingRow[]; total: number }>();
   /** Asked once the start screen has settled (not with the page's first bytes). */
   private started = false;
+  /** Who the lists were read for (a token refreshed on coming back to the tab is the same player: kept). */
+  private reader = '';
+  /** What the list and the box show now: written again only when it changes (no flicker). */
+  private shown = { list: '', perf: '' };
 
   constructor(
     private readonly account: Account,
@@ -60,6 +64,9 @@ export class LobbyRanking {
       if ((e.target as HTMLElement).closest('[data-signin]')) onSignIn();
     });
     account.onChange(() => {
+      const reader = account.session?.user.id ?? '';
+      if (reader === this.reader) return;
+      this.reader = reader;
       this.cache.clear();
       if (this.started) void this.render();
     });
@@ -76,7 +83,32 @@ export class LobbyRanking {
       return;
     }
     this.started = true;
-    window.setTimeout(() => void this.render(), 600);
+    window.setTimeout(() => void this.render().then(() => this.prefetch()), 600);
+  }
+
+  /** The other tabs read ahead, one after the other: a click shows them at once. */
+  private async prefetch(): Promise<void> {
+    for (const mode of [this.onlineMode(), 'waves', 'campaign'] as RankingMode[]) await this.read(mode).catch(() => null);
+  }
+
+  /** A mode's list, from the cache while it is fresh. */
+  private async read(mode: RankingMode): Promise<{ rows: RankingRow[]; total: number }> {
+    const signed = this.account.signedIn;
+    const key = `${mode}:${signed}`;
+    const got = this.cache.get(key);
+    if (got && performance.now() - got.at < CACHE_MS) return got;
+    const { rows, total } = await this.account.rankingNear(mode, signed ? TOP : GUEST_TOP);
+    const fresh = { at: performance.now(), rows, total };
+    this.cache.set(key, fresh);
+    return fresh;
+  }
+
+  private setList(html: string): void {
+    if (html !== this.shown.list) $('lrList').innerHTML = this.shown.list = html;
+  }
+
+  private setPerf(html: string): void {
+    if (html !== this.shown.perf) $('lrPerf').innerHTML = this.shown.perf = html;
   }
 
   private async render(): Promise<void> {
@@ -84,25 +116,26 @@ export class LobbyRanking {
     for (const b of $('lrTabs').querySelectorAll<HTMLElement>('[data-tab]')) b.setAttribute('aria-selected', String(b.dataset.tab === this.tab));
     $('lrSub').textContent = this.tab === 'online' ? `${modeName(mode as RoomMode)} · ${t(BY[mode])}` : t(BY[mode]);
     const list = $('lrList');
-    const signed = this.account.signedIn;
-    const key = `${mode}:${signed}`;
-    let got = this.cache.get(key);
-    if (!got || performance.now() - got.at > CACHE_MS) {
-      if (!got) list.innerHTML = `<li class="lr-note">${t('ranking.loading')}</li>`;
-      try {
-        const { rows, total } = await this.account.rankingNear(mode, signed ? TOP : GUEST_TOP);
-        got = { at: performance.now(), rows, total };
-        this.cache.set(key, got);
-      } catch (e) {
-        console.warn('[ranking]', e);
-        if (this.mode === mode) {
-          list.innerHTML = `<li class="lr-note">${t('ranking.error')}</li>`;
-          this.renderPerf(mode, null, 0);
-        }
-        return;
+    const key = `${mode}:${this.account.signedIn}`;
+    // Not read yet: the list on screen stays (dimmed) until this one comes; "loading" only on an empty column
+    if (!this.cache.has(key)) {
+      if (!this.shown.list) this.setList(`<li class="lr-note">${t('ranking.loading')}</li>`);
+      else list.classList.add('stale');
+    }
+    let got: { rows: RankingRow[]; total: number };
+    try {
+      got = await this.read(mode);
+    } catch (e) {
+      console.warn('[ranking]', e);
+      if (this.mode === mode) {
+        list.classList.remove('stale');
+        this.setList(`<li class="lr-note">${t('ranking.error')}</li>`);
+        this.renderPerf(mode, null, 0);
       }
+      return;
     }
     if (this.mode !== mode) return;
+    list.classList.remove('stale');
     const { rows, total } = got;
     const by = COLUMNS[mode][0];
     let html = '';
@@ -118,32 +151,33 @@ export class LobbyRanking {
         `<b class="who">${r.is_me ? t('ranking.you') : esc(r.name || 'Orb')}</b>` +
         `<span class="val">${by.cell(r)}${wavesTime(mode, r)}</span></li>`;
     }
-    list.innerHTML = html || `<li class="lr-note">${t('ranking.empty')}</li>`;
+    this.setList(html || `<li class="lr-note">${t('ranking.empty')}</li>`);
     this.renderPerf(mode, rows.find((r) => r.is_me) ?? null, total);
   }
 
   /** "Your performance": the place, the number, the top share; a guest is asked to sign in. */
   private renderPerf(mode: RankingMode, me: RankingRow | null, total: number): void {
-    const box = $('lrPerf');
     if (!this.account.signedIn) {
-      box.innerHTML =
+      this.setPerf(
         `<p class="perf-text">${t('lobby.perfGuest')}</p>` +
-        `<button type="button" class="pill-btn perf-signin" data-signin>${icon('user', 16)}${t('account.signIn')}</button>`;
+          `<button type="button" class="pill-btn perf-signin" data-signin>${icon('user', 16)}${t('account.signIn')}</button>`,
+      );
       return;
     }
     if (!me) {
-      box.innerHTML = `<p class="perf-text">${t(`lobby.perfNone.${mode === 'waves' || mode === 'campaign' ? mode : 'online'}` as Key)}</p>`;
+      this.setPerf(`<p class="perf-text">${t(`lobby.perfNone.${mode === 'waves' || mode === 'campaign' ? mode : 'online'}` as Key)}</p>`);
       return;
     }
     const by = COLUMNS[mode][0];
     // The share of the ranked players ahead of this one (Erick, 24/10/2026: the first of 3 read "Top 34%"): the first
     // is in the top 1%, the 128th of 1,045 in the top 13%
     const share = total > 0 ? Math.min(100, Math.max(1, Math.ceil(((me.rank - 1) / total) * 100))) : 0;
-    box.innerHTML =
+    this.setPerf(
       `<div class="perf-grid">` +
       `<span class="perf-cell"><small>${t('lobby.perfPlace')}</small><b>#${bigNum(me.rank)}</b></span>` +
       `<span class="perf-cell"><small>${t(by.head)}</small><b>${by.cell(me)}</b>${wavesTime(mode, me)}</span>` +
       (share ? `<span class="perf-cell top"><small>${t('lobby.perfOf', { n: bigNum(total) })}</small><b>${t('lobby.perfTop', { n: share })}</b></span>` : '') +
-      `</div>`;
+      `</div>`,
+    );
   }
 }

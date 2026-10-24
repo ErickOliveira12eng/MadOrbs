@@ -1,16 +1,22 @@
-// The ranking window (the start screen's "Ranking" button): the best players with an account, one
-// tab per game mode (the online modes, the campaign, the waves), each with its name, player ID (tag)
-// and numbers; the visitor's own row stands out (and shows below the list when further down).
-// From Supabase's leaderboard function (supabase/migrations/..._waves_and_leaderboard.sql).
+// The ranking window (the start screen's "See all"): the best players with an account, one tab per game mode (the
+// online modes, the campaign, the waves). The first three on a podium with their real Orbs (Erick, 24/10/2026: the
+// window was too plain), the rest in rows with the name, the player ID (tag) and the numbers; the visitor's own row
+// stands out (and shows below the list when further down). From Supabase's leaderboard function
+// (supabase/migrations/..._waves_and_leaderboard.sql).
 import { CAMPAIGN, LEVELS_PER_CHAPTER } from '../client/campaign';
 import { modeShort } from '../client/modes';
 import { bigNum, num, t, type Key } from '../i18n';
 import type { Account, RankingMode, RankingRow } from './account';
-import { icon } from './icons';
+import { icon, type IconName } from './icons';
+import type { OrbStudio } from './orbStudio';
+import { skinInfo } from './settings';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const MODES: RankingMode[] = ['dm', 'tdm', 'ctf', 'campaign', 'waves'];
+const MODE_ICON: Record<RankingMode, IconName> = { dm: 'crosshair', tdm: 'team', ctf: 'flag_fill', campaign: 'swords', waves: 'waves' };
+/** The podium's Orbs, drawn this big (px; the first bigger). */
+const PODIUM_ORB = [0, 104, 84, 84];
 
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s) % 60).padStart(2, '0')}`;
@@ -58,11 +64,18 @@ export class RankingModal {
   private mode: RankingMode = 'dm';
   /** Rankings already read, and when (read again after a minute). */
   private readonly cache = new Map<RankingMode, { at: number; rows: RankingRow[] }>();
+  /** Who they were read for (a token refreshed on coming back to the tab is the same player: kept). */
+  private reader = '';
+  /** What the body shows now: written again only when it changes (no flicker). */
+  private shown = '';
+  /** The podium's Orb pictures already drawn (skin and colours, size). */
+  private readonly orbs = new Map<string, string>();
 
   constructor(
     private readonly account: Account,
     /** "Sign in": opens the account window. */
     private readonly onSignIn: () => void,
+    private readonly studio?: OrbStudio,
   ) {
     for (const el of this.root.querySelectorAll('[data-close]')) el.addEventListener('click', () => this.close());
     this.root.addEventListener('pointerdown', (e) => {
@@ -77,7 +90,7 @@ export class RankingModal {
       b.type = 'button';
       b.dataset.mode = mode;
       b.setAttribute('role', 'radio');
-      b.textContent = mode === 'campaign' ? t('menu.campaign') : mode === 'waves' ? t('menu.waves') : modeShort(mode);
+      b.innerHTML = `${icon(MODE_ICON[mode], 16)}<span>${mode === 'campaign' ? t('menu.campaign') : mode === 'waves' ? t('menu.waves') : modeShort(mode)}</span>`;
       b.addEventListener('click', () => {
         this.mode = mode;
         void this.render();
@@ -91,6 +104,9 @@ export class RankingModal {
     });
     // Signing in (or out) changes the "you" row
     account.onChange(() => {
+      const reader = account.session?.user.id ?? '';
+      if (reader === this.reader) return;
+      this.reader = reader;
       this.cache.clear();
       if (this.isOpen) void this.render();
     });
@@ -111,6 +127,28 @@ export class RankingModal {
     this.root.hidden = true;
   }
 
+  private setBody(html: string): void {
+    if (html === this.shown) return;
+    $('rankingBody').innerHTML = this.shown = html;
+    void this.drawOrbs();
+  }
+
+  /** The podium's Orbs: drawn by the OrbStudio (kept), the row's colours until then. */
+  private async drawOrbs(): Promise<void> {
+    if (!this.studio) return;
+    for (const img of $('rankingBody').querySelectorAll<HTMLImageElement>('img[data-orb]')) {
+      const [skin, red, green, blue, size] = img.dataset.orb!.split('|');
+      const key = img.dataset.orb!;
+      let src = this.orbs.get(key);
+      if (!src) {
+        src = await this.studio.picture(skinInfo({ skin, red, green, blue }), Number(size) * 2);
+        this.orbs.set(key, src);
+      }
+      img.src = src;
+      img.classList.add('ready');
+    }
+  }
+
   private async render(): Promise<void> {
     const mode = this.mode;
     for (const b of $('rankingModes').querySelectorAll<HTMLElement>('[data-mode]')) b.setAttribute('aria-checked', String(b.dataset.mode === mode));
@@ -121,41 +159,72 @@ export class RankingModal {
     const body = $('rankingBody');
     let cached = this.cache.get(mode);
     if (!cached || performance.now() - cached.at > 60_000) {
-      if (!cached) body.innerHTML = `<p class="ranking-note">${t('ranking.loading')}</p>`;
+      // The list on screen stays (dimmed) until the new one comes; "loading" only on an empty window
+      if (!cached) {
+        if (!this.shown) this.setBody(`<p class="ranking-note">${t('ranking.loading')}</p>`);
+        else body.classList.add('stale');
+      }
       try {
         cached = { at: performance.now(), rows: await this.account.ranking(mode) };
         this.cache.set(mode, cached);
       } catch (e) {
         console.warn('[ranking]', e);
-        if (this.mode === mode) body.innerHTML = `<p class="ranking-note">${t('ranking.error')}</p>`;
+        if (this.mode === mode) {
+          body.classList.remove('stale');
+          this.setBody(`<p class="ranking-note">${t('ranking.error')}</p>`);
+        }
         return;
       }
     }
     if (this.mode !== mode) return;
+    body.classList.remove('stale');
     const rows = cached.rows;
     if (!rows.length) {
-      body.innerHTML = `<p class="ranking-note">${t('ranking.empty')}</p>`;
+      this.setBody(`<p class="ranking-note">${t('ranking.empty')}</p>`);
       return;
     }
+    const cols = COLUMNS[mode];
+    const by = cols[0];
+    const name = (r: RankingRow) => esc(r.name || 'Orb');
+    const you = (r: RankingRow) => (r.is_me ? `<em>${t('ranking.you')}</em>` : '');
+
+    // The podium: the second, the first (taller), the third
+    const top = rows.filter((r) => r.rank <= 3);
+    const step = (r: RankingRow) =>
+      `<div class="rk-step p${r.rank}${r.is_me ? ' me' : ''}">` +
+      `<span class="rk-medal">${r.rank}</span>` +
+      `<img class="rk-orb" alt="" width="${PODIUM_ORB[r.rank]}" height="${PODIUM_ORB[r.rank]}" style="${orbStyle(r)}" data-orb="${[r.skin, r.red, r.green, r.blue, PODIUM_ORB[r.rank]].join('|')}" />` +
+      `<b class="rk-name">${name(r)}</b><small class="rk-tag">#${esc(r.tag)}${you(r)}</small>` +
+      `<span class="rk-big">${by.cell(r)}</span><span class="rk-label">${t(by.head)}</span>` +
+      (cols[1] ? `<span class="rk-more">${t(cols[1].head)}: <b>${cols[1].cell(r)}</b></span>` : '') +
+      `</div>`;
+    const order = [2, 1, 3].map((n) => top.find((r) => r.rank === n)).filter((r): r is RankingRow => !!r);
+    const podium = `<div class="rk-podium n${order.length}">${order.map(step).join('')}</div>`;
+
+    // The rest: rows (the visitor's own further down after a gap)
+    const rest = rows.filter((r) => r.rank > 3);
     // A phone: the mode's first two numbers (what it ranks by and the next), the name keeps its room
     const narrow = matchMedia('(max-width: 520px)').matches;
-    const cols = narrow ? COLUMNS[mode].slice(0, 2) : COLUMNS[mode];
-    const grid = `grid-template-columns: ${narrow ? 34 : 44}px minmax(0, 1fr) repeat(${cols.length}, minmax(${narrow ? 46 : 60}px, ${narrow ? 66 : 84}px))`;
-    let html = `<div class="rk-row head" style="${grid}"><span>#</span><span>${t('ranking.player')}</span>${cols.map((c, i) => `<span${i === 0 ? ' class="by"' : ''}>${t(c.head)}</span>`).join('')}</div>`;
-    let last = 0;
-    for (const r of rows) {
-      // The visitor's own row further down: a gap before it
-      if (r.rank > last + 1 && last > 0) html += `<div class="rk-gap">⋯</div>`;
-      last = r.rank;
-      const medal = r.rank <= 3 ? ` m${r.rank}` : '';
-      const orb = orbStyle(r);
-      html +=
-        `<div class="rk-row${r.is_me ? ' me' : ''}" style="${grid}">` +
-        `<span class="pos${medal}">${r.rank}</span>` +
-        `<span class="who"><i class="orb" style="${orb}"></i><b>${esc(r.name || 'Orb')}</b><small>#${esc(r.tag)}</small>${r.is_me ? `<em>${t('ranking.you')}</em>` : ''}</span>` +
-        cols.map((c, i) => `<span${i === 0 ? ' class="by"' : ''}>${c.cell(r)}</span>`).join('') +
-        `</div>`;
+    const shownCols = narrow ? cols.slice(0, 2) : cols;
+    const grid = `grid-template-columns: ${narrow ? 34 : 44}px minmax(0, 1fr) repeat(${shownCols.length}, minmax(${narrow ? 46 : 60}px, ${narrow ? 66 : 84}px))`;
+    let list = '';
+    if (rest.length) {
+      list = `<div class="rk-row head" style="${grid}"><span>#</span><span>${t('ranking.player')}</span>${shownCols.map((c, i) => `<span${i === 0 ? ' class="by"' : ''}>${t(c.head)}</span>`).join('')}</div>`;
+      let last = 3;
+      for (const r of rest) {
+        if (r.rank > last + 1) list += `<div class="rk-gap">⋯</div>`;
+        last = r.rank;
+        list +=
+          `<div class="rk-row${r.is_me ? ' me' : ''}" style="${grid}">` +
+          `<span class="pos">${r.rank}</span>` +
+          `<span class="who"><i class="orb" style="${orbStyle(r)}"></i><b>${name(r)}</b><small>#${esc(r.tag)}</small>${you(r)}</span>` +
+          shownCols.map((c, i) => `<span${i === 0 ? ' class="by"' : ''}>${c.cell(r)}</span>`).join('') +
+          `</div>`;
+      }
+      list = `<div class="rk-table">${list}</div>`;
     }
-    body.innerHTML = `<div class="rk-table">${html}</div><p class="ranking-note small">${t(`ranking.note.${mode}` as Key)}</p>`;
+    // The waves' time: a record from before 23/10/2026 has none (until that wave is reached again)
+    const noTime = mode === 'waves' && rows.some((r) => typeof r.stats.time !== 'number') ? `<p class="ranking-note small">${t('ranking.noTime')}</p>` : '';
+    this.setBody(`${podium}${list}<p class="ranking-note small">${t(`ranking.note.${mode}` as Key)}</p>${noTime}`);
   }
 }

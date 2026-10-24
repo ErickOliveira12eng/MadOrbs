@@ -16,7 +16,7 @@ import { MAX_NAME_LENGTH, ROOM_MODES, cleanName, isReservedName, limitNameInput,
 import type { Account } from './account';
 import { AccountModal } from './accountModal';
 import { StatsModal } from './statsModal';
-import { BOSS_SKIN, CampaignModal } from './campaignModal';
+import { CampaignModal } from './campaignModal';
 import { AdblockModal } from './adblockModal';
 import { RankingModal } from './rankingModal';
 import { LobbyRanking } from './lobbyRanking';
@@ -42,7 +42,7 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 export type PlayMode = 'online' | 'offline';
 
 /** The lobby is laid out at this size (design px) and zoomed into the window. */
-const LOBBY_W = 1240;
+const LOBBY_W = 1290;
 const LOBBY_H = 680;
 /** Room the top bar takes above the lobby, and the footer below it (real px). */
 const TOP_ROOM = 74;
@@ -151,7 +151,7 @@ export class StartScreen {
     for (const [id, name] of opens) $(id).addEventListener('click', () => track('menu_open', { window: name }));
     this.statsModal = new StatsModal(account, () => this.accountModal.open());
     $('btnStats').addEventListener('click', () => this.statsModal.open());
-    this.ranking = new RankingModal(account, () => this.accountModal.open());
+    this.ranking = new RankingModal(account, () => this.accountModal.open(), studio);
     this.lobbyRanking = new LobbyRanking(
       account,
       () => this.settings.mode,
@@ -278,12 +278,8 @@ export class StartScreen {
     });
     // Found later by the banners themselves: their spots go (the request waits for a match, beforePlay)
     onAdBlockFound(() => this.fit());
-    // The waves card's boss: the campaign's eye
-    void studio.picture(BOSS_SKIN, 144, undefined, true).then((src) => {
-      const img = $<HTMLImageElement>('wavesArt');
-      img.src = src;
-      img.hidden = false;
-    });
+    // The Survival card: the waves' boss and its wave, a moment of the game (tools/make-menu-cards.mjs --waves)
+    $('wavesPic').style.backgroundImage = `url('${versioned('/menu/card-waves.webp')}')`;
     this.embers = matchMedia('(prefers-reduced-motion: reduce)').matches ? null : new Embers($<HTMLCanvasElement>('bgSparks'));
     void this.makeBackground();
   }
