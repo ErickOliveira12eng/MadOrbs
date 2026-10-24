@@ -86,7 +86,7 @@ export const WAVES = {
    * wave 60 the boss didn't make up for some 40 bots less: 61 against 99 on wave 59).
    */
   bossWave: { share: 0.6, fullFrom: 30 },
-  boss: { radius: 0.45, damageScale: 0.22, weapon: WEAPON_CHAIN_GUN, aim: 0.3, spread: 0.35, life: 2 },
+  boss: { radius: 0.45, damageScale: 0.22, weapon: WEAPON_CHAIN_GUN, aim: 0.3, spread: 0.35, life: 1.6 },
   /** Bots that come with the boss and walk beside it. */
   escorts: 2,
   /**
@@ -188,14 +188,15 @@ export function eliteDoubleChance(n: number): number {
  * damage it takes.
  */
 /**
- * What every elite has on top of its traits (Erick, 24/10/2026: they must be stronger and stand out): twice the life
+ * What every elite has on top of its traits (Erick, 24/10/2026: they must be stronger and stand out; the same day, ~30%
+ * less overall, they got too strong: life 2 -> 1.6, damage 1.15 -> 1.08, damage taken 0.88 -> 0.92): more life
  * (Player.lifeMax), a little more damage and defense, a little bigger, and a darker blood red than the red team's, its
  * three tones all darker, whatever the skin (Player.teamTint; not purple nor gold).
  */
 export const ELITE = {
-  life: 2,
-  hit: 1.15,
-  tough: 0.88,
+  life: 1.6,
+  hit: 1.08,
+  tough: 0.92,
   radius: 0.28,
   tint: { redDecal: [0.55, 0.06, 0.05], greenDecal: [0.3, 0, 0.02], blueDecal: [0.06, 0, 0] } as Omit<SkinInfo, 'skin'>,
 };
@@ -208,12 +209,13 @@ export function eliteStrength(n: number): { speed: number; hit: number; aim: num
 /**
  * The boss grows each time it comes (wave 10, 20, 30...; Erick, 12/10/2026): bigger (hit and drawn at
  * that size; against the walls it keeps WAVES.boss.radius), much harder hitting, a bit tougher.
- * `k` is how many times it came before. 24/10/2026 (Erick: it must be harder): ~15% more damage (it was 2.5 + k),
- * its defense in WAVES.boss.damageScale (0.22, was 0.25) and twice the life (WAVES.boss.life).
+ * `k` is how many times it came before. 24/10/2026 (Erick: it must be harder): its defense in WAVES.boss.damageScale
+ * (0.22, was 0.25) and more life (WAVES.boss.life); the same day ~30% less overall (too strong): the life 2 -> 1.6 and
+ * the damage back to 2.5 + k (it was 2.9 + 1.15k for a while).
  */
 export function bossStrength(n: number): { radius: number; hit: number; tough: number } {
   const k = Math.max(0, Math.floor(n / WAVES.bossEvery) - 1);
-  return { radius: Math.min(1.1, 0.6 + 0.1 * k), hit: 2.9 + 1.15 * k, tough: 1 / (1 + 0.2 * k) };
+  return { radius: Math.min(1.1, 0.6 + 0.1 * k), hit: 2.5 + k, tough: 1 / (1 + 0.2 * k) };
 }
 
 /** A bot's traits on wave n: none (most), one, or two later on. */
