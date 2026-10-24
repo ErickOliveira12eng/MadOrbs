@@ -12,12 +12,12 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 
 const MODES: RankingMode[] = ['dm', 'tdm', 'ctf', 'campaign', 'waves'];
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s) % 60).padStart(2, '0')}`;
 const kd = (r: RankingRow) => num(r.stats.kills / Math.max(1, r.stats.deaths), 2);
 
 /** Each mode's columns: header text and the cell; the first one is what the ranking goes by. */
-const COLUMNS: Record<RankingMode, { head: Key; cell: (r: RankingRow) => string }[]> = {
+export const COLUMNS: Record<RankingMode, { head: Key; cell: (r: RankingRow) => string }[]> = {
   dm: [
     { head: 'account.kills', cell: (r) => bigNum(r.stats.kills) },
     { head: 'account.wins', cell: (r) => bigNum(r.stats.wins) },
@@ -49,6 +49,9 @@ const COLUMNS: Record<RankingMode, { head: Key; cell: (r: RankingRow) => string 
     { head: 'ranking.runs', cell: (r) => bigNum(r.stats.runs) },
   ],
 };
+
+/** A row's Orb in its colours (a small ball). */
+export const orbStyle = (r: RankingRow) => `background: radial-gradient(circle at 35% 30%, ${r.red}, ${r.green} 55%, ${r.blue})`;
 
 export class RankingModal {
   private readonly root = $('rankingModal');
@@ -97,7 +100,9 @@ export class RankingModal {
     return !this.root.hidden;
   }
 
-  open(): void {
+  /** `mode`: on that tab (the start screen's ranking column). */
+  open(mode?: RankingMode): void {
+    if (mode) this.mode = mode;
     this.root.hidden = false;
     void this.render();
   }
@@ -143,7 +148,7 @@ export class RankingModal {
       if (r.rank > last + 1 && last > 0) html += `<div class="rk-gap">⋯</div>`;
       last = r.rank;
       const medal = r.rank <= 3 ? ` m${r.rank}` : '';
-      const orb = `background: radial-gradient(circle at 35% 30%, ${r.red}, ${r.green} 55%, ${r.blue})`;
+      const orb = orbStyle(r);
       html +=
         `<div class="rk-row${r.is_me ? ' me' : ''}" style="${grid}">` +
         `<span class="pos${medal}">${r.rank}</span>` +

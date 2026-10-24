@@ -85,6 +85,8 @@ export class Account {
   waves: WavesRecord | null = null;
   private client: SupabaseClient | null = null;
   private loading: Promise<SupabaseClient> | null = null;
+  /** leaderboard_near isn't in the database (yet): the start screen asks leaderboard. */
+  private noNearRanking = false;
   private readonly listeners = new Set<() => void>();
   private orbTimer = 0;
 
@@ -350,6 +352,41 @@ export class Account {
     const { data, error } = await client.rpc('leaderboard', { p_mode: mode, p_limit: 50 });
     if (error) throw new Error(error.message);
     return (data ?? []) as RankingRow[];
+  }
+
+  /**
+   * The start screen's ranking column: a mode's top `top`, the rows around the player's own and how many are ranked
+   * (`total`, 0: unknown). A guest's comes over plain HTTP (Supabase's client isn't loaded for it). Until
+   * leaderboard_near is in the database (supabase/migrations/20261024140000_leaderboard_near.sql), leaderboard's top
+   * and the player's own row.
+   */
+  async rankingNear(mode: RankingMode, top: number): Promise<{ rows: RankingRow[]; total: number }> {
+    const call = async (fn: string, args: Record<string, unknown>): Promise<(RankingRow & { total?: number })[]> => {
+      if (this.client) {
+        const { data, error } = await this.client.rpc(fn, args);
+        if (error) throw new Error(error.message);
+        return data ?? [];
+      }
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_PUBLISHABLE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify(args),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return (await res.json()) as (RankingRow & { total?: number })[];
+    };
+    if (!this.noNearRanking) {
+      try {
+        const rows = await call('leaderboard_near', { p_mode: mode, p_top: top, p_span: 2 });
+        return { rows, total: rows[0]?.total ?? 0 };
+      } catch (e) {
+        // Not there (HTTP 404, "Could not find the function"): leaderboard from now on; anything else fails as it is
+        if (!/404|could not find/i.test(String(e))) throw e;
+        this.noNearRanking = true;
+      }
+    }
+    const rows = await call('leaderboard', { p_mode: mode, p_limit: top });
+    return { rows, total: 0 };
   }
 
   async saveCampaign(level: string, seconds: number): Promise<void> {

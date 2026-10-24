@@ -83,8 +83,8 @@
         <canvas id="bgSparks" class="bg-sparks"></canvas>
       </div>
 
-      <!-- The lobby (mockup A, approved by Erick): the logo and the buttons of the page on top; your Orb in the
-           middle; the online play on the right; the solo modes and the shortcuts below; a banner on the left -->
+      <!-- The lobby (mockup F, chosen by Erick on 23/10/2026): the logo and the buttons of the page on top; your Orb
+           above three mode cards (Multiplayer, Survival, Campaign); the ranking on the right; shortcuts below -->
       <header class="topbar">
         <div class="brand">
           <h1 class="logo"><img src="/brand/logo-wide.webp?v=1" alt="Mad Orbs" width="469" height="180" /></h1>
@@ -113,7 +113,7 @@
           <small id="touchCopied" class="touch-copied" hidden data-i18n="pc.copied">Link copied: open it on your computer.</small>
         </div>
         <form id="startForm" class="lobby-grid" autocomplete="off">
-          <!-- Your Orb on its pedestal: the arrows switch the style, a click (or Customize) opens the picker -->
+          <!-- Your Orb on its pedestal (the arrows switch the style, a click or Customize opens the picker), the name -->
           <section class="hero">
             <div class="orb-row">
               <button id="orbPrev" class="orb-arrow" type="button" data-i18n-attr="title=menu.prevStyle;aria-label=menu.prevStyle" title="Previous style" aria-label="Previous style"><span data-icon="chevron_left"></span></button>
@@ -124,53 +124,90 @@
               </button>
               <button id="orbNext" class="orb-arrow" type="button" data-i18n-attr="title=menu.nextStyle;aria-label=menu.nextStyle" title="Next style" aria-label="Next style"><span data-icon="chevron_right"></span></button>
             </div>
-            <div class="name-row">
-              <input id="name" class="name-input" type="text" maxlength="32" data-i18n-attr="placeholder=menu.yourName;aria-label=menu.yourName" placeholder="Your name" spellcheck="false" aria-label="Your name" />
-              <span id="playerTag" class="player-tag" hidden></span>
-            </div>
-            <p id="nameHint" class="name-hint" hidden></p>
-            <button id="orbCustomize" class="pill-btn" type="button"><span data-icon="palette"></span><span data-i18n="menu.customize">Customize Orb</span></button>
-            <div id="heroChips" class="hero-chips"></div>
-          </section>
-
-          <!-- Online: the mode, then PLAY NOW; a private room and the offline training under it -->
-          <section class="play-panel">
-            <span class="panel-label" data-i18n="menu.gameMode">Game mode</span>
-            <div id="modes" class="modes" role="radiogroup" data-i18n-attr="aria-label=menu.gameMode" aria-label="Game mode"></div>
-            <button id="play" class="btn-play hero" type="submit">
-              <span class="play-main"><span data-icon="play"></span><span data-i18n="menu.play">PLAY NOW</span></span>
-              <span id="playSub" class="play-sub" data-i18n="menu.playOnline">Online · Multiplayer</span>
-            </button>
-            <div id="message" class="message" role="alert" hidden></div>
-            <div class="panel-row">
-              <button id="btnPrivate" class="panel-btn private" type="button"><span data-icon="padlock"></span><span data-i18n="menu.private">Private room</span></button>
-              <button id="training" class="panel-btn" type="button"><span data-icon="gamepad"></span><span data-i18n="menu.train">Training</span></button>
+            <div class="hero-id">
+              <div class="name-row">
+                <input id="name" class="name-input" type="text" maxlength="32" data-i18n-attr="placeholder=menu.yourName;aria-label=menu.yourName" placeholder="Your name" spellcheck="false" aria-label="Your name" />
+                <span id="playerTag" class="player-tag" hidden></span>
+              </div>
+              <p id="nameHint" class="name-hint" hidden></p>
+              <button id="orbCustomize" class="pill-btn" type="button"><span data-icon="palette"></span><span data-i18n="menu.customize">Customize Orb</span></button>
+              <div id="heroChips" class="hero-chips"></div>
             </div>
           </section>
 
-          <!-- Under each column: the solo modes with your progress under the Orb, the shortcuts under the panel -->
-          <div class="dock dock-solo">
-            <button id="btnCampaign" class="dock-card campaign" type="button">
-              <img id="campaignArt" class="dock-art weapon" src="/guia/sub-machine-gun.png" alt="" />
-              <span class="dock-text"><b data-i18n="menu.campaign">Campaign</b><small id="campaignLine" data-i18n="menu.campaignSolo">Solo · Vs bots</small><span id="campaignBarBox" class="dock-progress" hidden><span class="dock-bar"><i id="campaignBar"></i></span><em id="campaignCount"></em></span></span>
-            </button>
-            <button id="btnWaves" class="dock-card waves" type="button">
-              <img id="wavesArt" class="dock-art orb" alt="" hidden />
-              <span class="dock-text"><b data-i18n="menu.waves">Waves</b><small id="wavesLine" data-i18n="menu.wavesSolo">Solo · Survive</small><span id="wavesCores" class="dock-cores" hidden></span></span>
+          <!-- The three ways to play, each with its tag (online or solo), a picture, a line and its button -->
+          <div class="mode-cards">
+            <article class="mode-card online">
+              <span id="onlinePic" class="card-pic" aria-hidden="true"></span>
+              <span class="card-tag online" data-i18n="lobby.tagOnline">ONLINE</span>
+              <div class="card-body">
+                <h2 data-i18n="lobby.multiplayer">Multiplayer</h2>
+                <p data-i18n="lobby.multiplayerText">Take on other players in Deathmatch, Teams or Capture the Flag.</p>
+                <div id="modes" class="mode-pick" role="radiogroup" data-i18n-attr="aria-label=menu.gameMode" aria-label="Game mode"></div>
+                <button id="play" class="card-btn play" type="submit">
+                  <span class="play-main"><span data-icon="play"></span><span data-i18n="menu.play">PLAY NOW</span></span>
+                  <span id="playSub" class="play-sub" data-i18n="menu.playOnline">Online · Multiplayer</span>
+                </button>
+              </div>
+            </article>
+            <article id="cardWaves" class="mode-card waves">
+              <img id="wavesArt" class="card-boss" alt="" hidden />
+              <span class="card-tag solo" data-i18n="lobby.tagSolo">SOLO</span>
               <span id="wavesBadge" class="dock-badge" hidden></span>
-            </button>
+              <div class="card-body">
+                <h2 data-i18n="lobby.survival">Survival</h2>
+                <p data-i18n="lobby.survivalText">Survive waves of enemies and grow stronger with every run in the Workshop.</p>
+                <div class="card-stats"><span id="wavesLine" data-i18n="lobby.wavesFirst">Endless waves, a boss every 10</span><span id="wavesCores" class="dock-cores" hidden></span></div>
+                <button id="btnWaves" class="card-btn waves" type="button"><span data-icon="play"></span><span data-i18n="lobby.play">PLAY</span></button>
+              </div>
+            </article>
+            <article id="cardCampaign" class="mode-card campaign">
+              <img id="campaignArt" class="card-weapon" src="/guia/sub-machine-gun.png" alt="" />
+              <span class="card-tag solo" data-i18n="lobby.tagSolo">SOLO</span>
+              <div class="card-body">
+                <h2 data-i18n="menu.campaign">Campaign</h2>
+                <p data-i18n="lobby.campaignText">8 chapters, each with its weapon and a final boss.</p>
+                <div class="card-stats bar"><span class="card-line"><span id="campaignLine"></span><em id="campaignCount"></em></span><span class="dock-bar"><i id="campaignBar"></i></span></div>
+                <button id="btnCampaign" class="card-btn campaign" type="button"><span data-icon="play"></span><span id="campaignGo" data-i18n="lobby.play">PLAY</span></button>
+              </div>
+            </article>
           </div>
-          <nav class="dock dock-links" data-i18n-attr="aria-label=menu.more" aria-label="More">
-            <button id="btnRanking" class="dock-tile" type="button"><span data-icon="bars"></span><span data-i18n="menu.ranking">Ranking</span></button>
-            <button id="btnStats" class="dock-tile" type="button"><span data-icon="trophy"></span><span data-i18n="account.stats">Stats</span></button>
-            <button id="btnControls" class="dock-tile" type="button"><span data-icon="help"></span><span data-i18n="menu.controls">Controls</span></button>
+          <div id="message" class="message" role="alert" hidden></div>
+
+          <!-- The shortcuts -->
+          <nav class="lobby-tiles" data-i18n-attr="aria-label=menu.more" aria-label="More">
+            <button id="btnStats" class="tile" type="button"><span class="tile-ico stats" data-icon="trophy"></span><span class="tile-text"><b data-i18n="account.stats">Stats</b><small data-i18n="lobby.statsSub">Kills, wins and records</small></span></button>
+            <button id="btnPrivate" class="tile" type="button"><span class="tile-ico private" data-icon="users"></span><span class="tile-text"><b data-i18n="lobby.friends">Room with friends</b><small data-i18n="lobby.friendsSub">A private match by link</small></span></button>
+            <button id="training" class="tile" type="button"><span class="tile-ico train" data-icon="gamepad"></span><span class="tile-text"><b data-i18n="lobby.tutorial">Tutorial</b><small data-i18n="lobby.tutorialSub">Learn and train with bots</small></span></button>
           </nav>
+
+          <!-- The ranking (src/menu/lobbyRanking.ts): the top 3 and the rows around your place; your numbers under it -->
+          <aside class="lobby-side">
+            <section class="side-card ranking-card" aria-labelledby="lrTitle">
+              <div class="lr-head">
+                <h2 id="lrTitle" data-i18n="menu.ranking">Ranking</h2>
+                <button id="lrFull" class="lr-link" type="button"><span data-i18n="lobby.rankFull">See all</span><span data-icon="chevron_right"></span></button>
+              </div>
+              <div id="lrTabs" class="lr-tabs" role="tablist" data-i18n-attr="aria-label=lobby.rankTabs" aria-label="Ranking by mode">
+                <button type="button" role="tab" data-tab="online" aria-selected="true" data-i18n="lobby.multiplayer">Multiplayer</button>
+                <button type="button" role="tab" data-tab="waves" aria-selected="false" data-i18n="lobby.survival">Survival</button>
+                <button type="button" role="tab" data-tab="campaign" aria-selected="false" data-i18n="menu.campaign">Campaign</button>
+              </div>
+              <p id="lrSub" class="lr-sub"></p>
+              <ol id="lrList" class="lr-list"></ol>
+            </section>
+            <section class="side-card perf-card" aria-labelledby="perfTitle">
+              <h3 id="perfTitle" data-i18n="lobby.perfTitle">Your performance</h3>
+              <div id="lrPerf" class="perf-body"></div>
+            </section>
+          </aside>
         </form>
       </main>
 
       <footer class="footer">
         <a href="#about" data-i18n="footer.about">About the game</a>
         <a data-i18n-attr="href=link.howToPlay" href="/how-to-play" target="_blank" rel="noopener" data-i18n="footer.howToPlay">How to play</a>
+        <a id="btnControls" href="#" role="button" data-i18n="menu.controls">Controls</a>
         <a data-i18n-attr="href=link.weapons" href="/weapons" target="_blank" rel="noopener" data-i18n="footer.weapons">Weapons</a>
         <a data-i18n-attr="href=link.modes" href="/modes" target="_blank" rel="noopener" data-i18n="footer.modes">Game modes</a>
         <a data-i18n-attr="href=link.about" href="/about" target="_blank" rel="noopener" data-i18n="footer.project">About the project</a>
@@ -225,6 +262,7 @@
             <section class="info-block">
               <h2 data-i18n="home.newsTitle">What's new</h2>
               <ul class="info-news">
+                <li><time datetime="2026-10-24" data-i18n="home.news35Date">October 24, 2026</time><b data-i18n="home.news35Title">A new start screen</b><span data-i18n="home.news35">The start screen is new and simpler: your Orb on top, then three cards, Multiplayer (pick Deathmatch, Teams or Flag and play now), Survival (the Waves, with your record and Cores) and Campaign (your chapter and levels won). The ranking is now right there on the right: the top 3, the players around your place and how you are doing (your place and your top share). Stats, Room with friends and the Tutorial are shortcuts under the cards, and Controls is in the footer, beside How to play.</span></li>
                 <li><time datetime="2026-10-23" data-i18n="home.news34Date">October 23, 2026</time><b data-i18n="home.news34Title">Smoother online, items in sight</b><span data-i18n="home.news34">Online, what falls from the Orbs, the grenades, the molotovs and the rockets of the others fly smoothly again: since October 18 they moved in small jolts. And the items on the floor (life packs, weapons, grenades, the Waves power-ups) no longer vanish under the blood.</span></li>
                 <li><time datetime="2026-10-23" data-i18n="home.news33Date">October 23, 2026</time><b data-i18n="home.news33Title">Tutorials</b><span data-i18n="home.news33">Two quick tutorials of about two minutes, in Training: Waves (the waves, the crates, the grenades and the Bomb) and PvP, at a shooting range (moving and shooting, the weapons on the floor, the knife and the grenade, with your damage and DPS under each target). The first time you open the Waves or play online, the game asks if you want the tutorial first. And a run of the Waves that begins on wave 1 now opens with the voice saying Start.</span></li>
                 <li><time datetime="2026-10-23" data-i18n="home.news32Date">October 23, 2026</time><b data-i18n="home.news32Title">Workshop: every choice counts</b><span data-i18n="home.news32">We measured what each Workshop upgrade adds per Core, and the weakest got cheaper or stronger: Crate healing (it was the life pack chance) makes the crates heal up to the full bar, the Breather gives back 30% to 70%, the Dash leaves you untouchable while it lasts, the Shock wave grows with the waves and recharges sooner, and the Second wind costs 250 and has a second level. Luck is cheaper too.</span></li>

@@ -305,9 +305,10 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
-/* ------------------------------------------------------------------ the lobby (mockup A)
-   A 1240 x 700 layout zoomed (--menu-k, menu.ts) into the window under the top bar, beside the banner's
-   gutter on the left (--ad-gutter). Narrow windows stack it in one column. */
+/* ------------------------------------------------------------------ the lobby (mockup F)
+   A 1240 x 680 layout zoomed (--menu-k, menu.ts) into the window under the top bar, beside the banner's
+   gutter on the left (--ad-gutter): your Orb above three mode cards and the shortcuts, the ranking on the right.
+   Narrow windows stack it in one column. */
 
 .lobby {
   position: relative;
@@ -325,20 +326,22 @@ select:focus-visible {
 .lobby-grid {
   zoom: var(--menu-k, 1);
   width: 1240px;
-  height: 700px;
+  height: 680px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 476px;
-  grid-template-rows: minmax(0, 1fr) 100px;
-  gap: 22px 28px;
+  grid-template-columns: minmax(0, 1fr) 318px;
+  grid-template-rows: 176px minmax(0, 1fr) 72px;
+  grid-template-areas: 'hero side' 'cards side' 'tiles side';
+  gap: 18px 22px;
 }
 
-/* Your Orb, big, in a soft blue light */
+/* Your Orb on its pedestal in a soft blue light, the name, the ID, Customize and the record beside it */
 .hero {
+  grid-area: hero;
   position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 26px;
 }
 
 .hero::before {
@@ -346,78 +349,95 @@ select:focus-visible {
   position: absolute;
   z-index: -1;
   left: 50%;
-  top: 46%;
-  width: 760px;
-  height: 620px;
+  top: 50%;
+  width: 680px;
+  height: 320px;
   transform: translate(-50%, -50%);
-  background: radial-gradient(closest-side, rgba(70, 95, 255, 0.3), rgba(70, 95, 255, 0));
+  background: radial-gradient(closest-side, rgba(70, 95, 255, 0.26), rgba(70, 95, 255, 0));
   pointer-events: none;
 }
 
 .hero .orb-row {
-  gap: 44px;
+  gap: 16px;
   margin-top: 0;
 }
 
 .hero .orb-row .orb-stage {
-  zoom: 1.7;
+  zoom: 0.78;
 }
 
 .hero .orb-arrow {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  margin-top: -70px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  margin-top: -26px;
+}
+
+.hero-id {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 300px;
 }
 
 .name-row {
   display: flex;
   align-items: baseline;
-  justify-content: center;
   gap: 10px;
-  margin-top: 4px;
 }
 
 .hero .name-input {
-  width: 340px;
-  font: 400 44px/1.1 var(--font-display);
+  width: 300px;
+  margin: 0;
+  padding: 2px 0;
+  text-align: left;
+  font: 400 38px/1.1 var(--font-display);
   letter-spacing: 0.5px;
   text-shadow: 0 3px 0 rgba(10, 8, 34, 0.7), 0 0 18px rgba(0, 0, 0, 0.5);
 }
 
-/* Signed in: the account's player ID beside the name, and the name field leaves room for it */
+/* Signed in: the account's player ID right after the name */
 .name-row:has(.player-tag:not([hidden])) .name-input {
-  width: 270px;
-  text-align: right;
+  width: 230px;
+}
+
+@supports (field-sizing: content) {
+  .hero .name-input,
+  .name-row:has(.player-tag:not([hidden])) .name-input {
+    width: auto;
+    field-sizing: content;
+    min-width: 140px;
+    max-width: 330px;
+  }
 }
 
 .player-tag {
   color: #c3c7f0;
-  font: 800 16px var(--font-ui);
+  font: 800 15px var(--font-ui);
   white-space: nowrap;
 }
 
 .hero .pill-btn {
-  margin-top: 12px;
-  padding: 10px 20px 10px 16px;
+  margin: 0;
+  padding: 8px 16px 8px 12px;
+  font-size: 14px;
 }
 
 .hero-chips {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 16px;
-  min-height: 32px;
+  gap: 8px;
+  min-height: 30px;
 }
 
 .hero-chip {
-  padding: 7px 14px;
+  padding: 6px 12px;
   border-radius: 999px;
   background: rgba(10, 10, 30, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #d6d9f7;
-  font: 800 13px var(--font-ui);
+  font: 800 12.5px var(--font-ui);
   white-space: nowrap;
 }
 
@@ -425,191 +445,202 @@ select:focus-visible {
   color: var(--gold-1);
 }
 
-/* Online: the modes, PLAY NOW, a private room and the training */
-.play-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 22px;
-  box-sizing: border-box;
-  border-radius: 24px;
-  background: rgba(12, 12, 36, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
-}
-
-.panel-label {
-  color: #a7acd8;
-  font: 900 12px var(--font-ui);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.play-panel .btn-play.hero {
-  width: 100%;
-  height: 96px;
-  margin-top: 6px;
-  flex: none;
-}
-
-.play-panel .message {
-  max-width: none;
-  margin-top: 0;
-}
-
-.panel-row {
-  margin-top: auto;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.panel-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 54px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text);
-  font: 900 15px var(--font-ui);
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.panel-btn .icon {
-  width: 20px;
-  height: 20px;
-}
-
-.panel-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.panel-btn.private {
-  border-color: rgba(255, 211, 77, 0.5);
-  background: rgba(255, 211, 77, 0.08);
-  color: #ffe08a;
-}
-
-.panel-btn.private:hover {
-  background: rgba(255, 211, 77, 0.16);
-}
-
-/* Under each column: the solo modes with their progress under the Orb, the shortcuts under the panel */
-.dock {
-  display: flex;
-  gap: 14px;
-}
-
-.dock-links {
+/* The three ways to play: a card each, its colour around it (--cc), its tag on the top left */
+.mode-cards {
+  grid-area: cards;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  min-height: 0;
 }
 
-.dock-card {
-  flex: 1;
-  min-width: 0;
+.mode-card {
   position: relative;
+  isolation: isolate;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 18px;
-  border-radius: 18px;
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-  transition: filter 0.15s, transform 0.1s;
-}
-
-.dock-card:hover {
-  filter: brightness(1.12);
-}
-
-.dock-card:active {
-  transform: translateY(2px);
-}
-
-.dock-card.campaign {
-  border: 2px solid rgba(255, 196, 58, 0.75);
-  background: linear-gradient(135deg, rgba(126, 76, 0, 0.94), rgba(40, 24, 6, 0.94));
-  box-shadow: 0 0 24px rgba(255, 170, 40, 0.18);
-  color: #fff4d6;
-}
-
-.dock-card.waves {
-  border: 2px solid rgba(255, 95, 110, 0.75);
-  background: linear-gradient(135deg, rgba(126, 18, 36, 0.94), rgba(40, 8, 16, 0.94));
-  box-shadow: 0 0 24px rgba(255, 70, 110, 0.18);
-  color: #ffe3e6;
-}
-
-.dock-art {
-  flex: none;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
-}
-
-.dock-art.weapon {
-  width: 84px;
-  height: 52px;
-  object-fit: contain;
-}
-
-.dock-art.orb {
-  width: 72px;
-  height: 72px;
-}
-
-.dock-text {
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  justify-content: flex-end;
+  padding: 18px;
+  box-sizing: border-box;
+  border-radius: 22px;
+  border: 2px solid rgba(var(--cc), 0.55);
+  background: #0b0e24;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4), 0 0 26px rgba(var(--cc), 0.14);
+  color: var(--text);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.dock-text b {
-  font: 400 28px/1 var(--font-display);
+.mode-card:hover {
+  border-color: rgba(var(--cc), 0.85);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4), 0 0 32px rgba(var(--cc), 0.26);
+}
+
+.mode-card.online {
+  --cc: 90, 170, 255;
+}
+
+.mode-card.waves {
+  --cc: 255, 90, 100;
+  background:
+    radial-gradient(circle at 50% 26%, rgba(255, 70, 70, 0.45) 0%, rgba(120, 10, 30, 0.3) 32%, rgba(8, 10, 26, 0) 62%),
+    linear-gradient(180deg, #2a0b16 0%, #120818 55%, #08091a 100%);
+  cursor: pointer;
+}
+
+.mode-card.campaign {
+  --cc: 255, 200, 60;
+  background:
+    radial-gradient(circle at 50% 26%, rgba(255, 190, 60, 0.36) 0%, rgba(120, 80, 10, 0.24) 34%, rgba(8, 10, 26, 0) 64%),
+    linear-gradient(180deg, #2b1e06 0%, #161008 55%, #09091a 100%);
+  cursor: pointer;
+}
+
+/* Multiplayer: a moment of a match in the chosen mode (public/menu/card-*.webp), fading into the card */
+.card-pic {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  height: 64%;
+  background: #0a0f24 center / cover no-repeat;
+}
+
+.card-pic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 14, 36, 0.1) 30%, #0b0e24 100%);
+}
+
+/* Survival: the boss's eye; Campaign: the weapon of the chapter being played */
+.card-boss {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 40px;
+  width: 150px;
+  height: 150px;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 30px rgba(255, 60, 60, 0.55));
+  transition: transform 0.2s;
+}
+
+.card-weapon {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 62px;
+  width: 220px;
+  height: 116px;
+  object-fit: contain;
+  transform: translateX(-50%) rotate(-8deg);
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 26px rgba(255, 190, 60, 0.35));
+  transition: transform 0.2s;
+}
+
+.mode-card:hover .card-boss {
+  transform: translateX(-50%) scale(1.05);
+}
+
+.mode-card:hover .card-weapon {
+  transform: translateX(-50%) rotate(-4deg) scale(1.04);
+}
+
+.card-tag {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font: 900 11.5px var(--font-ui);
+  letter-spacing: 1px;
+}
+
+.card-tag.online {
+  background: #5fe27d;
+  color: #062a12;
+}
+
+.waves .card-tag {
+  background: #ff5a5a;
+  color: #2a0006;
+}
+
+.campaign .card-tag {
+  background: #ffd23f;
+  color: #2b1d00;
+}
+
+.mode-card .dock-badge {
+  top: 14px;
+  right: 14px;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.card-body h2 {
+  margin: 0;
+  font: 400 32px/1 var(--font-display);
   letter-spacing: 0.5px;
-  text-transform: uppercase;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
 }
 
-.dock-card.campaign b {
-  color: var(--gold-1);
+.card-body p {
+  margin: 0;
+  min-height: 38px;
+  color: #c9d2f5;
+  font: 700 13.5px/1.4 var(--font-ui);
 }
 
-.dock-card.waves b {
-  color: #ff8a96;
+.waves .card-body p {
+  color: #f0c9cf;
 }
 
-.dock-text small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font: 800 13.5px var(--font-ui);
+.campaign .card-body p {
+  color: #efe2bd;
 }
 
-.dock-progress {
+.card-stats {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px;
+  height: 34px;
+  color: #ffe1e5;
+  font: 800 13.5px var(--font-ui);
+  white-space: nowrap;
 }
 
-.dock-progress em {
-  font: 800 12.5px var(--font-ui);
+.card-stats.bar {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 6px;
+  color: #fff2c4;
+  font-size: 12.5px;
+}
+
+.card-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-line span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-line em {
   font-style: normal;
-  color: #ffe9a8;
-  white-space: nowrap;
 }
 
 .dock-bar {
-  flex: 1;
-  max-width: 220px;
+  flex: none;
   height: 7px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.15);
@@ -623,32 +654,484 @@ select:focus-visible {
   background: var(--gold-1);
 }
 
-.dock-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+/* Multiplayer's modes: three buttons (src/menu/menu.ts buildModes), how many play each on its corner */
+.mode-pick {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(12, 12, 36, 0.86);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+}
+
+.mode-pick .mode {
+  position: relative;
+  height: 34px;
+  padding: 0 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(8, 10, 26, 0.7);
   color: var(--text);
-  font: 900 13px var(--font-ui);
+  font: 800 12px var(--font-ui);
+  white-space: nowrap;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 
-.dock-tile .icon {
-  width: 26px;
-  height: 26px;
-  color: #cfcbff;
+.mode-pick .mode:hover {
+  background: rgba(40, 50, 110, 0.75);
 }
 
-.dock-tile:hover {
+.mode-pick .mode[aria-checked='true'] {
+  border-color: #eef2ff;
+  background: #eef2ff;
+  color: #0b0f22;
+}
+
+.mode-pick .mode.closed {
+  opacity: 0.55;
+}
+
+.mode-count {
+  position: absolute;
+  top: -7px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: #3fd26b;
+  color: #062a12;
+  font: 900 11px/18px var(--font-ui);
+}
+
+.mode-count[hidden] {
+  display: none;
+}
+
+/* Each card's button, glossy, in the card's colour */
+.card-btn {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 58px;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  font: 400 26px/1 var(--font-display);
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+}
+
+.card-btn::before {
+  content: '';
+  position: absolute;
+  inset: 3px 10px auto;
+  height: 38%;
+  border-radius: 10px 10px 40% 40% / 10px 10px 14px 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+.card-btn:hover {
+  filter: brightness(1.07);
+}
+
+.card-btn:active {
+  transform: translateY(3px);
+}
+
+.card-btn:disabled {
+  filter: grayscale(0.7) brightness(0.8);
+  cursor: default;
+}
+
+.card-btn .icon {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.card-btn.play {
+  flex-direction: column;
+  gap: 3px;
+  height: 64px;
+  background: linear-gradient(180deg, #86f59a 0%, #3fd764 46%, #22b347 54%, #2cc553 100%);
+  box-shadow: inset 0 0 0 2px rgba(190, 255, 200, 0.35), 0 5px 0 #147a34, 0 0 30px rgba(60, 235, 110, 0.35);
+  color: #fff;
+}
+
+.card-btn.play:active {
+  box-shadow: inset 0 0 0 2px rgba(190, 255, 200, 0.35), 0 2px 0 #147a34, 0 0 24px rgba(60, 235, 110, 0.3);
+}
+
+.card-btn.waves {
+  background: linear-gradient(180deg, #ff9494 0%, #ff5a5a 48%, #e8404a 100%);
+  box-shadow: 0 5px 0 #a3202f, 0 0 26px rgba(255, 80, 90, 0.3);
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(120, 10, 20, 0.5);
+}
+
+.card-btn.campaign {
+  background: linear-gradient(180deg, #ffe58a 0%, #ffd23f 48%, #f0b820 100%);
+  box-shadow: 0 5px 0 #a8820f, 0 0 26px rgba(255, 200, 60, 0.3);
+  color: #2b1d00;
+}
+
+.card-btn.waves:active,
+.card-btn.campaign:active {
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.play-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 400 29px/1 var(--font-display);
+  letter-spacing: 1.5px;
+  text-shadow: 0 3px 0 rgba(10, 80, 30, 0.55);
+}
+
+.card-btn.play .play-main .icon {
+  width: 24px;
+  height: 24px;
+  filter: drop-shadow(0 2px 0 rgba(10, 80, 30, 0.55));
+}
+
+.play-sub {
+  font: 900 10.5px var(--font-ui);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 0 rgba(10, 80, 30, 0.5);
+  opacity: 0.95;
+}
+
+/* A message (couldn't join...) over the cards */
+.lobby-grid > .message {
+  grid-area: cards;
+  align-self: start;
+  justify-self: center;
+  z-index: 3;
+  margin-top: -14px;
+}
+
+/* The shortcuts under the cards */
+.lobby-tiles {
+  grid-area: tiles;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(12, 14, 38, 0.82);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.tile:hover {
   background: rgba(40, 44, 96, 0.86);
   border-color: rgba(255, 255, 255, 0.24);
+}
+
+.tile-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+}
+
+.tile-ico .icon {
+  width: 24px;
+  height: 24px;
+}
+
+.tile-ico.stats {
+  color: #ffd23f;
+  background: rgba(255, 210, 63, 0.12);
+}
+
+.tile-ico.private {
+  color: #9fb4ff;
+  background: rgba(120, 140, 255, 0.15);
+}
+
+.tile-ico.train {
+  color: #5fe27d;
+  background: rgba(95, 226, 125, 0.12);
+}
+
+.tile-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tile-text b {
+  font: 900 15px var(--font-ui);
+}
+
+.tile-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #a3acd0;
+  font: 700 12px var(--font-ui);
+}
+
+/* The ranking (src/menu/lobbyRanking.ts) and your performance, on the right */
+.lobby-side {
+  grid-area: side;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.side-card {
+  padding: 18px;
+  box-sizing: border-box;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(9, 12, 30, 0.84);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.ranking-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lr-head h2 {
+  margin: 0;
+  font: 400 24px/1 var(--font-display);
+  letter-spacing: 0.5px;
+}
+
+.lr-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0 4px 8px;
+  border: 0;
+  background: none;
+  color: #c9d2f5;
+  font: 800 13px var(--font-ui);
+  cursor: pointer;
+}
+
+.lr-link:hover {
+  color: #fff;
+}
+
+.lr-link .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.lr-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.lr-tabs button {
+  height: 30px;
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: var(--text);
+  font: 800 11.5px var(--font-ui);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lr-tabs button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lr-tabs button[aria-selected='true'] {
+  border-color: #eef2ff;
+  background: #eef2ff;
+  color: #0b0f22;
+  font-weight: 900;
+}
+
+.lr-sub {
+  margin: -2px 0 0;
+  color: #8d97bf;
+  font: 700 12px var(--font-ui);
+}
+
+.lr-list {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.lr-row {
+  display: grid;
+  grid-template-columns: 38px 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 10px 0 6px;
+  border-radius: 10px;
+  font: 800 14px var(--font-ui);
+}
+
+.lr-row.m1,
+.lr-row.m2,
+.lr-row.m3 {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.lr-row .pos {
+  color: #a3acd0;
+  font-weight: 900;
+  text-align: center;
+}
+
+.lr-row.m1 .pos {
+  color: #ffd23f;
+}
+
+.lr-row.m2 .pos {
+  color: #dfe5ff;
+}
+
+.lr-row.m3 .pos {
+  color: #e0a77a;
+}
+
+.lr-row .orb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.35);
+}
+
+.lr-row .who {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.lr-row .val {
+  color: #c9d2f5;
+  font-weight: 900;
+}
+
+.lr-row.me {
+  background: rgba(95, 226, 125, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(95, 226, 125, 0.45);
+}
+
+.lr-row.me .pos {
+  color: #8af2a3;
+}
+
+.lr-gap {
+  color: #6c76a0;
+  font-weight: 900;
+  line-height: 14px;
+  text-align: center;
+}
+
+.lr-note {
+  padding: 14px 4px;
+  color: #a3acd0;
+  font: 700 13px/1.4 var(--font-ui);
+  text-align: center;
+}
+
+.perf-card h3 {
+  margin: 0 0 12px;
+  font: 400 19px/1 var(--font-display);
+  letter-spacing: 0.5px;
+}
+
+.perf-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.perf-cell {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 6px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  text-align: center;
+}
+
+.perf-cell small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #8d97bf;
+  font: 800 10.5px var(--font-ui);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.perf-cell b {
+  color: #fff;
+  font: 400 22px/1 var(--font-display);
+}
+
+.perf-cell.top b {
+  color: #5fe27d;
+}
+
+.perf-text {
+  margin: 0 0 10px;
+  color: #c9d2f5;
+  font: 700 13px/1.45 var(--font-ui);
+}
+
+.pill-btn.perf-signin {
+  margin: 0;
 }
 
 /* The logo: a picture (public/brand/logo-wide.webp, made by tools/make-icons.mjs from brand/logo-full.png) */
@@ -931,60 +1414,6 @@ select:focus-visible {
   fill: none;
 }
 
-/* The big glossy JOGAR AGORA */
-.btn-play.hero {
-  position: relative;
-  overflow: hidden;
-  width: 470px;
-  height: 86px;
-  margin-top: 18px;
-  padding: 0;
-  flex-direction: column;
-  gap: 3px;
-  border-radius: 16px;
-  background: linear-gradient(180deg, #86f59a 0%, #3fd764 46%, #22b347 54%, #2cc553 100%);
-  box-shadow: inset 0 0 0 2px rgba(190, 255, 200, 0.35), 0 7px 0 #147a34, 0 0 40px rgba(60, 235, 110, 0.45), 0 14px 30px rgba(0, 0, 0, 0.4);
-}
-
-.btn-play.hero::before {
-  content: '';
-  position: absolute;
-  inset: 3px 10px auto;
-  height: 38%;
-  border-radius: 12px 12px 40% 40% / 12px 12px 18px 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0));
-  pointer-events: none;
-}
-
-.btn-play.hero:active {
-  box-shadow: inset 0 0 0 2px rgba(190, 255, 200, 0.35), 0 3px 0 #147a34, 0 0 30px rgba(60, 235, 110, 0.4);
-}
-
-
-.play-main {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font: 400 44px/1 var(--font-display);
-  letter-spacing: 2px;
-  text-shadow: 0 3px 0 rgba(10, 80, 30, 0.55);
-}
-
-.btn-play.hero .play-main .icon {
-  width: 36px;
-  height: 36px;
-  fill: currentColor;
-  filter: drop-shadow(0 3px 0 rgba(10, 80, 30, 0.55));
-}
-
-.play-sub {
-  font: 900 14px var(--font-ui);
-  letter-spacing: 3.5px;
-  text-transform: uppercase;
-  text-shadow: 0 2px 0 rgba(10, 80, 30, 0.5);
-  opacity: 0.95;
-}
-
 .btn-secondary {
   width: 100%;
   padding: 11px 16px;
@@ -1025,101 +1454,6 @@ select:focus-visible {
   font-size: 14px;
   font-weight: 600;
   text-align: center;
-}
-
-/* ------------------------------------------------------------------ game modes (rows in the play panel) */
-
-.modes {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.mode {
-  position: relative;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 9px 12px 9px 9px;
-  border-radius: 16px;
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-
-
-/* Each mode has its colour: the border glows with it, the icon and the line under the name take it */
-.mode-dm {
-  --mc: 255, 210, 63;
-  --mc-text: #ffe9a8;
-}
-
-.mode-tdm {
-  --mc: 110, 128, 255;
-  --mc-text: #a9b8ff;
-}
-
-.mode-ctf {
-  --mc: 255, 77, 94;
-  --mc-text: #ffa3ad;
-}
-
-.mode {
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.mode:hover {
-  border-color: rgba(var(--mc), 0.6);
-  background: rgba(var(--mc), 0.07);
-}
-
-/* A moment of a match in this mode */
-.mode-thumb {
-  flex: none;
-  width: 92px;
-  height: 58px;
-  border-radius: 10px;
-  background: #0a0f24 center / cover no-repeat;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-}
-
-.mode-text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.mode b {
-  font: 900 18px/1.15 var(--font-ui);
-}
-
-.mode small {
-  color: #c0c4ea;
-  font: 700 13px var(--font-ui);
-}
-
-/* The chosen mode: its colour around it */
-.mode[aria-checked='true'] {
-  border-color: rgb(var(--mc));
-  background: rgba(var(--mc), 0.12);
-  box-shadow: 0 0 18px rgba(var(--mc), 0.3);
-}
-
-.mode.closed {
-  opacity: 0.55;
-}
-
-.mode-count {
-  flex: none;
-  color: #7ff0a0;
-  font: 800 13px var(--font-ui);
-  white-space: nowrap;
 }
 
 .stats-cta {
@@ -2210,45 +2544,79 @@ input[type='range'] {
   padding: var(--top-room, 92px) 12px 16px;
 }
 
-/* A smaller Orb: PLAY NOW within the first screen */
-.screen.narrow .hero .orb-row .orb-stage {
-  zoom: 1.15;
-}
-
-.screen.narrow .hero .orb-arrow {
-  margin-top: -40px;
-}
-
-.screen.narrow .hero .name-input {
-  font-size: 34px;
-}
-
-.screen.narrow .hero-chips {
-  margin-top: 10px;
-}
-
+/* One column: your Orb, the cards, the shortcuts, the ranking */
 .screen.narrow .lobby-grid {
   width: 560px;
   max-width: 100%;
   height: auto;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: none;
+  grid-template-areas: 'hero' 'cards' 'tiles' 'side';
 }
 
 .screen.narrow .hero {
-  padding: 10px 0 16px;
-}
-
-.screen.narrow .dock-solo {
   flex-direction: column;
+  gap: 4px;
+  padding: 6px 0 4px;
 }
 
-.screen.narrow .dock-card {
-  min-height: 92px;
+.screen.narrow .hero-id {
+  align-items: center;
+  min-width: 0;
 }
 
-.screen.narrow .dock-tile {
-  height: 84px;
+.screen.narrow .hero .name-input {
+  text-align: center;
+}
+
+.screen.narrow .hero-chips {
+  justify-content: center;
+}
+
+.screen.narrow .mode-cards {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.screen.narrow .mode-card {
+  min-height: 330px;
+}
+
+.screen.narrow .mode-card.waves,
+.screen.narrow .mode-card.campaign {
+  min-height: 290px;
+}
+
+/* A wide card: the boss and the weapon on its top right, above the text */
+.screen.narrow .card-boss {
+  left: auto;
+  right: 26px;
+  top: 22px;
+  width: 112px;
+  height: 112px;
+  transform: none;
+}
+
+.screen.narrow .card-weapon {
+  left: auto;
+  right: 22px;
+  top: 30px;
+  width: 190px;
+  height: 96px;
+  transform: rotate(-8deg);
+}
+
+.screen.narrow .mode-card:hover .card-boss,
+.screen.narrow .mode-card:hover .card-weapon {
+  transform: none;
+}
+
+.screen.narrow .lobby-tiles {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.screen.narrow .tile {
+  height: 66px;
 }
 
 .screen.narrow .footer {

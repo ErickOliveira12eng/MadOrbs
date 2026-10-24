@@ -1,10 +1,10 @@
-// The start screen, a lobby (mockup A, approved by Erick): the logo and the page's buttons on top (how
-// many play now, sound, language, full screen, the account); the player's orb big on its pedestal in
-// the middle (arrows switch the style, "Customize Orb" opens the full picker), the name and the online
-// record; on the right the online play (the mode, PLAY NOW, a private room, the offline training);
-// below, the campaign and the waves with the player's progress, the ranking, the stats and the
-// controls; a banner in a gutter on the left. The background is a picture of a fight rendered by the
-// game itself (tools/make-menu-bg.mjs), with drifting orbs and sparks on top.
+// The start screen, a lobby (mockup F, chosen by Erick on 23/10/2026): the logo and the page's buttons on top
+// (how many play now, sound, language, full screen, the account); the player's orb on its pedestal (arrows switch
+// the style, "Customize Orb" opens the full picker), the name and the online record; three mode cards, each with
+// its tag (online, solo): Multiplayer (the mode and PLAY NOW), Survival (the waves: the record, the Cores, the
+// Workshop) and Campaign (the chapter and the levels won); the ranking on the right (src/menu/lobbyRanking.ts);
+// the stats, a room with friends and the tutorial below; a banner in a gutter on the left. The background is a
+// picture of a fight rendered by the game itself (tools/make-menu-bg.mjs), with drifting orbs and sparks on top.
 import * as THREE from 'three';
 import { modeName, modeShort, modeTagline } from '../client/modes';
 import { CAMPAIGN, LEVELS_PER_CHAPTER, loadProgress } from '../client/campaign';
@@ -19,6 +19,7 @@ import { StatsModal } from './statsModal';
 import { BOSS_SKIN, CampaignModal } from './campaignModal';
 import { AdblockModal } from './adblockModal';
 import { RankingModal } from './rankingModal';
+import { LobbyRanking } from './lobbyRanking';
 import { PcOnlyModal, sendLink, touchOnly } from './pcOnly';
 import { RoomModal, type PrivateRoomJoin } from './roomModal';
 import type { CampaignLevel } from '../client/campaign';
@@ -42,7 +43,7 @@ export type PlayMode = 'online' | 'offline';
 
 /** The lobby is laid out at this size (design px) and zoomed into the window. */
 const LOBBY_W = 1240;
-const LOBBY_H = 700;
+const LOBBY_H = 680;
 /** Room the top bar takes above the lobby, and the footer below it (real px). */
 const TOP_ROOM = 74;
 const BOTTOM_ROOM = 30;
@@ -52,8 +53,8 @@ const NARROW_WIDTH = 980;
 const MIN_LOBBY_W = 1000;
 /** A banner is centred on the window's height (.ad-slot): this much of it stays clear, above (the top bar) and below. */
 const AD_CLEAR = 132;
-/** The orb on the pedestal is drawn this big (design px: the stage's 190 px, zoomed 1.7 in menu.css). */
-const ORB_PX = 190 * 1.7;
+/** The orb on the pedestal is drawn this big (design px: the stage's 190 px, zoomed 0.78 in menu.css). */
+const ORB_PX = 190 * 0.78;
 
 /** The banners of the left gutter: their element, ad unit and size (with the label above). */
 interface SideAd {
@@ -88,6 +89,7 @@ export class StartScreen {
   /** The first time in the waves or online: the tutorial, or play now */
   private readonly tutorialAsk = new TutorialModal();
   private readonly ranking: RankingModal;
+  private readonly lobbyRanking: LobbyRanking;
   private readonly room: RoomModal;
   /** The account whose Orb was already brought into this page's settings. */
   private orbSyncedFor = '';
@@ -145,12 +147,17 @@ export class StartScreen {
     this.accountModal = new AccountModal(account, settings, studio, (name) => this.setName(name));
     $('btnAccount').addEventListener('click', () => this.accountModal.open());
     // Which windows of the start screen are opened (analytics)
-    const opens: [string, string][] = [['btnAccount', 'account'], ['btnStats', 'stats'], ['btnRanking', 'ranking'], ['btnCampaign', 'campaign'], ['training', 'training'], ['btnControls', 'controls'], ['orbButton', 'orb'], ['orbCustomize', 'orb'], ['btnPrivate', 'private']];
+    const opens: [string, string][] = [['btnAccount', 'account'], ['btnStats', 'stats'], ['lrFull', 'ranking'], ['btnCampaign', 'campaign'], ['training', 'training'], ['btnControls', 'controls'], ['orbButton', 'orb'], ['orbCustomize', 'orb'], ['btnPrivate', 'private']];
     for (const [id, name] of opens) $(id).addEventListener('click', () => track('menu_open', { window: name }));
     this.statsModal = new StatsModal(account, () => this.accountModal.open());
     $('btnStats').addEventListener('click', () => this.statsModal.open());
     this.ranking = new RankingModal(account, () => this.accountModal.open());
-    $('btnRanking').addEventListener('click', () => this.ranking.open());
+    this.lobbyRanking = new LobbyRanking(
+      account,
+      () => this.settings.mode,
+      (mode) => this.ranking.open(mode),
+      () => this.accountModal.open(),
+    );
     this.room = new RoomModal(
       () => this.settings.mode,
       account,
@@ -171,6 +178,12 @@ export class StartScreen {
       () => this.accountModal.open(),
     );
     $('btnCampaign').addEventListener('click', () => this.campaign.open());
+    // The solo cards are a button each, all of them
+    for (const [card, button] of [['cardWaves', 'btnWaves'], ['cardCampaign', 'btnCampaign']]) {
+      $(card).addEventListener('click', (e) => {
+        if (!(e.target as HTMLElement).closest('button')) $(button).click();
+      });
+    }
     this.waves = new WavesModal(
       account,
       studio,
@@ -224,8 +237,11 @@ export class StartScreen {
       });
     });
 
-    // Controls window
-    $('btnControls').addEventListener('click', () => (this.controls.hidden = false));
+    // Controls window (a link in the footer, beside How to play)
+    $('btnControls').addEventListener('click', (e) => {
+      e.preventDefault();
+      this.controls.hidden = false;
+    });
     for (const el of this.controls.querySelectorAll('[data-close]')) el.addEventListener('click', () => (this.controls.hidden = true));
     this.controls.addEventListener('pointerdown', (e) => {
       if (e.target === this.controls) this.controls.hidden = true;
@@ -321,6 +337,7 @@ export class StartScreen {
     this.rafId = requestAnimationFrame((t) => this.frame(t));
     void this.refreshStatus();
     this.renderProgress();
+    this.lobbyRanking.refresh();
     this.fit(this.adsAt > 0 && performance.now() - this.adsAt > AD_REFRESH_MS);
     this.checkAdBlock();
   }
@@ -444,13 +461,13 @@ export class StartScreen {
     const chapter = (CAMPAIGN.find((c) => c.levels.some((l) => progress[l.id] === undefined)) ?? CAMPAIGN[CAMPAIGN.length - 1]).chapter;
     const art = $<HTMLImageElement>('campaignArt');
     if (!art.src.endsWith(`/guia/${chapter.picture}`)) art.src = `/guia/${chapter.picture}`;
-    $('campaignLine').textContent = done ? t('menu.campaignProgress', { n: chapter.n, weapon: t(`w.${chapter.weaponKey}.name`) }) : t('menu.campaignSolo');
+    $('campaignLine').textContent = t('menu.campaignProgress', { n: chapter.n, weapon: t(`w.${chapter.weaponKey}.name`) });
     $('campaignCount').textContent = t('menu.campaignLevels', { done, total });
-    $('campaignBarBox').hidden = !done;
     $('campaignBar').style.width = `${Math.round((done / total) * 100)}%`;
+    $('campaignGo').textContent = t(done > 0 && done < total ? 'lobby.continue' : 'lobby.play');
 
     const waves = loadWavesRecord();
-    $('wavesLine').textContent = waves ? t('menu.wavesRecord', { n: waves.wave }) : t('menu.wavesSolo');
+    $('wavesLine').textContent = waves ? t('menu.wavesRecord', { n: waves.wave }) : t('lobby.wavesFirst');
     // The Cores of the waves, and how many upgrades they pay for now
     const wp = loadWavesProgress();
     const cores = $('wavesCores');
@@ -582,7 +599,7 @@ export class StartScreen {
     if (any) this.adsAt = performance.now();
   }
 
-  /** One row per game mode (a moment of a match, name, one line, how many play it now). */
+  /** The Multiplayer card's modes: one button each (its short name, how many play it now). */
   private buildModes(): void {
     const box = $('modes');
     for (const mode of ROOM_MODES) {
@@ -591,9 +608,8 @@ export class StartScreen {
       b.className = `mode mode-${mode}`;
       b.dataset.mode = mode;
       b.setAttribute('role', 'radio');
-      b.innerHTML =
-        `<span class="mode-thumb" style="background-image: url('${versioned(`/menu/mode-${mode}.webp`)}')"></span>` +
-        `<span class="mode-text"><b>${modeName(mode)}</b><small>${modeTagline(mode)}</small></span><span class="mode-count" hidden></span>`;
+      b.title = `${modeName(mode)} · ${modeTagline(mode)}`;
+      b.innerHTML = `<span>${modeShort(mode)}</span><span class="mode-count" hidden></span>`;
       b.addEventListener('click', () => {
         if (this.settings.mode !== mode) track('select_mode', { mode });
         this.settings.mode = mode;
@@ -606,9 +622,13 @@ export class StartScreen {
   }
 
   private markMode(): void {
-    for (const b of $('modes').querySelectorAll<HTMLElement>('[data-mode]')) b.setAttribute('aria-checked', String(b.dataset.mode === this.settings.mode));
+    const mode = this.settings.mode;
+    for (const b of $('modes').querySelectorAll<HTMLElement>('[data-mode]')) b.setAttribute('aria-checked', String(b.dataset.mode === mode));
+    // The card's picture: a moment of a match in that mode (tools/make-menu-cards.mjs)
+    $('onlinePic').style.backgroundImage = `url('${versioned(`/menu/card-${mode}.webp`)}')`;
     this.renderStatus();
     this.renderProgress();
+    if (this.visible) this.lobbyRanking?.refresh();
   }
 
   /** The game server of this page: is it up, and who plays in each mode. */
@@ -640,7 +660,8 @@ export class StartScreen {
       const room = this.rooms?.[b.dataset.mode as RoomMode];
       const count = b.querySelector<HTMLElement>('.mode-count')!;
       count.hidden = !room || room.players === 0;
-      count.textContent = room ? t('menu.playing', { n: room.players }) : '';
+      count.textContent = room ? String(room.players) : '';
+      count.title = room ? t('menu.playing', { n: room.players }) : '';
       b.classList.toggle('closed', this.serverUp === true && !room);
     }
     sub.textContent = t('menu.playMode', { mode: modeName(this.settings.mode) });
