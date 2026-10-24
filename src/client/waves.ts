@@ -89,6 +89,12 @@ export const WAVES = {
   boss: { radius: 0.45, damageScale: 0.22, weapon: WEAPON_CHAIN_GUN, aim: 0.3, spread: 0.35, life: 2 },
   /** Bots that come with the boss and walk beside it. */
   escorts: 2,
+  /**
+   * The share of a wave's ordinary bots that rush the player (BotController.rush) instead of keeping their weapon's
+   * distance; the brutes and the fast elites always do, the sharpshooters and the sniper rifles never (Erick,
+   * 24/10/2026: some should come at you, the snipers keep away).
+   */
+  rushShare: 0.4,
 };
 
 /**

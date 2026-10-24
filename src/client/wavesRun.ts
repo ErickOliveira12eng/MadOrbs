@@ -3,7 +3,7 @@
 // break and now and then), the power-ups they drop and their effects, the lives and the end.
 import * as THREE from 'three';
 import { BotController } from '../sim/bot';
-import { PLAYER_STATUS_DEAD, PLAYER_TEAM_BLUE, PLAYER_TEAM_RED, PROJECTILE_DROPED_WEAPON, PROJECTILE_ROCKET, TICK, WEAPON_BAZOOKA, WEAPON_GRENADE, WEAPON_KNIVES, WEAPON_NUCLEAR } from '../sim/constants';
+import { PLAYER_STATUS_DEAD, PLAYER_TEAM_BLUE, PLAYER_TEAM_RED, PROJECTILE_DROPED_WEAPON, PROJECTILE_ROCKET, TICK, WEAPON_BAZOOKA, WEAPON_GRENADE, WEAPON_KNIVES, WEAPON_NUCLEAR, WEAPON_SNIPER } from '../sim/constants';
 import type { Game } from '../sim/game';
 import { weaponDefs } from '../sim/gameVar';
 import type { Player, SkinInfo } from '../sim/player';
@@ -545,6 +545,9 @@ export class WavesRun {
     if (traits.includes('tank')) p.damageScale *= strength.tough;
     bots[i] = new BotController(p, traits.includes('sniper') ? 1 : this.spec.skill, loadout);
     if (traits.includes('sniper')) bots[i].aimScale = strength.aim;
+    // Some come right at the player, the snipers keep their distance (WAVES.rushShare)
+    const keeps = traits.includes('sniper') || loadout.primary === WEAPON_SNIPER;
+    bots[i].rush = !keeps && (traits.includes('brute') || traits.includes('fast') || Math.random() < WAVES.rushShare);
     if (escort) {
       bots[i].escort = escort.of;
       bots[i].escortSide = escort.side;

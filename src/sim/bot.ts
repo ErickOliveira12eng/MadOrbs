@@ -116,6 +116,12 @@ export class BotController {
    */
   escortSlack = 0;
   escortGap = 0.25;
+  /**
+   * Comes right up to its target instead of keeping its weapon's distance (5 cells, the sniper 9...): never backs off
+   * and strafes less (the waves, Erick 24/10/2026: the bots seemed afraid to come, going back and forth at the edge of
+   * that distance and in and out of sight round the corners).
+   */
+  rush = false;
 
   /** `loadout`: always these weapons (the campaign: the chapter's weapon), else picked at random. */
   constructor(
@@ -232,15 +238,31 @@ export class BotController {
       const toT = target.currentCF.position.sub(pos);
       const d = toT.length();
       const weapon = p.weapon?.weaponID ?? 0;
-      const ideal = weapon === WEAPON_SHOTGUN || weapon === WEAPON_FLAME_THROWER ? 2.5 : weapon === WEAPON_SNIPER ? 9 : weapon === WEAPON_BAZOOKA ? 6 : 5;
+      const close = weapon === WEAPON_SHOTGUN || weapon === WEAPON_FLAME_THROWER;
+      const ideal = this.rush
+        ? close
+          ? 1.2
+          : weapon === WEAPON_BAZOOKA
+            ? 3.5
+            : weapon === WEAPON_SNIPER
+              ? 4
+              : 1.8
+        : close
+          ? 2.5
+          : weapon === WEAPON_SNIPER
+            ? 9
+            : weapon === WEAPON_BAZOOKA
+              ? 6
+              : 5;
       this.strafeTimer -= delay;
       if (this.strafeTimer <= 0) {
         this.strafeTimer = randRange(0.4, 1.5);
         this.strafeDir = Math.random() < 0.5 ? -1 : 1;
       }
       const dir = toT.clone().normalizeIn();
-      const side = new Vec3(-dir.y, dir.x, 0).mul(this.strafeDir);
-      const radial = dir.mul(d > ideal + 1 ? 1 : d < ideal - 1 ? -1 : 0);
+      const side = new Vec3(-dir.y, dir.x, 0).mul(this.strafeDir * (this.rush ? 0.45 : 1));
+      // Within a cell of the distance it keeps it only strafes; closer, it backs off (a rusher never does)
+      const radial = dir.mul(d > ideal + (this.rush ? 0.3 : 1) ? 1 : !this.rush && d < ideal - 1 ? -1 : 0);
       moveTo = pos.add(side.add(radial));
       this.path = [];
     } else if (goal) {
