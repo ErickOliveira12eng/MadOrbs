@@ -69,6 +69,12 @@ class ProjectileVisual {
   private type: number;
   /** Projectile.size: the waves' smaller card rockets. */
   private size = 1;
+  /**
+   * An item on the floor: the lowest its model may be drawn, its base on the floor (Erick, 24/10/2026: the life packs
+   * showed while bouncing and vanished once still). They come to rest 0.06 to 0.2 above the floor (the physics stops
+   * them under 0.2), and the model drawn 0.2 lower (0.3 a weapon) sank into it.
+   */
+  private floorLift = -Infinity;
 
   constructor(p: Projectile, scene: THREE.Object3D) {
     this.type = p.projectileType;
@@ -130,6 +136,11 @@ class ProjectileVisual {
       this.modelHolder.add(this.model);
       this.modelHolder.scale.setScalar(scale * this.size);
       this.root.add(this.modelHolder);
+      if (this.type === PROJECTILE_LIFE_PACK || this.type === PROJECTILE_DROPED_WEAPON || this.type === PROJECTILE_DROPED_GRENADE) {
+        this.modelHolder.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(this.modelHolder);
+        if (Number.isFinite(box.min.z)) this.floorLift = 0.005 - box.min.z;
+      }
     }
     if (this.type !== PROJECTILE_FLAME) {
       if (!shadowMat) {
@@ -180,11 +191,14 @@ class ProjectileVisual {
         break;
       }
       case PROJECTILE_LIFE_PACK:
-        h.position.z = z - 0.2;
+        h.position.z = Math.max(this.floorLift, z - 0.2);
         break;
       case PROJECTILE_DROPED_WEAPON:
-        h.position.z = z - 0.3;
+        h.position.z = Math.max(this.floorLift, z - 0.3);
         h.rotateZ((p.rotation * Math.PI) / 180);
+        break;
+      case PROJECTILE_DROPED_GRENADE:
+        h.position.z = Math.max(this.floorLift, z);
         break;
     }
     // Items on the floor (a life pack, a dropped weapon or grenade) blink their last seconds before
