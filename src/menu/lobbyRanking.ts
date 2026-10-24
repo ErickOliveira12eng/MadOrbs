@@ -138,18 +138,24 @@ export class LobbyRanking {
     list.classList.remove('stale');
     const { rows, total } = got;
     const by = COLUMNS[mode][0];
-    let html = '';
+    // The waves: the time in a column of its own (Erick, 24/10/2026: titles over the numbers)
+    const timed = mode === 'waves';
+    const time = (r: RankingRow) => `<span class="time">${typeof r.stats.time === 'number' ? clock(r.stats.time) : '—'}</span>`;
+    let html = rows.length
+      ? `<li class="lr-row head${timed ? ' timed' : ''}" aria-hidden="true"><span>#</span><span></span><span>${t('ranking.player')}</span>` +
+        `<span class="val">${t(by.head)}</span>${timed ? `<span class="time">${t('ranking.reachTime')}</span>` : ''}</li>`
+      : '';
     let last = 0;
     for (const r of rows) {
       // The player's place further down: a gap before it
       if (last > 0 && r.rank > last + 1) html += `<li class="lr-gap" aria-hidden="true">⋯</li>`;
       last = r.rank;
       html +=
-        `<li class="lr-row${r.is_me ? ' me' : ''}${r.rank <= 3 ? ` m${r.rank}` : ''}">` +
+        `<li class="lr-row${timed ? ' timed' : ''}${r.is_me ? ' me' : ''}${r.rank <= 3 ? ` m${r.rank}` : ''}">` +
         `<span class="pos">${bigNum(r.rank)}</span>` +
         `<i class="orb" style="${orbStyle(r)}"></i>` +
         `<b class="who">${r.is_me ? t('ranking.you') : esc(r.name || 'Orb')}</b>` +
-        `<span class="val">${by.cell(r)}${wavesTime(mode, r)}</span></li>`;
+        `<span class="val">${by.cell(r)}</span>${timed ? time(r) : ''}</li>`;
     }
     this.setList(html || `<li class="lr-note">${t('ranking.empty')}</li>`);
     this.renderPerf(mode, rows.find((r) => r.is_me) ?? null, total);
