@@ -104,6 +104,14 @@ export const WAVES = {
  */
 export const EASE = { until: 5, hit: 0.5, take: 1.2 };
 
+/**
+ * Every enemy of the waves (the ordinary bots, the elites, the boss, from wave 1) a little weaker, all in the same
+ * proportion (Erick, 25/10/2026: about 25% easier): they hit EASIER as hard and take 1/EASIER of the damage, so their
+ * strength (life × damage) is 0.87² = 0.76 of what it was. The bomb, the silver bullet and the shock wave still count in
+ * lives of an ordinary enemy of the wave.
+ */
+export const EASIER = 0.87;
+
 export interface WaveSpec {
   n: number;
   /** A boss wave (every WAVES.bossEvery). */
@@ -153,8 +161,8 @@ export function waveSpec(n: number): WaveSpec {
     spawnGap: Math.max(0.25, 0.9 - n * 0.02),
     seconds: Math.min(60, 30 + n),
     skill: 0.92 - 0.77 * Math.exp(-(n - 1) / 18),
-    toughness: (1 / (1 + 0.07 * (n - 1))) * (1 + (EASE.take - 1) * ease),
-    hitBoost: (1 + 0.04 * (n - 1)) * (1 - (1 - EASE.hit) * ease),
+    toughness: ((1 / (1 + 0.07 * (n - 1))) * (1 + (EASE.take - 1) * ease)) / EASIER,
+    hitBoost: (1 + 0.04 * (n - 1)) * (1 - (1 - EASE.hit) * ease) * EASIER,
     weapons,
   };
 }

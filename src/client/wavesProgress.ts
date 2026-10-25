@@ -146,19 +146,21 @@ export function headStartPowers(startWave: number): number {
 
 /**
  * A wave survived (the next one began): WAVE_CORES_BASE Cores plus one for every two waves of its number, times
- * WAVE_CORES_SCALE: 11 for the first, 21 for the 10th, 30 for the 20th, 49 for the 40th. Raised four times at
+ * WAVE_CORES_SCALE: 14 for the first, 26 for the 10th, 38 for the 20th, 62 for the 40th. Raised four times at
  * Erick's asking: 30% more on 12/10/2026 (scale 1.3); about 23% more on a whole run on 14/10/2026 (scale 1.6, a
  * Core every 4 kills instead of 5, 30 for a boss instead of 25); and the same day, the start found hard, a base
  * of 6 instead of 3, which weighs most on the first waves: a run dying on wave 8 gives 96 instead of 63, on wave
  * 11 184 instead of 136, on 21 476 instead of 380, on 41 1407 instead of 1215 (every enemy killed, no record);
- * on 15/10/2026 about 22% more again (scale 1.9, a Core every 3 kills, 40 for a boss): 224, 585, 1729.
+ * on 15/10/2026 about 22% more again (scale 1.9, a Core every 3 kills, 40 for a boss): 224, 585, 1729; on 25/10/2026
+ * about 25% more (scale 2.4, 2 Cores every 5 kills, 50 for a boss, 40 for a record): 14 for the first wave, 26 for the
+ * 10th, 38 for the 20th, 62 for the 40th.
  */
 export const WAVE_CORES_BASE = 6;
-export const WAVE_CORES_SCALE = 1.9;
+export const WAVE_CORES_SCALE = 2.4;
 export const waveCores = (n: number): number => Math.round(WAVE_CORES_SCALE * (WAVE_CORES_BASE + Math.floor(n / 2)));
-export const KILLS_PER_CORE = 3;
-export const BOSS_CORES = 40;
-export const RECORD_CORES = 30;
+export const KILLS_PER_CORE = 2.5;
+export const BOSS_CORES = 50;
+export const RECORD_CORES = 40;
 
 export interface RunCores {
   /** Waves survived in the run (from the one it began on), and their Cores. */
