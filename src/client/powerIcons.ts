@@ -11,7 +11,8 @@ export function powerIcon(kind: PowerKind): HTMLCanvasElement {
   if (done) return done;
   const c = document.createElement('canvas');
   c.width = c.height = 128;
-  const g = c.getContext('2d')!;
+  // In memory, not on the GPU: a GPU reset (a long pause) wipes GPU canvases, and the floor sprites went blank
+  const g = c.getContext('2d', { willReadFrequently: true })!;
   // Disc with a darker rim and a light top
   const color = POWERS[kind].color;
   g.fillStyle = 'rgba(0,0,0,0.35)';

@@ -100,7 +100,8 @@ export class Embers {
 function glow(rgb: string): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = c.height = 32;
-  const g = c.getContext('2d')!;
+  // In memory: a GPU reset wipes GPU canvases drawn once
+  const g = c.getContext('2d', { willReadFrequently: true })!;
   const r = g.createRadialGradient(16, 16, 0, 16, 16, 16);
   r.addColorStop(0, 'rgba(255,255,240,1)');
   r.addColorStop(0.18, `rgba(${rgb},1)`);

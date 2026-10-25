@@ -49,7 +49,9 @@ const CRATE_HEIGHT = 0.5;
 function crateTexture(): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = c.height = 128;
-  const g = c.getContext('2d')!;
+  // A canvas in memory: a GPU canvas is wiped when the browser resets the GPU (a long pause), and three.js then
+  // uploads the texture again from it (black crates)
+  const g = c.getContext('2d', { willReadFrequently: true })!;
   g.fillStyle = '#9a6a3a';
   g.fillRect(0, 0, 128, 128);
   for (let i = 0; i < 4; i++) {

@@ -378,7 +378,8 @@ export class HudLayer {
     const oy = (px - h * cell) / 2;
     const walls = document.createElement('canvas');
     walls.width = walls.height = px;
-    const ctx = walls.getContext('2d')!;
+    // In memory: a GPU reset (a long pause) wiped a GPU canvas, and the minimap lost its walls
+    const ctx = walls.getContext('2d', { willReadFrequently: true })!;
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.fillRect(ox, oy, w * cell, h * cell);
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
