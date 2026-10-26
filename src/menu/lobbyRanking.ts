@@ -1,5 +1,5 @@
 // The start screen's ranking column (Erick, 23/10/2026): tabs for the online play (the mode chosen on the
-// Multiplayer card), the waves ("Survival" on this screen) and the campaign; the top 3, then the rows around the
+// Multiplayer card) and the waves ("Survival" on this screen; the campaign's tab left with it on 26/10/2026); the top 3, then the rows around the
 // player's own place, the player's row lit; "See all" opens the ranking window on that mode. Under it, "Your
 // performance": the place, the number it goes by and the top share ("Top 12%"); guests are asked to sign in.
 // From Supabase's leaderboard_near (Account.rankingNear).
@@ -19,7 +19,7 @@ const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s) % 60)
  */
 const wavesTime = (mode: RankingMode, r: RankingRow) => (mode === 'waves' && typeof r.stats.time === 'number' ? `<small>${clock(r.stats.time)}</small>` : '');
 
-type Tab = 'online' | 'waves' | 'campaign';
+type Tab = 'online' | 'waves';
 
 /** What each list goes by, said under the tabs. */
 const BY: Record<RankingMode, Key> = {
@@ -88,7 +88,7 @@ export class LobbyRanking {
 
   /** The other tabs read ahead, one after the other: a click shows them at once. */
   private async prefetch(): Promise<void> {
-    for (const mode of [this.onlineMode(), 'waves', 'campaign'] as RankingMode[]) await this.read(mode).catch(() => null);
+    for (const mode of [this.onlineMode(), 'waves'] as RankingMode[]) await this.read(mode).catch(() => null);
   }
 
   /** A mode's list, from the cache while it is fresh. */
@@ -171,7 +171,7 @@ export class LobbyRanking {
       return;
     }
     if (!me) {
-      this.setPerf(`<p class="perf-text">${t(`lobby.perfNone.${mode === 'waves' || mode === 'campaign' ? mode : 'online'}` as Key)}</p>`);
+      this.setPerf(`<p class="perf-text">${t(mode === 'waves' ? 'lobby.perfNone.waves' : 'lobby.perfNone.online')}</p>`);
       return;
     }
     const by = COLUMNS[mode][0];

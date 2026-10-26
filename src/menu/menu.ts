@@ -1,13 +1,12 @@
 // The start screen, a lobby (mockup F, chosen by Erick on 23/10/2026): the logo and the page's buttons on top
 // (how many play now, sound, language, full screen, the account); the player's orb on its pedestal (arrows switch
-// the style, "Customize Orb" opens the full picker), the name and the online record; three mode cards, each with
-// its tag (online, solo): Multiplayer (the mode and PLAY NOW), Survival (the waves: the record, the Cores, the
-// Workshop) and Campaign (the chapter and the levels won); the ranking on the right (src/menu/lobbyRanking.ts);
+// the style, "Customize Orb" opens the full picker), the name and the online record; two mode cards, each with
+// its tag (online, solo): Multiplayer (the mode and PLAY NOW) and Survival (the waves: the record, the Cores, the
+// Workshop; the Campaign card left on 26/10/2026, Erick); the ranking on the right (src/menu/lobbyRanking.ts);
 // the stats, a room with friends and the tutorial below; a banner in a gutter on the left. The background is a
 // picture of a fight rendered by the game itself (tools/make-menu-bg.mjs), with drifting orbs and sparks on top.
 import * as THREE from 'three';
 import { modeName, modeShort, modeTagline } from '../client/modes';
-import { CAMPAIGN, LEVELS_PER_CHAPTER, loadProgress } from '../client/campaign';
 import { bestKills } from '../client/records';
 import { loadWavesRecord } from '../client/waves';
 import { affordable, balance, dailyState, loadProgress as loadWavesProgress } from '../client/wavesProgress';
@@ -16,13 +15,11 @@ import { MAX_NAME_LENGTH, ROOM_MODES, cleanName, isReservedName, limitNameInput,
 import type { Account } from './account';
 import { AccountModal } from './accountModal';
 import { StatsModal } from './statsModal';
-import { CampaignModal } from './campaignModal';
 import { AdblockModal } from './adblockModal';
 import { RankingModal } from './rankingModal';
 import { LobbyRanking } from './lobbyRanking';
 import { PcOnlyModal, sendLink, touchOnly } from './pcOnly';
 import { RoomModal, type PrivateRoomJoin } from './roomModal';
-import type { CampaignLevel } from '../client/campaign';
 import { isOldGeneratedName, randomGuestName } from './guestNames';
 import { Embers } from './embers';
 import { icon, type IconName } from './icons';
@@ -81,7 +78,6 @@ export class StartScreen {
   private readonly training: TrainingModal;
   private readonly accountModal: AccountModal;
   private readonly statsModal: StatsModal;
-  private readonly campaign: CampaignModal;
   private readonly waves: WavesModal;
   private readonly adblock = new AdblockModal();
   /** Phones and tablets: the window that says where to play (src/menu/pcOnly.ts) */
@@ -115,8 +111,6 @@ export class StartScreen {
     private readonly studio: OrbStudio,
     private readonly account: Account,
     private readonly onPlay: (mode: PlayMode) => void,
-    /** A campaign level chosen (src/menu/campaignModal.ts). */
-    onCampaign: (level: CampaignLevel) => void,
     onWaves: () => void,
     /** A private room to join (made here, or an invitation). */
     onPrivate: (room: PrivateRoomJoin) => void,
@@ -147,7 +141,7 @@ export class StartScreen {
     this.accountModal = new AccountModal(account, settings, studio, (name) => this.setName(name));
     $('btnAccount').addEventListener('click', () => this.accountModal.open());
     // Which windows of the start screen are opened (analytics)
-    const opens: [string, string][] = [['btnAccount', 'account'], ['btnStats', 'stats'], ['lrFull', 'ranking'], ['btnCampaign', 'campaign'], ['training', 'training'], ['btnControls', 'controls'], ['orbButton', 'orb'], ['orbCustomize', 'orb'], ['btnPrivate', 'private']];
+    const opens: [string, string][] = [['btnAccount', 'account'], ['btnStats', 'stats'], ['lrFull', 'ranking'], ['training', 'training'], ['btnControls', 'controls'], ['orbButton', 'orb'], ['orbCustomize', 'orb'], ['btnPrivate', 'private']];
     for (const [id, name] of opens) $(id).addEventListener('click', () => track('menu_open', { window: name }));
     this.statsModal = new StatsModal(account, () => this.accountModal.open());
     $('btnStats').addEventListener('click', () => this.statsModal.open());
@@ -168,22 +162,10 @@ export class StartScreen {
       },
     );
     $('btnPrivate').addEventListener('click', () => this.room.open());
-    this.campaign = new CampaignModal(
-      account,
-      studio,
-      (level) => {
-        if (!this.settings.name) this.play('offline', false);
-        onCampaign(level);
-      },
-      () => this.accountModal.open(),
-    );
-    $('btnCampaign').addEventListener('click', () => this.campaign.open());
-    // The solo cards are a button each, all of them
-    for (const [card, button] of [['cardWaves', 'btnWaves'], ['cardCampaign', 'btnCampaign']]) {
-      $(card).addEventListener('click', (e) => {
-        if (!(e.target as HTMLElement).closest('button')) $(button).click();
-      });
-    }
+    // The Survival card is a button, all of it
+    $('cardWaves').addEventListener('click', (e) => {
+      if (!(e.target as HTMLElement).closest('button')) $('btnWaves').click();
+    });
     this.waves = new WavesModal(
       account,
       studio,
@@ -372,7 +354,6 @@ export class StartScreen {
     this.training.close();
     this.accountModal.close();
     this.statsModal.close();
-    this.campaign.close();
     this.ranking.close();
     this.adblock.close();
     this.pcModal.close();
@@ -388,7 +369,7 @@ export class StartScreen {
     this.pcModal.open(from);
   }
 
-  /** `start`: false only gives the player a name (the campaign starts on its own). */
+  /** `start`: false only gives the player a name (the waves start on their own). */
   private play(mode: PlayMode, start = true): void {
     if (!this.settings.name || isOldGeneratedName(this.settings.name)) {
       // Like the .io games: a name for those who don't pick one (a war word and three digits)
@@ -402,11 +383,6 @@ export class StartScreen {
   /** The private room window: making one, or joining this one (an invitation link). */
   openRoom(code?: string): void {
     this.room.open(code);
-  }
-
-  /** The campaign window (back from a level: on its chapter). */
-  openCampaign(level?: CampaignLevel): void {
-    this.campaign.open(level);
   }
 
   /** The arrows beside the orb: the previous or next style, same colours. */
@@ -442,25 +418,13 @@ export class StartScreen {
   }
 
   /**
-   * The lobby's numbers, from this browser and the account: the online record of the chosen mode, the
-   * campaign's progress (and the weapon of the chapter being played), the waves' record.
+   * The lobby's numbers, from this browser and the account: the online record of the chosen mode, the waves'
+   * record and Cores.
    */
   private renderProgress(): void {
     const mode = this.settings.mode;
     const record = Math.max(bestKills(mode), this.account.stats[mode]?.bestKills ?? 0);
     $('heroChips').innerHTML = record > 0 ? `<span class="hero-chip">${t('menu.recordChip', { mode: modeShort(mode), n: `<b>${num(record)}</b>` })}</span>` : '';
-
-    const progress = loadProgress();
-    const total = CAMPAIGN.length * LEVELS_PER_CHAPTER;
-    const done = CAMPAIGN.reduce((n, c) => n + c.levels.filter((l) => progress[l.id] !== undefined).length, 0);
-    // The chapter being played: the first one with a level still to win (all won: the last)
-    const chapter = (CAMPAIGN.find((c) => c.levels.some((l) => progress[l.id] === undefined)) ?? CAMPAIGN[CAMPAIGN.length - 1]).chapter;
-    const art = $<HTMLImageElement>('campaignArt');
-    if (!art.src.endsWith(`/guia/${chapter.picture}`)) art.src = `/guia/${chapter.picture}`;
-    $('campaignLine').textContent = t('menu.campaignProgress', { n: chapter.n, weapon: t(`w.${chapter.weaponKey}.name`) });
-    $('campaignCount').textContent = t('menu.campaignLevels', { done, total });
-    $('campaignBar').style.width = `${Math.round((done / total) * 100)}%`;
-    $('campaignGo').textContent = t(done > 0 && done < total ? 'lobby.continue' : 'lobby.play');
 
     const waves = loadWavesRecord();
     $('wavesLine').textContent = waves ? t('menu.wavesRecord', { n: waves.wave }) : t('lobby.wavesFirst');

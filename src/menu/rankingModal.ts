@@ -1,5 +1,5 @@
 // The ranking window (the start screen's "See all"): the best players with an account, one tab per game mode (the
-// online modes, the campaign, the waves). The first three on a podium with their real Orbs (Erick, 24/10/2026: the
+// online modes and the waves; the campaign's tab left on 26/10/2026). The first three on a podium with their real Orbs (Erick, 24/10/2026: the
 // window was too plain), the rest in rows with the name, the player ID (tag) and the numbers; the visitor's own row
 // stands out (and shows below the list when further down). From Supabase's leaderboard function
 // (supabase/migrations/..._waves_and_leaderboard.sql).
@@ -13,7 +13,7 @@ import { skinInfo } from './settings';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
-const MODES: RankingMode[] = ['dm', 'tdm', 'ctf', 'campaign', 'waves'];
+const MODES: RankingMode[] = ['dm', 'tdm', 'ctf', 'waves'];
 const MODE_ICON: Record<RankingMode, IconName> = { dm: 'crosshair', tdm: 'team', ctf: 'flag_fill', campaign: 'swords', waves: 'waves' };
 /** The podium's Orbs, drawn this big (px; the first bigger). */
 const PODIUM_ORB = [0, 104, 84, 84];

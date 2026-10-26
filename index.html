@@ -84,7 +84,7 @@
       </div>
 
       <!-- The lobby (mockup F, chosen by Erick on 23/10/2026): the logo and the buttons of the page on top; your Orb
-           above three mode cards (Multiplayer, Survival, Campaign); the ranking on the right; shortcuts below -->
+           above two mode cards (Multiplayer and Survival; the Campaign left on 26/10/2026); the ranking on the right; shortcuts below -->
       <header class="topbar">
         <div class="brand">
           <h1 class="logo"><img src="/brand/logo-wide.webp?v=1" alt="Mad Orbs" width="469" height="180" /></h1>
@@ -135,7 +135,7 @@
             </div>
           </section>
 
-          <!-- The three ways to play, each with its tag (online or solo), a picture, a line and its button -->
+          <!-- The two ways to play, each with its tag (online or solo), a picture, a line and its button -->
           <div class="mode-cards">
             <article class="mode-card online">
               <span id="onlinePic" class="card-pic" aria-hidden="true"></span>
@@ -161,16 +161,6 @@
                 <button id="btnWaves" class="card-btn waves" type="button"><span data-icon="play"></span><span data-i18n="lobby.play">PLAY</span></button>
               </div>
             </article>
-            <article id="cardCampaign" class="mode-card campaign">
-              <img id="campaignArt" class="card-weapon" src="/guia/sub-machine-gun.png" alt="" />
-              <span class="card-tag solo" data-i18n="lobby.tagSolo">SOLO</span>
-              <div class="card-body">
-                <h2 data-i18n="menu.campaign">Campaign</h2>
-                <p data-i18n="lobby.campaignText">8 chapters, each with its weapon and a final boss.</p>
-                <div class="card-stats bar"><span class="card-line"><span id="campaignLine"></span><em id="campaignCount"></em></span><span class="dock-bar"><i id="campaignBar"></i></span></div>
-                <button id="btnCampaign" class="card-btn campaign" type="button"><span data-icon="play"></span><span id="campaignGo" data-i18n="lobby.play">PLAY</span></button>
-              </div>
-            </article>
           </div>
           <div id="message" class="message" role="alert" hidden></div>
 
@@ -191,7 +181,6 @@
               <div id="lrTabs" class="lr-tabs" role="tablist" data-i18n-attr="aria-label=lobby.rankTabs" aria-label="Ranking by mode">
                 <button type="button" role="tab" data-tab="online" aria-selected="true" data-i18n="lobby.multiplayer">Multiplayer</button>
                 <button type="button" role="tab" data-tab="waves" aria-selected="false" data-i18n="lobby.survival">Survival</button>
-                <button type="button" role="tab" data-tab="campaign" aria-selected="false" data-i18n="menu.campaign">Campaign</button>
               </div>
               <p id="lrSub" class="lr-sub"></p>
               <ol id="lrList" class="lr-list"></ol>
@@ -230,7 +219,7 @@
           <section class="info-block">
             <h2 id="aboutTitle" data-i18n="home.aboutTitle">About Mad Orbs</h2>
             <p data-i18n="home.about1">Mad Orbs is a free online shooter that runs in your browser. You roll an armed Orb around an arena seen from above and fight other players in real time: up to 16 per match, in Deathmatch, Team Deathmatch or Capture the Flag. There is nothing to download or install, and you can play as a guest or sign in with Google to keep your name, your player ID, your stats and your place in the ranking.</p>
-            <p data-i18n="home.about2">It is a remake of Babo Violent 2, a cult indie shooter released by RndLabs in 2006. The physics, the inertia of the Orbs, the counterweight aiming, the weapons and their damage come from the original source code, which its creators released as free software. On top of that classic core, Mad Orbs adds a modern interface, a solo campaign with bosses, an endless waves mode, private rooms for friends and the game in English, Portuguese and Spanish.</p>
+            <p data-i18n="home.about2">It is a remake of Babo Violent 2, a cult indie shooter released by RndLabs in 2006. The physics, the inertia of the Orbs, the counterweight aiming, the weapons and their damage come from the original source code, which its creators released as free software. On top of that classic core, Mad Orbs adds a modern interface, an endless survival mode with bosses and permanent upgrades, private rooms for friends and the game in English, Portuguese and Spanish.</p>
           </section>
 
           <section class="info-block">
@@ -251,7 +240,6 @@
               <article class="info-mode"><img src="/menu/mode-dm.webp" data-i18n-attr="alt=home.modeDmAlt" alt="A Deathmatch match in Mad Orbs" width="288" height="182" loading="lazy" /><h3 data-i18n="mode.dm.name">Deathmatch</h3><p data-i18n="home.modeDm">Everyone against everyone. Each kill is a point, and the first to reach the goal wins the match. The best mode to learn the weapons and the movement.</p></article>
               <article class="info-mode"><img src="/menu/mode-tdm.webp" data-i18n-attr="alt=home.modeTdmAlt" alt="A Team Deathmatch match in Mad Orbs" width="288" height="182" loading="lazy" /><h3 data-i18n="mode.tdm.name">Team Deathmatch</h3><p data-i18n="home.modeTdm">Blue team against red team, balanced by the game. Every kill counts for your team, and you can't hurt your teammates.</p></article>
               <article class="info-mode"><img src="/menu/mode-ctf.webp" data-i18n-attr="alt=home.modeCtfAlt" alt="A Capture the Flag match in Mad Orbs" width="288" height="182" loading="lazy" /><h3 data-i18n="mode.ctf.name">Capture the Flag</h3><p data-i18n="home.modeCtf">Each team has a flag at its base. Grab the enemy flag and carry it to your own base, with yours at home, to score a capture. A carrier who dies drops it, and its team returns it by touching it.</p></article>
-              <article class="info-mode solo"><h3 data-i18n="menu.campaign">Campaign</h3><p data-i18n="home.modeCampaign">Eight chapters against bots, one weapon each, five levels and a boss per chapter. Nobody respawns, you included, and each level is worth up to three stars by time.</p></article>
               <article class="info-mode solo"><h3 data-i18n="menu.waves">Waves</h3><p data-i18n="home.modeWaves">Survive endless waves of bots that hunt you down. Break crates for power-ups and face a boss every ten waves. Every run earns Cores for upgrades that stay, and milestones unlock starting weapons and exclusive Orbs.</p></article>
               <article class="info-mode solo"><h3 data-i18n="menu.train">Training</h3><p data-i18n="home.modeTraining">You and the bots, on any map and in any mode, with no internet needed. Choose how many bots and how well they play.</p></article>
             </div>
@@ -262,6 +250,7 @@
             <section class="info-block">
               <h2 data-i18n="home.newsTitle">What's new</h2>
               <ul class="info-news">
+                <li><time datetime="2026-10-26" data-i18n="home.news40Date">October 26, 2026</time><b data-i18n="home.news40Title">The Campaign leaves the game</b><span data-i18n="home.news40">The Campaign mode is no longer in the game: the start screen now has two cards, Multiplayer and Survival, and the ranking has no Campaign tab. Playing alone, the Waves are where to go: endless waves of bots, bosses, cards and the Workshop upgrades.</span></li>
                 <li><time datetime="2026-10-26" data-i18n="home.news39Date">October 26, 2026</time><b data-i18n="home.news39Title">Waves: easier still, most of all at the start, and more Cores</b><span data-i18n="home.news39">Every enemy of the Waves is a little weaker again, and the first waves even more: up to wave 10 they are about 15% weaker than the rest, a gap that closes little by little until wave 20. And every run gives about 15% more Cores: 17 for the first wave, 30 for the 10th, 72 for the 40th, 1 for every 2 kills, 60 for each boss and 45 for a new record.</span></li>
                 <li><time datetime="2026-10-25" data-i18n="home.news38Date">October 25, 2026</time><b data-i18n="home.news38Title">Waves: easier, and more Cores</b><span data-i18n="home.news38">Every enemy of the Waves, from the ordinary bots to the elites and the boss, now has less life and hits softer, about 40% weaker in all. And every run gives about 25% more Cores: 14 for the first wave, 26 for the 10th, 62 for the 40th, 2 for every 5 kills, 50 for each boss and 40 for a new record.</span></li>
                 <li><time datetime="2026-10-25" data-i18n="home.news37Date">October 25, 2026</time><b data-i18n="home.news37Title">Waves: the crates and power-ups no longer vanish after a long pause</b><span data-i18n="home.news37">After the game sat paused for a long time, the computer could reset the graphics card, and then the crates came back black, the power-ups on the floor showed only their ring and the minimap lost its walls. Now they all come back as they were.</span></li>
@@ -315,7 +304,7 @@
                 <dt data-i18n="home.q4">How do I play with my friends?</dt>
                 <dd data-i18n="home.a4">Create a private room, choose the mode and the map, and send the link or the six-letter code. You need an account to create a room; your friends can join as guests.</dd>
                 <dt data-i18n="home.q5">Do I need an account?</dt>
-                <dd data-i18n="home.a5">No, guests play every mode. With an account (Sign in, with Google) you keep a permanent player ID, your Orb, your stats in each mode, your campaign progress and your place in the ranking.</dd>
+                <dd data-i18n="home.a5">No, guests play every mode. With an account (Sign in, with Google) you keep a permanent player ID, your Orb, your stats in each mode, your Survival progress and your place in the ranking.</dd>
                 <dt data-i18n="home.q6">What is Babo Violent 2?</dt>
                 <dd data-i18n="home.a6">A multiplayer shooter seen from above, released in 2006 by RndLabs and remembered for its fast matches and its peculiar physics. Its creators later published the source code, and Mad Orbs was rebuilt from it to bring the game back, now in the browser.</dd>
               </dl>
@@ -338,7 +327,6 @@
             <a data-i18n-attr="href=link.howToPlay" href="/how-to-play" data-i18n="footer.howToPlay">How to play</a>
             <a data-i18n-attr="href=link.weapons" href="/weapons" data-i18n="footer.weapons">Weapons</a>
             <a data-i18n-attr="href=link.modes" href="/modes" data-i18n="footer.modes">Game modes</a>
-            <a data-i18n-attr="href=link.campaign" href="/campaign" data-i18n="footer.campaign">Campaign</a>
             <a data-i18n-attr="href=link.waves" href="/waves" data-i18n="footer.waves">Waves</a>
             <a data-i18n-attr="href=link.strategy" href="/strategy" data-i18n="footer.strategy">Strategy</a>
             <a data-i18n-attr="href=link.maps" href="/maps" data-i18n="footer.maps">Maps</a>
@@ -382,7 +370,7 @@
         <h2 id="adblockTitle" data-i18n="adblock.title">Ad blocker on</h2>
         <p class="adblock-intro" data-i18n="adblock.intro">Mad Orbs is free and made by one person. The ads help pay for the servers and keep the game online.</p>
         <ul class="adblock-points">
-          <li><span data-icon="check"></span><span data-i18n="adblock.never">Never during a match: only on the menu and at the end of campaign levels.</span></li>
+          <li><span data-icon="check"></span><span data-i18n="adblock.never">Never while you play: only on the menus, the death screen and the end of a run.</span></li>
           <li><span data-icon="check"></span><span data-i18n="adblock.gameplay">They don't change the gameplay in any way.</span></li>
           <li><span data-icon="check"></span><span data-i18n="adblock.noPopups">No pop-ups, no full-screen ads.</span></li>
         </ul>
@@ -463,7 +451,6 @@
           <label id="accountDebugZoom" class="account-debug" hidden><input id="debugZoomInput" type="checkbox" /><span data-i18n="account.debugZoom">Free zoom with the mouse wheel (offline modes, for testing)</span></label>
           <div id="accountDebugReset" class="account-debug-reset" hidden>
             <button type="button" class="btn-ghost danger" data-reset="waves"><span data-icon="rotate"></span><span data-i18n="account.resetWaves">Reset the Waves</span></button>
-            <button type="button" class="btn-ghost danger" data-reset="campaign"><span data-icon="rotate"></span><span data-i18n="account.resetCampaign">Reset the Campaign</span></button>
           </div>
           <footer class="modal-foot account-foot">
             <button id="accountDelete" class="btn-ghost danger" type="button"><span data-icon="trash"></span><span id="accountDeleteText" data-i18n="account.delete">Delete account</span></button>
@@ -471,26 +458,6 @@
           </footer>
         </div>
         <p id="accountError" class="message account-error" role="alert" hidden></p>
-      </div>
-    </div>
-
-    <!-- Campaign: src/menu/campaignModal.ts -->
-    <div id="campaignModal" class="modal" hidden>
-      <div class="modal-card camp-modal" role="dialog" aria-modal="true" aria-labelledby="campTitle">
-        <header class="modal-head">
-          <h2 id="campTitle" data-i18n="campaign.title">Campaign</h2>
-          <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>
-        </header>
-        <p class="modal-sub"><span data-i18n="campaign.sub">You alone against the bots, one weapon per chapter. They don't respawn, and neither do you.</span>
-          <a class="camp-guide" data-i18n-attr="href=link.campaign" href="/campaign" target="_blank" rel="noopener" data-i18n="campaign.howItWorks">How it works</a></p>
-        <div class="camp-body">
-          <nav id="campChapters" class="camp-chapters"></nav>
-          <div class="camp-split">
-            <section id="campHead" class="camp-hero"></section>
-            <div id="campLevels" class="camp-levels"></div>
-          </div>
-        </div>
-        <div id="campSave" class="camp-save"></div>
       </div>
     </div>
 

@@ -49,7 +49,6 @@ const screen = new StartScreen(
   studio,
   account,
   (mode) => void startGame(mode),
-  (level) => void startGame('offline', level),
   () => void startGame('offline', undefined, true),
   (room) => void startGame('online', undefined, false, room),
   (tutorial) => void startGame('offline', undefined, false, undefined, tutorial),
@@ -66,7 +65,8 @@ if (invite) screen.openRoom(invite[2].toUpperCase());
 const langRoot = () => (lang() === 'en' ? '' : `/${lang()}`);
 
 /**
- * `level`: a campaign level (offline, src/client/campaign.ts); `room`: a private room (online); `tutorial`: one of the
+ * `level`: a campaign level (offline, src/client/campaign.ts; out of the game since 26/10/2026, Erick: nothing starts
+ * one now, the code stays for now); `room`: a private room (online); `tutorial`: one of the
  * tutorials (offline, src/client/tutorial.ts).
  */
 async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, room?: PrivateRoomJoin, tutorial?: TutorialKind): Promise<void> {
@@ -193,7 +193,6 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
               action === 'menu'
                 ? () => {
                     screen.show();
-                    screen.openCampaign(target);
                     void audio.playMusic(MENU_MUSIC, 255);
                   }
                 : () => void startGame('offline', target);

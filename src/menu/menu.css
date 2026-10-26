@@ -445,11 +445,11 @@ select:focus-visible {
   color: var(--gold-1);
 }
 
-/* The three ways to play: a card each, its colour around it (--cc), its tag on the top left */
+/* The two ways to play (the Campaign card left on 26/10/2026): a card each, its colour around it (--cc), its tag on the top left */
 .mode-cards {
   grid-area: cards;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   min-height: 0;
 }
@@ -4259,8 +4259,17 @@ input[type='range'] {
 
 .info-modes {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 16px;
+}
+
+/* The three online modes in a row, the two solo ones (Waves, Training) half the row each */
+.info-modes > .info-mode {
+  grid-column: span 2;
+}
+
+.info-modes > .info-mode.solo {
+  grid-column: span 3;
 }
 
 .info-mode {
@@ -4373,6 +4382,10 @@ input[type='range'] {
   .info-modes,
   .info-cols {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .info-modes > .info-mode,
+  .info-modes > .info-mode.solo {
+    grid-column: auto;
   }
 }
 
