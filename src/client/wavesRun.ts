@@ -275,6 +275,11 @@ export class WavesRun {
     }
     // A spawn: the Workshop's grenades on top of the usual ones
     if (me.isAlive && !this.wasAlive && this.ctx.levels.grenades > 0) me.nbGrenadeLeft = Math.min(me.maxGrenades, me.nbGrenadeLeft + this.ctx.levels.grenades);
+    // Shadow: the allies go with the player when he falls and come back beside him when he spawns (Erick, 26/10/2026:
+    // they fought on alone, even after the run was over)
+    if (!me.isAlive) {
+      for (const p of this.allies) if (p.isAlive) this.vanish(p);
+    } else if (!this.wasAlive) this.reviveAllies();
     this.wasAlive = me.isAlive;
     // The second wind saved the player
     if (me.secondWind < this.windLeft) {
@@ -499,7 +504,8 @@ export class WavesRun {
   private spawnBot(escort?: { of: Player; side: number }): boolean {
     const { game, bots } = this.ctx;
     const loadout = { primary: this.spec.weapons[Math.floor(Math.random() * this.spec.weapons.length)], secondary: WEAPON_KNIVES };
-    let i = bots.findIndex((b) => b.player !== this.boss && !b.player.isAlive && b.player.lives <= 0);
+    // A fallen enemy's Orb (never a Shadow ally's nor a risen one's: they kept their name and side and took a new skin)
+    let i = bots.findIndex((b) => b.player !== this.boss && !b.player.isAlive && b.player.lives <= 0 && !this.allies.includes(b.player) && !this.risen.some((r) => r.p === b.player));
     let p: Player | null = i >= 0 ? bots[i].player : null;
     if (!p) {
       p = game.addPlayer(this.ctx.names[bots.length % this.ctx.names.length], true);
@@ -1034,6 +1040,8 @@ export class WavesRun {
   /** The Shadow card: as many allies as its level, the fallen ones back beside the player. */
   private reviveAllies(): void {
     const { game, me, bots } = this.ctx;
+    // With the player only (they come back when he spawns)
+    if (!me.isAlive) return;
     const want = CARD_LEVELS.shadow[this.cards.shadow ?? 0];
     while (this.allies.length < want) {
       const p = game.addPlayer(this.ctx.allyName, true);
