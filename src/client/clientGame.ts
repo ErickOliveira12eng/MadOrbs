@@ -409,6 +409,10 @@ export class ClientGame {
         audio.play(this.sounds.equip, 200);
       },
       onBomb: (position) => this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 4),
+      onScreen: (position) => {
+        const v = this.cam.project(position, 1, 1);
+        return v.visible && v.x >= 0 && v.x <= 1 && v.y >= 0 && v.y <= 1;
+      },
       onCards: (offer, afterWave) => {
         // The cards in the middle of the screen, with the system's cursor (and a banner under them)
         this.input.exitPointerLock();

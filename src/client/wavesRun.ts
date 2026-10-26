@@ -118,6 +118,8 @@ export interface WavesContext {
   onWeaponDrop: (weaponID: number) => void;
   /** The bomb's blast, at the player. */
   onBomb: (position: Vec3) => void;
+  /** The point is on the player's screen (the bomb hits all of it). */
+  onScreen: (position: Vec3) => boolean;
   /** The Workshop's second wind saved the player. */
   onSecondWind: () => void;
   /**
@@ -1121,7 +1123,7 @@ export class WavesRun {
     this.ctx.onShock(pos);
   }
 
-  /** The bomb: a big blast around the player that hurts only the enemies (and breaks crates). */
+  /** The bomb: a big blast around the player that hurts only the enemies, all of those on the screen (and breaks crates). */
   private bomb(): void {
     const { game, me } = this.ctx;
     const pos = me.currentCF.position.clone();
@@ -1129,8 +1131,9 @@ export class WavesRun {
     for (const p of this.reds()) {
       if (!p.isAlive) continue;
       const d = Math.hypot(p.currentCF.position.x - pos.x, p.currentCF.position.y - pos.y);
-      if (d >= radius || game.map.rayTest(pos.clone(), p.currentCF.position.clone(), new Vec3())) continue;
-      p.hitSV(WEAPON_NUCLEAR, me, (lives / this.spec.toughness) * (1 - d / (radius * 2)));
+      const inSight = d < radius && !game.map.rayTest(pos.clone(), p.currentCF.position.clone(), new Vec3());
+      if (!inSight && !this.ctx.onScreen(p.currentCF.position)) continue;
+      p.hitSV(WEAPON_NUCLEAR, me, lives / this.spec.toughness);
     }
     for (const c of [...game.crates]) {
       if (Math.hypot(c.position.x - pos.x, c.position.y - pos.y) < radius) game.hitCrate(c, 10, me);

@@ -296,12 +296,13 @@ export const POWERS: Record<PowerKind, { weight: number; timed: boolean; perm: b
 export const BOOSTS = { speed: 1.35, rapid: 1.6, shield: 0.5, fury: 2 };
 
 /**
- * The bomb: its reach (cells, enemies in sight) and its damage in the middle, in lives of an ordinary enemy of the
- * wave, down to half of it at the edge: the ordinary ones fall anywhere in it, the tanks and the boss lose a share
- * (Erick, 19/10/2026: its reach was too short; it was 6 cells and 3 lives whatever the wave, so later on it killed
- * only the ones at the player's feet).
+ * The bomb: every enemy on the screen (behind a wall too) and the ones in sight up to `radius` cells, each losing
+ * `lives` lives of an ordinary enemy of the wave: the ordinary ones and the elites fall, the tanks and the boss lose a
+ * share. Erick, 19/10/2026: its reach was too short (6 cells and 3 lives whatever the wave, so later on it killed only
+ * the ones at the player's feet); 26/10/2026: still some on the screen stood (10 cells in sight, the camera leaning
+ * to the mouse, half the damage at the edge, which the elites outlived).
  */
-export const BOMB = { radius: 10, lives: 3 };
+export const BOMB = { radius: 12, lives: 3 };
 
 /** A level of a permanent one: +10% fire rate, damage and moving speed; 10% less damage taken. */
 export const PERM_STEP = 0.1;
