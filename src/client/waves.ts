@@ -106,11 +106,21 @@ export const EASE = { until: 5, hit: 0.5, take: 1.2 };
 
 /**
  * Every enemy of the waves (the ordinary bots, the elites, the boss, from wave 1) a little weaker, all in the same
- * proportion (Erick, 25/10/2026: about 25% easier, 0.87; the same day, still too hard: 0.78): they hit EASIER as hard
- * and take 1/EASIER of the damage, so their strength (life × damage) is 0.78² = 0.61 of what it was on 24/10. The
- * bomb, the silver bullet and the shock wave still count in lives of an ordinary enemy of the wave.
+ * proportion (Erick, 25/10/2026: about 25% easier, 0.87; the same day, still too hard: 0.78; 26/10/2026: 0.74): they
+ * hit EASIER as hard and take 1/EASIER of the damage, so their strength (life × damage) is 0.74² = 0.55 of what it was on
+ * 24/10. The bomb, the silver bullet and the shock wave still count in lives of an ordinary enemy of the wave.
  */
-export const EASIER = 0.78;
+export const EASIER = 0.74;
+
+/**
+ * The early waves easier still (Erick, 26/10/2026): up to wave `full` the enemies hit `scale` as hard and take 1/scale
+ * of the damage (strength ×0.85), back to the curve step by step by wave `until`.
+ */
+export const EARLY = { full: 10, until: 20, scale: 0.92 };
+
+/** EARLY's factor on wave n: EARLY.scale up to EARLY.full, 1 from EARLY.until. */
+const earlyScale = (n: number): number =>
+  1 - (1 - EARLY.scale) * Math.max(0, Math.min(1, (EARLY.until - n) / (EARLY.until - EARLY.full)));
 
 export interface WaveSpec {
   n: number;
@@ -161,8 +171,8 @@ export function waveSpec(n: number): WaveSpec {
     spawnGap: Math.max(0.25, 0.9 - n * 0.02),
     seconds: Math.min(60, 30 + n),
     skill: 0.92 - 0.77 * Math.exp(-(n - 1) / 18),
-    toughness: ((1 / (1 + 0.07 * (n - 1))) * (1 + (EASE.take - 1) * ease)) / EASIER,
-    hitBoost: (1 + 0.04 * (n - 1)) * (1 - (1 - EASE.hit) * ease) * EASIER,
+    toughness: ((1 / (1 + 0.07 * (n - 1))) * (1 + (EASE.take - 1) * ease)) / (EASIER * earlyScale(n)),
+    hitBoost: (1 + 0.04 * (n - 1)) * (1 - (1 - EASE.hit) * ease) * EASIER * earlyScale(n),
     weapons,
   };
 }
