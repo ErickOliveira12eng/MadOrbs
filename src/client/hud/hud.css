@@ -2901,6 +2901,12 @@
   visibility: hidden;
 }
 
+/* No room under a tall corner panel (HudLayer.placeSideAd): the left side */
+.h-sidead.left {
+  right: auto;
+  left: 40px;
+}
+
 /* An ad spot while an ad blocker is on (HudLayer.adOrPlea): a kind word instead of the banner */
 .h-sidead.plea > span,
 .h-campad.plea > span {

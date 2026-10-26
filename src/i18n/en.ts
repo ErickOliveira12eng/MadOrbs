@@ -75,7 +75,7 @@ export const en = {
   'home.newsTitle': "What's new",
   'home.news41Date': 'October 26, 2026',
   'home.news41Title': 'Fewer surprises while you play',
-  'home.news41': 'Pressing Ctrl by mistake while moving no longer opens the browser windows (Save page, Find, Bookmark); only Ctrl+W, T and N the browser keeps for itself. The cursor no longer jumps to the edge of the screen on its own, a false move Chrome reports now and then. And in the Waves, an upgrade at its limit shows a gold MAX tag.',
+  'home.news41': 'Pressing Ctrl by mistake while moving no longer opens the browser windows (Save page, Find, Bookmark); only Ctrl+W, T and N the browser keeps for itself. The cursor no longer jumps to the edge of the screen on its own, a false move Chrome reports now and then. And in the Waves, an upgrade at its limit shows a gold MAX tag, and with many upgrades and cards the end of a run and the death screen keep the banner clear of them.',
   'home.news40Date': 'October 26, 2026',
   'home.news40Title': 'The Campaign leaves the game',
   'home.news40': 'The Campaign mode is no longer in the game: the start screen now has two cards, Multiplayer and Survival, and the ranking has no Campaign tab. Playing alone, the Waves are where to go: endless waves of bots, bosses, cards and the Workshop upgrades.',

@@ -751,6 +751,7 @@ export class HudLayer {
     show(this.r.campend, true);
     const ad = this.r.campad;
     if (ad.hidden && this.adOrPlea(ad.lastElementChild as HTMLElement, 'wide')) ad.hidden = false;
+    requestAnimationFrame(() => this.fitEndPanel());
     this.cursorFree = true;
     this.root.classList.add('free-cursor');
     const readyAt = performance.now() + 700;
@@ -812,6 +813,8 @@ export class HudLayer {
     // The banner under the panel: loaded when the level started (preloadCampaignAd), or now
     const ad = this.r.campad;
     if (ad.hidden && this.adOrPlea(ad.lastElementChild as HTMLElement, 'wide')) ad.hidden = false;
+    // (once the caller has finished the panel: the waves' end widens it)
+    requestAnimationFrame(() => this.fitEndPanel());
     const waiting = [...this.r.campcard.querySelectorAll<HTMLButtonElement>('button:disabled')];
     const count = this.r.campcard.querySelector<HTMLElement>('.wait');
     const tick = () => {
@@ -849,6 +852,21 @@ export class HudLayer {
     setTimeout(() => {
       if (this.campEndKeys) window.addEventListener('keydown', this.campEndKeys, true);
     }, 600);
+  }
+
+  /**
+   * The end panel (or the cards) and the banner under it inside the stage: a tall panel shrinks (Erick, 26/10/2026: a
+   * run's many cards and upgrades pushed the banner off the screen).
+   */
+  private fitEndPanel(): void {
+    const card = this.r.campcard;
+    card.style.zoom = '';
+    if (this.r.campend.hidden) return;
+    const ad = this.r.campad;
+    // In stage pixels: the banner keeps its real size (its rect / the stage's scale), 18 the gap, 24 the margins
+    const room = STAGE_H - 24 - (ad.hidden ? 0 : Math.max(ad.getBoundingClientRect().height, 108) / this.k + 18);
+    const h = card.offsetHeight;
+    if (h > room) card.style.zoom = String(Math.max(0.55, room / h));
   }
 
   /** A line in the big banner at the top (the waves: a wave starts, is cleared, a power-up taken). */
@@ -1066,6 +1084,25 @@ export class HudLayer {
       show(this.r.sidead, on || (!!host.firstChild && adsAllowed()));
     }
     this.picker.el.classList.toggle('with-ad', on && menu);
+    if (on) this.placeSideAd(menu);
+  }
+
+  /**
+   * On the death screen the banner keeps clear of the corner panel (Erick, 26/10/2026: a waves run's upgrades made it
+   * tall and the banner covered it): in the middle of the right side, or under the panel, or on the left side when
+   * there is no room under it.
+   */
+  private placeSideAd(menu: boolean): void {
+    const ad = this.r.sidead;
+    const board = this.r.board;
+    const h = ad.offsetHeight;
+    const middle = (STAGE_H - h) / 2;
+    const under = !menu && !board.hidden && board.offsetHeight > 0 ? board.offsetTop + board.offsetHeight + 14 : 0;
+    const top = Math.max(middle, under);
+    const left = top + h > STAGE_H - 20;
+    ad.classList.toggle('left', left);
+    ad.style.top = left || top === middle ? '' : `${top}px`;
+    ad.style.transform = left || top === middle ? '' : 'none';
   }
 
   /**

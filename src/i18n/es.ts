@@ -73,7 +73,7 @@ export const es: Record<Key, string> = {
   'home.newsTitle': 'Novedades',
   'home.news41Date': '26 de octubre de 2026',
   'home.news41Title': 'Menos sorpresas mientras juegas',
-  'home.news41': 'Pulsar Ctrl sin querer mientras te mueves ya no abre las ventanas del navegador (Guardar página, Buscar, Marcadores); solo Ctrl+W, T y N el navegador las guarda para sí. El cursor ya no salta solo al borde de la pantalla, un movimiento falso que Chrome a veces envía. Y en las Oleadas, la mejora que llegó al límite muestra una etiqueta dorada MÁX.',
+  'home.news41': 'Pulsar Ctrl sin querer mientras te mueves ya no abre las ventanas del navegador (Guardar página, Buscar, Marcadores); solo Ctrl+W, T y N el navegador las guarda para sí. El cursor ya no salta solo al borde de la pantalla, un movimiento falso que Chrome a veces envía. Y en las Oleadas, la mejora que llegó al límite muestra una etiqueta dorada MÁX, y con muchas mejoras y cartas el final de la partida y la pantalla de muerte ya no ponen el anuncio encima de ellas.',
   'home.news40Date': '26 de octubre de 2026',
   'home.news40Title': 'La Campaña sale del juego',
   'home.news40': 'El modo Campaña ya no está en el juego: la pantalla de inicio ahora tiene dos tarjetas, Multijugador y Supervivencia, y el ranking ya no tiene la pestaña de la Campaña. Para jugar solo, el lugar son las Oleadas: oleadas sin fin de bots, jefes, cartas y las mejoras del Taller.',

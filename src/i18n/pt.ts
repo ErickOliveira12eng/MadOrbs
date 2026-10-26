@@ -73,7 +73,7 @@ export const pt: Record<Key, string> = {
   'home.newsTitle': 'Novidades',
   'home.news41Date': '26 de outubro de 2026',
   'home.news41Title': 'Menos surpresas enquanto você joga',
-  'home.news41': 'Apertar o Ctrl sem querer enquanto anda não abre mais as janelas do navegador (Salvar página, Localizar, Favoritos); só Ctrl+W, T e N o navegador guarda para ele. O cursor não pula mais sozinho para a borda da tela, um movimento falso que o Chrome às vezes manda. E nas Ondas, a melhoria que chegou ao limite mostra uma etiqueta dourada MÁX.',
+  'home.news41': 'Apertar o Ctrl sem querer enquanto anda não abre mais as janelas do navegador (Salvar página, Localizar, Favoritos); só Ctrl+W, T e N o navegador guarda para ele. O cursor não pula mais sozinho para a borda da tela, um movimento falso que o Chrome às vezes manda. E nas Ondas, a melhoria que chegou ao limite mostra uma etiqueta dourada MÁX, e com muitas melhorias e cartas o fim da partida e a tela de morte não deixam mais o anúncio em cima delas.',
   'home.news40Date': '26 de outubro de 2026',
   'home.news40Title': 'A Campanha sai do jogo',
   'home.news40': 'O modo Campanha não está mais no jogo: a tela inicial agora tem dois cartões, Multiplayer e Sobrevivência, e o ranking não tem mais a aba da Campanha. Para jogar sozinho, o lugar são as Ondas: ondas sem fim de bots, chefões, cartas e as melhorias da Oficina.',
