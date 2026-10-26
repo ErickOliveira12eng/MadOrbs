@@ -12,7 +12,7 @@ import { drawMapPreview } from '../mapPreview';
 import { adBlockFound, adsAllowed, mountAd, refreshAd } from '../ads';
 import type { WavesEnd, WavesHud } from '../wavesRun';
 import type { TutorialAction, TutorialCard, TutorialHud } from '../tutorial';
-import { WAVES } from '../waves';
+import { PERM_SPEED_STEP, PERM_STEP, WAVES } from '../waves';
 import { MILESTONES, affordable, balance, checkpoints, nextMilestone } from '../wavesProgress';
 import { orbName, prizeText, weaponLook } from '../wavesPrize';
 import { cardDef, cardValue, type CardID } from '../wavesCards';
@@ -901,7 +901,7 @@ export class HudLayer {
       html +=
         `<div class="h-perms"><span class="h-label">${t('waves.upgrades')}</span><div>` +
         w.perms
-          .map((p) => `<span class="${p.full ? 'full' : ''}" title="${t(`power.${p.kind}` as Key)}${p.full ? ` · ${t('waves.permFull')}` : ''}"><img src="${powerIconUrl(p.kind)}" alt="" /><b>${p.kind === 'poison' || p.kind === 'ice' ? `×${p.level}` : `+${p.level * 10}%`}</b>${p.full ? `<i class="h-max">${t('waves.livesMax')}</i>` : ''}</span>`)
+          .map((p) => `<span class="${p.full ? 'full' : ''}" title="${t(`power.${p.kind}` as Key)}${p.full ? ` · ${t('waves.permFull')}` : ''}"><img src="${powerIconUrl(p.kind)}" alt="" /><b>${p.kind === 'poison' || p.kind === 'ice' ? `×${p.level}` : `+${Math.round(p.level * (p.kind === 'permSpeed' ? PERM_SPEED_STEP : PERM_STEP) * 100)}%`}</b>${p.full ? `<i class="h-max">${t('waves.livesMax')}</i>` : ''}</span>`)
           .join('') +
         `</div></div>`;
     if (w.record) html += `<div class="h-wrec">${t('waves.record', { n: w.record })}</div>`;
