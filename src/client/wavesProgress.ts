@@ -154,12 +154,12 @@ export function headStartPowers(startWave: number): number {
  * on 15/10/2026 about 22% more again (scale 1.9, a Core every 3 kills, 40 for a boss): 224, 585, 1729; on 25/10/2026
  * about 25% more (scale 2.4, 2 Cores every 5 kills, 50 for a boss, 40 for a record): 14 for the first wave, 26 for the
  * 10th, 38 for the 20th, 62 for the 40th; on 26/10/2026 about 15% more (scale 2.75, 60 for a boss, 45 for a record): 17,
- * 30, 44, 72.
+ * 30, 44, 72; and the same day a Core every 2 kills.
  */
 export const WAVE_CORES_BASE = 6;
 export const WAVE_CORES_SCALE = 2.75;
 export const waveCores = (n: number): number => Math.round(WAVE_CORES_SCALE * (WAVE_CORES_BASE + Math.floor(n / 2)));
-export const KILLS_PER_CORE = 2.5;
+export const KILLS_PER_CORE = 2;
 export const BOSS_CORES = 60;
 export const RECORD_CORES = 45;
 

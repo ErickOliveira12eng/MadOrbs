@@ -75,7 +75,7 @@ export const en = {
   'home.newsTitle': "What's new",
   'home.news39Date': 'October 26, 2026',
   'home.news39Title': 'Waves: easier still, most of all at the start, and more Cores',
-  'home.news39': 'Every enemy of the Waves is a little weaker again, and the first waves even more: up to wave 10 they are about 15% weaker than the rest, a gap that closes little by little until wave 20. And every run gives about 15% more Cores: 17 for the first wave, 30 for the 10th, 72 for the 40th, 60 for each boss and 45 for a new record.',
+  'home.news39': 'Every enemy of the Waves is a little weaker again, and the first waves even more: up to wave 10 they are about 15% weaker than the rest, a gap that closes little by little until wave 20. And every run gives about 15% more Cores: 17 for the first wave, 30 for the 10th, 72 for the 40th, 1 for every 2 kills, 60 for each boss and 45 for a new record.',
   'home.news38Date': 'October 25, 2026',
   'home.news38Title': 'Waves: easier, and more Cores',
   'home.news38': 'Every enemy of the Waves, from the ordinary bots to the elites and the boss, now has less life and hits softer, about 40% weaker in all. And every run gives about 25% more Cores: 14 for the first wave, 26 for the 10th, 62 for the 40th, 2 for every 5 kills, 50 for each boss and 40 for a new record.',

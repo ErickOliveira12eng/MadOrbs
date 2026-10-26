@@ -73,7 +73,7 @@ export const pt: Record<Key, string> = {
   'home.newsTitle': 'Novidades',
   'home.news39Date': '26 de outubro de 2026',
   'home.news39Title': 'Ondas: ainda mais fáceis, principalmente no começo, e mais Núcleos',
-  'home.news39': 'Todos os inimigos das Ondas ficaram um pouco mais fracos de novo, e as primeiras ondas mais ainda: até a onda 10 eles são uns 15% mais fracos que o resto, uma diferença que diminui aos poucos até a onda 20. E toda partida dá uns 15% a mais de Núcleos: 17 na primeira onda, 30 na 10ª, 72 na 40ª, 60 por chefão e 45 por recorde novo.',
+  'home.news39': 'Todos os inimigos das Ondas ficaram um pouco mais fracos de novo, e as primeiras ondas mais ainda: até a onda 10 eles são uns 15% mais fracos que o resto, uma diferença que diminui aos poucos até a onda 20. E toda partida dá uns 15% a mais de Núcleos: 17 na primeira onda, 30 na 10ª, 72 na 40ª, 1 a cada 2 abates, 60 por chefão e 45 por recorde novo.',
   'home.news38Date': '25 de outubro de 2026',
   'home.news38Title': 'Ondas: mais fáceis, e mais Núcleos',
   'home.news38': 'Todos os inimigos das Ondas, dos bots comuns às elites e ao chefão, agora têm menos vida e batem mais fraco, uns 40% menos fortes no total. E toda partida dá uns 25% a mais de Núcleos: 14 na primeira onda, 26 na 10ª, 62 na 40ª, 2 a cada 5 abates, 50 por chefão e 40 por recorde novo.',
