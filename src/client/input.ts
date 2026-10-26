@@ -22,6 +22,10 @@ export const bindings = {
   chatAll: 'KeyT',
 };
 
+/** The keys go to a text box (the chat), not to the game. */
+const isTyping = (t: EventTarget | null): boolean =>
+  t instanceof HTMLElement && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT');
+
 export class Input {
   private down = new Set<string>();
   private pressed = new Set<string>();
@@ -43,6 +47,10 @@ export class Input {
 
     window.addEventListener('keydown', (e) => {
       if (this.isGameKey(e.code)) e.preventDefault();
+      // Ctrl (or Cmd) with a letter or a digit while playing: not the browser's shortcut (Erick, 26/10/2026: Ctrl
+      // pressed by mistake and S to move opened "Save page"). Not while typing (the chat's copy and paste), and not
+      // Ctrl+Shift (the developer tools). Ctrl+W, T and N the browser keeps for itself.
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && /^(Key[A-Z]|Digit\d)$/.test(e.code) && this.el.isConnected && !isTyping(e.target)) e.preventDefault();
       if (!e.repeat) this.press(e.code);
     });
     window.addEventListener('keyup', (e) => this.release(e.code));
@@ -70,6 +78,9 @@ export class Input {
     window.addEventListener('mousemove', (e) => {
       const rect = this.el.getBoundingClientRect();
       if (this.locked) {
+        // Chrome on Windows now and then reports a huge false move with the pointer locked, and the cursor jumped to the
+        // edge of the screen (Erick, 26/10/2026): a move past half the screen in one event is dropped
+        if (Math.abs(e.movementX) > rect.width / 2 || Math.abs(e.movementY) > rect.height / 2) return;
         this.mouseX = Math.max(0, Math.min(rect.width - 1, this.mouseX + e.movementX));
         this.mouseY = Math.max(0, Math.min(rect.height - 1, this.mouseY + e.movementY));
       } else {

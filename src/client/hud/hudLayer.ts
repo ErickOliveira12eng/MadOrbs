@@ -901,7 +901,7 @@ export class HudLayer {
       html +=
         `<div class="h-perms"><span class="h-label">${t('waves.upgrades')}</span><div>` +
         w.perms
-          .map((p) => `<span class="${p.full ? 'full' : ''}" title="${t(`power.${p.kind}` as Key)}${p.full ? ` · ${t('waves.permFull')}` : ''}"><img src="${powerIconUrl(p.kind)}" alt="" /><b>${p.kind === 'poison' || p.kind === 'ice' ? `×${p.level}` : `+${p.level * 10}%`}</b></span>`)
+          .map((p) => `<span class="${p.full ? 'full' : ''}" title="${t(`power.${p.kind}` as Key)}${p.full ? ` · ${t('waves.permFull')}` : ''}"><img src="${powerIconUrl(p.kind)}" alt="" /><b>${p.kind === 'poison' || p.kind === 'ice' ? `×${p.level}` : `+${p.level * 10}%`}</b>${p.full ? `<i class="h-max">${t('waves.livesMax')}</i>` : ''}</span>`)
           .join('') +
         `</div></div>`;
     if (w.record) html += `<div class="h-wrec">${t('waves.record', { n: w.record })}</div>`;

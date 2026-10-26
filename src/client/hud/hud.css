@@ -3977,9 +3977,27 @@
   box-shadow: 0 0 8px rgba(95, 240, 224, 0.6);
 }
 
-/* A permanent power-up at the limit the Workshop allows */
+/* A permanent power-up at the limit the Workshop allows: gold, ringed, with a MAX tag (Erick, 26/10/2026: the gold
+   number alone was hard to see) */
+.h-perms span.full {
+  padding: 1px 4px 1px 1px;
+  border-radius: 999px;
+  background: rgba(255, 205, 70, 0.16);
+  box-shadow: inset 0 0 0 1.5px var(--h-gold-1);
+}
+
 .h-perms span.full b {
   color: var(--h-gold-1);
+}
+
+.h-perms .h-max {
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--h-gold-1);
+  color: #2b1d00;
+  font: 900 9.5px/1.2 var(--h-ui);
+  font-style: normal;
+  letter-spacing: 0.4px;
 }
 
 /* The waves' cards after a boss (HudLayer.showCards): three in the middle, the game stopped */
