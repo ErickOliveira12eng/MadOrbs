@@ -507,6 +507,8 @@ export class WavesRun {
       p.teamID = PLAYER_TEAM_RED;
       i = bots.length;
     }
+    // Hurt the moment it spawns (Erick, 26/10/2026; also a reused Orb)
+    p.spawnImmune = false;
     p.skin = this.ctx.randomSkin();
     p.lives = 1;
     p.spawnRequested = false;
@@ -566,6 +568,7 @@ export class WavesRun {
       const p = game.addPlayer(this.ctx.bossName, true);
       if (!p) return;
       p.teamID = PLAYER_TEAM_RED;
+      p.spawnImmune = false;
       p.radius = WAVES.boss.radius;
       p.edgeSpawn = true;
       p.damageScale = WAVES.boss.damageScale;

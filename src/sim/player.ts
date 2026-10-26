@@ -147,6 +147,8 @@ export class Player {
 
   timeToSpawn = sv.sv_timeToSpawn;
   immuneTime = 0;
+  /** Spawns with the immunity of sv_spawnImmunityTime; the waves' enemies don't (Erick, 26/10/2026: hurt the moment they spawn). */
+  spawnImmune = true;
   /** Spawns left (the campaign: 1, nobody comes back); Infinity elsewhere. */
   lives = Infinity;
   /** Size of the babo for hits and walls (the campaign's bosses are bigger). */
@@ -741,7 +743,7 @@ export class Player {
     this.status = PLAYER_STATUS_ALIVE;
     this.life = 1;
     this.timeToSpawn = sv.sv_timeToSpawn;
-    this.immuneTime = sv.sv_spawnImmunityTime;
+    this.immuneTime = this.spawnImmune ? sv.sv_spawnImmunityTime : 0;
     this.timeDead = 0;
     this.timeAlive = 0;
     this.timeIdle = 0;
