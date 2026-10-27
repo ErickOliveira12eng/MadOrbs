@@ -8,9 +8,16 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { lang } from '../i18n';
 import type { RoomMode } from '../net/protocol';
 import { mergeProgress } from '../client/campaign';
-import { betterRun, cleanSplits, mergeSplits, mergeWavesRecord, type WavesRecord } from '../client/waves';
+import { cleanSplits, mergeWavesRecord, type WavesRecord } from '../client/waves';
+import { visitor } from '../client/wavesReport';
 import { cleanLevels, loadProgress as loadWavesProgress, mergeProgress as mergeWavesProgress } from '../client/wavesProgress';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../net/supabase';
+
+/** A waves_records row as a record (null: none). */
+function wavesRow(data: unknown): WavesRecord | null {
+  const row = data as { best_wave: number; best_kills: number; best_time?: number | null; best_splits?: unknown } | null;
+  return row ? { wave: row.best_wave, kills: row.best_kills, time: row.best_time ?? null, splits: cleanSplits(row.best_splits) } : null;
+}
 
 /** The Google OAuth client (Web) of madorbs.com: public, it goes in the page. */
 const GOOGLE_CLIENT_ID = '224448068826-3dfhsa8j80ab13s639g70kh0c1dafpmk.apps.googleusercontent.com';
@@ -171,14 +178,15 @@ export class Account {
       const { upload } = mergeWavesProgress(row ? { earned: row.earned, levels: cleanLevels(row.levels) } : null);
       if (upload) void this.saveWavesProgress();
     }
-    // The waves: the account's best run and this browser's, the better one in both
+    // The waves: the account's record (only runs the server checked: src/server/wavesCheck.ts) comes into this
+    // browser's; this browser's better one doesn't go up (a page can write anything): the checked guest runs of this
+    // browser do, through the server
     if (waves.error) console.warn('[account] cannot read the waves', waves.error.message);
     else {
-      const row = waves.data as { best_wave: number; best_kills: number; best_time?: number | null; best_splits?: unknown } | null;
-      const remote = row ? { wave: row.best_wave, kills: row.best_kills, time: row.best_time ?? null, splits: cleanSplits(row.best_splits) } : null;
-      const { record, upload } = mergeWavesRecord(remote);
-      this.waves = record;
-      if (record && upload) void this.saveWaves(record.wave, record.kills, record.time, record.splits);
+      const remote = wavesRow(waves.data);
+      const { upload } = mergeWavesRecord(remote);
+      this.waves = remote;
+      if (upload) void this.claimWaves();
     }
     // The campaign: the account's progress and this browser's, the better time of each level
     if (campaign.error) console.warn('[account] cannot read the campaign', campaign.error.message);
@@ -278,28 +286,30 @@ export class Account {
   }
 
   /** A campaign level won: its time goes to the account (which keeps the better one). */
-  /** A waves run ended: the account keeps its best one. */
-  async saveWaves(wave: number, kills: number, time: number | null, splits: Record<number, number>): Promise<void> {
+  /**
+   * A waves run ended: the server checks it and writes the account's record itself (src/server/wavesRuns.ts); read
+   * again a moment later.
+   */
+  async refreshWaves(): Promise<void> {
     if (!this.client || !this.session) return;
-    // The newest record_waves first; a database without it yet answers "no such function": the one before
-    // (20261024120000_waves_splits.sql: the checkpoint times; 20261023120000_waves_time.sql: the time)
-    const tries = [
-      { p_wave: wave, p_kills: kills, p_time: time, p_splits: splits },
-      { p_wave: wave, p_kills: kills, p_time: time },
-      { p_wave: wave, p_kills: kills },
-    ];
-    let error: { code?: string; message: string } | null = null;
-    for (const args of tries) {
-      ({ error } = await this.client.rpc('record_waves', args));
-      if (!error || !(error.code === 'PGRST202' || /record_waves/.test(error.message))) break;
-    }
-    if (error) {
-      console.warn('[account] cannot save the waves', error.message);
-      return;
-    }
-    const run = { wave, kills, time, splits: mergeSplits(this.waves?.splits, splits) };
-    this.waves = betterRun(run, this.waves) ? run : this.waves && { ...this.waves, splits: run.splits };
+    const { data, error } = await this.client.from('waves_records').select('*').eq('user_id', this.session.user.id).maybeSingle();
+    if (error) return;
+    this.waves = wavesRow(data);
     this.emit();
+  }
+
+  /** This browser's guest runs the server checked go to the account (POST /api/waves/claim), then the record is read. */
+  private async claimWaves(): Promise<void> {
+    const token = await this.accessToken();
+    const v = visitor();
+    if (!token || !v) return;
+    try {
+      const r = await fetch('/api/waves/claim', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ visitor: v }) });
+      const body = (await r.json().catch(() => ({}))) as { claimed?: number };
+      if (body.claimed) await this.refreshWaves();
+    } catch {
+      /* no server (the static page): nothing to claim */
+    }
   }
 
   /** Testers: deletes this account's waves or campaign progress in the database (the server checks who asks). */

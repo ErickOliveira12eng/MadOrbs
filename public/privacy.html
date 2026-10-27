@@ -92,7 +92,9 @@
         <li>
           <strong>Waves runs.</strong> When a run of the Waves mode starts and ends, the game sends the server a summary of
           it (the wave it started on and the one it reached, kills, length, starting weapon, cards picked, the Workshop levels,
-          how it ended, the language and how smoothly the game ran), so we can see how the mode is played and balance it.
+          how it ended, the language and how smoothly the game ran), and a short note as each wave starts, so we can see how
+          the mode is played and balance it, and so the server can check the run before it counts for the ranking (a run
+          played faster than the game allows doesn't count; the reason is kept with the summary).
           Signed in, the summary is tied to your account. Without an account, it goes with a random identifier of this browser
           (kept in its local storage, with none of your data), and only when usage statistics are allowed in the cookie notice;
           refused, the run is counted without identifying anyone. The summaries are kept for up to a year, and deleting the

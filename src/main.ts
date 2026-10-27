@@ -160,8 +160,9 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
           testTools: account.debugTools.zoom,
           // The run's report says whose it is (src/client/wavesReport.ts)
           authToken: await account.accessToken(),
-          onWavesEnd: (end) => {
-            void account.saveWaves(end.wave, end.kills, end.time, end.splits);
+          onWavesEnd: () => {
+            // The record: the server checks the run and writes it (src/server/wavesRuns.ts); read it once it is in
+            setTimeout(() => void account.refreshWaves(), 3000);
             void account.saveWavesProgress();
           },
           onWavesAction: (action) => {

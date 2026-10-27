@@ -387,6 +387,8 @@ export class ClientGame {
       bossName: t('waves.bossName'),
       randomSkin,
       onWave: (spec) => {
+        // The server notes when each wave starts (its check of the run's end)
+        if (this.wavesRunId) reportWavesRun({ phase: 'wave', id: this.wavesRunId, wave: spec.n });
         this.hud.announceText(t('waves.wave', { n: spec.n }), spec.boss ? t('waves.bossWave') : t('waves.start'), spec.boss ? banner('#ffd0d0', '#d81f3f') : banner('#ffe2b8', '#ff8a1c'), 2.4);
         audio.play(this.sounds.siren, 200);
       },
@@ -585,6 +587,8 @@ export class ClientGame {
       best: end?.isBest ?? false,
       test: end?.test ?? run.tested,
       fps: this.fps(),
+      time: end?.time ?? null,
+      splits: end?.splits ?? {},
     });
   }
 

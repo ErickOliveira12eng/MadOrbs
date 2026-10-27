@@ -1,11 +1,14 @@
 // The waves runs told to the game server (src/server/wavesRuns.ts: the admin page's "Ondas" screen; ClientGame calls it): when one starts
 // (with the session, so the server knows the account) and when it ends. With the statistics allowed (the cookie
 // banner, public/consent.js), a random identifier of this browser goes with it (madorbs.visitor) to count the guests
-// who come back; without, the run is counted but tied to nobody. A failed report is dropped.
+// who come back; without, the run is counted but tied to nobody. A failed report is dropped. Since 26/10/2026 also when
+// each wave starts: the server checks the end against those times before the record counts (src/server/wavesCheck.ts),
+// and it alone writes the account's record.
 import { lang } from '../i18n';
 
 export type WavesRunReport =
   | { phase: 'start'; id: string; startWave: number; weapon: number; power: number; levels: Record<string, number> }
+  | { phase: 'wave'; id: string; wave: number }
   | {
       phase: 'end';
       id: string;
@@ -19,12 +22,15 @@ export type WavesRunReport =
       best: boolean;
       test: boolean;
       fps: number;
+      /** The ranking's time to the wave and the checkpoints' times (WavesEnd), null and {} when unknown */
+      time: number | null;
+      splits: Record<number, number>;
     };
 
 const VISITOR_KEY = 'madorbs.visitor';
 
 /** This browser's random identifier, made the first time (null when the statistics are refused) */
-function visitor(): string | null {
+export function visitor(): string | null {
   const consent = (window as unknown as { madorbsConsent?: { allows: (k: string) => boolean } }).madorbsConsent;
   if (!consent?.allows('analytics')) return null;
   try {
