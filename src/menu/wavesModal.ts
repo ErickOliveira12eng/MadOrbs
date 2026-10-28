@@ -37,7 +37,7 @@ import {
   type WavesProgress,
 } from '../client/wavesProgress';
 import { track } from '../client/analytics';
-import { bigNum, num, t } from '../i18n';
+import { bigNum, num, t, type Key } from '../i18n';
 import type { SkinInfo } from '../sim/player';
 import type { Account } from './account';
 import { icon, type IconName } from './icons';
@@ -47,6 +47,8 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 
 /** The testers' extra start (DEBUG_USER_IDS): right before the first boss, to try its cards. */
 const TEST_START = 9;
+/** The start picker's dots shown at once (the open checkpoints around the chosen one). */
+const DOTS = 6;
 
 const UPGRADE_ICON: Record<UpgradeID, IconName> = {
   life: 'heart',
@@ -300,22 +302,7 @@ export class WavesModal {
     this.renderList(p, cash);
     this.renderDetail(p, cash);
 
-    // The wave to start from: the first, the last two checkpoints open, the next one (locked: the wave that opens it)
-    const open = checkpoints(record);
-    const reached = open.slice(1).slice(-2);
-    const next = open.length * CHECKPOINT;
-    // A checkpoint's best time to reach it: a run begun there starts the ranking's clock from it (WavesRecord.splits)
-    const splits = loadWavesRecord()?.splits ?? {};
-    const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-    $('wvStarts').innerHTML =
-      [1, ...(tester ? [TEST_START] : []), ...reached]
-        .map(
-          (w) =>
-            `<button type="button" class="wv-opt${w === startWave ? ' on' : ''}" data-start="${w}"><b>${w}</b><small>${w === 1 ? t('workshop.fromStart') : w === TEST_START && tester ? t('workshop.testStart') : splits[w] !== undefined ? clock(splits[w]) : t('workshop.unlocked')}</small></button>`,
-        )
-        .join('') + `<button type="button" class="wv-opt locked" disabled title="${t('workshop.reach', { n: next + 1 })}"><b>${icon('lock', 13)}${next}</b><small>${t('workshop.locked')}</small></button>`;
-    $('wvStartNote').textContent =
-      startWave > 1 ? t('workshop.startFrom', { n: startWave, p: headStartPowers(startWave) }) : open.length > 1 ? t('workshop.startHint') : t('workshop.startLocked');
+    this.renderStarts(record, startWave, tester);
 
     this.renderWeapon(record, startWeapon);
     this.renderTrack();
@@ -327,6 +314,37 @@ export class WavesModal {
       ? `<span class="ok">${icon('check', 14)}${t('workshop.savedAccount')}</span>`
       : `<span title="${t('workshop.savedLocal')}">${t('workshop.savedLocalShort')}</span><button type="button" class="wv-signin">${icon('user', 14)}${t('account.signIn')}</button>`;
     this.fit();
+  }
+
+  /**
+   * The wave to start from (layout A, chosen by Erick on 27/10/2026: the row of small buttons squeezed and hid the
+   * older checkpoints): the wave big between two arrows, the best time to it and the run's upgrades it gives, a row of
+   * dots with every open checkpoint (up to DOTS around the chosen one) and the next one locked, and the next goal.
+   */
+  private renderStarts(record: number, startWave: number, tester: boolean): void {
+    const open = checkpoints(record);
+    const options = [1, ...(tester ? [TEST_START] : []), ...open.slice(1)];
+    const at = Math.max(0, options.indexOf(startWave));
+    const next = open.length * CHECKPOINT;
+    // A checkpoint's best time to reach it: a run begun there starts the ranking's clock from it (WavesRecord.splits)
+    const splits = loadWavesRecord()?.splits ?? {};
+    const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    const time = startWave === 1 ? '0:00' : tester && startWave === TEST_START ? t('workshop.testStart') : splits[startWave] !== undefined ? clock(splits[startWave]) : '—';
+    const gain = startWave === 1 ? t('workshop.fromZero') : t('workshop.gain', { n: headStartPowers(startWave) });
+    const arrow = (to: number | undefined, name: 'chevron_left' | 'chevron_right', label: Key) =>
+      `<button type="button" class="wv-arrow"${to === undefined ? ' disabled' : ` data-start="${to}"`} aria-label="${t(label)}">${icon(name, 20)}</button>`;
+    // The dots: a window of DOTS around the chosen wave when there are more
+    const from = Math.max(0, Math.min(at - Math.floor(DOTS / 2), options.length - DOTS));
+    const dots =
+      options
+        .slice(from, from + DOTS)
+        .map((w) => `<button type="button" class="wv-cp${w === startWave ? ' on' : ''}" data-start="${w}" aria-label="${t('workshop.waveN', { n: w })}"><i></i><span>${w}</span></button>`)
+        .join('') + `<span class="wv-cp locked" title="${t('workshop.nextGoal', { n: next })}">${icon('lock', 12)}<span>${next}</span></span>`;
+    $('wvStarts').innerHTML =
+      `<div class="wv-pick">${arrow(options[at - 1], 'chevron_left', 'workshop.prevWave')}<div class="wv-wave"><span>${t('workshop.waveLabel')}</span><b>${startWave}</b></div>${arrow(options[at + 1], 'chevron_right', 'workshop.nextWave')}</div>` +
+      `<div class="wv-facts"><div><small>${t('workshop.yourTime')}</small><b>${time}</b></div><div><small>${t('workshop.youGet')}</small><b class="gain">${gain}</b></div></div>` +
+      `<div class="wv-cps">${dots}</div>`;
+    $('wvStartNote').textContent = (open.length > 1 ? t('workshop.nextGoal', { n: next }) : t('workshop.startLocked')) + (startWave > 1 ? ` ${t('workshop.skipped')}` : '');
   }
 
   /**

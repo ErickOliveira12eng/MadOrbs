@@ -421,11 +421,14 @@ export class Player {
       if (this.meleeDelay < 0) this.meleeDelay = 0;
     }
 
-    // Complete shotgun reload (one shell every sixth of the 3 second reload)
+    // Complete shotgun reload (one shell every sixth of the reload: 3 s, shorter with the waves' attack speed)
     const w = this.weapon;
     if (w && w.fullReload && w.weaponID === WEAPON_SHOTGUN) {
       if (w.shotInc > 0) {
-        if (Math.trunc((w.currentFireDelay / 3) * 100) % 17 === 0) {
+        // The shells in so far, by the share of the reload gone, the last one at 6/7 of it, before the next shot can go
+        // (the original's "% 17" test on the 3 s skipped some at other lengths)
+        const inSoFar = Math.min(6, Math.floor((1 - w.currentFireDelay / w.reloadTime) * 7 + 1e-6));
+        while (w.shotInc > 0 && w.shotInc > 6 - inSoFar) {
           w.shotInc--;
           game.events.push({ type: 'shotgunReload', playerID: this.playerID, position: this.currentCF.position.clone() });
         }

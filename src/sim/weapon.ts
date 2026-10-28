@@ -22,6 +22,14 @@ import { throwPower } from './projectile';
 import type { Player } from './player';
 
 const Z_AXIS = new Vec3(0, 0, 1);
+/**
+ * The shotgun's full reload after its 6 shots (3 s in the original) shortened a little by the waves' attack speed
+ * (Player.fireBoost, 1 elsewhere): divided by fireBoost^SHOTGUN_RELOAD_EXP, not by fireBoost itself, which made it far
+ * too quick (Erick, 27/10/2026); never under SHOTGUN_RELOAD_MIN. ×2 attack speed: 2.4 s; ×4: 1.98 s.
+ */
+const SHOTGUN_RELOAD = 3;
+const SHOTGUN_RELOAD_EXP = 0.3;
+const SHOTGUN_RELOAD_MIN = 1.5;
 
 /** Weapon models are rendered with glScalef(0.005f): dummy positions are converted with this. */
 export const WEAPON_MODEL_SCALE = 0.005;
@@ -45,6 +53,8 @@ export class Weapon {
   // shotgun
   shotInc = 0;
   fullReload = true;
+  /** The length of the shotgun's full reload now under way (s): its shells go in at each sixth of it. */
+  reloadTime = SHOTGUN_RELOAD;
   // photon rifle
   charge = 0;
   justCharged = 0;
@@ -141,7 +151,8 @@ export class Weapon {
       this.shotInc++;
       if (this.shotInc >= 6 && this.weaponID === WEAPON_SHOTGUN) {
         if (sv.sv_enableShotgunReload) {
-          this.currentFireDelay = 3;
+          this.reloadTime = Math.max(SHOTGUN_RELOAD_MIN, SHOTGUN_RELOAD / owner.fireBoost ** SHOTGUN_RELOAD_EXP);
+          this.currentFireDelay = this.reloadTime;
           this.fullReload = true;
         } else this.shotInc = 0;
       }

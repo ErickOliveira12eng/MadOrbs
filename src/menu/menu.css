@@ -5119,64 +5119,151 @@ input[type='range'] {
 }
 
 .wv-starts {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  gap: 6px;
-}
-
-.wv-opt {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+/* The wave to start from (layout A, 27/10/2026): the wave big between two arrows */
+.wv-pick {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 1px;
-  min-height: 50px;
-  padding: 4px;
+  gap: 8px;
+}
+
+.wv-arrow {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 58px;
   border-radius: 12px;
-  border: 1.5px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
-  font: inherit;
   cursor: pointer;
 }
 
-.wv-opt:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+.wv-arrow:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
 }
 
-.wv-opt.on {
-  border: 2px solid #ffc23a;
-  background: rgba(255, 194, 58, 0.14);
-  color: #ffd98a;
-}
-
-.wv-opt.locked {
-  border-style: dashed;
-  background: transparent;
-  color: #8e93c0;
+.wv-arrow:disabled {
+  opacity: 0.3;
   cursor: default;
 }
 
-.wv-opt b {
-  display: inline-flex;
+.wv-wave {
+  flex: 1;
+  display: flex;
   align-items: center;
-  gap: 3px;
-  font: 400 20px/1 var(--font-display);
+  justify-content: center;
+  gap: 10px;
+  height: 58px;
+  border-radius: 14px;
+  border: 2px solid #ffc23a;
+  background: rgba(255, 194, 58, 0.12);
 }
 
-.wv-opt small {
-  max-width: 100%;
+.wv-wave span {
+  color: #ffd98a;
+  font: 400 19px/1 var(--font-display);
+}
+
+.wv-wave b {
+  color: #ffc23a;
+  font: 400 40px/1 var(--font-display);
+  font-weight: 400;
+}
+
+/* The best time to it and the run's upgrades it gives */
+.wv-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.wv-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.wv-facts small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--muted);
-  font-size: 10.5px;
-  font-weight: 800;
 }
 
-.wv-opt.on small {
-  color: #ffd98a;
+.wv-facts b {
+  font-size: 16px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.wv-facts b.gain {
+  color: #5ff0e0;
+}
+
+/* Every open checkpoint as a dot (a click picks it), the next one locked */
+.wv-cps {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 2px;
+}
+
+.wv-cp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 26px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 800 11px var(--font-ui);
+  cursor: pointer;
+}
+
+.wv-cp i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6d77a8;
+}
+
+.wv-cp:hover:not(.locked) i {
+  background: #aab2df;
+}
+
+.wv-cp.on {
+  color: #ffc23a;
+  font-weight: 900;
+}
+
+.wv-cp.on i {
+  width: 14px;
+  height: 14px;
+  background: #ffc23a;
+  box-shadow: 0 0 10px rgba(255, 194, 58, 0.7);
+}
+
+.wv-cp.locked {
+  color: #6d77a8;
+  cursor: default;
+}
+
+.wv-cp.locked .icon {
+  width: 12px;
+  height: 12px;
 }
 
 .wv-note {
