@@ -3,6 +3,8 @@
 // milestones of the record (starting weapons, exclusive Orbs) and the checkpoints to start from.
 // Kept in this browser (madorbs.wavesProgress) and, signed in, in the account (waves_progress).
 import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_DUAL_MACHINE_GUN, WEAPON_FLAME_THROWER, WEAPON_SMG } from '../sim/constants';
+import { PERM_KINDS, type PermKind } from './waves';
+import { CARDS, type CardID } from './wavesCards';
 
 export type UpgradeID = 'life' | 'armor' | 'damage' | 'fire' | 'speed' | 'lives' | 'grenades' | 'luck' | 'drops' | 'breather' | 'secondWind' | 'cap' | 'dash' | 'barrier' | 'shock' | 'reroll';
 
@@ -138,7 +140,7 @@ export function checkpoints(record: number): number[] {
   return out;
 }
 
-/** A run started further on gets a permanent power-up of the run for every two waves skipped. */
+/** A run started further on with no saved build there (a checkpoint from before 27/10/2026) gets a permanent power-up of the run for every two waves skipped. */
 export function headStartPowers(startWave: number): number {
   return Math.floor((startWave - 1) / 2);
 }
@@ -209,6 +211,68 @@ export interface WavesProgress {
   startWeapon: number;
   /** The daily reward: the day it was last taken (YYYY-MM-DD, this computer's date) and the days in a row. */
   daily: { last: string; streak: number };
+  /** What a run had as it beat each checkpoint wave (the last one that did): a run begun there starts with it. */
+  builds: Record<number, CheckpointBuild>;
+}
+
+/**
+ * A checkpoint's saved build (Erick, 27/10/2026: "isso sim é um checkpoint"): the crates' permanent power-ups and the
+ * cards (with their levels) the run had when it beat that wave, and when (ms, the newer one wins between devices).
+ */
+export interface CheckpointBuild {
+  perms: Partial<Record<PermKind, number>>;
+  cards: Partial<Record<CardID, number>>;
+  at: number;
+}
+
+/** A saved build as it should be (anything else dropped), or null. */
+export function cleanBuild(raw: unknown): CheckpointBuild | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as { perms?: Record<string, unknown>; cards?: Record<string, unknown>; at?: unknown };
+  const perms: Partial<Record<PermKind, number>> = {};
+  const cards: Partial<Record<CardID, number>> = {};
+  for (const k of PERM_KINDS) {
+    const v = r.perms?.[k];
+    if (typeof v === 'number' && Number.isInteger(v) && v > 0) perms[k] = Math.min(50, v);
+  }
+  for (const c of CARDS) {
+    const v = r.cards?.[c.id];
+    if (typeof v === 'number' && Number.isInteger(v) && v > 0) cards[c.id] = Math.min(c.max, v);
+  }
+  const at = typeof r.at === 'number' && Number.isFinite(r.at) ? r.at : 0;
+  return { perms, cards, at };
+}
+
+/** The saved builds by checkpoint wave. */
+export function cleanBuilds(raw: unknown): Record<number, CheckpointBuild> {
+  const out: Record<number, CheckpointBuild> = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>).slice(0, 1000)) {
+    const w = Number(k);
+    const b = cleanBuild(v);
+    if (Number.isInteger(w) && w > 0 && w % CHECKPOINT === 0 && b) out[w] = b;
+  }
+  return out;
+}
+
+/** A run beat checkpoint wave `wave` with this build: kept here (the account gets it from the caller). */
+export function saveBuild(wave: number, build: CheckpointBuild): void {
+  const p = loadProgress();
+  p.builds[wave] = build;
+  saveProgress(p);
+}
+
+/** The account's builds and this browser's: the newer of each wave in both; `upload`: the waves this one has newer. */
+export function mergeBuilds(remote: Record<number, CheckpointBuild>): { builds: Record<number, CheckpointBuild>; upload: number[] } {
+  const p = loadProgress();
+  const upload: number[] = [];
+  for (const [k, b] of Object.entries(remote)) {
+    const w = Number(k);
+    if (!p.builds[w] || p.builds[w].at < b.at) p.builds[w] = b;
+  }
+  for (const [k, b] of Object.entries(p.builds)) if (!remote[Number(k)] || remote[Number(k)].at < b.at) upload.push(Number(k));
+  saveProgress(p);
+  return { builds: p.builds, upload };
 }
 
 const MAX_CORES = 100_000_000;
@@ -238,7 +302,7 @@ export function cleanLevels(raw: unknown): Levels {
 }
 
 export function loadProgress(): WavesProgress {
-  const p: WavesProgress = { earned: 0, levels: { ...NO_LEVELS }, startWave: 1, startWeapon: WEAPON_SMG, daily: { last: '', streak: 0 } };
+  const p: WavesProgress = { earned: 0, levels: { ...NO_LEVELS }, startWave: 1, startWeapon: WEAPON_SMG, daily: { last: '', streak: 0 }, builds: {} };
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Record<string, unknown> | null;
     if (!raw) return p;
@@ -249,6 +313,7 @@ export function loadProgress(): WavesProgress {
     const d = raw.daily as { last?: unknown; streak?: unknown } | undefined;
     if (d && typeof d.last === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.last) && typeof d.streak === 'number' && Number.isInteger(d.streak))
       p.daily = { last: d.last, streak: Math.max(0, Math.min(10000, d.streak)) };
+    p.builds = cleanBuilds(raw.builds);
   } catch {
     /* storage unavailable or corrupt: a fresh start */
   }

@@ -94,7 +94,7 @@ import type { RoomView } from './hud/weaponPicker';
 import { WavesRun, type WavesEnd } from './wavesRun';
 import { cardDef, type CardID } from './wavesCards';
 import { POWERS, WAVES, type PermKind, type PowerKind } from './waves';
-import type { Levels, UpgradeID } from './wavesProgress';
+import type { CheckpointBuild, Levels, UpgradeID } from './wavesProgress';
 import { wavesPower } from './wavesPower';
 import { newRunId, reportWavesRun } from './wavesReport';
 import { PvpTutorial, WavesTutorial, type Tutorial, type TutorialCard, type TutorialHost, type TutorialKind } from './tutorial';
@@ -152,6 +152,8 @@ export interface ClientGameOptions {
   onWavesAction?: (action: 'retry' | 'shop' | 'menu') => void;
   /** A waves run ended (or was left): the account keeps the best one and the Cores. */
   onWavesEnd?: (end: WavesEnd) => void;
+  /** The waves: a checkpoint beaten, its build saved (the account's copy). */
+  onWavesBuild?: (wave: number, build: CheckpointBuild) => void;
   /**
    * The testers' tools on the waves' Esc screen (the DEBUG_USER_IDS accounts): any card at any level, any
    * wave. A run they changed counts for nothing.
@@ -411,6 +413,7 @@ export class ClientGame {
         audio.play(this.sounds.equip, 200);
       },
       onBomb: (position) => this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 4),
+      onCheckpointBuild: (wave, build) => this.opts.onWavesBuild?.(wave, build),
       onScreen: (position) => {
         const v = this.cam.project(position, 1, 1);
         return v.visible && v.x >= 0 && v.x <= 1 && v.y >= 0 && v.y <= 1;

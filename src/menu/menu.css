@@ -5176,11 +5176,11 @@ input[type='range'] {
   font-weight: 400;
 }
 
-/* The best time to it and the run's upgrades it gives */
+/* The best time to it, and the upgrades and cards the run begins with (the checkpoint's saved build) */
 .wv-facts {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .wv-facts > div {

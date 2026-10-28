@@ -12,7 +12,7 @@ import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, ELITE, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
-import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
+import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
 export interface WavesHud {
@@ -118,6 +118,8 @@ export interface WavesContext {
   onWeaponDrop: (weaponID: number) => void;
   /** The bomb's blast, at the player. */
   onBomb: (position: Vec3) => void;
+  /** A checkpoint wave beaten: the build saved for it (here, already: the account's copy is the caller's). */
+  onCheckpointBuild?: (wave: number, build: CheckpointBuild) => void;
   /** The point is on the player's screen (the bomb hits all of it). */
   onScreen: (position: Vec3) => boolean;
   /** The Workshop's second wind saved the player. */
@@ -233,9 +235,17 @@ export class WavesRun {
     this.spec = waveSpec(ctx.startWave);
     this.permCap = PERM_CAP_BASE + PERM_CAP_STEP * ctx.levels.cap;
     this.rerolls = ctx.levels.reroll;
-    for (let i = 0; i < headStartPowers(ctx.startWave); i++) {
-      const k = rollPerm(this.full);
-      if (k) this.perms[k]++;
+    // The build saved when a run last beat this checkpoint: its crates' upgrades and its cards (Erick, 27/10/2026);
+    // none (a checkpoint from before then): a head start of random upgrades, one every two waves skipped
+    const build = ctx.startWave > 1 && !this.script ? loadProgress().builds[ctx.startWave] : undefined;
+    if (build) {
+      for (const k of PERM_KINDS) this.perms[k] = Math.min(this.permCap, build.perms[k] ?? 0);
+      for (const c of CARDS) if (build.cards[c.id]) this.cards[c.id] = Math.min(c.max, build.cards[c.id]!);
+    } else {
+      for (let i = 0; i < headStartPowers(ctx.startWave); i++) {
+        const k = rollPerm(this.full);
+        if (k) this.perms[k]++;
+      }
     }
     // The Workshop's recharging shield, full at the start
     ctx.me.barrierMax = BARRIER_SIZE[ctx.levels.barrier];
@@ -439,6 +449,8 @@ export class WavesRun {
     // The bots (and the boss) the last wave still had to send come too
     const carried = this.pending;
     const bossLate = this.bossPending;
+    // A checkpoint wave beaten (the next one begins): what the run has now is saved for it
+    if (this.wave >= CHECKPOINT && this.wave % CHECKPOINT === 0 && !this.tested) this.saveCheckpoint(this.wave);
     this.wave++;
     this.spec = waveSpec(this.wave);
     this.phase = 'fight';
@@ -735,6 +747,15 @@ export class WavesRun {
   /** The level of a card taken (0: not taken). */
   cardLevel(id: CardID): number {
     return this.cards[id] ?? 0;
+  }
+
+  /** The build of checkpoint `wave`: the crates' permanent power-ups and the cards, kept for a run begun there. */
+  private saveCheckpoint(wave: number): void {
+    const perms: CheckpointBuild['perms'] = {};
+    for (const k of PERM_KINDS) if (this.perms[k] > 0) perms[k] = this.perms[k];
+    const build: CheckpointBuild = { perms, cards: { ...this.cards }, at: Date.now() };
+    saveBuild(wave, build);
+    this.ctx.onCheckpointBuild?.(wave, build);
   }
 
   /** The player took card `i` of the offer: its levels (one, or two), and the run goes on (or the next offer comes). */

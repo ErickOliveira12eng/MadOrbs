@@ -330,7 +330,10 @@ export class WavesModal {
     const splits = loadWavesRecord()?.splits ?? {};
     const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
     const time = startWave === 1 ? '0:00' : tester && startWave === TEST_START ? t('workshop.testStart') : splits[startWave] !== undefined ? clock(splits[startWave]) : '—';
-    const gain = startWave === 1 ? t('workshop.fromZero') : t('workshop.gain', { n: headStartPowers(startWave) });
+    // What the run begins with: the build saved when a run last beat this checkpoint, else random upgrades
+    const build = startWave > 1 ? loadProgress().builds[startWave] : undefined;
+    const perms = startWave === 1 ? '—' : `+${build ? Object.values(build.perms).reduce((n, v) => n + (v ?? 0), 0) : headStartPowers(startWave)}`;
+    const cards = startWave === 1 || !build ? '—' : String(Object.keys(build.cards).length);
     const arrow = (to: number | undefined, name: 'chevron_left' | 'chevron_right', label: Key) =>
       `<button type="button" class="wv-arrow"${to === undefined ? ' disabled' : ` data-start="${to}"`} aria-label="${t(label)}">${icon(name, 20)}</button>`;
     // The dots: a window of DOTS around the chosen wave when there are more
@@ -342,9 +345,10 @@ export class WavesModal {
         .join('') + `<span class="wv-cp locked" title="${t('workshop.nextGoal', { n: next })}">${icon('lock', 12)}<span>${next}</span></span>`;
     $('wvStarts').innerHTML =
       `<div class="wv-pick">${arrow(options[at - 1], 'chevron_left', 'workshop.prevWave')}<div class="wv-wave"><span>${t('workshop.waveLabel')}</span><b>${startWave}</b></div>${arrow(options[at + 1], 'chevron_right', 'workshop.nextWave')}</div>` +
-      `<div class="wv-facts"><div><small>${t('workshop.yourTime')}</small><b>${time}</b></div><div><small>${t('workshop.youGet')}</small><b class="gain">${gain}</b></div></div>` +
+      `<div class="wv-facts"><div><small>${t('workshop.timeShort')}</small><b>${time}</b></div><div><small>${t('workshop.permsShort')}</small><b class="gain">${perms}</b></div><div><small>${t('workshop.cardsShort')}</small><b class="gain">${cards}</b></div></div>` +
       `<div class="wv-cps">${dots}</div>`;
-    $('wvStartNote').textContent = (open.length > 1 ? t('workshop.nextGoal', { n: next }) : t('workshop.startLocked')) + (startWave > 1 ? ` ${t('workshop.skipped')}` : '');
+    const about = startWave === 1 ? '' : ` ${t(build ? 'workshop.buildNote' : 'workshop.noBuild', { n: startWave })} ${t('workshop.skipped')}`;
+    $('wvStartNote').textContent = (open.length > 1 ? t('workshop.nextGoal', { n: next }) : t('workshop.startLocked')) + about;
   }
 
   /**

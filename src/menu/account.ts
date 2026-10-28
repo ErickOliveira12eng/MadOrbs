@@ -10,7 +10,7 @@ import type { RoomMode } from '../net/protocol';
 import { mergeProgress } from '../client/campaign';
 import { cleanSplits, mergeWavesRecord, type WavesRecord } from '../client/waves';
 import { visitor } from '../client/wavesReport';
-import { cleanLevels, loadProgress as loadWavesProgress, mergeProgress as mergeWavesProgress } from '../client/wavesProgress';
+import { cleanBuilds, cleanLevels, loadProgress as loadWavesProgress, mergeBuilds, mergeProgress as mergeWavesProgress, type CheckpointBuild } from '../client/wavesProgress';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../net/supabase';
 
 /** A waves_records row as a record (null: none). */
@@ -168,15 +168,19 @@ export class Account {
       client.from('campaign_progress').select('level, best_seconds').eq('user_id', id),
       // (every column: best_time only exists once 20261023120000_waves_time.sql ran)
       client.from('waves_records').select('*').eq('user_id', id).maybeSingle(),
-      client.from('waves_progress').select('earned, levels').eq('user_id', id).maybeSingle(),
+      // (every column: builds only exists once 20261027120000_waves_builds.sql ran)
+      client.from('waves_progress').select('*').eq('user_id', id).maybeSingle(),
     ]);
     void this.loadDebugTools();
     // The waves' Cores and Workshop levels: the account's and this browser's, the most of each in both
     if (wavesProgress.error) console.warn('[account] cannot read the waves progress', wavesProgress.error.message);
     else {
-      const row = wavesProgress.data as { earned: number; levels: unknown } | null;
+      const row = wavesProgress.data as { earned: number; levels: unknown; builds?: unknown } | null;
       const { upload } = mergeWavesProgress(row ? { earned: row.earned, levels: cleanLevels(row.levels) } : null);
       if (upload) void this.saveWavesProgress();
+      // The checkpoints' builds: the newer of each, here and in the account
+      const builds = mergeBuilds(cleanBuilds(row?.builds));
+      for (const w of builds.upload) void this.saveWavesBuild(w, builds.builds[w]);
     }
     // The waves: the account's record (only runs the server checked: src/server/wavesCheck.ts) comes into this
     // browser's; this browser's better one doesn't go up (a page can write anything): the checked guest runs of this
@@ -346,6 +350,13 @@ export class Account {
     } catch {
       /* no server (the static page): no tools */
     }
+  }
+
+  /** A checkpoint's build (what a run had as it beat that wave): the account keeps the newer one (waves_progress.builds). */
+  async saveWavesBuild(wave: number, build: CheckpointBuild): Promise<void> {
+    if (!this.client || !this.session) return;
+    const { error } = await this.client.rpc('record_waves_build', { p_wave: wave, p_build: build });
+    if (error) console.warn('[account] cannot save the checkpoint build', error.message);
   }
 
   /** The waves' Cores or Workshop levels changed: the account keeps the most of each (waves_progress). */
