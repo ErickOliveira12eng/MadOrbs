@@ -141,9 +141,11 @@ export class LobbyRanking {
     // The waves: the time in a column of its own (Erick, 24/10/2026: titles over the numbers)
     const timed = mode === 'waves';
     const time = (r: RankingRow) => `<span class="time">${typeof r.stats.time === 'number' ? clock(r.stats.time) : '—'}</span>`;
+    // and the Power the record's run began with (Erick, 28/10/2026)
+    const power = (r: RankingRow) => `<span class="time">${typeof r.stats.power === 'number' ? bigNum(r.stats.power) : '—'}</span>`;
     let html = rows.length
       ? `<li class="lr-row head${timed ? ' timed' : ''}" aria-hidden="true"><span>#</span><span></span><span>${t('ranking.player')}</span>` +
-        `<span class="val">${t(by.head)}</span>${timed ? `<span class="time">${t('ranking.reachTime')}</span>` : ''}</li>`
+        `<span class="val">${t(timed ? 'lobby.colWave' : by.head)}</span>${timed ? `<span class="time">${t('ranking.reachTime')}</span><span class="time">${t('ranking.power')}</span>` : ''}</li>`
       : '';
     let last = 0;
     for (const r of rows) {
@@ -155,7 +157,7 @@ export class LobbyRanking {
         `<span class="pos">${bigNum(r.rank)}</span>` +
         `<i class="orb" style="${orbStyle(r)}"></i>` +
         `<b class="who">${r.is_me ? t('ranking.you') : esc(r.name || 'Orb')}</b>` +
-        `<span class="val">${by.cell(r)}</span>${timed ? time(r) : ''}</li>`;
+        `<span class="val">${by.cell(r)}</span>${timed ? time(r) + power(r) : ''}</li>`;
     }
     this.setList(html || `<li class="lr-note">${t('ranking.empty')}</li>`);
     this.renderPerf(mode, rows.find((r) => r.is_me) ?? null, total);

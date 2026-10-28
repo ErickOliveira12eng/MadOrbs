@@ -52,6 +52,8 @@ export const COLUMNS: Record<RankingMode, { head: Key; cell: (r: RankingRow) => 
     { head: 'ranking.wave', cell: (r) => bigNum(r.stats.wave) },
     // Who reached it sooner (deaths add WAVES.deathPenalty each); none: from a checkpoint, or an older record
     { head: 'ranking.reachTime', cell: (r) => (typeof r.stats.time === 'number' ? clock(r.stats.time) : '—') },
+    // The Power the record's run began with (the third order, after the time: the same wave with less of the Workshop)
+    { head: 'ranking.power', cell: (r) => (typeof r.stats.power === 'number' ? bigNum(r.stats.power) : '—') },
     { head: 'ranking.runs', cell: (r) => bigNum(r.stats.runs) },
   ],
 };
@@ -196,7 +198,7 @@ export class RankingModal {
       `<img class="rk-orb" alt="" width="${PODIUM_ORB[r.rank]}" height="${PODIUM_ORB[r.rank]}" style="${orbStyle(r)}" data-orb="${[r.skin, r.red, r.green, r.blue, PODIUM_ORB[r.rank]].join('|')}" />` +
       `<b class="rk-name">${name(r)}</b><small class="rk-tag">#${esc(r.tag)}${you(r)}</small>` +
       `<span class="rk-big">${by.cell(r)}</span><span class="rk-label">${t(by.head)}</span>` +
-      (cols[1] ? `<span class="rk-more">${t(cols[1].head)}: <b>${cols[1].cell(r)}</b></span>` : '') +
+      (cols[1] ? `<span class="rk-more">${t(cols[1].head)}: <b>${cols[1].cell(r)}</b>${mode === 'waves' && cols[2] ? ` · ${t(cols[2].head)}: <b>${cols[2].cell(r)}</b>` : ''}</span>` : '') +
       `</div>`;
     const order = [2, 1, 3].map((n) => top.find((r) => r.rank === n)).filter((r): r is RankingRow => !!r);
     const podium = `<div class="rk-podium n${order.length}">${order.map(step).join('')}</div>`;

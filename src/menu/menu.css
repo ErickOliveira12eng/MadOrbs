@@ -1086,7 +1086,8 @@ select:focus-visible {
 
 /* The column titles over the numbers; the waves' time in a column of its own */
 .lr-row.timed {
-  grid-template-columns: 38px 20px minmax(0, 1fr) auto 48px;
+  grid-template-columns: 34px 20px minmax(0, 1fr) auto 44px 44px;
+  gap: 6px;
 }
 
 .lr-row.head {
