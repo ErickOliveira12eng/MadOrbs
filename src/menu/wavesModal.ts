@@ -313,7 +313,7 @@ export class WavesModal {
           (w) =>
             `<button type="button" class="wv-opt${w === startWave ? ' on' : ''}" data-start="${w}"><b>${w}</b><small>${w === 1 ? t('workshop.fromStart') : w === TEST_START && tester ? t('workshop.testStart') : splits[w] !== undefined ? clock(splits[w]) : t('workshop.unlocked')}</small></button>`,
         )
-        .join('') + `<button type="button" class="wv-opt locked" disabled title="${t('workshop.reach', { n: next + CHECKPOINT })}"><b>${icon('lock', 13)}${next}</b><small>${t('workshop.locked')}</small></button>`;
+        .join('') + `<button type="button" class="wv-opt locked" disabled title="${t('workshop.reach', { n: next + 1 })}"><b>${icon('lock', 13)}${next}</b><small>${t('workshop.locked')}</small></button>`;
     $('wvStartNote').textContent =
       startWave > 1 ? t('workshop.startFrom', { n: startWave, p: headStartPowers(startWave) }) : open.length > 1 ? t('workshop.startHint') : t('workshop.startLocked');
 

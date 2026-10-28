@@ -125,15 +125,16 @@ export function nextMilestone(record: number): Milestone | null {
 }
 
 /**
- * Every CHECKPOINT waves a run can start from, once the record is CHECKPOINT waves past it: wave 20 opens
- * wave 10, wave 30 opens wave 20 (Erick, 12/10/2026: starting right on the wave reached was too hard).
+ * Every CHECKPOINT waves a run can start from, once that wave was finished (the next one began: the record is past
+ * it): beating wave 10 opens wave 10 (Erick, 27/10/2026; from 12/10/2026 the record had to be 10 waves past it, wave 20
+ * opened wave 10).
  */
 export const CHECKPOINT = 10;
 
-/** The waves a run can start from: the first, and each checkpoint the record went far enough past. */
+/** The waves a run can start from: the first, and each checkpoint the record went past. */
 export function checkpoints(record: number): number[] {
   const out = [1];
-  for (let w = CHECKPOINT; w + CHECKPOINT <= record; w += CHECKPOINT) out.push(w);
+  for (let w = CHECKPOINT; w < record; w += CHECKPOINT) out.push(w);
   return out;
 }
 

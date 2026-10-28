@@ -558,9 +558,10 @@ export class Player {
       }
     }
 
-    // Grenade
+    // Grenade. Not in the original: thrown while the weapon is between two shots too (Erick, 27/10/2026: the
+    // shotgun's long reload held the grenade and the molotov back; the original waited for currentFireDelay)
     if (input.throwGrenadePressed && this.grenadeDelay === 0 && this.nbGrenadeLeft > 0 && this.meleeDelay === 0) {
-      if (this.weapon && this.weapon.currentFireDelay <= 0) {
+      if (this.weapon) {
         this.lastShootWasNade = true;
         // The shooter's client counts its own grenades (the server keeps its own count)
         if (game.mode === 'client') this.nbGrenadeLeft--;
@@ -571,7 +572,7 @@ export class Player {
 
     // Molotov cocktail
     if (input.throwMolotovPressed && this.grenadeDelay === 0 && this.nbMolotovLeft > 0 && sv.sv_enableMolotov) {
-      if (this.weapon && this.weapon.currentFireDelay <= 0) {
+      if (this.weapon) {
         this.lastShootWasNade = false;
         if (game.mode === 'client') this.nbMolotovLeft--;
         this.grenadeDelay = weaponDefs[WEAPON_COCKTAIL_MOLOTOV].fireDelay;
