@@ -911,9 +911,7 @@ export class HudLayer {
       w.phase === 'fight'
         ? `<div class="h-ecount"><b>${w.left}</b><span>/ ${w.total}</span><small>${t('waves.toBeat')}</small></div>`
         : `<div class="h-wbreak">${t('waves.breakHint')}</div>`;
-    // How strong the wave's bots are against wave 1's
-    if (w.scale.life > 1.01)
-      html += `<div class="h-wscale" title="${t('waves.scaleHint')}">${t('waves.scale', { life: num(w.scale.life), hit: num(w.scale.hit) })}</div>`;
+    // (the waves' strength against wave 1's, "Life ×7 · Damage ×4.3", left the panel on 28/10/2026: Erick)
     // The permanent power-ups taken: +10% a level (poison and ice: their level)
     if (w.perms.length)
       html +=
