@@ -86,6 +86,8 @@ export class StartScreen {
   private readonly tutorialAsk = new TutorialModal();
   private readonly ranking: RankingModal;
   private readonly lobbyRanking: LobbyRanking;
+  /** The ranking tab of the mode being played, for the way back (null: leave it as it is). */
+  private playedTab: 'online' | 'waves' | null = null;
   private readonly room: RoomModal;
   /** The account whose Orb was already brought into this page's settings. */
   private orbSyncedFor = '';
@@ -172,6 +174,7 @@ export class StartScreen {
       () => skinInfo(this.settings),
       () => {
         this.play('offline', false);
+        this.playedTab = 'waves';
         onWaves();
       },
       () => this.accountModal.open(),
@@ -188,8 +191,9 @@ export class StartScreen {
         if (a === 'tutorial') tutorial('waves');
         else if (a === 'play') {
           this.play('offline', false);
+          this.playedTab = 'waves';
           onWaves();
-        } else if (a === 'none') this.waves.open();
+        } else if (a === 'none') this.openWaves();
       });
     });
     account.onChange(() => this.renderAccount());
@@ -315,7 +319,9 @@ export class StartScreen {
     this.rafId = requestAnimationFrame((t) => this.frame(t));
     void this.refreshStatus();
     this.renderProgress();
-    this.lobbyRanking.refresh();
+    // Back from a run: the ranking of the mode just played
+    this.lobbyRanking.refresh(this.playedTab ?? undefined);
+    this.playedTab = null;
     this.fit(this.adsAt > 0 && performance.now() - this.adsAt > AD_REFRESH_MS);
     this.checkAdBlock();
   }
@@ -377,7 +383,10 @@ export class StartScreen {
       this.nameInput.value = this.settings.name;
       saveSettings(this.settings);
     }
-    if (start) this.onPlay(mode);
+    if (start) {
+      if (mode === 'online') this.playedTab = 'online';
+      this.onPlay(mode);
+    }
   }
 
   /** The private room window: making one, or joining this one (an invitation link). */
@@ -442,8 +451,9 @@ export class StartScreen {
     badge.textContent = daily ? t('menu.dailyReady') : t(canBuy === 1 ? 'menu.wavesCanBuyOne' : 'menu.wavesCanBuy', { n: canBuy });
   }
 
-  /** The waves' Workshop (back from a run that asked for it). */
+  /** The waves' Workshop (its card, or back from a run that asked for it): the ranking beside it on the Survival tab. */
   openWaves(): void {
+    this.lobbyRanking.showTab('waves');
     this.waves.open();
   }
 

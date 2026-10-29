@@ -73,7 +73,7 @@ export const pt: Record<Key, string> = {
   'home.newsTitle': 'Novidades',
   'home.news47Date': '28 de outubro de 2026',
   'home.news47Title': 'Ondas: melhorias das caixas por nível',
-  'home.news47': 'As melhorias permanentes das caixas agora mostram o nível (Nv 1, Nv 5...) em vez de um percentual, no painel do canto e quando você pega uma.',
+  'home.news47': 'As melhorias permanentes das caixas agora mostram o nível (Nv 1, Nv 5...) em vez de um percentual, no painel do canto e quando você pega uma. E o ranking da tela inicial mostra a Sobrevivência quando você abre a Oficina ou volta de uma partida.',
   'home.news46Date': '28 de outubro de 2026',
   'home.news46Title': 'Ranking das Ondas: o poder',
   'home.news46': 'O ranking das Ondas agora mostra o poder com que cada jogador começou a partida do recorde. Ele também desempata: primeiro a maior onda, depois o menor tempo até ela e, por fim, o menor poder, porque chegar à mesma onda com menos melhorias da Oficina pede mais habilidade.',

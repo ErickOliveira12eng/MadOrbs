@@ -75,7 +75,7 @@ export const en = {
   'home.newsTitle': "What's new",
   'home.news47Date': 'October 28, 2026',
   'home.news47Title': 'Waves: crate upgrades by level',
-  'home.news47': 'The permanent crate upgrades now show their level (Lv 1, Lv 5...) instead of a percentage, in the corner panel and when you pick one up.',
+  'home.news47': 'The permanent crate upgrades now show their level (Lv 1, Lv 5...) instead of a percentage, in the corner panel and when you pick one up. And the start screen ranking switches to Survival when you open the Workshop or come back from a run.',
   'home.news46Date': 'October 28, 2026',
   'home.news46Title': 'Waves ranking: the Power',
   'home.news46': 'The Waves ranking now shows the Power each player began their record run with. It also breaks ties: the highest wave first, then the shortest time to it, then the lowest Power, because reaching the same wave with fewer Workshop upgrades takes more skill.',

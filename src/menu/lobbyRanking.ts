@@ -76,8 +76,19 @@ export class LobbyRanking {
     return this.tab === 'online' ? this.onlineMode() : this.tab;
   }
 
-  /** The start screen showed (and the Multiplayer card's mode may have changed). */
-  refresh(): void {
+  /** The Survival tab (the Workshop opened) or the Multiplayer one; read now if the column already showed. */
+  showTab(tab: Tab): void {
+    if (this.tab === tab) return;
+    this.tab = tab;
+    if (this.started) void this.render();
+  }
+
+  /**
+   * The start screen showed (and the Multiplayer card's mode may have changed); `tab`: the one of the mode just played
+   * (Erick, 28/10/2026: back from a waves run, the Survival ranking).
+   */
+  refresh(tab?: Tab): void {
+    if (tab) this.tab = tab;
     if (this.started) {
       void this.render();
       return;

@@ -73,7 +73,7 @@ export const es: Record<Key, string> = {
   'home.newsTitle': 'Novedades',
   'home.news47Date': '28 de octubre de 2026',
   'home.news47Title': 'Oleadas: mejoras de las cajas por nivel',
-  'home.news47': 'Las mejoras permanentes de las cajas ahora muestran su nivel (Nv 1, Nv 5...) en lugar de un porcentaje, en el panel de la esquina y al recoger una.',
+  'home.news47': 'Las mejoras permanentes de las cajas ahora muestran su nivel (Nv 1, Nv 5...) en lugar de un porcentaje, en el panel de la esquina y al recoger una. Y el ranking de la pantalla de inicio muestra la Supervivencia cuando abres el Taller o vuelves de una partida.',
   'home.news46Date': '28 de octubre de 2026',
   'home.news46Title': 'Ranking de las Oleadas: el poder',
   'home.news46': 'El ranking de las Oleadas ahora muestra el poder con que cada jugador empezó la partida de su récord. También desempata: primero la oleada más alta, después el menor tiempo hasta ella y, por último, el menor poder, porque llegar a la misma oleada con menos mejoras del Taller pide más habilidad.',
