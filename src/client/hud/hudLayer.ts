@@ -12,7 +12,7 @@ import { drawMapPreview } from '../mapPreview';
 import { adBlockFound, adsAllowed, mountAd, refreshAd } from '../ads';
 import type { WavesEnd, WavesHud } from '../wavesRun';
 import type { TutorialAction, TutorialCard, TutorialHud } from '../tutorial';
-import { PERM_SPEED_STEP, PERM_STEP, WAVES } from '../waves';
+import { WAVES } from '../waves';
 import { MILESTONES, affordable, balance, checkpoints, nextMilestone } from '../wavesProgress';
 import { orbName, prizeText, weaponLook } from '../wavesPrize';
 import { cardDef, cardValue, type CardID } from '../wavesCards';
@@ -912,12 +912,13 @@ export class HudLayer {
         ? `<div class="h-ecount"><b>${w.left}</b><span>/ ${w.total}</span><small>${t('waves.toBeat')}</small></div>`
         : `<div class="h-wbreak">${t('waves.breakHint')}</div>`;
     // (the waves' strength against wave 1's, "Life ×7 · Damage ×4.3", left the panel on 28/10/2026: Erick)
-    // The permanent power-ups taken: +10% a level (poison and ice: their level)
+    // The permanent power-ups taken, by level (Erick, 28/10/2026: the percentages, 7% a level of speed, read oddly, and a
+    // change of balance would show)
     if (w.perms.length)
       html +=
         `<div class="h-perms"><span class="h-label">${t('waves.upgrades')}</span><div>` +
         w.perms
-          .map((p) => `<span class="${p.full ? 'full' : ''}" title="${t(`power.${p.kind}` as Key)}${p.full ? ` · ${t('waves.permFull')}` : ''}"><img src="${powerIconUrl(p.kind)}" alt="" /><b>${p.kind === 'poison' || p.kind === 'ice' ? `×${p.level}` : `+${Math.round(p.level * (p.kind === 'permSpeed' ? PERM_SPEED_STEP : PERM_STEP) * 100)}%`}</b>${p.full ? `<i class="h-max">${t('waves.livesMax')}</i>` : ''}</span>`)
+          .map((p) => `<span class="${p.full ? 'full' : ''}" title="${t(`power.${p.kind}` as Key)}${p.full ? ` · ${t('waves.permFull')}` : ''}"><img src="${powerIconUrl(p.kind)}" alt="" /><b>${t('waves.permLevel', { n: p.level })}</b>${p.full ? `<i class="h-max">${t('waves.livesMax')}</i>` : ''}</span>`)
           .join('') +
         `</div></div>`;
     if (w.record) html += `<div class="h-wrec">${t('waves.record', { n: w.record })}</div>`;
