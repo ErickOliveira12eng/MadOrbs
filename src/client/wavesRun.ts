@@ -247,6 +247,8 @@ export class WavesRun {
         if (k) this.perms[k]++;
       }
     }
+    // The player in the colours he chose, not the blue team's (Erick, 29/10/2026)
+    ctx.me.ownColors = true;
     // The Workshop's recharging shield, full at the start
     ctx.me.barrierMax = BARRIER_SIZE[ctx.levels.barrier];
     ctx.me.barrier = ctx.me.barrierMax;

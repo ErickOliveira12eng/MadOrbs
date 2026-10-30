@@ -222,6 +222,8 @@ export class Player {
    * (they were the same blue). Null: the team's.
    */
   teamTint: Omit<SkinInfo, 'skin'> | null = null;
+  /** Its own colours even in a team game (the waves' player, Erick, 29/10/2026: not the team's blue). */
+  ownColors = false;
   /** Seconds before the Double shot card's second volley (0: none waiting). */
   private extraShotIn = 0;
   /** Marks shown before the name over the orb (the waves' elites: 'fast', 'brute', 'sniper', 'tank'). */
@@ -336,7 +338,7 @@ export class Player {
    * elsewhere the colours its player chose.
    */
   get displaySkin(): SkinInfo {
-    if (!this.game.isTeamGame) return this.skin;
+    if (!this.game.isTeamGame || this.ownColors) return this.skin;
     if (this.teamTint) return { skin: this.skin.skin, ...this.teamTint };
     if (this.teamID === PLAYER_TEAM_BLUE) return { skin: this.skin.skin, ...TEAM_DECALS[PLAYER_TEAM_BLUE] };
     if (this.teamID === PLAYER_TEAM_RED) return { skin: this.skin.skin, ...TEAM_DECALS[PLAYER_TEAM_RED] };
