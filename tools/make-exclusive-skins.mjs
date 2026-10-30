@@ -1,4 +1,4 @@
-// Draws the waves mode's exclusive Orb skins (skin24..skin26: Honeycomb, Flames, Crown), won at the
+// Draws the waves mode's exclusive Orb skins (skin24..skin26: Honeycomb, Flames, Royal; Royal was named Crown until 29/10/2026, when the crowns came), won at the
 // waves' milestones (src/client/wavesProgress.ts). Mad Orbs' own art, made here, not the original
 // game's. A skin is a 64x32 equirectangular texture whose red, green and blue say how much of each of
 // the player's three colours goes on each texel (src/client/render/baboRenderer.ts, Player::updateSkin).

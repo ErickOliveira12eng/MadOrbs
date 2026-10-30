@@ -863,7 +863,7 @@ export const en = {
   'wend.checkpoint': 'Checkpoint saved: start on wave {n} with the upgrades and cards of this run',
   'orb.skin24': 'Honeycomb',
   'orb.skin25': 'Flames',
-  'orb.skin26': 'Crown',
+  'orb.skin26': 'Royal',
   'orb.atWave': 'Wave {n}',
   'orb.lockedTitle': '{name}: reach wave {n} in Waves',
   // ---- campaign (src/client/campaign.ts)

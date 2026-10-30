@@ -853,7 +853,7 @@ export const pt: Record<Key, string> = {
   'wend.checkpoint': 'Checkpoint salvo: comece na onda {n} com as melhorias e cartas desta partida',
   'orb.skin24': 'Colmeia',
   'orb.skin25': 'Chamas',
-  'orb.skin26': 'Coroa',
+  'orb.skin26': 'Real',
   'orb.atWave': 'Onda {n}',
   'orb.lockedTitle': '{name}: alcance a onda {n} nas Ondas',
   // ---- campaign (src/client/campaign.ts)
