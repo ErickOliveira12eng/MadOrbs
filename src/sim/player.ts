@@ -1,4 +1,5 @@
 // Port of Player.cpp / PlayerUpdate.cpp (simulation side).
+import type { CrownTier } from './crowns';
 import { newFeats, onDeath, onKill } from './feats';
 import {
   GAME_TYPE_CTF,
@@ -224,6 +225,8 @@ export class Player {
   teamTint: Omit<SkinInfo, 'skin'> | null = null;
   /** Its own colours even in a team game (the waves' player, Erick, 29/10/2026: not the team's blue). */
   ownColors = false;
+  /** The Survival crown it wears (src/sim/crowns.ts), a look only; online, the one the server allowed. */
+  crown: CrownTier | null = null;
   /** Seconds before the Double shot card's second volley (0: none waiting). */
   private extraShotIn = 0;
   /** Marks shown before the name over the orb (the waves' elites: 'fast', 'brute', 'sniper', 'tank'). */

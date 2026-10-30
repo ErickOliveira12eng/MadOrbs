@@ -2154,6 +2154,11 @@ kbd.mouse .icon {
 
 /* orb picker */
 
+/* Wide enough for 7 Orbs a row: the styles and the crowns fit a 900 px tall window without scrolling */
+.modal-card.orb-modal {
+  width: min(860px, 100%);
+}
+
 .orb-picker {
   display: flex;
   gap: 20px;
@@ -2249,6 +2254,92 @@ kbd.mouse .icon {
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
+}
+
+/* The Survival crowns: none, bronze, silver, gold (the locked ones dimmed, with the wave that gives them) */
+.orb-crowns {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.orb-crowns button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px 7px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font: 800 11.5px var(--font-ui);
+  cursor: pointer;
+}
+
+.orb-crowns button:hover:not(.locked) {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.orb-crowns button[aria-checked='true'] {
+  border-color: var(--gold-1);
+  background: rgba(255, 224, 102, 0.12);
+}
+
+.orb-crowns img,
+.orb-crowns .none {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.orb-crowns .none {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.orb-crowns b {
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.orb-crowns button.locked {
+  cursor: default;
+}
+
+.orb-crowns button.locked img {
+  filter: grayscale(0.8) brightness(0.45);
+}
+
+.orb-crowns button.locked b {
+  color: var(--muted);
+}
+
+.orb-crowns button.locked .orb-lock {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: #c9fff8;
+  font: 900 10.5px/1.1 var(--font-ui);
+  text-shadow: 0 1px 3px #000;
+}
+
+.orb-crown-hint {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .swatch {
@@ -5685,6 +5776,12 @@ input[type='range'] {
 .wv-node img.o {
   width: 38px;
   height: 38px;
+}
+
+.wv-node img.c {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
 }
 
 .wv-node:not(.got):not(.next) img {

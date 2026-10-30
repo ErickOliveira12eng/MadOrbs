@@ -1,13 +1,16 @@
-// Draws the waves mode's exclusive Orb skins (skin24..skin26: Honeycomb, Flames, Royal; Royal was named Crown until 29/10/2026, when the crowns came), won at the
-// waves' milestones (src/client/wavesProgress.ts). Mad Orbs' own art, made here, not the original
-// game's. A skin is a 64x32 equirectangular texture whose red, green and blue say how much of each of
+// Draws Mad Orbs' own Orb skins (skin24..skin26: Honeycomb, Flames, Royal; Royal was named Crown until 29/10/2026, when the
+// crowns came; skin27: the 8 ball, 29/10/2026), won at the waves' milestones (src/client/wavesProgress.ts). Mad Orbs'
+// own art, made here, not the original game's. A skin is a 64x32 equirectangular texture (the 8 ball 256x128, for its
+// number) whose red, green and blue say how much of each of
 // the player's three colours goes on each texel (src/client/render/baboRenderer.ts, Player::updateSkin).
-//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin24.tga ... skin26.tga
+//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin24.tga ... skin27.tga
 //   node tools/make-exclusive-skins.mjs --preview  -> also shots/exclusive-skins.ppm (8x, to look at)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
+/** The original game's size (the 8 ball is bigger: SIZES). */
 const W = 64;
 const H = 32;
+const SIZES = { skin27: [256, 128] };
 /** Samples per texel side: the edges come out smooth. */
 const SS = 6;
 
@@ -77,9 +80,27 @@ const SKINS = {
     const green = Math.max(crown, band) * (1 - blue);
     return [Math.max(0, 1 - green - blue), green, blue];
   },
+  // The 8 ball: a body in colour 1, a round patch in colour 2 with an 8 in colour 3 (black, white, black for the real one)
+  skin27(u, v) {
+    // Where the patch's centre sits (found by looking at the Orb at rest, frontFor's FRONT: it shows on the front, a
+    // little low, under a crown); the point seen from above its centre (an orthographic view of the sphere there), so
+    // the patch and the 8 stay round wherever they are
+    const lon = (u - 0.46) * Math.PI * 2;
+    const lat = (v - 0.5) * Math.PI;
+    const lat0 = 0.75;
+    const cosC = Math.sin(lat0) * Math.sin(lat) + Math.cos(lat0) * Math.cos(lat) * Math.cos(lon);
+    const x = Math.cos(lat) * Math.sin(lon);
+    const y = Math.cos(lat0) * Math.sin(lat) - Math.sin(lat0) * Math.cos(lat) * Math.cos(lon);
+    const d = cosC > 0 ? Math.hypot(x, y) : 9;
+    const patch = 1 - smooth(0.39, 0.41, d);
+    // The 8: two rings, the top one smaller
+    const ring = (cy, r) => 1 - smooth(0.028, 0.04, Math.abs(Math.hypot(x, y - cy) - r));
+    const eight = patch * Math.max(ring(-0.095, 0.085), ring(0.1, 0.105));
+    return [1 - patch, patch * (1 - eight), eight];
+  },
 };
 
-function render(fn) {
+function render(fn, W, H) {
   const px = new Float32Array(W * H * 3);
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
@@ -102,7 +123,7 @@ function render(fn) {
 }
 
 /** An uncompressed 24-bit TGA, rows from the bottom up (as the game's skins are). */
-function tga(px) {
+function tga(px, W, H) {
   const out = Buffer.alloc(18 + W * H * 3);
   out[2] = 2;
   out.writeUInt16LE(W, 12);
@@ -124,9 +145,11 @@ function tga(px) {
 const preview = process.argv.includes('--preview');
 const rendered = [];
 for (const [name, fn] of Object.entries(SKINS)) {
-  const px = render(fn);
-  writeFileSync(`public/assets/skins/${name}.tga`, tga(px));
-  rendered.push(px);
+  const [w, h] = SIZES[name] ?? [W, H];
+  const px = render(fn, w, h);
+  writeFileSync(`public/assets/skins/${name}.tga`, tga(px, w, h));
+  // (the preview shows the 64x32 ones)
+  if (w === W) rendered.push(px);
   console.log(`public/assets/skins/${name}.tga`);
 }
 if (preview) {

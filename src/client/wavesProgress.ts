@@ -2,6 +2,7 @@
 // survived, the kills, the bosses, a new record), spent in the Workshop on permanent upgrades; the
 // milestones of the record (starting weapons, exclusive Orbs) and the checkpoints to start from.
 // Kept in this browser (madorbs.wavesProgress) and, signed in, in the account (waves_progress).
+import type { CrownTier } from '../sim/crowns';
 import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_DUAL_MACHINE_GUN, WEAPON_FLAME_THROWER, WEAPON_SMG } from '../sim/constants';
 import { PERM_KINDS, type PermKind } from './waves';
 import { CARDS, type CardID } from './wavesCards';
@@ -88,18 +89,36 @@ export const SHOCK = { radius: 3.5, lives: 1.6, push: 7 };
 
 // ------------------------------------------------------------------ milestones and checkpoints
 
-export type Milestone = { wave: number; weapon: number } | { wave: number; skin: string };
+export type Milestone = { wave: number; weapon: number } | { wave: number; skin: string } | { wave: number; crown: CrownTier };
 
-/** Reach the wave once and the prize stays: a weapon to start with, or an Orb only won here. */
+/**
+ * Reach the wave once and the prize stays: a weapon to start with, an Orb style, or a crown (src/sim/crowns.ts). Since
+ * 29/10/2026 (Erick: more styles locked, won as the player goes on) ten of the original game's styles are won here
+ * too, with the 8 ball (skin27); the others stay free (and are the bots' ones).
+ */
 export const MILESTONES: Milestone[] = [
+  { wave: 5, skin: 'skin02' },
+  { wave: 8, skin: 'skin27' },
   // (the shotgun until 23/10/2026: the dual machine gun in its place, Erick)
   { wave: 10, weapon: WEAPON_DUAL_MACHINE_GUN },
+  { wave: 12, skin: 'skin05' },
   { wave: 15, skin: 'skin24' },
+  { wave: 18, skin: 'skin12' },
   { wave: 20, weapon: WEAPON_CHAIN_GUN },
+  { wave: 22, skin: 'skin15' },
   { wave: 25, skin: 'skin25' },
+  { wave: 25, crown: 'bronze' },
+  { wave: 28, skin: 'skin13' },
   { wave: 30, weapon: WEAPON_BAZOOKA },
+  { wave: 35, skin: 'skin20' },
   { wave: 40, weapon: WEAPON_FLAME_THROWER },
+  { wave: 45, skin: 'skin17' },
   { wave: 50, skin: 'skin26' },
+  { wave: 50, crown: 'silver' },
+  { wave: 60, skin: 'skin10' },
+  { wave: 75, skin: 'skin16' },
+  { wave: 90, skin: 'skin14' },
+  { wave: 100, crown: 'gold' },
 ];
 
 /** The Orbs only the waves give (src/menu/settings.ts keeps them out of the others' reach). */

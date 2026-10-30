@@ -1,13 +1,18 @@
 // The Orb picker: every skin drawn as a real orb with the player's colours, the colours, a few
 // ready-made colour sets and a big preview that rolls.
 import * as THREE from 'three';
-import { frontFor, turning, type OrbStudio } from './orbStudio';
-import { SKINS, availableSkins, randomOrb, skinInfo, type Settings } from './settings';
+import { crownSway, frontFor, turning, type OrbStudio } from './orbStudio';
+import { SKINS, availableCrowns, availableSkins, randomOrb, skinInfo, wornCrown, type Settings } from './settings';
+import { CROWN_TIERS, CROWN_WAVES, type CrownTier } from '../sim/crowns';
+import { crownName, crownPicture } from '../client/wavesPrize';
 import { skinWave } from '../client/wavesProgress';
 import { icon } from './icons';
 import { t } from '../i18n';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+/** The crown buttons say only the metal (the section's title says crown); the full name is the tooltip. */
+const CROWN_LABEL = { bronze: 'orb.crownBronze', silver: 'orb.crownSilver', gold: 'orb.crownGold' } as const satisfies Record<CrownTier, string>;
 
 /** Ready-made colour sets: [colour 1, colour 2, colour 3]. */
 const PRESETS: [string, string, string][] = [
@@ -81,6 +86,25 @@ export class OrbPicker {
         this.changed(true);
       }),
     );
+    // The crowns (src/sim/crowns.ts): none, or one won in the waves
+    const crowns = $('orbCrowns');
+    for (const tier of ['none', ...CROWN_TIERS] as const) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('role', 'radio');
+      b.dataset.crown = tier;
+      b.innerHTML =
+        tier === 'none'
+          ? `<span class="none">${icon('x', 20)}</span><b>${t('orb.crownNone')}</b>`
+          : `<img src="${crownPicture(tier)}" alt="" /><b>${t(CROWN_LABEL[tier])}</b><span class="orb-lock">${icon('lock', 12)}${t('orb.atWave', { n: CROWN_WAVES[tier] })}</span>`;
+      if (tier !== 'none') b.title = crownName(tier);
+      b.addEventListener('click', () => {
+        if (b.classList.contains('locked')) return;
+        this.settings.crown = tier;
+        this.changed(false);
+      });
+      crowns.appendChild(b);
+    }
     $('orbRandom').addEventListener('click', () => this.randomize());
     for (const el of this.modal.querySelectorAll('[data-close]')) el.addEventListener('click', () => this.close());
     this.modal.addEventListener('pointerdown', (e) => {
@@ -143,6 +167,13 @@ export class OrbPicker {
 
   private markSelected(): void {
     for (const [skin, canvas] of this.thumbs) canvas.parentElement!.setAttribute('aria-selected', String(skin === this.settings.skin));
+    const worn = wornCrown(this.settings);
+    const open = availableCrowns();
+    for (const b of $('orbCrowns').querySelectorAll<HTMLButtonElement>('[data-crown]')) {
+      const tier = b.dataset.crown as CrownTier | 'none';
+      b.classList.toggle('locked', tier !== 'none' && !open.includes(tier));
+      b.setAttribute('aria-checked', String(tier === (worn ?? 'none')));
+    }
   }
 
   private frame(now: number): void {
@@ -162,7 +193,7 @@ export class OrbPicker {
     try {
       const s = this.settings;
       // Rolls slowly towards the viewer, like on the ground (the eye looks at us)
-      this.studio.draw(this.big, await this.studio.texture(skinInfo(s), true), turning(s.skin, this.spin, 1.4));
+      this.studio.draw(this.big, await this.studio.texture(skinInfo(s), true), turning(s.skin, this.spin, 1.4), wornCrown(s), crownSway(this.spin));
       // The gallery is redrawn a few orbs per frame, so the page stays responsive
       if (this.thumbsDirty) {
         this.thumbsDirty = false;

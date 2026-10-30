@@ -3819,10 +3819,13 @@
 }
 
 .wu-got img.o,
-.wu-line img.o {
+.wu-line img.o,
+.wu-got img.c,
+.wu-line img.c {
   width: 56px;
   height: 56px;
   flex: none;
+  object-fit: contain;
 }
 
 .wu-got img.w,
@@ -3904,10 +3907,12 @@
   font-style: normal;
 }
 
-.wu-chip img.o {
+.wu-chip img.o,
+.wu-chip img.c {
   flex: none;
   width: 30px;
   height: 30px;
+  object-fit: contain;
 }
 
 .wu-chip img.w {

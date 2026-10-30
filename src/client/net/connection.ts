@@ -2,6 +2,7 @@
 // start of each simulation tick; pings are answered right away so the measured latency is real.
 // The frame messages arrive in binary and our coordinates and shots leave in binary
 // (src/net/wire.ts); everything else is JSON.
+import type { CrownTier } from '../../sim/crowns';
 import type { SkinInfo } from '../../sim/player';
 import { PROTOCOL_VERSION, privateRoomPath, roomPath, type ClientMessage, type RoomMode, type ServerMessage } from '../../net/protocol';
 import { decodeServerMessage, encodeClientMessage } from '../../net/wire';
@@ -68,7 +69,7 @@ export class Connection {
   }
 
   /** Connects, introduces the player and resolves with the server's welcome. key: a private room's host key. */
-  static open(url: string, name: string, skin: SkinInfo, token?: string, key?: string, timeoutMs = 10000): Promise<{ conn: Connection; welcome: WelcomeMessage }> {
+  static open(url: string, name: string, skin: SkinInfo, token?: string, key?: string, crown: CrownTier | null = null, timeoutMs = 10000): Promise<{ conn: Connection; welcome: WelcomeMessage }> {
     return new Promise((resolve, reject) => {
       let settled = false;
       let ws: WebSocket;
@@ -91,7 +92,7 @@ export class Connection {
         reject(new Error(reason));
       };
       const timer = setTimeout(() => fail(t('net.noAnswer')), timeoutMs);
-      ws.onopen = () => conn.send({ t: 'hello', v: PROTOCOL_VERSION, name, skin, token, key });
+      ws.onopen = () => conn.send({ t: 'hello', v: PROTOCOL_VERSION, name, skin, token, key, ...(crown ? { crown } : {}) });
       ws.onerror = () => fail(t('net.cantConnect'));
       const baseOnMessage = ws.onmessage;
       ws.onmessage = (ev) => {

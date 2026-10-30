@@ -4,24 +4,48 @@ import { ROOM_MODES, cleanName, isReservedName, type RoomMode } from '../net/pro
 import type { SkinInfo } from '../sim/player';
 import { loadWavesRecord } from '../client/waves';
 import { WAVES_SKINS, skinUnlocked } from '../client/wavesProgress';
+import { SKIN_COUNT } from '../net/protocol';
+import { CROWN_TIERS, CROWN_WAVES, isCrownTier, type CrownTier } from '../sim/crowns';
 
 const KEY = 'madorbs.settings';
 
-/** Every Orb style: the original game's 23, then the waves' exclusive ones (skin24..skin26). */
-export const SKINS = Array.from({ length: 26 }, (_, i) => `skin${String(i + 1).padStart(2, '0')}`);
-/** The styles anyone can pick (the waves' milestones give the others). */
+/** Every Orb style: the original game's 23, then Mad Orbs' own (the waves' exclusive ones, skin24..26, the 8 ball). */
+export const SKINS = Array.from({ length: SKIN_COUNT }, (_, i) => `skin${String(i + 1).padStart(2, '0')}`);
+/** The styles anyone can pick, and the bots wear (the waves' milestones give the others). */
 export const FREE_SKINS = SKINS.filter((s) => !WAVES_SKINS.includes(s));
 
-/** The styles this player can pick: the free ones and the exclusive ones won. */
+/** The testers' switch (the account window, DEBUG_USER_IDS accounts): every style and crown open, to try them. */
+let testUnlock = false;
+export function setTestUnlock(on: boolean): void {
+  testUnlock = on;
+}
+
+/** The styles this player can pick: the free ones and the ones won in the waves. */
 export function availableSkins(): string[] {
   const record = loadWavesRecord()?.wave ?? 0;
-  return SKINS.filter((s) => skinUnlocked(s, record));
+  return SKINS.filter((s) => testUnlock || skinUnlocked(s, record));
+}
+
+/** The crowns this player has won (src/sim/crowns.ts), by this browser's record. */
+export function availableCrowns(): CrownTier[] {
+  const record = loadWavesRecord()?.wave ?? 0;
+  return CROWN_TIERS.filter((c) => testUnlock || record >= CROWN_WAVES[c]);
+}
+
+/** The crown worn: the one chosen if won, the best won on 'auto' (a new one is worn at once), none on 'none'. */
+export function wornCrown(s: Settings): CrownTier | null {
+  const open = availableCrowns();
+  if (s.crown === 'none') return null;
+  if (s.crown !== 'auto' && open.includes(s.crown)) return s.crown;
+  return open[open.length - 1] ?? null;
 }
 
 export interface Settings {
   name: string;
-  /** skin01..skin26 */
+  /** skin01..skin27 */
   skin: string;
+  /** The Survival crown: the best won ('auto'), one of them, or none. */
+  crown: 'auto' | 'none' | CrownTier;
   /** The skin's three decal colours (#rrggbb). */
   red: string;
   green: string;
@@ -48,6 +72,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   name: '',
   skin: 'skin10',
+  crown: 'auto',
   // cl_redDecal (.5,.5,1), cl_greenDecal (0,0,1), cl_blueDecal (0,0,.5)
   red: '#8080ff',
   green: '#0000ff',
@@ -107,6 +132,7 @@ export function loadSettings(): Settings {
       s.name = isReservedName(name) ? '' : name;
     }
     if (typeof raw.skin === 'string' && SKINS.includes(raw.skin)) s.skin = raw.skin;
+    if (raw.crown === 'auto' || raw.crown === 'none' || isCrownTier(raw.crown)) s.crown = raw.crown;
     if (isHex(raw.red)) s.red = raw.red;
     if (isHex(raw.green)) s.green = raw.green;
     if (isHex(raw.blue)) s.blue = raw.blue;

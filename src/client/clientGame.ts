@@ -5,6 +5,7 @@
 //  - offline: the whole simulation runs here, against bots;
 //  - online:  the simulation runs in 'client' mode: our babo is driven here and sent to the server
 //             every 2 frames, the server's snapshots and events drive everything else.
+import type { CrownTier } from '../sim/crowns';
 import * as THREE from 'three';
 import {
   GAME_BLUE_WIN,
@@ -109,6 +110,8 @@ const Z_AXIS = new Vec3(0, 0, 1);
 export interface ClientGameOptions {
   playerName: string;
   skin: SkinInfo;
+  /** The Survival crown the player wears (online: asked of the server, which checks the account's record). */
+  crown?: CrownTier | null;
   /** Game mode: the room joined online, the rules offline. */
   mode: RoomMode;
   /** Called when the game ends (menu, disconnect); `reason` explains an unexpected end. */
@@ -299,7 +302,7 @@ export class ClientGame {
     await preloadAssets((d, total) => onProgress?.(t('loading.assetsN', { d, t: total })));
     onProgress?.(t('loading.connecting'));
     const url = opts.privateRoom ? privateRoomUrl(opts.privateRoom.code) : (opts.serverUrl ?? defaultServerUrl(opts.mode));
-    const { conn, welcome } = await Connection.open(url, opts.playerName, opts.skin, opts.authToken, opts.privateRoom?.key);
+    const { conn, welcome } = await Connection.open(url, opts.playerName, opts.skin, opts.authToken, opts.privateRoom?.key, opts.crown ?? null);
     try {
       onProgress?.(t('loading.mapName', { map: welcome.map }));
       const map = await loadMap(welcome.map);
@@ -335,6 +338,7 @@ export class ClientGame {
     this.game = new Game(map, { gameType: ROOM_GAME_TYPE[this.opts.mode], onMapChangeRequest: () => void this.nextMap() });
     this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
     this.me.skin = this.opts.skin;
+    this.me.crown = this.opts.crown ?? null;
     const names = [...BOT_NAMES].sort(() => Math.random() - 0.5);
     for (let i = 0; i < (this.opts.botCount ?? 0); i++) {
       const p = this.game.addPlayer(names[i % names.length], true);
@@ -373,6 +377,7 @@ export class ClientGame {
     this.game = new Game(map, { gameType: GAME_TYPE_TDM, onMapChangeRequest: () => {}, maxPlayers: WAVES.maxOrbs });
     this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
     this.me.skin = this.opts.skin;
+    this.me.crown = this.opts.crown ?? null;
     this.me.teamID = PLAYER_TEAM_BLUE;
     this.me.lives = WAVES.lives + setup.levels.lives;
     // (nothing hurts the player in the tutorial)
@@ -515,6 +520,7 @@ export class ClientGame {
     this.game = new Game(map, { gameType: GAME_TYPE_DM, onMapChangeRequest: () => {} });
     this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
     this.me.skin = this.opts.skin;
+    this.me.crown = this.opts.crown ?? null;
     // Nothing hurts the player here (the targets don't shoot; its own rockets and grenades neither)
     this.me.damageScale = 0;
     this.me.nextSpawnWeapon = WEAPON_SMG;
@@ -655,6 +661,7 @@ export class ClientGame {
     const weapon = level.chapter.weaponID;
     this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
     this.me.skin = this.opts.skin;
+    this.me.crown = this.opts.crown ?? null;
     this.me.teamID = PLAYER_TEAM_BLUE;
     this.me.lives = 1;
     this.me.damageScale = level.playerDamage;
@@ -852,6 +859,7 @@ export class ClientGame {
     this.me = this.game.players[welcome.id]!;
     this.me.locallyControlled = true;
     this.me.skin = this.opts.skin;
+    this.me.crown = this.opts.crown ?? null;
     this.me.timeToSpawn = 0;
     for (const p of welcome.projectiles) this.addNetProjectile(p);
     this.game.gameTimeLeft = welcome.gt;
@@ -1427,6 +1435,8 @@ export class ClientGame {
       p.name = info.name;
       p.tag = info.tag ?? '';
       p.teamID = info.team;
+      // The crown the server allowed (ours too)
+      p.crown = info.crown ?? null;
       if (p !== this.me) {
         p.skin = info.skin;
         p.isBot = info.bot;

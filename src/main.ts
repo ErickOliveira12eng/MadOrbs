@@ -25,7 +25,7 @@ import type { PrivateRoomJoin } from './menu/roomModal';
 import { ROOM_LINK_RE } from './net/protocol';
 import { OrbStudio } from './menu/orbStudio';
 import { trainingMaps } from './menu/training';
-import { applyAudioSettings, loadSettings, saveSettings, skinInfo } from './menu/settings';
+import { applyAudioSettings, loadSettings, saveSettings, skinInfo, wornCrown } from './menu/settings';
 import type { SkinInfo } from './sim/player';
 import { lang, t, translateDom } from './i18n';
 
@@ -89,6 +89,8 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
     debugZoom: account.debugTools.zoom && debugZoomOn(),
     playerName: settings.name,
     skin: skinInfo(settings),
+    // The Survival crown worn (online the server checks the account's record before the others see it)
+    crown: wornCrown(settings),
     mode: settings.mode,
     onQuit: (reason?: string) => {
       audioPanel.setInGame(false);

@@ -8,6 +8,8 @@ import { weaponDummies } from '../../sim/weaponDummies';
 import { createDkoObject3D, setDkoFrame } from '../engine/dko';
 import { loadTextureAsync } from '../engine/textures';
 import { recolorMix, upscaleSkinMix, type SkinMix, type SkinPixels } from './skinUpscale';
+import { makeCrown } from './crown';
+import type { CrownTier } from '../../sim/crowns';
 import { getModel, getTexture, MODEL_SHIELD_MAGNET, TEXTURES } from '../assets';
 
 /** NUZZLE_DELAY (Weapon.h) */
@@ -84,10 +86,13 @@ const mixCache = new Map<string, SkinMix>();
  * gradients stay gradients (src/client/render/skinUpscale.ts). Not cached: the caller owns the texture.
  */
 export function recolorSkinHD(src: THREE.Texture, info: SkinInfo, scale: number, anisotropy = 4): THREE.DataTexture {
-  const key = `${info.skin}|${scale}`;
+  // `scale` is for the original 64-wide skins: a bigger one (the 8 ball, 256 wide) is scaled less, to the same size
+  const image = src.image as SkinPixels;
+  const k = Math.max(1, Math.round((scale * 64) / image.width));
+  const key = `${info.skin}|${k}`;
   let mix = mixCache.get(key);
   if (mix) mixCache.delete(key);
-  else mix = upscaleSkinMix(src.image as SkinPixels, scale);
+  else mix = upscaleSkinMix(image, k);
   mixCache.set(key, mix);
   // Least recently used out (a 4x skin is 128 KB, an 8x one 512 KB)
   for (const k of mixCache.keys()) {
@@ -369,6 +374,9 @@ export class BaboVisual {
   private melee: WeaponVisual | null = null;
   /** The waves' Reflector card: the Instant Shield's bubble, up while it lasts. */
   private reflector: WeaponVisual | null = null;
+  /** The Survival crown it wears (Player.crown), upright on the Orb, turned with the aim like the weapon. */
+  private crown: THREE.Group | null = null;
+  private crownTier: CrownTier | null = null;
   private roll = new THREE.Quaternion();
   /** The roll at the previous tick: frames in between interpolate, like the position. */
   private prevRoll = new THREE.Quaternion();
@@ -412,6 +420,19 @@ export class BaboVisual {
     this.root.visible = false;
   }
 
+  /** The crown on the Orb, or none (the model's geometry and matcaps are shared; its materials are its own). */
+  private setCrown(tier: CrownTier | null): void {
+    this.crownTier = tier;
+    if (this.crown) {
+      this.crown.traverse((o) => ((o as THREE.Mesh).material as THREE.Material | undefined)?.dispose());
+      this.crown.removeFromParent();
+      this.crown = null;
+    }
+    if (!tier) return;
+    this.crown = makeCrown(tier);
+    this.root.add(this.crown);
+  }
+
   setSkin(info: SkinInfo): void {
     const key = `${info.skin}|${info.redDecal}|${info.greenDecal}|${info.blueDecal}`;
     if (key === this.skinKey) return;
@@ -433,6 +454,7 @@ export class BaboVisual {
   /** Called after every simulation tick. */
   tick(player: Player, delay: number): void {
     this.setSkin(player.displaySkin);
+    if (player.crown !== this.crownTier) this.setCrown(player.crown);
     const alive = player.isAlive;
     const pos = player.currentCF.position;
     this.prevRoll.copy(this.roll);
@@ -544,6 +566,11 @@ export class BaboVisual {
     if (da > 180) da -= 360;
     if (da < -180) da += 360;
     this.weaponHolder.rotation.set(0, 0, ((this.prevAngle + da * alpha) * Math.PI) / 180);
+    if (this.crown) {
+      this.crown.position.copy(this.sphere.position);
+      this.crown.scale.setScalar(k);
+      this.crown.rotation.z = this.weaponHolder.rotation.z;
+    }
     this.weapon?.render(player.weapon?.modelAnim ?? 0);
     this.melee?.render(player.meleeWeapon?.modelAnim ?? 0);
     if (this.reflector) {
@@ -575,6 +602,7 @@ export class BaboVisual {
     this.weapon?.dispose();
     this.melee?.dispose();
     this.reflector?.dispose();
+    this.setCrown(null);
     this.root.removeFromParent();
     this.botRoot.removeFromParent();
   }

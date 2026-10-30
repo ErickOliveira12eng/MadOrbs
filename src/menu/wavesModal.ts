@@ -4,7 +4,7 @@
 // the levels after it, the button that buys it), and what the run starts with: the wave (the first, or a
 // checkpoint reached), the weapon (the SMG, or one a milestone gave), the daily reward, PLAY. Under them,
 // the milestones' track.
-import { orbName, prizeText, weaponLook } from '../client/wavesPrize';
+import { prizeArt, prizeName, prizeText, weaponLook } from '../client/wavesPrize';
 import { loadWavesRecord, WAVES } from '../client/waves';
 import { wavesPower } from '../client/wavesPower';
 import {
@@ -130,7 +130,6 @@ function upgradeValue(id: UpgradeID, level: number): string {
 }
 
 /** A milestone's prize in a couple of words (the track's "next" line). */
-const prizeName = (m: Milestone): string => ('weapon' in m ? weaponLook(m.weapon).name : t('workshop.orbNamed', { name: orbName(m.skin) }));
 
 /** A Core, the waves' currency. */
 export const coreIcon = (size = 18) => `<span class="core-ico">${icon('core', size)}</span>`;
@@ -539,12 +538,8 @@ export class WavesModal {
       `<span class="wv-rail"><i style="width:${Math.round(fill * 100)}%"></i></span>` +
       MILESTONES.map((m) => {
         const got = record >= m.wave;
-        let art: string;
-        if ('weapon' in m) art = `<img class="w" src="${weaponLook(m.weapon).picture}" alt="" />`;
-        else {
-          const src = this.orbPics.get(`${m.skin}|${colours.redDecal}|${colours.greenDecal}|${colours.blueDecal}`);
-          art = src ? `<img class="o" src="${src}" alt="" />` : '<i class="o"></i>';
-        }
+        const pic = 'skin' in m ? this.orbPics.get(`${m.skin}|${colours.redDecal}|${colours.greenDecal}|${colours.blueDecal}`) : undefined;
+        const art = 'skin' in m && !pic ? '<i class="o"></i>' : prizeArt(m, pic);
         return `<span class="wv-node${got ? ' got' : ''}${m === next ? ' next' : ''}" title="${prizeText(m)}"><span class="dot">${art}</span><b>${m.wave}</b></span>`;
       }).join('');
   }

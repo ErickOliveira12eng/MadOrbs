@@ -5,13 +5,14 @@
 // It follows the original game's split: each client sends its own babo's coordinates (every
 // sv_minSendInterval = 2 frames) and asks the server to shoot / throw / use its secondary weapon;
 // the server decides hits, damage, projectiles, items and scores and sends the results.
+import type { CrownTier } from '../sim/crowns';
 import { GAME_TYPE_CTF, GAME_TYPE_DM, GAME_TYPE_TDM } from '../sim/constants';
 import type { FeatCounts } from '../sim/feats';
 import type { GameEvent } from '../sim/events';
 import type { SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 
-export const PROTOCOL_VERSION = 14;
+export const PROTOCOL_VERSION = 15;
 /** The client sends its coordinates every 2 simulation frames (gameVar.sv_minSendInterval). */
 export const CF_SEND_INTERVAL = 2;
 /** The server sends the players' state every 2 frames (15 Hz); events go out every frame. */
@@ -215,7 +216,7 @@ export type V2 = [number, number];
 
 export type ClientMessage =
   /** token: the Supabase session of a signed-in player (its player ID is shown, its stats are kept). */
-  | { t: 'hello'; v: number; name: string; skin: SkinInfo; token?: string; key?: string }
+  | { t: 'hello'; v: number; name: string; skin: SkinInfo; token?: string; key?: string; crown?: CrownTier }
   /** Our babo's coordinate frame (NET_CLSV_SVCL_PLAYER_COORD_FRAME). z = camera height (sniper). */
   | { t: 'cf'; f: number; p: V3; v: V3; m: V2; z: number }
   /** A shot traced by the client: b = bullets, each [endX, endY, endZ, ...IDs of the babos it touched]. */
@@ -240,6 +241,8 @@ export interface NetPlayerInfo {
   team: number;
   bot: boolean;
   skin: SkinInfo;
+  /** The Survival crown it wears: the one asked in the hello, once the server checked the account's record. */
+  crown?: CrownTier;
   /** Player ID shown next to the name: the account's ("K7Q2MX") or a guest's ("ANON-7Q2M"). */
   tag?: string;
 }
@@ -386,6 +389,9 @@ export function sanitizeText(text: unknown, maxLength: number): string {
   return out.trim();
 }
 
+/** The Orb styles: skin01..skin27 (the original game's 23, then Mad Orbs' own: the waves' exclusive ones and the 8 ball). */
+export const SKIN_COUNT = 27;
+
 export function sanitizeSkin(skin: unknown): SkinInfo {
   const def: SkinInfo = { skin: 'skin10', redDecal: [0.5, 0.5, 1], greenDecal: [0, 0, 1], blueDecal: [0, 0, 0.5] };
   if (!skin || typeof skin !== 'object') return def;
@@ -393,7 +399,7 @@ export function sanitizeSkin(skin: unknown): SkinInfo {
   const col = (c: unknown, d: [number, number, number]): [number, number, number] =>
     Array.isArray(c) && c.length === 3 && c.every(isNum) ? (c.map((x: number) => Math.max(0, Math.min(1, x))) as [number, number, number]) : d;
   return {
-    skin: typeof s.skin === 'string' && /^skin\d{2}$/.test(s.skin) && +s.skin.slice(4) >= 1 && +s.skin.slice(4) <= 26 ? s.skin : def.skin,
+    skin: typeof s.skin === 'string' && /^skin\d{2}$/.test(s.skin) && +s.skin.slice(4) >= 1 && +s.skin.slice(4) <= SKIN_COUNT ? s.skin : def.skin,
     redDecal: col(s.redDecal, def.redDecal),
     greenDecal: col(s.greenDecal, def.greenDecal),
     blueDecal: col(s.blueDecal, def.blueDecal),

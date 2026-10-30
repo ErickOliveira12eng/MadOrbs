@@ -1,18 +1,10 @@
-// The waves' crowns (Erick, 29/10/2026): a look only, worn on top of the Orb by who reached wave 25 (bronze), 50 (silver)
-// or 100 (gold) of the Survival mode. A crown modelled in code (nothing of the original game): a band whose top rises
+// The waves' crowns (src/sim/crowns.ts: who wears which). A crown modelled in code (nothing of the original game): a band whose top rises
 // in curved points, a ball on each point, two rims and gems on the band, lit by a matcap (a small picture of a lit metal
 // sphere) drawn here for each metal, so one model makes the three. It sits on the Orb upright, never rolling with it.
 import * as THREE from 'three';
+import { CROWN_TIERS, type CrownTier } from '../../sim/crowns';
 
-export type CrownTier = 'bronze' | 'silver' | 'gold';
-export const CROWN_TIERS: CrownTier[] = ['bronze', 'silver', 'gold'];
-/** The record (highest wave) that gives each crown. */
-export const CROWN_WAVES: Record<CrownTier, number> = { bronze: 25, silver: 50, gold: 100 };
-
-/** The best crown a record gives, or null. */
-export function crownFor(record: number): CrownTier | null {
-  return record >= CROWN_WAVES.gold ? 'gold' : record >= CROWN_WAVES.silver ? 'silver' : record >= CROWN_WAVES.bronze ? 'bronze' : null;
-}
+export { CROWN_TIERS, type CrownTier };
 
 /** The metals: highlight, body, shadow, deep shadow (the matcap's light to dark). */
 const METALS: Record<CrownTier | 'gem', [string, string, string, string]> = {

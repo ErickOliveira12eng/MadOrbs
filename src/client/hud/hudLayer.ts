@@ -14,7 +14,7 @@ import type { WavesEnd, WavesHud } from '../wavesRun';
 import type { TutorialAction, TutorialCard, TutorialHud } from '../tutorial';
 import { WAVES } from '../waves';
 import { MILESTONES, affordable, balance, checkpoints, nextMilestone } from '../wavesProgress';
-import { orbName, prizeText, weaponLook } from '../wavesPrize';
+import { orbName, prizeArt, prizeName, prizeText } from '../wavesPrize';
 import { cardDef, cardValue, type CardID } from '../wavesCards';
 import { powerIconUrl } from '../powerIcons';
 import { loadMap } from '../../sim/map';
@@ -631,8 +631,6 @@ export class HudLayer {
       `<div class="wc-bal">${t('wend.balance', { n: bigNum(balance(e.progress)) })}${canBuy ? ` · <b>${t(canBuy === 1 ? 'wend.canBuyOne' : 'wend.canBuy', { n: canBuy })}</b>` : ''}</div></div>`;
 
     // The milestones: those reached now, the next one with how far it is
-    const prizeArt = (m: (typeof MILESTONES)[number]) =>
-      'weapon' in m ? `<img class="w" src="${weaponLook(m.weapon).picture}" alt="" />` : `<img class="o" data-orb="${m.skin}" alt="" />`;
     // The ranking's time to reach the wave, added up (Erick, 24/10/2026): the checkpoint it began from, the time
     // played, the deaths' seconds, the total (a record?), and the checkpoints reached with their times (records starred)
     const trow = (label: string, v: string) => `<div class="wc-row"><span>${label}</span><b>${v}</b></div>`;
@@ -667,7 +665,7 @@ export class HudLayer {
       side +=
         `<div class="wu-gots"><small>${t('wend.unlocked')}</small><div>` +
         e.unlocked
-          .map((m) => `<span class="wu-chip">${prizeArt(m)}<span><b>${'skin' in m ? orbName(m.skin) : weaponLook(m.weapon).name}</b><em>${t('workshop.atWave', { n: m.wave })}</em></span></span>`)
+          .map((m) => `<span class="wu-chip">${prizeArt(m)}<span><b>${'skin' in m ? orbName(m.skin) : prizeName(m)}</b><em>${t('workshop.atWave', { n: m.wave })}</em></span></span>`)
           .join('') +
         `</div></div>`;
     const record = Math.max(e.wave, e.recordBefore);

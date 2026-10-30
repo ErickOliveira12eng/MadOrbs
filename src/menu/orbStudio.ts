@@ -1,5 +1,7 @@
 // Draws orbs (the game's babo: GLU sphere with its recoloured skin) into 2D canvases. The whole
 // start screen shares this one WebGL context: the previews, the style gallery and the background.
+import { makeCrown } from '../client/render/crown';
+import type { CrownTier } from '../sim/crowns';
 import * as THREE from 'three';
 import '../client/engine/renderer'; // colour management off, like the game
 import { createGluSphere, loadSkinBase, recolorSkin, recolorSkinHD } from '../client/render/baboRenderer';
@@ -35,10 +37,20 @@ export function turning(skin: string, t: number, speed: number): THREE.Quaternio
   return roll.multiply(FRONT);
 }
 
+/** A crown at rest faces the viewer with a point (its five points: one at the front). */
+const CROWN_FRONT = -Math.PI / 2;
+
+/** A worn crown on a turning orb (the pedestal, the picker): it sways a little around the front, upright. */
+export const crownSway = (t: number): number => CROWN_FRONT + Math.sin(t * 0.7) * 0.45;
+
 export class OrbStudio {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(16, 1, 0.1, 20);
+  /** With a crown on: a little wider and higher, so its points fit. */
+  private readonly crownCamera = new THREE.PerspectiveCamera(21, 1, 0.1, 20);
+  /** The crowns, made when first worn (src/client/render/crown.ts). */
+  private readonly crowns = new Map<CrownTier, THREE.Group>();
   private readonly material = new THREE.MeshLambertMaterial({ color: 0xffffff });
   private readonly sphere: THREE.Mesh;
   /** Recoloured skins, least recently used first. */
@@ -55,6 +67,9 @@ export class OrbStudio {
     this.camera.position.set(0, -1.9, 1.25);
     this.camera.up.set(0, 0, 1);
     this.camera.lookAt(0, 0, 0);
+    this.crownCamera.position.copy(this.camera.position);
+    this.crownCamera.up.set(0, 0, 1);
+    this.crownCamera.lookAt(0, 0, 0.1);
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.5 * Math.PI));
     const sun = new THREE.DirectionalLight(0xffffff, 1.0 * Math.PI);
     sun.position.set(-1.3, -1.2, 2.4);
@@ -86,8 +101,22 @@ export class OrbStudio {
     return tex;
   }
 
-  /** Draws the orb, turned by `rotation`, over the whole canvas. */
-  draw(canvas: HTMLCanvasElement, tex: THREE.Texture, rotation: THREE.Quaternion): void {
+  /**
+   * Draws the orb, turned by `rotation`, over the whole canvas; with `crown`, wearing it upright (never rolling with
+   * the orb), turned `crownTurn` radians.
+   */
+  draw(canvas: HTMLCanvasElement, tex: THREE.Texture, rotation: THREE.Quaternion, crown: CrownTier | null = null, crownTurn = 0): void {
+    for (const [tier, group] of this.crowns) group.visible = tier === crown;
+    if (crown) {
+      let group = this.crowns.get(crown);
+      if (!group) {
+        group = makeCrown(crown);
+        this.crowns.set(crown, group);
+        this.scene.add(group);
+      }
+      group.visible = true;
+      group.rotation.z = crownTurn;
+    }
     if (this.material.map !== tex) {
       if (!this.material.map) this.material.needsUpdate = true;
       this.material.map = tex;
@@ -98,7 +127,7 @@ export class OrbStudio {
     this.renderer.setScissorTest(true);
     this.renderer.setScissor(0, 0, n, n);
     this.renderer.setViewport(0, 0, n, n);
-    this.renderer.render(this.scene, this.camera);
+    this.renderer.render(this.scene, crown ? this.crownCamera : this.camera);
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -107,11 +136,11 @@ export class OrbStudio {
   }
 
   /** A still picture of the orb, as a data URL (for <img> elements). */
-  async picture(info: SkinInfo, size: number, rotation = frontFor(info.skin), hd = false): Promise<string> {
+  async picture(info: SkinInfo, size: number, rotation = frontFor(info.skin), hd = false, crown: CrownTier | null = null): Promise<string> {
     const tex = await this.texture(info, hd);
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = size;
-    this.draw(canvas, tex, rotation);
+    this.draw(canvas, tex, rotation, crown, CROWN_FRONT);
     return canvas.toDataURL('image/png');
   }
 }

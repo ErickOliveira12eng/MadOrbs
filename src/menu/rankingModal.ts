@@ -3,6 +3,7 @@
 // window was too plain), the rest in rows with the name, the player ID (tag) and the numbers; the visitor's own row
 // stands out (and shows below the list when further down). From Supabase's leaderboard function
 // (supabase/migrations/..._waves_and_leaderboard.sql).
+import { crownFor, isCrownTier } from '../sim/crowns';
 import { CAMPAIGN, LEVELS_PER_CHAPTER } from '../client/campaign';
 import { modeShort } from '../client/modes';
 import { bigNum, num, t, type Key } from '../i18n';
@@ -139,11 +140,11 @@ export class RankingModal {
   private async drawOrbs(): Promise<void> {
     if (!this.studio) return;
     for (const img of $('rankingBody').querySelectorAll<HTMLImageElement>('img[data-orb]')) {
-      const [skin, red, green, blue, size] = img.dataset.orb!.split('|');
+      const [skin, red, green, blue, size, crown] = img.dataset.orb!.split('|');
       const key = img.dataset.orb!;
       let src = this.orbs.get(key);
       if (!src) {
-        src = await this.studio.picture(skinInfo({ skin, red, green, blue }), Number(size) * 2);
+        src = await this.studio.picture(skinInfo({ skin, red, green, blue }), Number(size) * 2, undefined, false, isCrownTier(crown) ? crown : null);
         this.orbs.set(key, src);
       }
       img.src = src;
@@ -195,7 +196,7 @@ export class RankingModal {
     const step = (r: RankingRow) =>
       `<div class="rk-step p${r.rank}${r.is_me ? ' me' : ''}">` +
       `<span class="rk-medal">${r.rank}</span>` +
-      `<img class="rk-orb" alt="" width="${PODIUM_ORB[r.rank]}" height="${PODIUM_ORB[r.rank]}" style="${orbStyle(r)}" data-orb="${[r.skin, r.red, r.green, r.blue, PODIUM_ORB[r.rank]].join('|')}" />` +
+      `<img class="rk-orb" alt="" width="${PODIUM_ORB[r.rank]}" height="${PODIUM_ORB[r.rank]}" style="${orbStyle(r)}" data-orb="${[r.skin, r.red, r.green, r.blue, PODIUM_ORB[r.rank], (mode === 'waves' && crownFor(r.stats.wave ?? 0)) || ''].join('|')}" />` +
       `<b class="rk-name">${name(r)}</b><small class="rk-tag">#${esc(r.tag)}${you(r)}</small>` +
       `<span class="rk-big">${by.cell(r)}</span><span class="rk-label">${t(by.head)}</span>` +
       (cols[1] ? `<span class="rk-more">${t(cols[1].head)}: <b>${cols[1].cell(r)}</b>${mode === 'waves' && cols[2] ? ` · ${t(cols[2].head)}: <b>${cols[2].cell(r)}</b>` : ''}</span>` : '') +

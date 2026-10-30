@@ -13,7 +13,7 @@ import { affordable, balance, dailyState, loadProgress as loadWavesProgress } fr
 import { LANG_KEY, bigNum, lang, num, t, type Lang } from '../i18n';
 import { MAX_NAME_LENGTH, ROOM_MODES, cleanName, isReservedName, limitNameInput, type RoomMode, type RoomStatus } from '../net/protocol';
 import type { Account } from './account';
-import { AccountModal } from './accountModal';
+import { AccountModal, debugUnlockOn } from './accountModal';
 import { StatsModal } from './statsModal';
 import { AdblockModal } from './adblockModal';
 import { RankingModal } from './rankingModal';
@@ -24,8 +24,8 @@ import { isOldGeneratedName, randomGuestName } from './guestNames';
 import { Embers } from './embers';
 import { icon, type IconName } from './icons';
 import { OrbPicker } from './orbPicker';
-import { turning, type OrbStudio } from './orbStudio';
-import { FREE_SKINS, availableSkins, saveSettings, skinInfo, type Settings } from './settings';
+import { crownSway, turning, type OrbStudio } from './orbStudio';
+import { FREE_SKINS, availableSkins, saveSettings, setTestUnlock, skinInfo, wornCrown, type Settings } from './settings';
 import { TrainingModal } from './training';
 import { TutorialModal, tutorialSeen, type TutorialAnswer } from './tutorialModal';
 import type { TutorialKind } from '../client/tutorial';
@@ -140,7 +140,9 @@ export class StartScreen {
       void this.claimName();
     });
 
-    this.accountModal = new AccountModal(account, settings, studio, (name) => this.setName(name));
+    this.accountModal = new AccountModal(account, settings, studio, (name) => this.setName(name), () => this.applyTestUnlock());
+    // The testers' switch follows the account (its debug tools come a moment after signing in)
+    account.onChange(() => this.applyTestUnlock());
     $('btnAccount').addEventListener('click', () => this.accountModal.open());
     // Which windows of the start screen are opened (analytics)
     const opens: [string, string][] = [['btnAccount', 'account'], ['btnStats', 'stats'], ['lrFull', 'ranking'], ['training', 'training'], ['btnControls', 'controls'], ['orbButton', 'orb'], ['orbCustomize', 'orb'], ['btnPrivate', 'private']];
@@ -451,6 +453,11 @@ export class StartScreen {
     badge.textContent = daily ? t('menu.dailyReady') : t(canBuy === 1 ? 'menu.wavesCanBuyOne' : 'menu.wavesCanBuy', { n: canBuy });
   }
 
+  /** The testers' "every style and crown open" (the account window), on an account the server allows. */
+  private applyTestUnlock(): void {
+    setTestUnlock(debugUnlockOn(this.account.debugTools.zoom));
+  }
+
   /** The waves' Workshop (its card, or back from a run that asked for it): the ranking beside it on the Survival tab. */
   openWaves(): void {
     this.lobbyRanking.showTab('waves');
@@ -664,7 +671,7 @@ export class StartScreen {
     this.drawing = true;
     void this.studio
       .texture(skinInfo(this.settings), true)
-      .then((tex) => this.studio.draw(this.preview, tex, turning(this.settings.skin, this.spin, 1.1)))
+      .then((tex) => this.studio.draw(this.preview, tex, turning(this.settings.skin, this.spin, 1.1), wornCrown(this.settings), crownSway(this.spin)))
       .finally(() => (this.drawing = false));
   }
 
