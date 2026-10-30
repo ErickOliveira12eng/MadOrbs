@@ -79,6 +79,8 @@ export function upscaleSkinMix(src: SkinPixels, scale: number): SkinMix {
   const W = w * scale;
   const H = h * scale;
   const out = new Uint8Array(W * H * 4);
+  // How drawn (hard-edged) each pixel is: the pole's smoothing leaves those alone
+  const drawn = new Float32Array(W * H);
   const m = [0, 0, 0, 0];
   const sharp = [0, 0, 0, 0];
   for (let Y = 0; Y < H; Y++) {
@@ -113,6 +115,7 @@ export function upscaleSkinMix(src: SkinPixels, scale: number): SkinMix {
         (pureAt(x0, y0) * (1 - fx) + pureAt(x0 + 1, y0) * fx) * (1 - fy) + (pureAt(x0, y0 + 1) * (1 - fx) + pureAt(x0 + 1, y0 + 1) * fx) * fy;
       let sharpSum = 0;
       if (s > 0) for (let c = 0; c < 4; c++) sharpSum += sharp[c] = (m[c] / sum) ** SHARPNESS;
+      drawn[Y * W + X] = s;
       const o = (Y * W + X) * 4;
       for (let c = 0; c < 4; c++) {
         const weight = (m[c] / sum) * (1 - s) + (sharpSum > 0 ? (sharp[c] / sharpSum) * s : (m[c] / sum) * s);
@@ -120,7 +123,71 @@ export function upscaleSkinMix(src: SkinPixels, scale: number): SkinMix {
       }
     }
   }
+  polarSmooth(out, drawn, softness(src), W, H, scale);
   return { mix: out, width: W, height: H };
+}
+
+/**
+ * Near the poles a row of the skin wraps a smaller and smaller circle, and each texel of it ends as a thin slice
+ * meeting the others in a star (Erick, 29/10/2026: the big orbs' "low quality"). Each row is smoothed around the orb
+ * by as much as its circle shrinks: a texel's width there becomes about its height, so the pole comes out as a soft
+ * disc; the rows near the middle are untouched. In a skin drawn with hard edges (`soft` near 0) the drawn parts,
+ * `drawn` (1: drawn), stay as they are: their slices are the drawing's own (skin13's cells); in a painted one (soft
+ * near 1: skin04, 11, 22, 23) its stripes are smoothed too, or the star stays.
+ */
+/**
+ * How painted a skin is (0: drawn with hard edges, 1: painted, all gradients): the share of gradual steps (less than
+ * 0.35 of a colour) among the colour changes between neighbouring texels; 0 for skin02, 10, 13, 0.93 for skin04.
+ */
+function softness(src: SkinPixels): number {
+  const { width: w, height: h, data } = src;
+  let soft = 0;
+  let changed = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const a = (y * w + x) * 4;
+      for (const b of [(y * w + ((x + 1) % w)) * 4, y + 1 < h ? ((y + 1) * w + x) * 4 : -1]) {
+        if (b < 0) continue;
+        const d = (Math.abs(data[a] - data[b]) + Math.abs(data[a + 1] - data[b + 1]) + Math.abs(data[a + 2] - data[b + 2])) / 510;
+        if (d <= 0.04) continue;
+        changed++;
+        if (d < 0.35) soft++;
+      }
+    }
+  }
+  return smoothstep(0.3, 0.8, soft / Math.max(1, changed));
+}
+
+/** polarSmooth's strength: 1 makes a texel about as wide as it is high there; more, softer poles. */
+const POLAR_SMOOTH = 2.5;
+
+function polarSmooth(out: Uint8Array, drawn: Float32Array, soft: number, W: number, H: number, scale: number): void {
+  const row = new Float32Array(W * 4);
+  const acc = new Float32Array(W * 4);
+  for (let Y = 0; Y < H; Y++) {
+    const shrink = Math.sin((Math.PI * (Y + 0.5)) / H);
+    // The box's width in pixels: a texel's height over its width there, less the texel itself
+    const box = Math.min(W, Math.round(POLAR_SMOOTH * scale * (1 / Math.max(shrink, 1e-3) - 1)));
+    if (box < 2) continue;
+    const half = box >> 1;
+    for (let i = 0; i < W * 4; i++) row[i] = out[Y * W * 4 + i];
+    // Twice a box (near a Gaussian), wrapping around the orb
+    for (let pass = 0; pass < 2; pass++) {
+      for (let c = 0; c < 4; c++) {
+        let sum = 0;
+        for (let k = -half; k <= half; k++) sum += row[(((k % W) + W) % W) * 4 + c];
+        for (let X = 0; X < W; X++) {
+          acc[X * 4 + c] = sum / (2 * half + 1);
+          sum += row[(((X + half + 1) % W) * 4) + c] - row[(((X - half) % W + W) % W) * 4 + c];
+        }
+      }
+      row.set(acc);
+    }
+    for (let i = 0; i < W * 4; i++) {
+      const keep = drawn[Y * W + (i >> 2)] * (1 - soft);
+      out[Y * W * 4 + i] = Math.round(row[i] * (1 - keep) + out[Y * W * 4 + i] * keep);
+    }
+  }
 }
 
 /** Player::updateSkin on a mix: finalColor = redDecal * r + greenDecal * g + blueDecal * b (RGBA bytes). */
