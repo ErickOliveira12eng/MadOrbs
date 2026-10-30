@@ -9,7 +9,7 @@ import { CROWN_TIERS, CROWN_WAVES, isCrownTier, type CrownTier } from '../sim/cr
 
 const KEY = 'madorbs.settings';
 
-/** Every Orb style: the original game's 23, then Mad Orbs' own (the waves' exclusive ones, skin24..26, the 8 ball). */
+/** Every Orb style: the original game's 23, then Mad Orbs' own (the waves' exclusive ones, skin24..26, the 8 ball, the camo). */
 export const SKINS = Array.from({ length: SKIN_COUNT }, (_, i) => `skin${String(i + 1).padStart(2, '0')}`);
 /** The styles anyone can pick, and the bots wear (the waves' milestones give the others). */
 export const FREE_SKINS = SKINS.filter((s) => !WAVES_SKINS.includes(s));
@@ -42,7 +42,7 @@ export function wornCrown(s: Settings): CrownTier | null {
 
 export interface Settings {
   name: string;
-  /** skin01..skin27 */
+  /** skin01..skin28 */
   skin: string;
   /** The Survival crown: the best won ('auto'), one of them, or none. */
   crown: 'auto' | 'none' | CrownTier;

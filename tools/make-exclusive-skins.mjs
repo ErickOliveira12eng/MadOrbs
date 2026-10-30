@@ -1,16 +1,17 @@
 // Draws Mad Orbs' own Orb skins (skin24..skin26: Honeycomb, Flames, Royal; Royal was named Crown until 29/10/2026, when the
-// crowns came; skin27: the 8 ball, 29/10/2026), won at the waves' milestones (src/client/wavesProgress.ts). Mad Orbs'
-// own art, made here, not the original game's. A skin is a 64x32 equirectangular texture (the 8 ball 256x128, for its
-// number) whose red, green and blue say how much of each of
-// the player's three colours goes on each texel (src/client/render/baboRenderer.ts, Player::updateSkin).
-//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin24.tga ... skin27.tga
+// crowns came; skin27: the 8 ball, 29/10/2026; skin28: the camo, 30/10/2026, the look of the site's icon), won at the
+// waves' milestones (src/client/wavesProgress.ts). Mad Orbs' own art, made here, not the original game's. A skin is a
+// 64x32 equirectangular texture (the 8 ball and the camo 256x128, for their detail) whose red, green and blue say how
+// much of each of the player's three colours goes on each texel, black where all three are 0
+// (src/client/render/baboRenderer.ts, Player::updateSkin).
+//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin24.tga ... skin28.tga
 //   node tools/make-exclusive-skins.mjs --preview  -> also shots/exclusive-skins.ppm (8x, to look at)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 /** The original game's size (the 8 ball is bigger: SIZES). */
 const W = 64;
 const H = 32;
-const SIZES = { skin27: [256, 128] };
+const SIZES = { skin27: [256, 128], skin28: [256, 128] };
 /** Samples per texel side: the edges come out smooth. */
 const SS = 6;
 
@@ -20,9 +21,92 @@ const smooth = (a, b, x) => {
   return t * t * (3 - 2 * t);
 };
 
+// ------------------------------------------------------------------ for the camo
+/** The point of the Orb at (u, v) (createGluSphere in src/client/render/baboRenderer.ts: v 0 is the +z pole). */
+function dirOf(u, v) {
+  const t = u * Math.PI * 2;
+  const r = v * Math.PI;
+  return [-Math.sin(t) * Math.sin(r), Math.cos(t) * Math.sin(r), Math.cos(r)];
+}
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const norm = (a) => {
+  const l = Math.hypot(...a);
+  return a.map((x) => x / l);
+};
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+
+/** 3D gradient noise (Perlin's improved noise), seeded: sampled on the sphere itself, no seam and no pinch at the poles. */
+const PERM = (() => {
+  const p = Array.from({ length: 256 }, (_, i) => i);
+  let seed = 20261030;
+  for (let i = 255; i > 0; i--) {
+    seed = (seed * 16807) % 2147483647;
+    const j = seed % (i + 1);
+    [p[i], p[j]] = [p[j], p[i]];
+  }
+  return [...p, ...p];
+})();
+function grad(h, x, y, z) {
+  const a = h < 8 ? x : y;
+  const b = h < 4 ? y : h === 12 || h === 14 ? x : z;
+  return ((h & 1) === 0 ? a : -a) + ((h & 2) === 0 ? b : -b);
+}
+function noise(x, y, z) {
+  const X = Math.floor(x) & 255;
+  const Y = Math.floor(y) & 255;
+  const Z = Math.floor(z) & 255;
+  x -= Math.floor(x);
+  y -= Math.floor(y);
+  z -= Math.floor(z);
+  const f = (t) => t * t * t * (t * (t * 6 - 15) + 10);
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const [u, v, w] = [f(x), f(y), f(z)];
+  const A = PERM[X] + Y;
+  const AA = PERM[A] + Z;
+  const AB = PERM[A + 1] + Z;
+  const B = PERM[X + 1] + Y;
+  const BA = PERM[B] + Z;
+  const BB = PERM[B + 1] + Z;
+  const g = (i, dx, dy, dz) => grad(PERM[i] & 15, x - dx, y - dy, z - dz);
+  return lerp(
+    lerp(lerp(g(AA, 0, 0, 0), g(BA, 1, 0, 0), u), lerp(g(AB, 0, 1, 0), g(BB, 1, 1, 0), u), v),
+    lerp(lerp(g(AA + 1, 0, 0, 1), g(BA + 1, 1, 0, 1), u), lerp(g(AB + 1, 0, 1, 1), g(BB + 1, 1, 1, 1), u), v),
+    w,
+  );
+}
+/** A few octaves of it, `k` times smaller, moved by `o`: ragged edges on big blobs. */
+const fbm = (p, k, o) =>
+  noise(p[0] * k + o, p[1] * k + o * 1.7, p[2] * k - o) * 0.62 +
+  noise(p[0] * k * 2.3 + 4.1, p[1] * k * 2.3 - o, p[2] * k * 2.3 + 2.6) * 0.26 +
+  noise(p[0] * k * 5.1 - 1.3, p[1] * k * 5.1 + 3.3, p[2] * k * 5.1 + o) * 0.12;
+/** Smoother: two octaves, for the black, whose edges can't be soft (a texel is black or not). */
+const fbm2 = (p, k, o) => noise(p[0] * k + o, p[1] * k + o * 1.7, p[2] * k - o) * 0.8 + noise(p[0] * k * 2.2 + 4.1, p[1] * k * 2.2 - o, p[2] * k * 2.2 + 2.6) * 0.2;
+
+/**
+ * Where the camo's bandana sits: around the top of the Orb as the start screen shows it at rest (orbStudio's FRONT:
+ * the world's up falls on u 0.42, v 0.389 of the texture, the viewer on u 0.42, v 0.703, the right on u 0.67, v 0.5),
+ * tied on the right, a little to the back.
+ */
+const UP = dirOf(0.42, 0.389);
+const VIEW = norm(dirOf(0.42, 0.703).map((x, i) => x - UP[i] * dot(dirOf(0.42, 0.703), UP)));
+const SIDE = (() => {
+  const c = norm(cross(VIEW, UP));
+  return dot(c, dirOf(0.67, 0.5)) > 0 ? c : c.map((x) => -x);
+})();
+/** The band: between these angles (radians) from the top. */
+const BAND = [0.97, 1.24];
+const KNOT_AT = (() => {
+  const a = (BAND[0] + BAND[1]) / 2;
+  const around = norm(SIDE.map((x, i) => x * 0.95 - VIEW[i] * 0.3));
+  return norm(UP.map((x, i) => x * Math.cos(a) + around[i] * Math.sin(a)));
+})();
+/** The knot's own frame: down the Orb and across. */
+const KNOT_DOWN = norm(UP.map((x, i) => -x + KNOT_AT[i] * dot(UP, KNOT_AT)));
+const KNOT_ACROSS = cross(KNOT_AT, KNOT_DOWN);
+
 /**
  * Each skin: (u, v) -> [red, green, blue] shares, u around the Orb (0..1), v from the top row (0) to
- * the bottom one (1).
+ * the bottom one (1). All three 0 is black.
  */
 const SKINS = {
   // Honeycomb: green cells with red walls and a blue core in each
@@ -98,6 +182,40 @@ const SKINS = {
     const eight = patch * Math.max(ring(-0.095, 0.085), ring(0.1, 0.105));
     return [1 - patch, patch * (1 - eight), eight];
   },
+  // Camo (the site's icon, 30/10/2026): woodland blobs in colour 2 and black on colour 1, a bandana in colour 3 with a
+  // black edge, tied on the side with two tails (olive, dark green and red for the icon's look)
+  skin28(u, v) {
+    const p = dirOf(u, v);
+    // Blobs: noise warped by noise, so they come out long and ragged, not round
+    const warp = [fbm(p, 1.1, 3.1), fbm(p, 1.1, 7.9), fbm(p, 1.1, 12.4)];
+    const q = p.map((x, i) => x + warp[i] * 0.55);
+    const dark = smooth(-0.015, 0.015, fbm(q, 1.9, 21.7) - 0.01);
+    const black = smooth(-0.015, 0.015, fbm2(q, 2.1, 33.3) - 0.25);
+    let r = (1 - black) * (1 - dark);
+    let g = (1 - black) * dark;
+    // The bandana: the band between BAND's angles from the top, and the knot with its tails, seen from above the knot
+    const a = Math.acos(Math.max(-1, Math.min(1, dot(p, UP))));
+    const band = (grow) => smooth(BAND[0] - grow - 0.012, BAND[0] - grow + 0.012, a) * (1 - smooth(BAND[1] + grow - 0.012, BAND[1] + grow + 0.012, a));
+    let tie = () => 0;
+    if (dot(p, KNOT_AT) > 0) {
+      const x = dot(p, KNOT_ACROSS);
+      const y = dot(p, KNOT_DOWN);
+      const ellipse = (cx, cy, ax, ay, turn, grow) => {
+        const c = Math.cos(turn);
+        const s = Math.sin(turn);
+        const dx = x - cx;
+        const dy = y - cy;
+        return 1 - smooth(0.93, 1.07, Math.hypot((dx * c + dy * s) / (ax + grow), (-dx * s + dy * c) / (ay + grow)));
+      };
+      tie = (grow) =>
+        Math.max(ellipse(0, 0, 0.085, 0.095, 0, grow), ellipse(-0.09, 0.24, 0.06, 0.17, 0.38, grow), ellipse(0.085, 0.23, 0.055, 0.16, -0.3, grow));
+    }
+    const edge = Math.max(band(0.03), tie(0.025));
+    const cloth = Math.max(band(0), tie(0));
+    r *= (1 - edge) * (1 - cloth);
+    g *= (1 - edge) * (1 - cloth);
+    return [r, g, cloth];
+  },
 };
 
 function render(fn, W, H) {
@@ -115,8 +233,10 @@ function render(fn, W, H) {
           b += cb;
         }
       }
-      const n = SS * SS;
-      px.set([r / n, g / n, b / n], (y * W + x) * 3);
+      // A texel is black or in the colours, never between: the game takes the colours' shares out of their sum
+      // (only all three 0 is black), so a half-black texel would come out in full colour
+      const sum = r + g + b;
+      px.set(sum < (SS * SS) / 2 ? [0, 0, 0] : [r / sum, g / sum, b / sum], (y * W + x) * 3);
     }
   }
   return px;
@@ -150,6 +270,25 @@ for (const [name, fn] of Object.entries(SKINS)) {
   writeFileSync(`public/assets/skins/${name}.tga`, tga(px, w, h));
   // (the preview shows the 64x32 ones)
   if (w === W) rendered.push(px);
+  else if (preview) {
+    // The big ones on their own, twice as big, in the colours of the icon's look (olive, dark green, red)
+    const k = 2;
+    const cols = [
+      [0.55, 0.6, 0.27],
+      [0.2, 0.3, 0.12],
+      [0.85, 0.12, 0.1],
+    ];
+    const img = Buffer.alloc(w * k * h * k * 3);
+    for (let y = 0; y < h * k; y++) {
+      for (let x = 0; x < w * k; x++) {
+        const i = (Math.floor(y / k) * w + Math.floor(x / k)) * 3;
+        for (let c = 0; c < 3; c++) img[(y * w * k + x) * 3 + c] = Math.round(255 * (px[i] * cols[0][c] + px[i + 1] * cols[1][c] + px[i + 2] * cols[2][c]));
+      }
+    }
+    mkdirSync('shots', { recursive: true });
+    writeFileSync(`shots/${name}.ppm`, Buffer.concat([Buffer.from(`P6 ${w * k} ${h * k} 255\n`), img]));
+    console.log(`shots/${name}.ppm`);
+  }
   console.log(`public/assets/skins/${name}.tga`);
 }
 if (preview) {

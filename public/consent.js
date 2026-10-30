@@ -1,5 +1,5 @@
 // Cookie banner of madorbs.com (the game page and the guide pages; plain script, no build): Google
-// Analytics (statistics), Google AdSense and the Adsterra banners (ads, src/client/ads.ts).
+// Analytics (statistics) and Google AdSense (ads). The Adsterra banners (src/client/ads.ts) are off since 30/10/2026.
 // Two ways, by where the visitor is (the browser's time zone; unknown counts as Europe):
 // - Europe (EU/EEA, UK, Switzerland): opt-in. Nothing runs before "Accept" (or that choice in "Customize").
 // - Elsewhere (Brazil included): opt-out. Statistics and ads run from the start; the banner says so,
@@ -19,7 +19,7 @@
   var TEXTS = {
     en: {
       title: 'Cookies',
-      body: 'Mad Orbs uses cookies only if you agree: for usage statistics (Google Analytics) and for ads (Google AdSense and Adsterra). The game works either way.',
+      body: 'Mad Orbs uses cookies only if you agree: for usage statistics (Google Analytics) and for ads (Google AdSense). The game works either way.',
       privacy: 'Privacy policy',
       privacyUrl: '/privacy',
       accept: 'Accept',
@@ -31,14 +31,14 @@
       analytics: 'Usage statistics',
       analyticsText: 'Google Analytics: how many people visit and how the site is used.',
       ads: 'Ads',
-      adsText: 'Google AdSense and Adsterra: ads in the pauses of the game (menus, death screen) that keep the game free, possibly based on your interests.',
+      adsText: 'Google AdSense: ads that keep the game free, possibly based on your interests.',
       always: 'Always on',
-      notice: 'Mad Orbs uses cookies for usage statistics (Google Analytics) and for ads (Google AdSense and Adsterra), which keep the game free. You can refuse them or choose which ones, now or later with the Cookies link at the bottom of the page.',
+      notice: 'Mad Orbs uses cookies for usage statistics (Google Analytics) and for ads (Google AdSense), which keep the game free. You can refuse them or choose which ones, now or later with the Cookies link at the bottom of the page.',
       acceptNotice: 'Got it',
     },
     pt: {
       title: 'Cookies',
-      body: 'O Mad Orbs só usa cookies se você concordar: para estatísticas de uso (Google Analytics) e para anúncios (Google AdSense e Adsterra). O jogo funciona de qualquer jeito.',
+      body: 'O Mad Orbs só usa cookies se você concordar: para estatísticas de uso (Google Analytics) e para anúncios (Google AdSense). O jogo funciona de qualquer jeito.',
       privacy: 'Política de privacidade',
       privacyUrl: '/pt/privacidade',
       accept: 'Aceitar',
@@ -50,14 +50,14 @@
       analytics: 'Estatísticas de uso',
       analyticsText: 'Google Analytics: quantas pessoas visitam e como o site é usado.',
       ads: 'Anúncios',
-      adsText: 'Google AdSense e Adsterra: anúncios nas pausas do jogo (menus, tela de morte) que mantêm o jogo grátis, possivelmente com base nos seus interesses.',
+      adsText: 'Google AdSense: anúncios que mantêm o jogo grátis, possivelmente com base nos seus interesses.',
       always: 'Sempre ligados',
-      notice: 'O Mad Orbs usa cookies para estatísticas de uso (Google Analytics) e para anúncios (Google AdSense e Adsterra), que mantêm o jogo grátis. Você pode recusar ou escolher quais, agora ou depois pelo link Cookies no rodapé da página.',
+      notice: 'O Mad Orbs usa cookies para estatísticas de uso (Google Analytics) e para anúncios (Google AdSense), que mantêm o jogo grátis. Você pode recusar ou escolher quais, agora ou depois pelo link Cookies no rodapé da página.',
       acceptNotice: 'Entendi',
     },
     es: {
       title: 'Cookies',
-      body: 'Mad Orbs solo usa cookies si aceptas: para estadísticas de uso (Google Analytics) y para anuncios (Google AdSense y Adsterra). El juego funciona igual.',
+      body: 'Mad Orbs solo usa cookies si aceptas: para estadísticas de uso (Google Analytics) y para anuncios (Google AdSense). El juego funciona igual.',
       privacy: 'Política de privacidad',
       privacyUrl: '/es/privacidad',
       accept: 'Aceptar',
@@ -69,9 +69,9 @@
       analytics: 'Estadísticas de uso',
       analyticsText: 'Google Analytics: cuántas personas visitan y cómo se usa el sitio.',
       ads: 'Anuncios',
-      adsText: 'Google AdSense y Adsterra: anuncios en las pausas del juego (menús, pantalla de muerte) que mantienen el juego gratis, posiblemente según tus intereses.',
+      adsText: 'Google AdSense: anuncios que mantienen el juego gratis, posiblemente según tus intereses.',
       always: 'Siempre activas',
-      notice: 'Mad Orbs usa cookies para estadísticas de uso (Google Analytics) y para anuncios (Google AdSense y Adsterra), que mantienen el juego gratis. Puedes rechazarlas o elegir cuáles, ahora o después con el enlace Cookies al pie de la página.',
+      notice: 'Mad Orbs usa cookies para estadísticas de uso (Google Analytics) y para anuncios (Google AdSense), que mantienen el juego gratis. Puedes rechazarlas o elegir cuáles, ahora o después con el enlace Cookies al pie de la página.',
       acceptNotice: 'Entendido',
     },
   };
@@ -118,6 +118,15 @@
   }
 
   // ------------------------------------------------------------ Google, after consent only
+  /** A person on madorbs.com itself: not an automated browser, not framed by another site. */
+  function realVisit() {
+    if (!/(^|\.)madorbs\.com$/.test(location.hostname) || navigator.webdriver) return false;
+    try {
+      return window.top === window.self || window.top.location.hostname === location.hostname;
+    } catch (e) {
+      return false;
+    }
+  }
   var loaded = { analytics: false, ads: false };
   function loadScript(src, attrs) {
     var s = document.createElement('script');
@@ -144,7 +153,10 @@
       if (/(^|\.)madorbs\.com$/.test(location.hostname)) window.gtag('config', GA_ID);
       loadScript('https://www.googletagmanager.com/gtag/js?id=' + GA_ID);
     }
-    if (choice.ads && !loaded.ads) {
+    // Google's ad script only on the real site, opened by a person: never on localhost or in the test browsers
+    // (automated, navigator.webdriver: hundreds of headless runs loaded it with our publisher ID until 30/10/2026)
+    // nor inside another site's frame
+    if (choice.ads && !loaded.ads && realVisit()) {
       loaded.ads = true;
       loadScript('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADS_CLIENT, { crossorigin: 'anonymous' });
     }

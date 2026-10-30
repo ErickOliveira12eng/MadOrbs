@@ -9,6 +9,13 @@
 
 import { track } from './analytics';
 
+/**
+ * The Adsterra banners are off (30/10/2026, Erick: AdSense rejected the site a third time, "insufficient content" and
+ * "traffic source problems"; the banners stay out while it is reviewed again). Off: no banner, no ad-blocker check,
+ * no plea in the ad spots. true brings them all back.
+ */
+const BANNERS_ON = false;
+
 export type AdSlot = 'sky' | 'rect' | 'wide';
 
 /** The ad units of madorbs.com: 160x600 (start screen, left), 300x250 (start screen, right), 728x90 (end of a level). */
@@ -34,6 +41,7 @@ function consented(): boolean {
 }
 
 function rightHost(): boolean {
+  if (!BANNERS_ON) return false;
   if (/(^|\.)madorbs\.com$/.test(location.hostname)) return true;
   try {
     return localStorage.getItem('madorbs.adtest') === '1';
@@ -56,7 +64,7 @@ const frameCheck: Promise<boolean> =
     : Promise.resolve(false);
 void frameCheck.then((ok) => {
   reachable = ok;
-  if (!ok) console.warn('[ads] the banners origin does not answer');
+  if (!ok && rightHost() && frameOrigin()) console.warn('[ads] the banners origin does not answer');
   else if (adsAllowed()) for (const fn of listeners) fn();
 });
 
