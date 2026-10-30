@@ -73,7 +73,7 @@ export const pt: Record<Key, string> = {
   'home.newsTitle': 'Novidades',
   'home.news50Date': '30 de outubro de 2026',
   'home.news50Title': 'Nova Orb: Camuflada',
-  'home.news50': 'A Orb Camuflada tem o visual do ícone do Mad Orbs: camuflagem nas suas duas primeiras cores e uma bandana na terceira, amarrada do lado. Alcance a onda 32 da Sobrevivência para ganhá-la (escolha em Sua Orb).',
+  'home.news50': 'A Orb Camuflada tem o visual do ícone do Mad Orbs: camuflagem nas suas duas primeiras cores e uma bandana na terceira, amarrada do lado. Alcance a onda 32 da Sobrevivência para ganhá-la (escolha em Sua Orb). Sua Orb agora mostra primeiro os estilos abertos e depois os trancados, na ordem em que a Sobrevivência os dá.',
   'home.news49Date': '29 de outubro de 2026',
   'home.news49Title': 'Coroas da Sobrevivência e novas Orbs para ganhar',
   'home.news49': 'Alcance a onda 25, 50 ou 100 da Sobrevivência para ganhar uma coroa de bronze, prata ou ouro, usada em cima da sua Orb (escolha em Sua Orb; com conta, os outros jogadores a veem no online). Há também uma Orb nova, a Bola 8, e mais estilos de Orb agora se abrem conforme você chega a novas ondas, da 5 até a 90.',

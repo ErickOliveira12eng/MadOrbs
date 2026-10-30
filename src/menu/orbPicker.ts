@@ -2,7 +2,7 @@
 // ready-made colour sets and a big preview that rolls.
 import * as THREE from 'three';
 import { crownSway, frontFor, turning, type OrbStudio } from './orbStudio';
-import { SKINS, availableCrowns, availableSkins, randomOrb, skinInfo, wornCrown, type Settings } from './settings';
+import { SKIN_ORDER, availableCrowns, availableSkins, randomOrb, skinInfo, wornCrown, type Settings } from './settings';
 import { CROWN_TIERS, CROWN_WAVES, type CrownTier } from '../sim/crowns';
 import { crownName, crownPicture } from '../client/wavesPrize';
 import { skinWave } from '../client/wavesProgress';
@@ -48,7 +48,7 @@ export class OrbPicker {
     /** The skin or its colours changed. */
     private readonly onChange: () => void,
   ) {
-    for (const skin of SKINS) {
+    for (const skin of SKIN_ORDER) {
       const b = document.createElement('button');
       b.type = 'button';
       b.setAttribute('role', 'option');

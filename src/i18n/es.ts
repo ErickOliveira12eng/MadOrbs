@@ -73,7 +73,7 @@ export const es: Record<Key, string> = {
   'home.newsTitle': 'Novedades',
   'home.news50Date': '30 de octubre de 2026',
   'home.news50Title': 'Nueva Orb: Camuflaje',
-  'home.news50': 'La Orb Camuflaje tiene el aspecto del ícono de Mad Orbs: camuflaje en tus dos primeros colores y una bandana en el tercero, atada al costado. Llega a la oleada 32 de la Supervivencia para ganarla (elígela en Tu Orb).',
+  'home.news50': 'La Orb Camuflaje tiene el aspecto del ícono de Mad Orbs: camuflaje en tus dos primeros colores y una bandana en el tercero, atada al costado. Llega a la oleada 32 de la Supervivencia para ganarla (elígela en Tu Orb). Tu Orb ahora muestra primero los estilos abiertos y después los bloqueados, en el orden en que la Supervivencia los da.',
   'home.news49Date': '29 de octubre de 2026',
   'home.news49Title': 'Coronas de la Supervivencia y nuevas Orbs para ganar',
   'home.news49': 'Llega a la oleada 25, 50 o 100 de la Supervivencia para ganar una corona de bronce, plata u oro, puesta sobre tu Orb (elígela en Tu Orb; con cuenta, los demás jugadores la ven en línea). También hay una Orb nueva, la Bola 8, y más estilos de Orb se abren ahora a medida que llegas a nuevas oleadas, de la 5 a la 90.',

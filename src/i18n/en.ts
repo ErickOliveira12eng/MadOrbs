@@ -75,7 +75,7 @@ export const en = {
   'home.newsTitle': "What's new",
   'home.news50Date': 'October 30, 2026',
   'home.news50Title': 'A new Orb: Camo',
-  'home.news50': 'The Camo Orb has the look of the Mad Orbs icon: woodland camouflage in your first two colours and a bandana in the third, tied on the side. Reach wave 32 of Survival to win it (choose it in Your Orb).',
+  'home.news50': 'The Camo Orb has the look of the Mad Orbs icon: woodland camouflage in your first two colours and a bandana in the third, tied on the side. Reach wave 32 of Survival to win it (choose it in Your Orb). Your Orb now shows the open styles first, then the locked ones in the order Survival gives them.',
   'home.news49Date': 'October 29, 2026',
   'home.news49Title': 'Survival crowns and new Orbs to win',
   'home.news49': 'Reach wave 25, 50 or 100 of Survival to win a bronze, silver or gold crown, worn on top of your Orb (choose it in Your Orb; signed in, the other players see it online). There is also a new Orb, the 8 Ball, and more Orb styles now open as you reach new waves, from wave 5 up to 90.',

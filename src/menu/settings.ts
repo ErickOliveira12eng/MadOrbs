@@ -3,7 +3,7 @@ import { audio } from '../client/audio/audio';
 import { ROOM_MODES, cleanName, isReservedName, type RoomMode } from '../net/protocol';
 import type { SkinInfo } from '../sim/player';
 import { loadWavesRecord } from '../client/waves';
-import { WAVES_SKINS, skinUnlocked } from '../client/wavesProgress';
+import { WAVES_SKINS, skinUnlocked, skinWave } from '../client/wavesProgress';
 import { SKIN_COUNT } from '../net/protocol';
 import { CROWN_TIERS, CROWN_WAVES, isCrownTier, type CrownTier } from '../sim/crowns';
 
@@ -13,6 +13,11 @@ const KEY = 'madorbs.settings';
 export const SKINS = Array.from({ length: SKIN_COUNT }, (_, i) => `skin${String(i + 1).padStart(2, '0')}`);
 /** The styles anyone can pick, and the bots wear (the waves' milestones give the others). */
 export const FREE_SKINS = SKINS.filter((s) => !WAVES_SKINS.includes(s));
+/**
+ * The order the Orb picker and the pedestal's arrows go through them (Erick, 30/10/2026): the free ones, then the waves'
+ * in the order they are won, so the open ones come first and the locked ones after, the next to win at their head.
+ */
+export const SKIN_ORDER = [...FREE_SKINS, ...[...WAVES_SKINS].sort((a, b) => skinWave(a)! - skinWave(b)!)];
 
 /** The testers' switch (the account window, DEBUG_USER_IDS accounts): every style and crown open, to try them. */
 let testUnlock = false;
@@ -23,7 +28,7 @@ export function setTestUnlock(on: boolean): void {
 /** The styles this player can pick: the free ones and the ones won in the waves. */
 export function availableSkins(): string[] {
   const record = loadWavesRecord()?.wave ?? 0;
-  return SKINS.filter((s) => testUnlock || skinUnlocked(s, record));
+  return SKIN_ORDER.filter((s) => testUnlock || skinUnlocked(s, record));
 }
 
 /** The crowns this player has won (src/sim/crowns.ts), by this browser's record. */
