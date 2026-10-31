@@ -52,6 +52,10 @@ and is never distributed, so it is not part of that repository.
 
 ## Changes
 
+- `maps/BOSS-Vesuvio.bvm`: a made-over copy of `maps/CTF-Reticulated.bvm` (by "Vesuvius", GPL v3 like the rest),
+  written by `tools/make-boss-map.mjs` on 31/10/2026 for a boss mode: the lava theme instead of the city one (no rain),
+  the tower in the middle made floor, the four spawn points next to it removed, lava painted on the floor where the boss
+  stands, and the flag pods zeroed (Deathmatch and Team Deathmatch only). The original map is unchanged.
 - `models/LifePack.DKO`: the cross is green (material "02 - Default", ambient and diffuse colour)
   instead of red. A red cross on white is the Red Cross emblem, protected by the Geneva Conventions
   and national laws; the Red Cross asks games not to use it.
