@@ -94,8 +94,8 @@ export type Milestone = { wave: number; weapon: number } | { wave: number; skin:
 /**
  * Reach the wave once and the prize stays: a weapon to start with, an Orb style, or a crown (src/sim/crowns.ts). Since
  * 29/10/2026 (Erick: more styles locked, won as the player goes on) ten of the original game's styles are won here
- * too, with the 8 ball (skin27); the others stay free (and are the bots' ones). The camo (skin28, the site icon's look) since
- * 30/10/2026.
+ * too, with the 8 ball (skin27); the others stay free (and are the bots' ones). The camo (skin28) since 30/10/2026. The
+ * Royal (skin26, wave 50) left the game on 31/10/2026 (RETIRED_SKINS): wave 50 gives the silver crown.
  */
 export const MILESTONES: Milestone[] = [
   { wave: 5, skin: 'skin02' },
@@ -115,7 +115,6 @@ export const MILESTONES: Milestone[] = [
   { wave: 35, skin: 'skin20' },
   { wave: 40, weapon: WEAPON_FLAME_THROWER },
   { wave: 45, skin: 'skin17' },
-  { wave: 50, skin: 'skin26' },
   { wave: 50, crown: 'silver' },
   { wave: 60, skin: 'skin10' },
   { wave: 75, skin: 'skin16' },

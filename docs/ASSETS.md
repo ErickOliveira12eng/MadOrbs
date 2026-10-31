@@ -56,14 +56,17 @@ and is never distributed, so it is not part of that repository.
   instead of red. A red cross on white is the Red Cross emblem, protected by the Geneva Conventions
   and national laws; the Red Cross asks games not to use it.
 - `skins/skin16.tga`: the original company's name ("RndLabs") replaced with "MAD ORBS", in the
-  same pixel lettering (2 px strokes, 18 rows, blue on red, between the same green octagons).
+  same pixel lettering (2 px strokes, 18 rows, blue on red, between the same green octagons). Redrawn by
+  `tools/make-exclusive-skins.mjs` on 31/10/2026, 256x128 (Mad Orbs' own work, GPL v3): smaller letters drawn in code,
+  "MAD ORBS" at the front and at the back, and rings around the poles.
 - `skins/skin01.tga` (the tennis ball) and `skin03.tga` (the lightning bolt): redrawn by `tools/make-exclusive-skins.mjs`
   on 30/10/2026, 256x128 (Mad Orbs' own work, GPL v3). The originals drew the same ideas by hand on their 64x32
   textures: a ball in two interlocking halves, and one zigzag stroke around the Orb.
 - `skins/skin04.tga` (the star): redrawn by `tools/make-exclusive-skins.mjs` on 31/10/2026, 256x128 (Mad Orbs' own work,
   GPL v3). The original painted the same idea in soft blurs at 64x32: an 8-point star at each pole on a toothed dark disc.
-- `skins/skin06.tga` (the cow print): redrawn by `tools/make-exclusive-skins.mjs` on 31/10/2026, 256x128 (Mad Orbs' own
-  work, GPL v3). The original had the same idea, big round patches, blurred at 64x32 and in two of the three colours.
+- `skins/skin06.tga` (the world map): drawn by `tools/make-exclusive-skins.mjs` on 31/10/2026, 256x128 (Mad Orbs' own
+  work, GPL v3), in place of the original's blurred round patches (a cow print redrawn the same morning, kept as a draft).
+  The coastlines are Natural Earth's 1:110m land (naturalearthdata.com, public domain), simplified.
 - `skins/skin07.tga` (the belt): the original's drawing (two rails around the middle, two rings with a hole) measured on
   its 64x32 grid and redrawn with smooth curves at 256x128 by `tools/make-exclusive-skins.mjs` on 31/10/2026.
 - `skins/skin08.tga` (the grille band): the same, the original's drawing (a band with an oval grille at the front, slits
@@ -72,12 +75,14 @@ and is never distributed, so it is not part of that repository.
   256x128 on 31/10/2026; the faces' discs are now true circles on the Orb, and the waves flatten into rings near the
   poles instead of pinching.
 - `skins/skin11.tga` (the basketball) and `skin23.tga` (the yin-yang): the original's ideas redrawn sharp at 256x128 on
-  31/10/2026 (the seams and caps of a real ball; the symbol face on, over the whole Orb).
+  31/10/2026 (the seams and caps of a real ball; the symbol face on and on the back, its line turning smoothly between).
+- `skins/skin12.tga` (the beach ball) and `skin14.tga` (the eye): the original's drawings redrawn sharp at 256x128 on
+  31/10/2026 (six gores and round caps; a round pupil, an iris with fibres, thin veins).
 - `skins/skin19.tga` (a baseball): no longer offered (too close to the tennis ball); the file stays for old pages.
 - `skins/skin24.tga`, `skin25.tga`, `skin26.tga`, `skin27.tga`, `skin28.tga` (Honeycomb, Flames, Royal, 8 Ball, Camo):
   new skins, not from the original game, drawn by `tools/make-exclusive-skins.mjs` for the Waves mode's milestones
-  (Mad Orbs' own work, GPL v3 like the rest). The 8 Ball and the Camo are 256x128, the others 64x32 like the original
-  skins.
+  (Mad Orbs' own work, GPL v3 like the rest). The Flames, the 8 Ball and the Camo are 256x128, the others 64x32 like the
+  original skins. The Royal left the game on 31/10/2026 (its file stays), and the Camo lost its bandana that day.
 - `skins/skin29.tga` (the Skull): a new skin, not from the original game, drawn by `tools/make-exclusive-skins.mjs` on
   31/10/2026 (Mad Orbs' own work, GPL v3), 256x128, free to pick.
 - The Survival crowns (`menu/crown-bronze.png`, `crown-silver.png`, `crown-gold.png`): pictures of the crown model

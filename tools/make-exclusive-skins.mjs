@@ -1,20 +1,20 @@
 // Draws Mad Orbs' own Orb skins (skin24..skin26: Honeycomb, Flames, Royal; Royal was named Crown until 29/10/2026, when the
-// crowns came; skin27: the 8 ball, 29/10/2026; skin28: the camo, 30/10/2026, the look of the site's icon), won at the
+// crowns came, and left the game on 31/10/2026; skin27: the 8 ball, 29/10/2026; skin28: the camo, 30/10/2026), won at the
 // waves' milestones (src/client/wavesProgress.ts); skin29: the skull, 31/10/2026, free; and the original game's styles
 // redrawn, one by one (30 and 31/10/2026, Erick: drawn by hand at 64x32, they came out blurred or lumpy on the Orb; each
-// one's comment in SKINS says what it was). Mad Orbs' own art, made here, not the original game's. A skin is a 64x32
-// equirectangular texture (all but the honeycomb, the flames and the royal 256x128, for their detail: SIZES) whose red,
-// green and blue say how much of each of the player's
-// three colours goes on each texel, black where all three are 0 (src/client/render/baboRenderer.ts, Player::updateSkin).
+// one's comment in SKINS says what it was). Mad Orbs' own art, made here, not the original game's (the world map's
+// coastlines are Natural Earth's, public domain). A skin is a 64x32 equirectangular texture (all but the honeycomb and the
+// royal 256x128, for their detail: SIZES) whose red, green and blue say how much of each of the player's three colours
+// goes on each texel, black where all three are 0 (src/client/render/baboRenderer.ts, Player::updateSkin).
 //   node tools/make-exclusive-skins.mjs            -> public/assets/skins/<each skin in SKINS>.tga
 //   node tools/make-exclusive-skins.mjs --preview  -> also shots/exclusive-skins.ppm (8x, to look at)
 //   node tools/make-exclusive-skins.mjs --drafts   -> also shots/drafts/<name>.tga: the draws kept for later (DRAFTS)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
-/** The original game's size (the 8 ball is bigger: SIZES). */
+/** The original game's size (most are bigger: SIZES). */
 const W = 64;
 const H = 32;
-const SIZES = { skin01: [256, 128], skin03: [256, 128], skin04: [256, 128], skin06: [256, 128], skin07: [256, 128], skin08: [256, 128], skin11: [256, 128], skin18: [256, 128], skin21: [256, 128], skin22: [256, 128], skin23: [256, 128], skin27: [256, 128], skin28: [256, 128], skin29: [256, 128] };
+const SIZES = { skin01: [256, 128], skin03: [256, 128], skin04: [256, 128], skin06: [256, 128], skin07: [256, 128], skin08: [256, 128], skin11: [256, 128], skin12: [256, 128], skin14: [256, 128], skin16: [256, 128], skin18: [256, 128], skin21: [256, 128], skin22: [256, 128], skin23: [256, 128], skin25: [256, 128], skin27: [256, 128], skin28: [256, 128], skin29: [256, 128] };
 /** Samples per texel side: the edges come out smooth. */
 const SS = 6;
 
@@ -86,26 +86,11 @@ const fbm = (p, k, o) =>
 const fbm2 = (p, k, o) => noise(p[0] * k + o, p[1] * k + o * 1.7, p[2] * k - o) * 0.8 + noise(p[0] * k * 2.2 + 4.1, p[1] * k * 2.2 - o, p[2] * k * 2.2 + 2.6) * 0.2;
 
 /**
- * Where the camo's bandana sits: around the top of the Orb as the start screen shows it at rest (orbStudio's FRONT:
- * the world's up falls on u 0.42, v 0.389 of the texture, the viewer on u 0.42, v 0.703, the right on u 0.67, v 0.5),
- * tied on the right, a little to the back.
+ * The Orb at rest as the start screen shows it (orbStudio's FRONT): the world's up falls on u 0.42, v 0.389 of the
+ * texture, the viewer on u 0.42, v 0.703.
  */
 const UP = dirOf(0.42, 0.389);
 const VIEW = norm(dirOf(0.42, 0.703).map((x, i) => x - UP[i] * dot(dirOf(0.42, 0.703), UP)));
-const SIDE = (() => {
-  const c = norm(cross(VIEW, UP));
-  return dot(c, dirOf(0.67, 0.5)) > 0 ? c : c.map((x) => -x);
-})();
-/** The band: between these angles (radians) from the top. */
-const BAND = [0.97, 1.24];
-const KNOT_AT = (() => {
-  const a = (BAND[0] + BAND[1]) / 2;
-  const around = norm(SIDE.map((x, i) => x * 0.95 - VIEW[i] * 0.3));
-  return norm(UP.map((x, i) => x * Math.cos(a) + around[i] * Math.sin(a)));
-})();
-/** The knot's own frame: down the Orb and across. */
-const KNOT_DOWN = norm(UP.map((x, i) => -x + KNOT_AT[i] * dot(UP, KNOT_AT)));
-const KNOT_ACROSS = cross(KNOT_AT, KNOT_DOWN);
 
 // ------------------------------------------------------------------ for the tennis ball
 /**
@@ -315,9 +300,13 @@ function ballCurveDist(q) {
 
 // ------------------------------------------------------------------ for the yin-yang
 /**
- * The yin-yang (skin23) keeps the original's idea, drawn true: the symbol face on, over the whole Orb (from the back, its
- * mirror), in colours 1 and 3 (the original wrapped it around the Orb, blurred, and left colour 2 unused, as this one
- * does). The small circles' radius and the dots', in units of the Orb's radius.
+ * The yin-yang (skin23) keeps the original's idea, drawn true, in colours 1 and 3 (the original wrapped it around the
+ * Orb, blurred, and left colour 2 unused, as this one does). Face on (theta the angle from the front, phi around it from
+ * the right) the symbol's S is the curve phi = theta: r = sin(theta) = sin(phi) is the small circle. The curve goes on
+ * turning to the back (31/10/2026, Erick: "em um ponto fica certinho, em outros não"; it was the symbol mirrored at the
+ * rim, with a corner at the top and the bottom), so the symbol shows whole from the front and from the back, and the line
+ * runs smooth between. Seen from the exact side it is mostly one colour: there the view falls on one of the two halves.
+ * The small circles' radius and the dots', in units of the Orb's radius.
  */
 const YIN_HALF = 0.5;
 const YIN_DOT = 0.13;
@@ -349,6 +338,221 @@ function bonesDist(x, y) {
   }
   return d;
 }
+
+// ------------------------------------------------------------------ for the beach ball
+/**
+ * The beach ball (skin12) keeps the original's drawing, sharp: six gores, in colour 1, colours 2 and 3 half and half,
+ * colour 3, colours 1 and 2, colour 2, colours 1 and 3; a cap in colour 1 on each pole, BEACH_CAP radians wide.
+ */
+const BEACH_GORES = [[1, 0, 0], [0, 0.5, 0.5], [0, 0, 1], [0.5, 0.5, 0], [0, 1, 0], [0.5, 0, 0.5]];
+const BEACH_CAP = Math.PI / 16;
+
+// ------------------------------------------------------------------ for the eye
+/**
+ * The eye (skin14, also every boss's) keeps the original's drawing, sharp: the pupil at the +z pole in black, the iris
+ * around it in colour 3 with a ring of colour 1 in its middle and fibres across it, the white in colour 1 with veins (colours
+ * 1 and 2 blended) running away from the iris, thinner towards it and gone before the back. The pupil's and the iris's
+ * radius, in radians of the Orb.
+ */
+const EYE_PUPIL = 0.2;
+const EYE_IRIS = 0.98;
+
+// ------------------------------------------------------------------ for the letters
+/** An arc of an ellipse as a polyline: centre, radii, from angle a0 to a1 (degrees, counterclockwise when a1 > a0). */
+const arc = (cx, cy, rx, ry, a0, a1, n = 24) =>
+  Array.from({ length: n + 1 }, (_, i) => {
+    const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
+    return [cx + rx * Math.cos(a), cy + ry * Math.sin(a)];
+  });
+/** The letters Mad Orbs needs: polylines in a box `w` wide and 1 high, y up. */
+const GLYPHS = {
+  M: { w: 0.86, lines: [[[0, 0], [0, 1], [0.43, 0.4], [0.86, 1], [0.86, 0]]] },
+  A: { w: 0.8, lines: [[[0, 0], [0.4, 1], [0.8, 0]], [[0.17, 0.33], [0.63, 0.33]]] },
+  D: { w: 0.74, lines: [[[0, 0], [0, 1], [0.26, 1], ...arc(0.26, 0.5, 0.48, 0.5, 90, -90).slice(1), [0, 0]]] },
+  ' ': { w: 0.3, lines: [] },
+  O: { w: 0.82, lines: [arc(0.41, 0.5, 0.41, 0.5, 0, 360, 48)] },
+  R: { w: 0.74, lines: [[[0, 0], [0, 1], [0.4, 1], ...arc(0.4, 0.755, 0.3, 0.245, 90, -90).slice(1), [0, 0.51]], [[0.34, 0.51], [0.74, 0]]] },
+  B: {
+    w: 0.74,
+    lines: [
+      [[0, 0], [0, 1], [0.38, 1], ...arc(0.38, 0.765, 0.3, 0.235, 90, -90).slice(1), [0, 0.53]],
+      [[0, 0.53], [0.42, 0.53], ...arc(0.42, 0.265, 0.32, 0.265, 90, -90).slice(1), [0, 0]],
+    ],
+  },
+  S: { w: 0.72, lines: [[...arc(0.36, 0.75, 0.34, 0.25, 30, 270), ...arc(0.36, 0.25, 0.36, 0.25, 90, -150).slice(1)]] },
+};
+/** The strokes' half width and the gap between letters, in units of the letters' height. */
+const TEXT_HALF = 0.12;
+const TEXT_GAP = 0.2;
+/** Signed distance from (x, y) to the text, centred on 0 (x from its middle, y from its middle line), in its height's units. */
+function textDist(text, x, y) {
+  const total = [...text].reduce((s, ch, i) => s + GLYPHS[ch].w + (i ? TEXT_GAP : 0), 0);
+  let at = -total / 2;
+  let d = Infinity;
+  for (const ch of text) {
+    const g = GLYPHS[ch];
+    if (x > at - 0.4 && x < at + g.w + 0.4) {
+      for (const line of g.lines) {
+        for (let i = 1; i < line.length; i++) d = Math.min(d, segDist(x - at, y + 0.5, line[i - 1][0], line[i - 1][1], line[i][0], line[i][1]));
+      }
+    }
+    at += g.w + TEXT_GAP;
+  }
+  return d - TEXT_HALF;
+}
+/**
+ * Mad Orbs (skin16): the letters' height (radians of the Orb), and the rings around each pole of its line of text (the
+ * original's rings by the texture's poles), 0.55 radians from it.
+ */
+const MAD_EM = 0.33;
+const MAD_RINGS = [1, -1].flatMap((s) =>
+  [0, 1, 2, 3].map((k) => {
+    const a = (Math.PI / 2) * k + Math.PI / 4;
+    return norm(FRONT_UP.map((x, i) => x * s * Math.cos(0.55) + (FRONT[i] * Math.cos(a) + FRONT_RIGHT[i] * Math.sin(a)) * Math.sin(0.55)));
+  }),
+);
+
+// ------------------------------------------------------------------ for the flames
+/** A repeatable random number in 0..1 for (i, k). */
+const rand = (i, k) => fract(Math.sin(i * 127.1 + k * 311.7) * 43758.5453);
+/** `n` flame tongues around the Orb: where each one stands, its height above `base`, its half width and its lean. */
+function tongues(n, base, height, width, lean, seed) {
+  return Array.from({ length: n }, (_, i) => ({
+    at: (i + 0.5 + (rand(i, seed) - 0.5) * 0.5) / n,
+    h: height * (0.7 + 0.5 * rand(i, seed + 1)),
+    w: width * (0.8 + 0.4 * rand(i, seed + 2)),
+    lean: lean * (rand(i, seed + 3) - 0.3),
+    base,
+  }));
+}
+/**
+ * The flames (skin25, redrawn sharp on 31/10/2026: its soft waves came out blurred) keep the drawing: colour 2 flames
+ * rising from below, smaller hearts of colour 3 inside, colour 1 above; the tongues now pointed, leaning a little.
+ * Heights in the texture's v, from the bottom.
+ */
+const FLAMES = tongues(9, 0.36, 0.3, 0.07, 0.5, 1);
+const HEARTS = tongues(9, 0.17, 0.17, 0.045, 0.5, 9);
+/** Whether (u, `up` from the bottom) is inside the tongues: under their wavy base or under one of them. */
+function inTongues(set, u, up) {
+  if (up < set[0].base + 0.02 * Math.sin(u * Math.PI * 2 * 4)) return true;
+  for (const f of set) {
+    const du = fract(u - f.at + 0.5) - 0.5 - f.lean * (up - f.base) * 0.4;
+    const t = 1 - Math.abs(du) / f.w;
+    if (t > 0 && up < f.base + f.h * t ** 1.8) return true;
+  }
+  return false;
+}
+
+// ------------------------------------------------------------------ for the world map
+/**
+ * The land (Natural Earth's 1:110m land, public domain, naturalearthdata.com), simplified to 0.4° and without the islands
+ * under 1.5 square degrees: each ring a run of points, each point two base-36 pairs, (longitude + 180) × 2 and
+ * (latitude + 90) × 2; the rings split by spaces, the lines broken anywhere.
+ */
+const LAND = `
+6p0k6o0i6f0i6b0j6k0j6n0l 160l120l0x0n120n 7i0o7k0n7l0k770i700j760l7b0o 3a0x3f0x3c0w370x 4i104m104o0z4e0z4b10 671
+26610620z5w0z5u11601261156316 6r1g6k1e6j1d6k1c6h1b6d186i166k136m0x6f0t630r5q0r5x0o5o0n5o0m5t0j6p0f6s0e780h7m0g7q
+0h8f0j8d0l810l810o910u950v950w930w950y9f119l119m12a011af14aj14am12ar14bi13bs15bw17c514d11cdf18dk19du18dv16ds13du
+13ds10dw0zdy10e414eb15ee17em1aeu1aew1cez1afc19fj1afq1dfw1agb1cgo19gu1bh61ahi1chi1dhn1ai31ai518ia17il17iz13jb12ji
+11jf0xj80vj30sj30qj50oja0mj00miw0ijf0ck00bk0000000000b020c0b0b0k0c18091r09220a220b1h0d1i0g1a0i1n0h1v0j1p0l1d0m18
+0o170q1l0p1w0r1w0t1y0u2i0v3d0v3o0x3r0v4f0t4g0u4b0w490z4n0x500x520z5h0w5j0y5u0w690z69116715691869196i1f6s1h6u1h 6
+8206e1z6d1y6a1y661x5z1z5v2262206523 6r266s256s246n236m24 i32qi92qi82mi42li12q jm2qjo2pjl2ljm2kjj2kjh2gjf2fj92gja
+2ijh2mjk2qjm2r jp30ju2wjx2xjw2uju2ujq2pjp2pjq2rjq2sjo2tjp2ujp2xjl33jp31 ja3sj73tj43w cs49ct45cr45cs42cm3mcj3lcg3
+mcf3sch3wcg41ch44cl44cn47cq4c hz48i047i148i346i53yia3vib3rid3rie3pii3kij3gii39id31ic2xi52ui22vi22whz2uht2whr30ho
+31ho33hm31ho36hk32hh37hb39h038gw36gv34go34gk32ge34gf35gf39gb3kgc3jgb3lgc3jgb3ngc3sgc3rgh3vgq3xgu43gv41gw42gv43gz
+48h248h546h746h747h94bhd4chc4dhd4ehj4chl4chm4bhk49hj46hs41hu41hv46hw4ehx4fhy4e gx4ggv4ggw4hh34j g14mg64ngf4jgd4i
+g14kfv4mfw4o ig4pic4ni94pic4qie4pif4sih4r hg4yhh4uhj4thl4vhp4xi14si44pi74oi84ni64ni64lid4fi84gi44ki14lhz4khz4ihx
+4hhq4khn4jhp4lho4phf4the4shc4uhf4whc4wh94yhd4z gy53gv50go50go4zgq4xgv4zgr4wgu4pgs4pgt4rgr4rgq4vgp4ugp4pgn4pgn4tg
+m4ugo51gq53gu52 h552h44yh354h454 fw4oft4ofp4sfh54fb5bff5afl54fn54fs50fr4zfw4u gk54gm52gk52gj4ygh4xgg4sg44ug44xg2
+4zg253g354g654g755ga56gh5egm5bgj56 h15hh15eh05dh05fgz5egz5bgw5cgw5fgv5ggs5egv5hgw5ggz5igz5k ei5ceh5ceg5eeg5kek5f
+ gw5lgu5igt5jgu5mgv5mgv5lgw5m gz5oh05mgy5ngz5lgy5kgx5ngy5ogx5p gr61gs61gt5ygr5wgr5tgw5sgw5pgu5rgp5sgq5tgo5ugo5xg
+p5wgp61 5z64646367616361615z5z605w605v615z615x63 g561g161g163g664 5l6a5w655o645q655n675g685g695a685f6a gq6agp68g
+o6bgr6fgs6e hh6whg6uhd6uhe6w av74au71ap73ap74 ai7aak79aj76ai76ag7a hu72ht6yhm6xhk6vhi6xha6whc6uhb6rh96qh86rh96th
+76vhd6zhj6zhl73hn72hr74ht7ahv7bhw78 i07gi37hi37fi07ehy7chv7dhu7bhs7bhs7dht7fhv7fhw7j 357p317q2w7s2v7u307t 6w7t6u
+7s6w7s6x7s6w7r717q707p727p737n727l707m707o6x7m6w7m6x7n6v7n6p7n6q7p6t7t6w7v6x7v 2n802p802o7y2q7w2m7z2m80 hz7ti17q
+hy7rhx7ohz7khx7lhw7khv7zhx81 9m7x9g7w9i7y9h809n829p81 1i861g851f871j881k87 9u899s879w879u849w84a17ya37xa27wa37v9
+q7s9o7s9t7v9p7w9s7x9r7z9u7z9u809q829q849p839o869q89 5a8n5k8j5i8j5e8k598i588j568j578k588n 978p978o998m8z8j8q8k8s8
+l8o8m8s8n8n8n8s8p8v8n 5s8q5q8r5s8t5u8r 0a8p0b8p0b8q0g8q0k8o0f8n0e8l088n038n038o008o018n008m008u0a8q 4p8u4g8v4k8w
+ 4z8v4z8t528v548t538s558q598u598w5f8v5h8u5g8s5h8r5d8p588p558m508k4y8i4u8g4s8e4r8a4u8a4v864y875a835f825g7z5k7u5n7
+x5k815r855p885n8a5p8c5o8h5w8h618e658e658a69886f8d6l866k856t816w7z6x7w6o7s6b7s627m677p6e7q6g7p6e7o6f7k6l7k6n7m6o7
+k6d7f6c7f6c7h6f7j6a7i637e627d647b5x7a607a5w7a5u765t775u755s725r765r745q745r745t6z5h6r5k6i5j6e5h6g5e6m5c6o5a6n576
+p526p516o526n506m4s6n4n6l4l6j4k694n634r604w614y634z665667566654615361535x525w5a5w5d5v5c5m5h5i5l5j5q5h5t5j5u5m5x5
+m605p625o605n615i625k615m645n645o685l6e5k6f5l6k5l6j5l6j5k6m5j6n5h6q5g6u5c705c7558785377507b507b4y7c4z7i4x7j4v7s4
+u7y4q814q834l824i7v4a7t407q3s7o3q7j3p7d3m7b3k7a3f70336w326r346u2y6t2w6q2v6j2u6k2r6j2q6e2q6e2o6h2n6e2l6d2i692h692
+f6d2e6c2c66276823622262205u235t2b5w2e5t2f5v2g5v2k5y2j5z2n5x2o5x2l5v2m5y2t5x2y6137613e623h643w633z61415s475k4m5i4
+o5h4r5k4v5i4w5i4y5k525m535q585o5h5l5i5j5g5k5f5i5e5i5g5d5h5a5k5a5j595k595m555r4y5s4r5w4n5v496145644567446a3x6f3x6
+h3s6m3q6q3o6r3m6s3n6o3t6h3v6d3x6b3w6a3s6d3r6g3m6j3o6l3l6n3h6u3b6x3379347j337o367o377m367q2x7u2w7x2u7y2t7z2o832k8
+82f88288b1u8e1s8d1s8c1l8a1l8d1n8f1g8b1h8a1g8817840u8119871a8a1089108b0w8c0s8f0v8i128k118l128m0u8l0o8n0v8p118o0q8
+t0y8v108x1b8z2f8u2s8w2u8w2w8x308v338w338v398w3m8u3o8t3l8s3w8s3y8r408s3y8t408t448u4d8r4j8s4j8t4l8t4o8s4o8r4p8s4r8
+s4s8u4n8w4n8y4q904u8z4x8w4v8v 3o923n913r923u913w92408z41903z9243924591478y4e8w4e8v4b8v4c8u4b8u448u3p8t3k8u3h8w3r
+8x3g8x3f8y3k8z3d8z3g91 5r925l915i935o93 579258915a935f945j915j905o915w8z608z688w6a8u668t6k8q6g8m6b8p688p688n6d8l
+6f8j6e8h668j6c8g628i5u8l5p8k5n8l5o8n5w8n5v8o5z8r5y8r5m8w5h8v538x518y538y508y509053935894 4f944l944k924n914n8z4h8
+z4b914f914d93 hz92hs93hw94 4u924p904o934r944z94 3b8z368y3090349332953h943l933e91 id96ib95i496 4t964m964q97 i297i
+196hq95hm97hq98 4j994l994k964b974b99 4098449843963p953s963h963l993y973v993x9a d78xcz8ycv8zcv90cx90cx92d193cz93d4
+95d396de99ds9adu99d995d391d38z 4r9a4x9a52975i975k9654954v964u984s994m9a 3k9b3i9936983e9b fy9afy99g699gc98gc97g39
+4ga94gb93gf94gu92gv93h293h592h691h590hb8yhd90hs8zhq91ht92ib90ii8yiu8yiw8xiv8viy8vjc8vjf8tji8ujg8vjh8wjx8vk08uk08
+mjv8ljz8hjn8fjh8cje8dj98cj38cj088j287j284j084iz83j082ix81iw7yit7yis7wiq7uin83io86iq88it88j38ej58hj38hiw8div8gip8
+fik8cim8aif8aif8bic8bhw8ahi81ho80hs80hv7yhv7wht7uhs7pho7lhi7fhf7ehd7fh378h376h772h66yh16xh071h272h073gx74gz77gx7
+8gq76gs79gr7agk76gj75gm73gn72gq74gt73gt72gq71gm6ygo6xgs6rgr6pgs6ogr6kgl6dgg6ag667g565g465g467g167fw64fv62g25vg35
+rg25nfu5hfu5kfr5lfp5ofm5pfm5rfk5rfi5ifk5ifl5ffq5bfs53fn56fk5dfh5hfh5gfi5nfe5yfb5vf85wf960f36af16af168eu67et64eq6
+3ek5xeh5weg5leb5ge95ie35we167dx66du68dv6adr6cdp6fdf6ed76fd56id16hcv6kcs6oco6ocu6ecu6gcv6gcw6cd06cd56hd66cd96bdc6
+9d864d762d35ycx5xcw5vcp5scf5pcd5yc667c56bbx6kby6nbw6jbt6obz6cbz6ac268c361c560c75wcf5pcd5nch5lcu5ocu5lcn58c94vc64
+rc64nc74mc64jc94eca47c743by3wbz3pbt3lbs3ebk36bg34b934b332b134b039au3iat3sao40ao44ar4car4fao4qai4yak56aj57ah5aac5
+9a95da45c9w599r5a9l599i5a9b5f965m935o935r915t935w94609268976h9h6o9h6t9m6w9o709w6ya371aj73ak71am72al6wau6tav6rb26
+pb46qb46sb76ubm6qbq6rbs6qbw6qc06xc071bt70br71bn70bj71bh74bi76bg77bj79bm79bm7abq7abv7cc57ac97acb7ccb7dc17ic47kc37
+lc67nby7lby7jc17jc17ibw7hbt7jbv7kbp7lbn7ibm7ibj7dbm7abh78bg7abe7abb79bd78bc78b979bc73ba74ba71b971b379b37baq7jap7
+jap7gb178ay79ax78ay76aw74av74aw76av78ao7bal7eak7gai7had7ea67ea67ca27a9z77a0759w719r719p709n729i729i759h759i7a9h7
+e9k7f9w7f9x7g9y7k9u7n9r7o9r7p9x7p9w7s9y7ra37sa37ua87va97yag7zai80ag83ah86al87al86am85aj83am80ap81as80az82b381b78
+2b787b988bc86bd89bb89bb8abm8cbk8dba8cb78db68hb78ibf8mbc8ob88nb68mb78lb08hay8fb28cb08aay89aw84aq83al8bah89ab89aa8
+gal8lau8sb28wba8wbd8ybk8ybr8xbo8wbq8vbs8wc98sca8qc88pbu8pby8oby8lc28kc18mc28mc78lc98mc88ncc8pcg8och8qcf8rcg8scf8
+tcl8tcm8rcj8rcj8qcl8pcz8ud18ucz8sda8udc8tde8udc8vdd8wdt8sdu8tdq8vdp8ydu92e192e290e08ze28xe18ue38tdz8pe18oe68se58
+te68ue38ve58xe28ze690e592e791e78ze98ye890eb91ej90eh91eh93eu94es95eu96fm99ft9bfw9bft9a 3w9b3p9b3t9c3w9c bd9cb59bb
+79cb69dba9d 4o9c4k9c4j9e4p9d 4g9d4h9c469d489d459f fu9dfj9cfo9ffv9d b19fb79eb29day9aaw9aas9bat9bal9f bf9hbj9gba9f
+az9h cu9hcn9gcl9gcm9hci9h fk9efa9ef29hfc9jfk9g 569f589f4y9c4u9d4s9e4u9f4n9g4r9i4v9j549h 679m6k9l699j6d9j629g5q9f
+5t9e5s9e5t9d5k9a5o9a5j985199519a549a539c5a9b549d5a9f569h5g9h559h4x9k599l5e9l5l9m 8i9n8u9l899k8q9k8s9j8q9i949k9c9
+j8w9g919g8x9e8x9b8z9a8t998w988x968v968x958t948v948u938p938r908m918s8z8s8x8p8x8l8z8m8y8j8w8r8w8h8t888s848p7s8n7q8
+j7m8h7n8g7l8c7b8e758j708q728t758t768w718v6z8v6z8y758x6w8z6z916r976l986798619a6a9b5x9c6d9f6d9g689g6k9j6j9k729k779
+l7j9j7e9k7e9l7l9m`;
+const LAND_RINGS = LAND.replace(/\n/g, '')
+  .trim()
+  .split(' ')
+  .map((r) => {
+    const pts = [];
+    for (let i = 0; i < r.length; i += 4) pts.push([parseInt(r.slice(i, i + 2), 36) / 2 - 180, parseInt(r.slice(i + 2, i + 4), 36) / 2 - 90]);
+    return pts;
+  });
+/** The land drawn once on a grid of MAP_STEP degrees: 1 land, 2 ice (Greenland and Antarctica), 0 sea. */
+const MAP_STEP = 0.25;
+const MAP_W = 360 / MAP_STEP;
+const MAP_H = 180 / MAP_STEP;
+const LAND_MASK = (() => {
+  const mask = new Uint8Array(MAP_W * MAP_H);
+  for (const ring of LAND_RINGS) {
+    const lons = ring.map((p) => p[0]);
+    const lats = ring.map((p) => p[1]);
+    const cx = (Math.min(...lons) + Math.max(...lons)) / 2;
+    const cy = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const ice = cy < -60 || (cx > -75 && cx < -10 && cy > 58 && cy < 85);
+    for (let row = 0; row < MAP_H; row++) {
+      const lat = 90 - (row + 0.5) * MAP_STEP;
+      const xs = [];
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [x1, y1] = ring[j];
+        const [x2, y2] = ring[i];
+        if (y1 > lat !== y2 > lat) xs.push(x1 + ((lat - y1) * (x2 - x1)) / (y2 - y1));
+      }
+      xs.sort((a, b) => a - b);
+      for (let k = 0; k + 1 < xs.length; k += 2) {
+        const c0 = Math.max(0, Math.ceil((xs[k] + 180) / MAP_STEP - 0.5));
+        const c1 = Math.min(MAP_W - 1, Math.floor((xs[k + 1] + 180) / MAP_STEP - 0.5));
+        for (let c = c0; c <= c1; c++) mask[row * MAP_W + c] = ice ? 2 : 1;
+      }
+    }
+  }
+  return mask;
+})();
+/** The globe's north is the Orb at rest's up, and this longitude faces the viewer (the Americas). */
+const MAP_FRONT = -55;
 
 // ------------------------------------------------------------------ for the volleyball (a draft)
 /** tan 15°: each face's three strips split at ±15° from its middle. */
@@ -391,20 +595,19 @@ const SKINS = {
     if (polygon(STAR_DISC, x, y).inside) return [0, 0, 1];
     return [0, 1, 0];
   },
-  // The cow print (the original game's skin06 redrawn, 31/10/2026: big blobs in colours 2 and 3 blurred at 64x32, colour 1
-  // left out): big patches in colour 3 and smaller ones in colour 1 on colour 2, round-edged (two octaves of noise,
-  // warped a little); with orange, white and black, a calico
+  // The world map (31/10/2026, Erick: Style 6 a world map; it was a cow print redrawn the same day, kept in DRAFTS, and the
+  // original's blurred blobs before): the sea in colour 2, the land in colour 1, the ice (Greenland, Antarctica, the
+  // Arctic's) in colour 3; north up and the Americas to the front on the Orb at rest
   skin06(u, v) {
     const p = dirOf(u, v);
-    const warp = [
-      noise(p[0] * 1.3 + 5, p[1] * 1.3, p[2] * 1.3),
-      noise(p[0] * 1.3, p[1] * 1.3 + 9, p[2] * 1.3),
-      noise(p[0] * 1.3, p[1] * 1.3, p[2] * 1.3 + 13),
-    ];
-    const q = p.map((x, i) => x + warp[i] * 0.35);
-    const big = fbm2(q, 1.5, 41.2);
-    if (big > 0.13) return [0, 0, 1];
-    if (fbm2(q, 1.6, 77.7) > 0.2 && big < 0.07) return [1, 0, 0];
+    const lat = (Math.asin(Math.max(-1, Math.min(1, dot(p, FRONT_UP)))) * 180) / Math.PI;
+    const lon = MAP_FRONT + (Math.atan2(dot(p, FRONT_RIGHT), dot(p, FRONT)) * 180) / Math.PI;
+    const row = Math.min(MAP_H - 1, Math.max(0, Math.floor((90 - lat) / MAP_STEP)));
+    const col = ((Math.floor((lon + 180) / MAP_STEP) % MAP_W) + MAP_W) % MAP_W;
+    const m = LAND_MASK[row * MAP_W + col];
+    if (m === 2) return [0, 0, 1];
+    if (m === 1) return [1, 0, 0];
+    if (lat > 79 + 3 * noise(p[0] * 4, p[1] * 4, p[2] * 4)) return [0, 0, 1];
     return [0, 1, 0];
   },
   // The belt (the original game's skin07 redrawn, 31/10/2026, the same drawing: it was good, only blocky at 64x32): rails
@@ -463,6 +666,56 @@ const SKINS = {
     if (ballCurveDist(q) < BALL_SEAM) return [0, 0, 1];
     return Math.acos(q[2]) < ballCurve(Math.atan2(q[1], q[0])) ? [0, 1, 0] : [1, 0, 0];
   },
+  // The beach ball (the original game's skin12 redrawn, 31/10/2026, the same drawing, sharp)
+  skin12(u, v) {
+    if (Math.abs(dirOf(u, v)[2]) > Math.cos(BEACH_CAP)) return [1, 0, 0];
+    return BEACH_GORES[Math.floor(fract(u) * 6)];
+  },
+  // The eye (the original game's skin14 redrawn, 31/10/2026, the same drawing, sharp: its pupil and iris were blocky
+  // rings, its veins smudges)
+  skin14(u, v) {
+    const p = dirOf(u, v);
+    const t = Math.acos(Math.max(-1, Math.min(1, p[2])));
+    if (t < EYE_PUPIL) return [0, 0, 0];
+    const phi = Math.atan2(p[1], p[0]);
+    if (t < EYE_IRIS) {
+      const k = (t - EYE_PUPIL) / (EYE_IRIS - EYE_PUPIL);
+      // The ring, the fibres (noise fast around the pupil, slow away from it), dark at the pupil's edge and at the rim
+      const ring = 0.42 * Math.exp(-(((k - 0.55) / 0.2) ** 2));
+      const fibre = noise(Math.cos(phi) * 9, Math.sin(phi) * 9, k * 1.6) * 0.9 + noise(Math.cos(phi) * 23, Math.sin(phi) * 23, k * 2.5 + 7) * 0.5;
+      let light = ring + Math.max(0, fibre) * 0.45 * smooth(0.05, 0.25, k);
+      light *= 1 - smooth(0.82, 0.88, k);
+      light = Math.max(0, Math.min(0.6, light));
+      return [light, 0, 1 - light];
+    }
+    // The veins: where a noise crosses 0 (fast around the eye, slow along it, bent by another), thicker away from the
+    // iris (`reach`), here and there (`some`); the big ones and thinner branches
+    const reach = smooth(EYE_IRIS + 0.05, EYE_IRIS + 1, t) * (1 - smooth(2.35, 2.75, t));
+    const vein = (k, freq, width, o) => {
+      const w = noise(Math.cos(phi) * 2 + o, Math.sin(phi) * 2, t * 1.4) * 0.35;
+      const line = Math.abs(noise(Math.cos(phi + w) * freq, Math.sin(phi + w) * freq, t * 1.1 + o));
+      const some = smooth(-0.05, 0.2, noise(Math.cos(phi) * 2.5 + o * 3, Math.sin(phi) * 2.5, t * 1.6 + 5));
+      return line < width * reach ** k * some;
+    };
+    if (vein(1, 4.5, 0.075, 11) || vein(2, 9, 0.06, 29)) {
+      const deep = 0.35 + 0.3 * reach;
+      return [1 - deep, deep, 0];
+    }
+    return [1, 0, 0];
+  },
+  // Mad Orbs (the original game's skin16, its "RndLabs" made "MAD ORBS"; redrawn 31/10/2026, Erick: the letters were too
+  // big to read): "MAD ORBS" in colour 3 on colour 1 around the middle, short enough to read whole from the front, and
+  // again on the far side, turned half a turn around the right (the pedestal rolls the Orb that way, so it comes up
+  // reading); four rings of colour 2 around each pole
+  skin16(u, v) {
+    const p = dirOf(u, v);
+    for (const c of MAD_RINGS) if (Math.abs(Math.acos(Math.min(1, dot(p, c))) - 0.2) < 0.045) return [0, 1, 0];
+    const z = dot(p, FRONT);
+    const s = z >= 0 ? 1 : -1;
+    const lat = Math.asin(Math.max(-1, Math.min(1, dot(p, FRONT_UP) * s)));
+    const lon = Math.atan2(dot(p, FRONT_RIGHT), z * s);
+    return textDist('MAD ORBS', lon / MAD_EM, lat / MAD_EM) < 0 ? [0, 0, 1] : [1, 0, 0];
+  },
   // The faces (the original game's skin18 redrawn, 31/10/2026, the same drawing: its discs weren't round on the Orb)
   skin18(u, v) {
     const p = dirOf(u, v);
@@ -501,18 +754,19 @@ const SKINS = {
     return [0, 1, 0];
   },
   // The yin-yang (the original game's skin23 redrawn, 31/10/2026: wrapped around the Orb and blurred, it didn't read):
-  // the symbol face on, in colours 1 and 3
+  // the symbol face on and on the back, in colours 1 and 3
   skin23(u, v) {
     const p = dirOf(u, v);
     const x = dot(p, FRONT_RIGHT);
     const y = dot(p, FRONT_UP);
-    const top = Math.hypot(x, y - YIN_HALF);
-    const bottom = Math.hypot(x, y + YIN_HALF);
-    if (top < YIN_DOT) return [0, 0, 1];
-    if (bottom < YIN_DOT) return [1, 0, 0];
-    if (top < YIN_HALF) return [1, 0, 0];
-    if (bottom < YIN_HALF) return [0, 0, 1];
-    return x < 0 ? [1, 0, 0] : [0, 0, 1];
+    const z = dot(p, FRONT);
+    // The dots: the back's are the front's turned half a turn around the right
+    const s = z >= 0 ? 1 : -1;
+    if (Math.hypot(x, y - YIN_HALF * s) < YIN_DOT) return [0, 0, 1];
+    if (Math.hypot(x, y + YIN_HALF * s) < YIN_DOT) return [1, 0, 0];
+    const theta = Math.acos(Math.max(-1, Math.min(1, z)));
+    const d = (((Math.atan2(y, x) - theta) % (2 * Math.PI)) + 4 * Math.PI) % (2 * Math.PI);
+    return d < Math.PI ? [1, 0, 0] : [0, 0, 1];
   },
   // Honeycomb: green cells with red walls and a blue core in each
   skin24(u, v) {
@@ -542,16 +796,15 @@ const SKINS = {
     const core = 1 - smooth(1.4, 1.9, d1);
     return [wall, (1 - wall) * (1 - core), (1 - wall) * core];
   },
-  // Flames: red above, green flames rising from below with blue hearts
+  // Flames: colour 1 above, colour 2 flames rising from below with hearts of colour 3 (redrawn sharp, 31/10/2026)
   skin25(u, v) {
-    const a = u * Math.PI * 2;
-    const h = 0.5 + 0.17 * Math.sin(a * 5) + 0.07 * Math.sin(a * 11 + 1.3) + 0.04 * Math.sin(a * 17 + 0.4);
     const up = 1 - v;
-    const flame = 1 - smooth(h - 0.03, h + 0.03, up);
-    const heart = 1 - smooth(h * 0.52 - 0.03, h * 0.52 + 0.03, up);
-    return [1 - flame, flame * (1 - heart), heart];
+    if (inTongues(HEARTS, u, up)) return [0, 0, 1];
+    if (inTongues(FLAMES, u, up)) return [0, 1, 0];
+    return [1, 0, 0];
   },
-  // Crown: a green crown with blue gems on a red Orb, a blue cap on top
+  // Royal (Crown until 29/10/2026): a green crown with blue gems on a red Orb, a blue cap on top. Out of the game since
+  // 31/10/2026 (Erick: "pode remover"; RETIRED_SKINS): kept so its texture stays as it is
   skin26(u, v) {
     const spikes = 7;
     const s = Math.abs(fract(u * spikes) - 0.5) * 2; // 0 at a spike's tip, 1 between two
@@ -587,39 +840,16 @@ const SKINS = {
     const eight = patch * Math.max(ring(-0.095, 0.085), ring(0.1, 0.105));
     return [1 - patch, patch * (1 - eight), eight];
   },
-  // Camo (the site's icon, 30/10/2026): woodland blobs in colour 2 and black on colour 1, a bandana in colour 3 with a
-  // black edge, tied on the side with two tails (olive, dark green and red for the icon's look)
+  // Camo (30/10/2026): woodland blobs in colours 1, 2 and 3 (the third was black, and colour 3 a bandana tied on the side
+  // until 31/10/2026, when Erick took it off)
   skin28(u, v) {
     const p = dirOf(u, v);
     // Blobs: noise warped by noise, so they come out long and ragged, not round
     const warp = [fbm(p, 1.1, 3.1), fbm(p, 1.1, 7.9), fbm(p, 1.1, 12.4)];
     const q = p.map((x, i) => x + warp[i] * 0.55);
     const dark = smooth(-0.015, 0.015, fbm(q, 1.9, 21.7) - 0.01);
-    const black = smooth(-0.015, 0.015, fbm2(q, 2.1, 33.3) - 0.25);
-    let r = (1 - black) * (1 - dark);
-    let g = (1 - black) * dark;
-    // The bandana: the band between BAND's angles from the top, and the knot with its tails, seen from above the knot
-    const a = Math.acos(Math.max(-1, Math.min(1, dot(p, UP))));
-    const band = (grow) => smooth(BAND[0] - grow - 0.012, BAND[0] - grow + 0.012, a) * (1 - smooth(BAND[1] + grow - 0.012, BAND[1] + grow + 0.012, a));
-    let tie = () => 0;
-    if (dot(p, KNOT_AT) > 0) {
-      const x = dot(p, KNOT_ACROSS);
-      const y = dot(p, KNOT_DOWN);
-      const ellipse = (cx, cy, ax, ay, turn, grow) => {
-        const c = Math.cos(turn);
-        const s = Math.sin(turn);
-        const dx = x - cx;
-        const dy = y - cy;
-        return 1 - smooth(0.93, 1.07, Math.hypot((dx * c + dy * s) / (ax + grow), (-dx * s + dy * c) / (ay + grow)));
-      };
-      tie = (grow) =>
-        Math.max(ellipse(0, 0, 0.085, 0.095, 0, grow), ellipse(-0.09, 0.24, 0.06, 0.17, 0.38, grow), ellipse(0.085, 0.23, 0.055, 0.16, -0.3, grow));
-    }
-    const edge = Math.max(band(0.03), tie(0.025));
-    const cloth = Math.max(band(0), tie(0));
-    r *= (1 - edge) * (1 - cloth);
-    g *= (1 - edge) * (1 - cloth);
-    return [r, g, cloth];
+    const third = smooth(-0.015, 0.015, fbm2(q, 2.1, 33.3) - 0.25);
+    return [(1 - third) * (1 - dark), (1 - third) * dark, third];
   },
   // The skull (31/10/2026, a free style): a skull at the front and crossed bones at the back, in colour 2 with an edge
   // and holes in colour 3, on colour 1
@@ -651,6 +881,22 @@ const SKINS = {
  * copy it over a skin to try it.
  */
 const DRAFTS = {
+  // The cow print (Style 6 for a few hours on 31/10/2026, then the world map: big blobs in colours 2 and 3 blurred at 64x32, colour 1
+  // left out): big patches in colour 3 and smaller ones in colour 1 on colour 2, round-edged (two octaves of noise,
+  // warped a little); with orange, white and black, a calico
+  cow(u, v) {
+    const p = dirOf(u, v);
+    const warp = [
+      noise(p[0] * 1.3 + 5, p[1] * 1.3, p[2] * 1.3),
+      noise(p[0] * 1.3, p[1] * 1.3 + 9, p[2] * 1.3),
+      noise(p[0] * 1.3, p[1] * 1.3, p[2] * 1.3 + 13),
+    ];
+    const q = p.map((x, i) => x + warp[i] * 0.35);
+    const big = fbm2(q, 1.5, 41.2);
+    if (big > 0.13) return [0, 0, 1];
+    if (fbm2(q, 1.6, 77.7) > 0.2 && big < 0.07) return [1, 0, 0];
+    return [0, 1, 0];
+  },
   // A volleyball: the sphere split into the six faces of a cube, three strips on each, the neighbours' strips across
   // theirs (the strips of the face around axis k run along axis (k + 2) % 3); the outer strips in colour 1, the middle
   // ones in colour 2, the seams in colour 3
