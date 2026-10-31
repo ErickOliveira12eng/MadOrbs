@@ -389,8 +389,8 @@ export function sanitizeText(text: unknown, maxLength: number): string {
   return out.trim();
 }
 
-/** The Orb styles: skin01..skin28 (the original game's 23, then Mad Orbs' own: the waves' exclusive ones, the 8 ball, the camo). */
-export const SKIN_COUNT = 28;
+/** The Orb styles: skin01..skin29 (the original game's 23, then Mad Orbs' own: the waves' exclusive ones, the 8 ball, the camo, the skull). */
+export const SKIN_COUNT = 29;
 
 export function sanitizeSkin(skin: unknown): SkinInfo {
   const def: SkinInfo = { skin: 'skin10', redDecal: [0.5, 0.5, 1], greenDecal: [0, 0, 1], blueDecal: [0, 0, 0.5] };

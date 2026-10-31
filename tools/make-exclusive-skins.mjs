@@ -1,9 +1,10 @@
 // Draws Mad Orbs' own Orb skins (skin24..skin26: Honeycomb, Flames, Royal; Royal was named Crown until 29/10/2026, when the
 // crowns came; skin27: the 8 ball, 29/10/2026; skin28: the camo, 30/10/2026, the look of the site's icon), won at the
-// waves' milestones (src/client/wavesProgress.ts), and the original game's styles redrawn, one by one (30 and 31/10/2026,
-// Erick: drawn by hand at 64x32, they came out blurred or lumpy on the Orb; each one's comment in SKINS says what it was).
-// Mad Orbs' own art, made here, not the original game's. A skin is a 64x32 equirectangular texture (the 8 ball, the camo
-// and the redrawn ones 256x128, for their detail: SIZES) whose red, green and blue say how much of each of the player's
+// waves' milestones (src/client/wavesProgress.ts); skin29: the skull, 31/10/2026, free; and the original game's styles
+// redrawn, one by one (30 and 31/10/2026, Erick: drawn by hand at 64x32, they came out blurred or lumpy on the Orb; each
+// one's comment in SKINS says what it was). Mad Orbs' own art, made here, not the original game's. A skin is a 64x32
+// equirectangular texture (all but the honeycomb, the flames and the royal 256x128, for their detail: SIZES) whose red,
+// green and blue say how much of each of the player's
 // three colours goes on each texel, black where all three are 0 (src/client/render/baboRenderer.ts, Player::updateSkin).
 //   node tools/make-exclusive-skins.mjs            -> public/assets/skins/<each skin in SKINS>.tga
 //   node tools/make-exclusive-skins.mjs --preview  -> also shots/exclusive-skins.ppm (8x, to look at)
@@ -13,7 +14,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 /** The original game's size (the 8 ball is bigger: SIZES). */
 const W = 64;
 const H = 32;
-const SIZES = { skin01: [256, 128], skin03: [256, 128], skin04: [256, 128], skin06: [256, 128], skin07: [256, 128], skin08: [256, 128], skin18: [256, 128], skin21: [256, 128], skin22: [256, 128], skin27: [256, 128], skin28: [256, 128] };
+const SIZES = { skin01: [256, 128], skin03: [256, 128], skin04: [256, 128], skin06: [256, 128], skin07: [256, 128], skin08: [256, 128], skin11: [256, 128], skin18: [256, 128], skin21: [256, 128], skin22: [256, 128], skin23: [256, 128], skin27: [256, 128], skin28: [256, 128], skin29: [256, 128] };
 /** Samples per texel side: the edges come out smooth. */
 const SS = 6;
 
@@ -275,6 +276,80 @@ function mouthDist(x, y, { cy, r, reach }, down) {
 const WAVE_BAND = 1.78;
 const WAVE_LINE = 3.47;
 
+// ------------------------------------------------------------------ for the designs seen face on
+/** Where the Orb at rest faces the viewer (orbStudio's FRONT), upright: x to the right, y up, z towards the viewer. */
+const FRONT = dirOf(0.42, 0.703);
+const FRONT_UP = norm(UP.map((x, i) => x - FRONT[i] * dot(UP, FRONT)));
+const FRONT_RIGHT = cross(FRONT_UP, FRONT);
+
+// ------------------------------------------------------------------ for the basketball
+/**
+ * The basketball (skin11) keeps the original's idea, drawn as a real ball: the seams (colour 3) are two great circles
+ * and a curve around each of the ball's poles; the caps inside the curves in colour 2, the rest in colour 1 (the
+ * original blurred them, and on the still Orb the caps read as stripes, too close to Style 2's). Turned to the classic
+ * ball (🏀): both great circles cross where the Orb at rest faces the viewer, one upright and one level, the ball's poles
+ * to the left and the right, so a curve on each side.
+ */
+const BALL_POLE = FRONT_RIGHT;
+const BALL_SIDE = cross(BALL_POLE, FRONT);
+/** The seams' half width, in radians of the Orb. */
+const BALL_SEAM = 0.03;
+/** The curve's angle from the ball's pole, at the angle `f` around it (0 towards the viewer): 21° to 69°. */
+const ballCurve = (f) => (45 + 24 * Math.cos(2 * f)) * (Math.PI / 180);
+const BALL_CURVE = Array.from({ length: 1600 }, (_, i) => {
+  const f = (i / 1600) * Math.PI * 2;
+  const t = ballCurve(f);
+  return [Math.sin(t) * Math.cos(f), Math.sin(t) * Math.sin(f), Math.cos(t)];
+});
+/** The angle from `q` (in the ball's frame) to the curve: every 16th point first, then the ones around the best of them. */
+function ballCurveDist(q) {
+  let best = -2;
+  let at = 0;
+  for (let i = 0; i < BALL_CURVE.length; i += 16) {
+    const d = dot(q, BALL_CURVE[i]);
+    if (d > best) [best, at] = [d, i];
+  }
+  for (let i = at - 16; i <= at + 16; i++) best = Math.max(best, dot(q, BALL_CURVE[(i + BALL_CURVE.length) % BALL_CURVE.length]));
+  return Math.acos(Math.min(1, best));
+}
+
+// ------------------------------------------------------------------ for the yin-yang
+/**
+ * The yin-yang (skin23) keeps the original's idea, drawn true: the symbol face on, over the whole Orb (from the back, its
+ * mirror), in colours 1 and 3 (the original wrapped it around the Orb, blurred, and left colour 2 unused, as this one
+ * does). The small circles' radius and the dots', in units of the Orb's radius.
+ */
+const YIN_HALF = 0.5;
+const YIN_DOT = 0.13;
+
+// ------------------------------------------------------------------ for the skull
+/**
+ * The skull (skin29, Mad Orbs' own, 31/10/2026: Erick took the yin-yang for Style 23 and wanted the skull offered with it
+ * as a new style): a skull face on and crossed bones on the far side, in colour 2 with an edge and holes in colour 3, on
+ * colour 1. In units of the Orb's radius.
+ */
+const SKULL_EDGE = 0.035;
+const SKULL_NOSE = [[-0.06, -0.07], [0.06, -0.07], [0, -0.19]];
+const capsule = (x, y, ax, ay, bx, by, r) => segDist(x, y, ax, ay, bx, by) - r;
+/** Signed distance to the skull's outline (negative inside): the head and the jaw under it. */
+const skullDist = (x, y) => Math.min(Math.hypot(x, y - 0.12) - 0.46, roundRect(x, y + 0.3, { w: 0.27, h: 0.16, r: 0.08 }));
+/** Signed distance to the crossed bones: two bars corner to corner, with two knobs across each end. */
+function bonesDist(x, y) {
+  let d = Infinity;
+  for (const s of [1, -1]) {
+    const ax = -0.42 * s;
+    const ay = -0.42;
+    const bx = 0.42 * s;
+    const by = 0.42;
+    d = Math.min(d, capsule(x, y, ax, ay, bx, by, 0.065));
+    const nx = 0.07 / Math.SQRT2;
+    for (const [ex, ey] of [[ax, ay], [bx, by]]) {
+      d = Math.min(d, Math.hypot(x - ex - nx, y - ey + nx * s) - 0.1, Math.hypot(x - ex + nx, y - ey - nx * s) - 0.1);
+    }
+  }
+  return d;
+}
+
 // ------------------------------------------------------------------ for the volleyball (a draft)
 /** tan 15°: each face's three strips split at ±15° from its middle. */
 const T15 = Math.tan(Math.PI / 12);
@@ -376,6 +451,18 @@ const SKINS = {
     if (inBox(Math.min(x, 64 - x), Math.abs(y - 16), 5.5, 6.3, 3.4, 1.1, 0.8)) return [0, 1, 0];
     return [1, 0, 0];
   },
+  // The basketball (the original game's skin11 redrawn, 31/10/2026: blurred, its caps read as stripes): the seams in
+  // colour 3, the caps in colour 2, the rest in colour 1
+  skin11(u, v) {
+    const p = dirOf(u, v);
+    // In the ball's own frame: x towards the viewer, z its pole
+    const q = [dot(p, FRONT), dot(p, BALL_SIDE), dot(p, BALL_POLE)];
+    if (Math.abs(Math.asin(q[2])) < BALL_SEAM || Math.abs(Math.asin(q[1])) < BALL_SEAM) return [0, 0, 1];
+    // Each half has its curve around its pole
+    q[2] = Math.abs(q[2]);
+    if (ballCurveDist(q) < BALL_SEAM) return [0, 0, 1];
+    return Math.acos(q[2]) < ballCurve(Math.atan2(q[1], q[0])) ? [0, 1, 0] : [1, 0, 0];
+  },
   // The faces (the original game's skin18 redrawn, 31/10/2026, the same drawing: its discs weren't round on the Orb)
   skin18(u, v) {
     const p = dirOf(u, v);
@@ -412,6 +499,20 @@ const SKINS = {
     if (d < WAVE_BAND) return [1, 0, 0];
     if (d > WAVE_LINE) return [0, 0, 1];
     return [0, 1, 0];
+  },
+  // The yin-yang (the original game's skin23 redrawn, 31/10/2026: wrapped around the Orb and blurred, it didn't read):
+  // the symbol face on, in colours 1 and 3
+  skin23(u, v) {
+    const p = dirOf(u, v);
+    const x = dot(p, FRONT_RIGHT);
+    const y = dot(p, FRONT_UP);
+    const top = Math.hypot(x, y - YIN_HALF);
+    const bottom = Math.hypot(x, y + YIN_HALF);
+    if (top < YIN_DOT) return [0, 0, 1];
+    if (bottom < YIN_DOT) return [1, 0, 0];
+    if (top < YIN_HALF) return [1, 0, 0];
+    if (bottom < YIN_HALF) return [0, 0, 1];
+    return x < 0 ? [1, 0, 0] : [0, 0, 1];
   },
   // Honeycomb: green cells with red walls and a blue core in each
   skin24(u, v) {
@@ -520,12 +621,29 @@ const SKINS = {
     g *= (1 - edge) * (1 - cloth);
     return [r, g, cloth];
   },
+  // The skull (31/10/2026, a free style): a skull at the front and crossed bones at the back, in colour 2 with an edge
+  // and holes in colour 3, on colour 1
+  skin29(u, v) {
+    const p = dirOf(u, v);
+    const x = dot(p, FRONT_RIGHT);
+    const y = dot(p, FRONT_UP);
+    if (dot(p, FRONT) > 0) {
+      const d = skullDist(x, y);
+      if (d > SKULL_EDGE) return [1, 0, 0];
+      if (d > 0) return [0, 0, 1];
+      // The eyes, the nose and the gaps between the teeth
+      for (const s of [1, -1]) if (Math.hypot((x - s * 0.18) / 0.13, (y - 0.08) / 0.15) < 1) return [0, 0, 1];
+      if (polygon(SKULL_NOSE, x, y).inside) return [0, 0, 1];
+      if (y < -0.24 && y > -0.42 && Math.abs(x) < 0.2 && Math.abs(((x + 0.2) % 0.08) - 0.04) > 0.03) return [0, 0, 1];
+      return [0, 1, 0];
+    }
+    // The bones, seen from behind
+    const d = bonesDist(-x, y);
+    if (d > SKULL_EDGE) return [1, 0, 0];
+    if (d > 0) return [0, 0, 1];
+    return [0, 1, 0];
+  },
 };
-
-/** The robot's face: where the Orb at rest faces the viewer (orbStudio's FRONT), upright. */
-const ROBOT_C = dirOf(0.42, 0.703);
-const ROBOT_UP = norm(UP.map((x, i) => x - ROBOT_C[i] * dot(UP, ROBOT_C)));
-const ROBOT_RIGHT = cross(ROBOT_UP, ROBOT_C);
 
 /**
  * Draws kept for later, not in the game (Erick, 31/10/2026, choosing the star for Style 4: "guarda a de vôlei"; and the
@@ -553,9 +671,9 @@ const DRAFTS = {
   // seam over the back and a panel with three vents there; the head in colour 2
   robot(u, v) {
     const p = dirOf(u, v);
-    const z = dot(p, ROBOT_C);
-    const x = dot(p, ROBOT_RIGHT);
-    const y = dot(p, ROBOT_UP);
+    const z = dot(p, FRONT);
+    const x = dot(p, FRONT_RIGHT);
+    const y = dot(p, FRONT_UP);
     for (const s of [1, -1]) {
       const d = Math.acos(Math.min(1, s * x));
       if (d < 0.1) return [1, 0, 0];

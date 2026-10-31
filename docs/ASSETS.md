@@ -71,11 +71,15 @@ and is never distributed, so it is not part of that repository.
 - `skins/skin18.tga` (the two faces), `skin21.tga` (the bars) and `skin22.tga` (the waves): the same, redrawn sharp at
   256x128 on 31/10/2026; the faces' discs are now true circles on the Orb, and the waves flatten into rings near the
   poles instead of pinching.
+- `skins/skin11.tga` (the basketball) and `skin23.tga` (the yin-yang): the original's ideas redrawn sharp at 256x128 on
+  31/10/2026 (the seams and caps of a real ball; the symbol face on, over the whole Orb).
 - `skins/skin19.tga` (a baseball): no longer offered (too close to the tennis ball); the file stays for old pages.
 - `skins/skin24.tga`, `skin25.tga`, `skin26.tga`, `skin27.tga`, `skin28.tga` (Honeycomb, Flames, Royal, 8 Ball, Camo):
   new skins, not from the original game, drawn by `tools/make-exclusive-skins.mjs` for the Waves mode's milestones
   (Mad Orbs' own work, GPL v3 like the rest). The 8 Ball and the Camo are 256x128, the others 64x32 like the original
   skins.
+- `skins/skin29.tga` (the Skull): a new skin, not from the original game, drawn by `tools/make-exclusive-skins.mjs` on
+  31/10/2026 (Mad Orbs' own work, GPL v3), 256x128, free to pick.
 - The Survival crowns (`menu/crown-bronze.png`, `crown-silver.png`, `crown-gold.png`): pictures of the crown model
   that `src/client/render/crown.ts` builds in code, not from the original game (Mad Orbs' own work, GPL v3).
 - Files of the original folder that the game doesn't use (old menus, medals, arrows, cursors, the
