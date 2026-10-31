@@ -25,7 +25,7 @@ import { Embers } from './embers';
 import { icon, type IconName } from './icons';
 import { OrbPicker } from './orbPicker';
 import { crownSway, turning, type OrbStudio } from './orbStudio';
-import { FREE_SKINS, availableSkins, saveSettings, setTestUnlock, skinInfo, wornCrown, type Settings } from './settings';
+import { FREE_SKINS, availableSkins, liveSkin, saveSettings, setTestUnlock, skinInfo, wornCrown, type Settings } from './settings';
 import { TrainingModal } from './training';
 import { TutorialModal, tutorialSeen, type TutorialAnswer } from './tutorialModal';
 import type { TutorialKind } from '../client/tutorial';
@@ -494,7 +494,7 @@ export class StartScreen {
       this.orbSyncedFor = id;
       const { skin, red, green, blue } = this.settings;
       if (p.name) {
-        Object.assign(this.settings, { skin: p.skin, red: p.red, green: p.green, blue: p.blue });
+        Object.assign(this.settings, { skin: liveSkin(p.skin), red: p.red, green: p.green, blue: p.blue });
         this.setName(p.name);
       } else account.saveOrb({ skin, red, green, blue }, true);
     }

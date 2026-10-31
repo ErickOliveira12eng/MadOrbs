@@ -6,13 +6,16 @@ import { loadWavesRecord } from '../client/waves';
 import { WAVES_SKINS, skinUnlocked, skinWave } from '../client/wavesProgress';
 import { SKIN_COUNT } from '../net/protocol';
 import { CROWN_TIERS, CROWN_WAVES, isCrownTier, type CrownTier } from '../sim/crowns';
+import { RETIRED_SKINS } from '../sim/constants';
 
 const KEY = 'madorbs.settings';
 
 /** Every Orb style: the original game's 23, then Mad Orbs' own (the waves' exclusive ones, skin24..26, the 8 ball, the camo). */
 export const SKINS = Array.from({ length: SKIN_COUNT }, (_, i) => `skin${String(i + 1).padStart(2, '0')}`);
 /** The styles anyone can pick, and the bots wear (the waves' milestones give the others). */
-export const FREE_SKINS = SKINS.filter((s) => !WAVES_SKINS.includes(s));
+export const FREE_SKINS = SKINS.filter((s) => !WAVES_SKINS.includes(s) && !(s in RETIRED_SKINS));
+/** A saved style as it is worn now: a retired one (src/sim/constants.ts) becomes its stand-in. */
+export const liveSkin = (skin: string): string => RETIRED_SKINS[skin] ?? skin;
 /**
  * The order the Orb picker and the pedestal's arrows go through them (Erick, 30/10/2026): the free ones, then the waves'
  * in the order they are won, so the open ones come first and the locked ones after, the next to win at their head.
@@ -136,7 +139,7 @@ export function loadSettings(): Settings {
       const name = cleanName(raw.name);
       s.name = isReservedName(name) ? '' : name;
     }
-    if (typeof raw.skin === 'string' && SKINS.includes(raw.skin)) s.skin = raw.skin;
+    if (typeof raw.skin === 'string' && SKINS.includes(raw.skin)) s.skin = liveSkin(raw.skin);
     if (raw.crown === 'auto' || raw.crown === 'none' || isCrownTier(raw.crown)) s.crown = raw.crown;
     if (isHex(raw.red)) s.red = raw.red;
     if (isHex(raw.green)) s.green = raw.green;

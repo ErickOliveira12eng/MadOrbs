@@ -92,3 +92,9 @@ export const TICK_RATE = 30;
 export const TICK = 1 / TICK_RATE;
 
 export const PI = 3.1415926535;
+
+/**
+ * Orb styles taken out of the game (Erick, 30/10/2026: skin19, a baseball, too close to skin01's tennis ball): nobody
+ * picks them and the bots don't wear them; a saved one becomes its stand-in. The textures stay (old pages, profiles).
+ */
+export const RETIRED_SKINS: Readonly<Record<string, string>> = { skin19: 'skin01' };

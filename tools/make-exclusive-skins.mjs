@@ -1,18 +1,18 @@
 // Draws Mad Orbs' own Orb skins (skin24..skin26: Honeycomb, Flames, Royal; Royal was named Crown until 29/10/2026, when the
 // crowns came; skin27: the 8 ball, 29/10/2026; skin28: the camo, 30/10/2026, the look of the site's icon), won at the
 // waves' milestones (src/client/wavesProgress.ts), and the original game's styles redrawn (skin01: the tennis ball,
-// 30/10/2026, Erick: the original's hand-drawn seam came out lumpy). Mad Orbs' own art, made here, not the original
+// 30/10/2026, Erick: the original's hand-drawn seam came out lumpy; skin03: the lightning bolt, the same day). Mad Orbs' own art, made here, not the original
 // game's. A skin is a 64x32 equirectangular texture (the 8 ball, the camo and the redrawn ones 256x128, for their detail)
 // whose red, green and blue say how much of each of the player's three colours goes on each texel, black where all
 // three are 0 (src/client/render/baboRenderer.ts, Player::updateSkin).
-//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin01.tga, skin24.tga ... skin28.tga
+//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin01.tga, skin03.tga, skin24.tga ... skin28.tga
 //   node tools/make-exclusive-skins.mjs --preview  -> also shots/exclusive-skins.ppm (8x, to look at)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 /** The original game's size (the 8 ball is bigger: SIZES). */
 const W = 64;
 const H = 32;
-const SIZES = { skin01: [256, 128], skin27: [256, 128], skin28: [256, 128] };
+const SIZES = { skin01: [256, 128], skin03: [256, 128], skin27: [256, 128], skin28: [256, 128] };
 /** Samples per texel side: the edges come out smooth. */
 const SS = 6;
 
@@ -150,6 +150,38 @@ function nearestSeam(p) {
   return { dist: Math.acos(Math.min(1, best)), side: dot(p, SEAM.sides[k]) };
 }
 
+// ------------------------------------------------------------------ for the lightning bolt
+const segDist = (px, py, ax, ay, bx, by) => {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+  return Math.hypot(px - ax - dx * t, py - ay - dy * t);
+};
+/** Whether (x, y) is inside the polygon (even-odd), and how far it is from its edge. */
+function polygon(poly, x, y) {
+  let inside = false;
+  let dist = Infinity;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i];
+    const [xj, yj] = poly[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    dist = Math.min(dist, segDist(x, y, xj, yj, xi, yi));
+  }
+  return { inside, dist };
+}
+/** The bolt (Lucide's "zap" icon on its 24 grid, y down), centred, in units of the Orb's radius. */
+const BOLT = [[13, 2], [3, 14], [12, 14], [11, 22], [21, 10], [12, 10]].map(([x, y]) => [(x - 12) * 0.058, (12 - y) * 0.058]);
+/** The bolt's edge, in colour 3. */
+const BOLT_EDGE = 0.035;
+/**
+ * Two bolts, seen from above their centres (an orthographic view of the sphere there): one where the Orb at rest faces
+ * the viewer (orbStudio's FRONT: u 0.42, v 0.703), upright, and one on the far side, so a rolling Orb always shows one.
+ */
+const BOLT_FACES = [dirOf(0.42, 0.703), dirOf(0.42, 0.703).map((x) => -x)].map((c) => {
+  const up = norm(UP.map((x, i) => x - c[i] * dot(UP, c)));
+  return { c, up, right: cross(up, c) };
+});
+
 /**
  * Each skin: (u, v) -> [red, green, blue] shares, u around the Orb (0..1), v from the top row (0) to
  * the bottom one (1). All three 0 is black.
@@ -161,6 +193,18 @@ const SKINS = {
     const { dist, side } = nearestSeam(dirOf(u + SEAM_TURN, v));
     if (dist < SEAM_WIDTH) return [0, 1, 0];
     return side > 0 ? [1, 0, 0] : [0, 0, 1];
+  },
+  // The lightning bolt (the original game's skin03 redrawn, 30/10/2026: one hand-drawn stroke lying around the Orb at
+  // 64x32): two bolts in colour 1 with an edge in colour 3, on colour 2
+  skin03(u, v) {
+    const p = dirOf(u, v);
+    for (const { c, up, right } of BOLT_FACES) {
+      if (dot(p, c) <= 0.2) continue;
+      const { inside, dist } = polygon(BOLT, dot(p, right), dot(p, up));
+      if (inside) return [1, 0, 0];
+      if (dist < BOLT_EDGE) return [0, 0, 1];
+    }
+    return [0, 1, 0];
   },
   // Honeycomb: green cells with red walls and a blue core in each
   skin24(u, v) {

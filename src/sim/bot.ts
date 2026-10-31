@@ -13,6 +13,7 @@ import {
   WEAPON_SHOTGUN,
   WEAPON_SNIPER,
 } from './constants';
+import { RETIRED_SKINS } from './constants';
 import { isWeaponEnabled } from './gameVar';
 import { emptyInput } from './input';
 import type { Game } from './game';
@@ -407,7 +408,7 @@ export const BOT_NAMES = [
 
 /** A bot's skin: one of the original 23 and random decal colours (the player picks theirs in the start screen). */
 export function randomSkin(): SkinInfo {
-  const skins = Array.from({ length: 23 }, (_, i) => `skin${String(i + 1).padStart(2, '0')}`);
+  const skins = Array.from({ length: 23 }, (_, i) => `skin${String(i + 1).padStart(2, '0')}`).filter((s) => !(s in RETIRED_SKINS));
   const c = (): [number, number, number] => [Math.random(), Math.random(), Math.random()];
   const base = c();
   return {
