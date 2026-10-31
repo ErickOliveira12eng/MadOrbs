@@ -68,6 +68,9 @@ and is never distributed, so it is not part of that repository.
   its 64x32 grid and redrawn with smooth curves at 256x128 by `tools/make-exclusive-skins.mjs` on 31/10/2026.
 - `skins/skin08.tga` (the grille band): the same, the original's drawing (a band with an oval grille at the front, slits
   and windows) measured and redrawn sharp at 256x128 on 31/10/2026.
+- `skins/skin18.tga` (the two faces), `skin21.tga` (the bars) and `skin22.tga` (the waves): the same, redrawn sharp at
+  256x128 on 31/10/2026; the faces' discs are now true circles on the Orb, and the waves flatten into rings near the
+  poles instead of pinching.
 - `skins/skin19.tga` (a baseball): no longer offered (too close to the tennis ball); the file stays for old pages.
 - `skins/skin24.tga`, `skin25.tga`, `skin26.tga`, `skin27.tga`, `skin28.tga` (Honeycomb, Flames, Royal, 8 Ball, Camo):
   new skins, not from the original game, drawn by `tools/make-exclusive-skins.mjs` for the Waves mode's milestones

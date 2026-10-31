@@ -1,12 +1,11 @@
 // Draws Mad Orbs' own Orb skins (skin24..skin26: Honeycomb, Flames, Royal; Royal was named Crown until 29/10/2026, when the
 // crowns came; skin27: the 8 ball, 29/10/2026; skin28: the camo, 30/10/2026, the look of the site's icon), won at the
-// waves' milestones (src/client/wavesProgress.ts), and the original game's styles redrawn (skin01: the tennis ball,
-// 30/10/2026, Erick: the original's hand-drawn seam came out lumpy; skin03: the lightning bolt, the same day; skin04: the
-// star, skin06: the cow print, skin07: the belt and skin08: the grille band, 31/10/2026). Mad Orbs' own art, made here,
-// not the original game's. A skin is a 64x32 equirectangular texture (the 8 ball, the camo and the redrawn ones 256x128, for their detail)
-// whose red, green and blue say how much of each of the player's three colours goes on each texel, black where all
-// three are 0 (src/client/render/baboRenderer.ts, Player::updateSkin).
-//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin01.tga, skin03.tga, skin04.tga, skin06.tga, skin07.tga, skin08.tga, skin24.tga ... skin28.tga
+// waves' milestones (src/client/wavesProgress.ts), and the original game's styles redrawn, one by one (30 and 31/10/2026,
+// Erick: drawn by hand at 64x32, they came out blurred or lumpy on the Orb; each one's comment in SKINS says what it was).
+// Mad Orbs' own art, made here, not the original game's. A skin is a 64x32 equirectangular texture (the 8 ball, the camo
+// and the redrawn ones 256x128, for their detail: SIZES) whose red, green and blue say how much of each of the player's
+// three colours goes on each texel, black where all three are 0 (src/client/render/baboRenderer.ts, Player::updateSkin).
+//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/<each skin in SKINS>.tga
 //   node tools/make-exclusive-skins.mjs --preview  -> also shots/exclusive-skins.ppm (8x, to look at)
 //   node tools/make-exclusive-skins.mjs --drafts   -> also shots/drafts/<name>.tga: the draws kept for later (DRAFTS)
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -14,7 +13,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 /** The original game's size (the 8 ball is bigger: SIZES). */
 const W = 64;
 const H = 32;
-const SIZES = { skin01: [256, 128], skin03: [256, 128], skin04: [256, 128], skin06: [256, 128], skin07: [256, 128], skin08: [256, 128], skin27: [256, 128], skin28: [256, 128] };
+const SIZES = { skin01: [256, 128], skin03: [256, 128], skin04: [256, 128], skin06: [256, 128], skin07: [256, 128], skin08: [256, 128], skin18: [256, 128], skin21: [256, 128], skin22: [256, 128], skin27: [256, 128], skin28: [256, 128] };
 /** Samples per texel side: the edges come out smooth. */
 const SS = 6;
 
@@ -240,6 +239,42 @@ const GRILLE_DOTS = [dirOf(0.5, 1.8 / 32), dirOf(0.5, 30.2 / 32)];
 /** Whether (x, y) is inside a rounded box centred on (cx, cy): half its width and height, and its corners' radius. */
 const inBox = (x, y, cx, cy, w, h, r) => roundRect(x - cx, y - cy, { w, h, r }) < 0;
 
+// ------------------------------------------------------------------ for the faces
+/**
+ * The faces (skin18) keep the original's drawing: a sad face at the front and a happy one at the back, each a disc in
+ * colour 2 on colour 1 with eyes and a mouth in colour 3. The discs are true circles on the Orb (the original drew circles
+ * on the texture, which the sphere bends out of round); the eyes and mouths keep the 64x32 grid's measures (x = 64u,
+ * y = 32v, from the face's centre), near the middle, where the texture barely bends.
+ */
+const FACES = [
+  { c: dirOf(0.5, 0.5), x: 32, smile: false },
+  { c: dirOf(0, 0.5), x: 0, smile: true },
+];
+/** The discs' radius and their thin edge in colour 3, in radians of the Orb. */
+const FACE_RADIUS = 1.2;
+const FACE_EDGE = 0.03;
+/** The mouths: arcs of a circle (its centre below the middle, its radius, how far to each side) 1.9 texels thick. */
+const SMILE = { cy: 0.46, r: 6.54, reach: 5.5 };
+const FROWN = { cy: 13.47, r: 9.67, reach: 7 };
+const MOUTH_HALF = 0.95;
+/** The distance from (x, y) to a mouth's arc, round at its ends. */
+function mouthDist(x, y, { cy, r, reach }, down) {
+  const dy = (y - cy) * (down ? 1 : -1);
+  const a = Math.asin(reach / r);
+  if (dy > 0 && Math.abs(Math.atan2(x, dy)) <= a) return Math.abs(Math.hypot(x, dy) - r);
+  return Math.hypot(Math.abs(x) - r * Math.sin(a), dy - r * Math.cos(a));
+}
+
+// ------------------------------------------------------------------ for the waves
+/**
+ * The waves (skin22) keep the original's drawing, measured on its 64x32 grid: stripes 8 rows apart that rise and fall
+ * 5.5 rows twice around the Orb; across a stripe, colour 1, then colour 2, then a thin line of colour 3 (the original
+ * blurred them into each other, in these shares). Near the poles the waves flatten into rings (`w`): the texture
+ * pinched them into swirls there.
+ */
+const WAVE_BAND = 1.78;
+const WAVE_LINE = 3.47;
+
 // ------------------------------------------------------------------ for the volleyball (a draft)
 /** tan 15°: each face's three strips split at ±15° from its middle. */
 const T15 = Math.tan(Math.PI / 12);
@@ -340,6 +375,43 @@ const SKINS = {
     // The windows at the back
     if (inBox(Math.min(x, 64 - x), Math.abs(y - 16), 5.5, 6.3, 3.4, 1.1, 0.8)) return [0, 1, 0];
     return [1, 0, 0];
+  },
+  // The faces (the original game's skin18 redrawn, 31/10/2026, the same drawing: its discs weren't round on the Orb)
+  skin18(u, v) {
+    const p = dirOf(u, v);
+    for (const f of FACES) {
+      const d = Math.acos(Math.min(1, dot(p, f.c)));
+      if (d > FACE_RADIUS) continue;
+      if (d > FACE_RADIUS - FACE_EDGE) return [0, 0, 1];
+      const x = ((((u * 64 - f.x) % 64) + 96) % 64) - 32;
+      const y = v * 32 - 16;
+      // The eyes: 3 by 4 texels, 3.5 to each side and 3 above the middle
+      if (inBox(Math.abs(x), y, 3.5, -3, 1.5, 2, 1)) return [0, 0, 1];
+      if (mouthDist(x, y, f.smile ? SMILE : FROWN, f.smile) < MOUTH_HALF) return [0, 0, 1];
+      return [0, 1, 0];
+    }
+    return [1, 0, 0];
+  },
+  // The bars (the original game's skin21 redrawn, 31/10/2026, the same drawing, sharp: measured on its 64x32 grid): eight
+  // bars in colour 3 around the middle on colour 2, and near each pole a double ring in colour 1
+  skin21(u, v) {
+    const x = u * 64;
+    const y = v * 32;
+    const fy = Math.abs(y - 16);
+    if (fy > 10 && fy < 13) return Math.abs(fy - 11.5) < 0.4 ? [0, 1, 0] : [1, 0, 0];
+    const bx = ((((x - 3.5) % 8) + 12) % 8) - 4;
+    return inBox(bx, y, 0, 16, 2, 8.42, 1) ? [0, 0, 1] : [0, 1, 0];
+  },
+  // The waves (the original game's skin22 redrawn, 31/10/2026, the same drawing, sharp)
+  skin22(u, v) {
+    const x = u * 64;
+    const y = v * 32;
+    const w = Math.sin(Math.PI * v);
+    const centre = 11 - 5.5 * Math.cos((2 * Math.PI * (x - 8)) / 32) * w;
+    const d = Math.abs(((((y - centre) % 8) + 12) % 8) - 4);
+    if (d < WAVE_BAND) return [1, 0, 0];
+    if (d > WAVE_LINE) return [0, 0, 1];
+    return [0, 1, 0];
   },
   // Honeycomb: green cells with red walls and a blue core in each
   skin24(u, v) {
