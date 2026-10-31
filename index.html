@@ -250,6 +250,7 @@
             <section class="info-block">
               <h2 data-i18n="home.newsTitle">What's new</h2>
               <ul class="info-news">
+                <li><time datetime="2026-10-31" data-i18n="home.news54Date">October 31, 2026</time><b data-i18n="home.news54Title">Something in the volcano</b><span data-i18n="home.news54">The Survival window has a new tab: the Vesuvius, a new mode in the crater of a volcano, still being made. It opens to those whose record gets past wave 100 of the Waves, on their account and checked by the server.</span></li>
                 <li><time datetime="2026-10-31" data-i18n="home.news53Date">October 31, 2026</time><b data-i18n="home.news53Title">A world map Orb, and more styles touched up</b><span data-i18n="home.news53">Style 6 is now a world map: the sea in your second colour, the land in your first and the ice in your third, the Americas facing you. The yin-yang keeps turning all the way round, so it shows whole from the back too. The beach ball, the eye (the bosses wear it too), the Flames and Mad Orbs, with smaller letters you can read, are redrawn sharp. The Camo lost its bandana: just camouflage now, in your three colours. And the Royal Orb is gone; wave 50 now gives the silver crown.</span></li>
                 <li><time datetime="2026-10-31" data-i18n="home.news52Date">October 31, 2026</time><b data-i18n="home.news52Title">More Orb styles redrawn, and a new one</b><span data-i18n="home.news52">More of the old Orb styles, drawn by hand at low resolution, are now sharp. Style 4 is an eight-point star at each pole (your first colour, on toothed discs in your third). Styles 7 (the belt with two rings), 8 (the band with the grille), 18 (the two faces, now truly round), 21 (the bars) and 22 (the waves) keep their drawings, redrawn sharp. Style 11 is now a proper basketball (the seams in your third colour, the caps in your second), and Style 23 a true yin-yang in your first and third colours. And a new style, Style 29: a skull at the front and crossed bones at the back.</span></li>
                 <li><time datetime="2026-10-30" data-i18n="home.news51Date">October 30, 2026</time><b data-i18n="home.news51Title">Orb styles redrawn: tennis ball and lightning bolt</b><span data-i18n="home.news51">Two of the first Orb styles were drawn by hand at low resolution and looked lumpy. Style 1 is now a sharp tennis ball (the halves in your first and third colours, the seam in the second) and Style 3 a lightning bolt (your first colour with an edge in the third, on the second). Style 19, a baseball too close to the tennis ball, left the game (if you wore it, you now wear the tennis ball). More of the old styles will follow, one at a time.</span></li>
@@ -479,7 +480,12 @@
     <div id="wavesModal" class="modal" hidden>
       <div class="modal-card waves-modal" role="dialog" aria-modal="true" aria-labelledby="wavesTitle">
         <header class="modal-head">
-          <h2 id="wavesTitle"><small class="wv-mode" data-i18n="menu.waves">Waves</small><span data-i18n="workshop.title">Workshop</span></h2>
+          <h2 id="wavesTitle"><small id="wvKicker" class="wv-mode" data-i18n="menu.waves">Waves</small><span id="wvHeading" data-i18n="workshop.title">Workshop</span></h2>
+          <!-- The Survival's modes: the Waves, and the Vesuvius (src/sim/vesuvius.ts), locked until wave 100 -->
+          <div id="wvModes" class="wv-modes" role="tablist">
+            <button type="button" class="on" data-mode="waves" role="tab" aria-selected="true"><span data-icon="waves"></span><span data-i18n="menu.waves">Waves</span></button>
+            <button type="button" data-mode="vesuvius" role="tab" aria-selected="false"><span class="vs-tab-ico"></span><span data-i18n="vesuvius.name">Vesuvius</span></button>
+          </div>
           <a class="camp-guide wv-guide" data-i18n-attr="href=link.waves" href="/waves" target="_blank" rel="noopener" data-i18n="campaign.howItWorks">How it works</a>
           <span class="wv-chips"><span id="wvRecord" class="wv-record" hidden></span><span id="wvPower" class="wv-power"></span><span id="wvCores" class="wv-cores"></span></span>
           <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>
@@ -511,6 +517,14 @@
         <div class="wv-milestones" data-i18n-attr="title=workshop.milestonesHint" title="Reach a wave once and its prize is yours for good: weapons to start with and Orbs only won here.">
           <div class="wv-ms-text"><h3 data-i18n="workshop.milestones">Milestones</h3><b id="wvNext"></b><small id="wvNextSub"></small></div>
           <div id="wvTrack" class="wv-track"></div>
+        </div>
+        <div id="wvVesuvius" class="wv-vesuvius" hidden>
+          <div id="vsPic" class="vs-pic"><span class="vs-soon" data-i18n="vesuvius.building">Under construction: just the map for now</span></div>
+          <div class="vs-info">
+            <p class="vs-text" data-i18n="vesuvius.text">A new challenge in the crater of a volcano, for those who got past wave 100 of the Waves.</p>
+            <div id="vsState" class="vs-state" aria-live="polite"></div>
+            <button id="vsPlay" class="wv-play" type="button"></button>
+          </div>
         </div>
       </div>
     </div>

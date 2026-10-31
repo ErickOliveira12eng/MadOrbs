@@ -118,6 +118,8 @@ export class StartScreen {
     onPrivate: (room: PrivateRoomJoin) => void,
     /** A tutorial (src/client/tutorial.ts): asked the first time, or chosen in Training. */
     onTutorial: (kind: TutorialKind) => void,
+    /** The Vesuvius (src/sim/vesuvius.ts), from the Survival window's tab once the server opened it. */
+    onVesuvius: () => void,
   ) {
     for (const el of document.querySelectorAll<HTMLElement>('[data-icon]')) el.innerHTML = icon(el.dataset.icon as IconName, 20);
 
@@ -181,6 +183,11 @@ export class StartScreen {
       },
       () => this.accountModal.open(),
       () => this.renderProgress(),
+      () => {
+        this.play('offline', false);
+        this.playedTab = 'waves';
+        onVesuvius();
+      },
     );
     // The first time: the tutorial, or a run at once (no Workshop yet: nothing to buy)
     const tutorial = (kind: TutorialKind) => {

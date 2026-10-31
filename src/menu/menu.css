@@ -5675,6 +5675,168 @@ input[type='range'] {
   cursor: pointer;
 }
 
+/* The Survival's modes, beside the title: the Waves and the Vesuvius (locked until the server opens it) */
+.wv-modes {
+  display: flex;
+  gap: 4px;
+  align-self: center;
+  margin-left: 22px;
+  padding: 4px;
+  border-radius: 13px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.wv-modes button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--muted);
+  font: 900 13px var(--font-ui);
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.wv-modes button:hover:not(.on) {
+  color: var(--text);
+}
+
+.wv-modes button.on {
+  background: #ffc23a;
+  color: #2a1600;
+}
+
+/* The volcano's tab: lava when chosen, its lock dimmed until it opens */
+.wv-modes button[data-mode='vesuvius'].on {
+  background: linear-gradient(180deg, #ff8a2a, #e8420e);
+  color: #2a0a00;
+}
+
+.wv-modes button.locked:not(.on) .vs-tab-ico {
+  opacity: 0.7;
+}
+
+.vs-tab-ico {
+  display: inline-grid;
+  place-items: center;
+}
+
+/* The Vesuvius: the map's picture, and what it takes to get in */
+.wv-vesuvius {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  /* as tall as the Workshop's columns and milestones: the window keeps its size between the tabs */
+  min-height: 651px;
+  margin-top: 14px;
+}
+
+.vs-pic {
+  position: relative;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 130, 40, 0.35);
+  background: #140a08 center / cover no-repeat;
+  box-shadow: inset 0 -90px 80px -40px rgba(10, 4, 2, 0.85), 0 0 40px rgba(255, 90, 20, 0.12);
+  overflow: hidden;
+}
+
+.vs-soon {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 150, 60, 0.6);
+  background: rgba(30, 10, 4, 0.82);
+  color: #ffb36b;
+  font: 800 13px var(--font-ui);
+}
+
+.vs-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  border-radius: 16px;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.vs-text {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.vs-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.vs-lock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffb36b;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.vs-state.open .vs-lock {
+  color: #6be894;
+}
+
+.vs-bar {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.vs-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff6a1a, #ffd34d);
+}
+
+.vs-progress,
+.vs-note {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.vs-note {
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+
+/* Locked: the play button greyed, with its lock */
+.wv-play:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  cursor: not-allowed;
+}
+
+.wv-play:disabled .icon {
+  fill: none;
+}
+
 /* The milestones, under the three columns */
 .wv-milestones {
   display: flex;
@@ -5801,12 +5963,33 @@ input[type='range'] {
 /* Smaller screens keep the three columns and shrink to fit (WavesModal.fit); phones get one column */
 @media (max-width: 699px) {
   .wv-body,
-  .wv-side {
+  .wv-side,
+  .wv-vesuvius {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wv-vesuvius {
+    min-height: 0;
+  }
+
+  .vs-pic {
+    aspect-ratio: 3 / 2;
   }
 
   .waves-modal .modal-head {
     flex-wrap: wrap;
+  }
+
+  /* The modes under the title, the whole width */
+  .wv-modes {
+    order: 5;
+    width: 100%;
+    margin: 8px 0 0;
+  }
+
+  .wv-modes button {
+    flex: 1;
+    justify-content: center;
   }
 
   .wv-record,

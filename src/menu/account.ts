@@ -12,6 +12,7 @@ import { cleanSplits, mergeWavesRecord, type WavesRecord } from '../client/waves
 import { visitor } from '../client/wavesReport';
 import { cleanBuilds, cleanLevels, loadProgress as loadWavesProgress, mergeBuilds, mergeProgress as mergeWavesProgress, type CheckpointBuild } from '../client/wavesProgress';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../net/supabase';
+import type { VesuviusAccess } from '../sim/vesuvius';
 
 /** A waves_records row as a record (null: none). */
 function wavesRow(data: unknown): WavesRecord | null {
@@ -349,6 +350,28 @@ export class Account {
       }
     } catch {
       /* no server (the static page): no tools */
+    }
+  }
+
+  /**
+   * Whether the server lets this account play the Vesuvius (GET /api/vesuvius, src/sim/vesuvius.ts); `test`: the
+   * tester's "everything unlocked" ticked. Null when the server can't be asked (no server, the network).
+   */
+  async vesuviusAccess(test: boolean): Promise<VesuviusAccess | null> {
+    const token = await this.accessToken();
+    if (!token) return { open: false, wave: null, test: false, reason: 'signin' };
+    try {
+      const r = await fetch(`/api/vesuvius${test ? '?test=1' : ''}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) return null;
+      const body = (await r.json()) as Partial<VesuviusAccess>;
+      return {
+        open: body.open === true,
+        wave: typeof body.wave === 'number' ? body.wave : null,
+        test: body.test === true,
+        ...(body.reason === 'signin' || body.reason === 'unknown' ? { reason: body.reason } : {}),
+      };
+    } catch {
+      return null;
     }
   }
 

@@ -16,11 +16,12 @@ import { NO_LEVELS, loadProgress as loadWavesProgress } from './client/wavesProg
 import { RANGE_MAP, type TutorialKind } from './client/tutorial';
 import { markTutorial } from './menu/tutorialModal';
 import { WEAPON_SMG } from './sim/constants';
+import { VESUVIUS_MAP } from './sim/vesuvius';
 import { WavesModal } from './menu/wavesModal';
 import { StartScreen, type PlayMode } from './menu/menu';
 import { touchOnly } from './menu/pcOnly';
 import { matchesPlayed } from './menu/adblockModal';
-import { debugZoomOn } from './menu/accountModal';
+import { debugUnlockOn, debugZoomOn } from './menu/accountModal';
 import type { PrivateRoomJoin } from './menu/roomModal';
 import { ROOM_LINK_RE } from './net/protocol';
 import { OrbStudio } from './menu/orbStudio';
@@ -52,6 +53,7 @@ const screen = new StartScreen(
   () => void startGame('offline', undefined, true),
   (room) => void startGame('online', undefined, false, room),
   (tutorial) => void startGame('offline', undefined, false, undefined, tutorial),
+  () => void startGame('offline', undefined, false, undefined, undefined, true),
 );
 /** What to do when the game closes, instead of the start screen (a campaign level's buttons). */
 let afterQuit: (() => void) | null = null;
@@ -67,13 +69,22 @@ const langRoot = () => (lang() === 'en' ? '' : `/${lang()}`);
 /**
  * `level`: a campaign level (offline, src/client/campaign.ts; out of the game since 26/10/2026, Erick: nothing starts
  * one now, the code stays for now); `room`: a private room (online); `tutorial`: one of the
- * tutorials (offline, src/client/tutorial.ts).
+ * tutorials (offline, src/client/tutorial.ts); `vesuvius`: the Vesuvius (src/sim/vesuvius.ts).
  */
-async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, room?: PrivateRoomJoin, tutorial?: TutorialKind): Promise<void> {
+async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, room?: PrivateRoomJoin, tutorial?: TutorialKind, vesuvius = false): Promise<void> {
   // Phones and tablets play nothing (a keyboard and a mouse): a window says where to (src/menu/pcOnly.ts)
   if (touchOnly()) {
-    screen.pcOnly(room ? 'room' : tutorial ? 'tutorial' : waves ? 'waves' : level ? 'campaign' : mode);
+    screen.pcOnly(room ? 'room' : tutorial ? 'tutorial' : waves || vesuvius ? 'waves' : level ? 'campaign' : mode);
     return;
+  }
+  // The Vesuvius: only when the server says this account may (its checked record past wave 100, or a tester's
+  // account with "everything unlocked" ticked); the Workshop's tab asked already, asked again at the door
+  if (vesuvius) {
+    const access = await account.vesuviusAccess(debugUnlockOn(account.debugTools.zoom));
+    if (!access?.open) {
+      screen.show(t(access ? 'vesuvius.denied' : 'vesuvius.offline'));
+      return;
+    }
   }
   // From the second match this browser plays, an ad blocker on asks (once a visit) to be turned off
   await screen.beforePlay();
@@ -182,6 +193,9 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
         },
         onProgress,
       );
+    } else if (vesuvius) {
+      // For now the volcano map alone, empty, to walk around (the mode is being made)
+      game = await ClientGame.create($('game'), { ...common, mode: 'dm', mapName: VESUVIUS_MAP, botCount: 0, botSkill: settings.skill, mapRotation: [VESUVIUS_MAP] }, onProgress);
     } else if (level) {
       game = await ClientGame.create(
         $('game'),
@@ -216,7 +230,7 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
     (window as unknown as { madorbs: ClientGame }).madorbs = game;
   } catch (e) {
     console.error(e);
-    track('join_failed', { mode: tutorial ? 'tutorial' : waves ? 'waves' : level ? 'campaign' : (room?.mode ?? settings.mode), online: mode === 'online', reason: String((e as Error).message).slice(0, 100), ...(room ? { private_room: true } : {}) });
+    track('join_failed', { mode: tutorial ? 'tutorial' : vesuvius ? 'vesuvius' : waves ? 'waves' : level ? 'campaign' : (room?.mode ?? settings.mode), online: mode === 'online', reason: String((e as Error).message).slice(0, 100), ...(room ? { private_room: true } : {}) });
     if (ROOM_LINK_RE.test(location.pathname)) history.replaceState(null, '', `${langRoot()}/`);
     screen.show(t('menu.joinFailed', { reason: (e as Error).message }));
   } finally {

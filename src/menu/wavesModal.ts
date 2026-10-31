@@ -42,6 +42,9 @@ import type { SkinInfo } from '../sim/player';
 import type { Account } from './account';
 import { icon, type IconName } from './icons';
 import type { OrbStudio } from './orbStudio';
+import { debugUnlockOn } from './accountModal';
+import { versioned } from '../sim/assetVersion';
+import { VESUVIUS_WAVE, vesuviusOpen, type VesuviusAccess } from '../sim/vesuvius';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -144,6 +147,13 @@ export class WavesModal {
   private weaponView: number | null = null;
   /** The exclusive Orbs' pictures in the player's colours, drawn once each. */
   private readonly orbPics = new Map<string, string>();
+  /** The Survival's mode shown: the Waves (the Workshop), or the Vesuvius (src/sim/vesuvius.ts). */
+  private mode: 'waves' | 'vesuvius' = 'waves';
+  /**
+   * The server's word on the Vesuvius (GET /api/vesuvius) for this account and test switch (`key`), asked when the
+   * window opens; null while it is asked; `failed`: the server couldn't be asked.
+   */
+  private vesuvius: { key: string; at: number; access: VesuviusAccess | null; failed: boolean } | null = null;
 
   constructor(
     private readonly account: Account,
@@ -155,9 +165,13 @@ export class WavesModal {
     private readonly onSignIn: () => void,
     /** The Cores or the levels changed (the start screen's card). */
     private readonly onChange: () => void,
+    /** The Vesuvius's play button (the start checks with the server again). */
+    private readonly onVesuvius: () => void,
   ) {
     account.onChange(() => {
-      if (this.isOpen) this.render();
+      if (!this.isOpen) return;
+      this.checkVesuvius();
+      this.render();
     });
     for (const el of this.root.querySelectorAll('[data-close]')) el.addEventListener('click', () => this.close());
     this.root.addEventListener('pointerdown', (e) => {
@@ -228,6 +242,23 @@ export class WavesModal {
       this.close();
       this.onPlay();
     });
+    $('wvModes').addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('[data-mode]');
+      if (!b) return;
+      this.mode = b.dataset.mode === 'vesuvius' ? 'vesuvius' : 'waves';
+      if (this.mode === 'vesuvius') this.checkVesuvius();
+      this.render();
+    });
+    $('vsPlay').addEventListener('click', () => {
+      if (!this.vesuvius?.access?.open) return;
+      this.close();
+      this.onVesuvius();
+    });
+    $('vsState').addEventListener('click', (e) => {
+      if (!(e.target as HTMLElement).closest('[data-signin]')) return;
+      this.close();
+      this.onSignIn();
+    });
     $('wvSave').addEventListener('click', (e) => {
       if (!(e.target as HTMLElement).closest('button')) return;
       this.close();
@@ -243,6 +274,9 @@ export class WavesModal {
     this.root.hidden = false;
     this.selected = null;
     this.weaponView = null;
+    this.mode = 'waves';
+    // (the Vesuvius's tab shows whether it is open)
+    this.checkVesuvius();
     this.render();
     // The exclusive Orbs, in the player's colours
     const colours = this.colours();
@@ -298,6 +332,7 @@ export class WavesModal {
     $('wvPower').title = t('workshop.powerTip', { a: num(pow.attack, 1), d: num(pow.toughness, 1) });
     $('wvPower').innerHTML = `${icon('zap', 18)}<b>${bigNum(pow.power)}</b><span>${t('workshop.power')}</span><i class="wv-pop" hidden></i>`;
 
+    this.renderModes(record);
     this.renderList(p, cash);
     this.renderDetail(p, cash);
 
@@ -313,6 +348,87 @@ export class WavesModal {
       ? `<span class="ok">${icon('check', 14)}${t('workshop.savedAccount')}</span>`
       : `<span title="${t('workshop.savedLocal')}">${t('workshop.savedLocalShort')}</span><button type="button" class="wv-signin">${icon('user', 14)}${t('account.signIn')}</button>`;
     this.fit();
+  }
+
+  /** Asks the server about the Vesuvius for this account and the test switch, a minute's answer kept. */
+  private checkVesuvius(): void {
+    const test = debugUnlockOn(this.account.debugTools.zoom);
+    const key = `${this.account.email}|${test}`;
+    const v = this.vesuvius;
+    if (v?.key === key && (Date.now() - v.at < 60_000 || (!v.access && !v.failed))) return;
+    const asked: NonNullable<WavesModal['vesuvius']> = { key, at: Date.now(), access: null, failed: false };
+    this.vesuvius = asked;
+    void this.account.vesuviusAccess(test).then((access) => {
+      if (this.vesuvius !== asked) return;
+      asked.access = access;
+      asked.failed = !access;
+      asked.at = Date.now();
+      if (this.isOpen) this.render();
+    });
+  }
+
+  /** The mode tabs (the Vesuvius's with a lock until the server opens it), and the Waves' parts or the Vesuvius's. */
+  private renderModes(record: number): void {
+    const ves = this.mode === 'vesuvius';
+    for (const b of $('wvModes').querySelectorAll<HTMLElement>('[data-mode]')) {
+      const on = b.dataset.mode === this.mode;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-selected', String(on));
+    }
+    const open = !!this.vesuvius?.access?.open;
+    const tab = $('wvModes').querySelector<HTMLElement>('[data-mode="vesuvius"]')!;
+    tab.classList.toggle('locked', !open);
+    tab.querySelector('.vs-tab-ico')!.innerHTML = icon(open ? 'flame' : 'lock', 16);
+    for (const sel of ['.wv-body', '.wv-milestones']) this.root.querySelector<HTMLElement>(sel)!.hidden = ves;
+    // (the guide's link keeps its place: the tabs don't move)
+    this.root.querySelector<HTMLElement>('.wv-guide')!.style.visibility = ves ? 'hidden' : '';
+    $('wvPower').hidden = ves;
+    $('wvCores').hidden = ves;
+    $('wvVesuvius').hidden = !ves;
+    $('wvKicker').textContent = t(ves ? 'vesuvius.kicker' : 'menu.waves');
+    $('wvHeading').textContent = t(ves ? 'vesuvius.name' : 'workshop.title');
+    if (ves) this.renderVesuvius(record);
+  }
+
+  /**
+   * The Vesuvius: open (the server said so: a checked record past wave 100, or a tester's account) or locked, with
+   * how far the record is from it and what is missing.
+   */
+  private renderVesuvius(record: number): void {
+    $('vsPic').style.backgroundImage = `url('${versioned('/menu/card-vesuvius.webp')}')`;
+    const v = this.vesuvius;
+    const access = v?.access ?? null;
+    const play = $<HTMLButtonElement>('vsPlay');
+    const state = $('vsState');
+    if (access?.open) {
+      state.className = 'vs-state open';
+      state.innerHTML =
+        `<div class="vs-lock">${icon('lockOpen', 26)}<b>${t('vesuvius.open')}</b></div>` +
+        `<p class="vs-note">${access.test ? t('vesuvius.openTest') : t('vesuvius.openRecord', { n: access.wave ?? record })}</p>`;
+      play.disabled = false;
+      play.innerHTML = `${icon('play', 22)}${t('vesuvius.play')}`;
+      return;
+    }
+    const wave = Math.min(VESUVIUS_WAVE, Math.max(record, access?.wave ?? 0));
+    const signin = access?.reason === 'signin';
+    const note = !v || (!access && !v.failed)
+      ? t('vesuvius.checking')
+      : !access || access.reason === 'unknown'
+        ? t('vesuvius.offline')
+        : signin
+          ? t('vesuvius.signin')
+          : vesuviusOpen(record)
+            ? t('vesuvius.unchecked')
+            : t('vesuvius.beat');
+    state.className = 'vs-state';
+    state.innerHTML =
+      `<div class="vs-lock">${icon('lock', 26)}<b>${t('vesuvius.locked')}</b></div>` +
+      `<div class="vs-bar"><i style="width:${(wave / VESUVIUS_WAVE) * 100}%"></i></div>` +
+      `<p class="vs-progress">${t('vesuvius.progress', { n: wave })}</p>` +
+      `<p class="vs-note">${note}</p>` +
+      (signin ? `<button type="button" class="wv-signin" data-signin>${icon('user', 14)}${t('account.signIn')}</button>` : '');
+    play.disabled = true;
+    play.innerHTML = `${icon('lock', 22)}${t('vesuvius.lockedButton')}`;
   }
 
   /**
