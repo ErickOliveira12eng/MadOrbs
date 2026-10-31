@@ -2,10 +2,10 @@
 // crowns came; skin27: the 8 ball, 29/10/2026; skin28: the camo, 30/10/2026, the look of the site's icon), won at the
 // waves' milestones (src/client/wavesProgress.ts), and the original game's styles redrawn (skin01: the tennis ball,
 // 30/10/2026, Erick: the original's hand-drawn seam came out lumpy; skin03: the lightning bolt, the same day; skin04: the
-// star, 31/10/2026). Mad Orbs' own art, made here, not the original game's. A skin is a 64x32 equirectangular texture (the 8 ball, the camo and the redrawn ones 256x128, for their detail)
+// star and skin06: the cow print, 31/10/2026). Mad Orbs' own art, made here, not the original game's. A skin is a 64x32 equirectangular texture (the 8 ball, the camo and the redrawn ones 256x128, for their detail)
 // whose red, green and blue say how much of each of the player's three colours goes on each texel, black where all
 // three are 0 (src/client/render/baboRenderer.ts, Player::updateSkin).
-//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin01.tga, skin03.tga, skin04.tga, skin24.tga ... skin28.tga
+//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin01.tga, skin03.tga, skin04.tga, skin06.tga, skin24.tga ... skin28.tga
 //   node tools/make-exclusive-skins.mjs --preview  -> also shots/exclusive-skins.ppm (8x, to look at)
 //   node tools/make-exclusive-skins.mjs --drafts   -> also shots/drafts/<name>.tga: the draws kept for later (DRAFTS)
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -13,7 +13,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 /** The original game's size (the 8 ball is bigger: SIZES). */
 const W = 64;
 const H = 32;
-const SIZES = { skin01: [256, 128], skin03: [256, 128], skin04: [256, 128], skin27: [256, 128], skin28: [256, 128] };
+const SIZES = { skin01: [256, 128], skin03: [256, 128], skin04: [256, 128], skin06: [256, 128], skin27: [256, 128], skin28: [256, 128] };
 /** Samples per texel side: the edges come out smooth. */
 const SS = 6;
 
@@ -241,6 +241,22 @@ const SKINS = {
     const y = dot(p, STAR_UP);
     if (polygon(STAR, x, y).inside) return [1, 0, 0];
     if (polygon(STAR_DISC, x, y).inside) return [0, 0, 1];
+    return [0, 1, 0];
+  },
+  // The cow print (the original game's skin06 redrawn, 31/10/2026: big blobs in colours 2 and 3 blurred at 64x32, colour 1
+  // left out): big patches in colour 3 and smaller ones in colour 1 on colour 2, round-edged (two octaves of noise,
+  // warped a little); with orange, white and black, a calico
+  skin06(u, v) {
+    const p = dirOf(u, v);
+    const warp = [
+      noise(p[0] * 1.3 + 5, p[1] * 1.3, p[2] * 1.3),
+      noise(p[0] * 1.3, p[1] * 1.3 + 9, p[2] * 1.3),
+      noise(p[0] * 1.3, p[1] * 1.3, p[2] * 1.3 + 13),
+    ];
+    const q = p.map((x, i) => x + warp[i] * 0.35);
+    const big = fbm2(q, 1.5, 41.2);
+    if (big > 0.13) return [0, 0, 1];
+    if (fbm2(q, 1.6, 77.7) > 0.2 && big < 0.07) return [1, 0, 0];
     return [0, 1, 0];
   },
   // Honeycomb: green cells with red walls and a blue core in each

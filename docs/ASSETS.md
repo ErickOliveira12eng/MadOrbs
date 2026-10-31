@@ -62,6 +62,8 @@ and is never distributed, so it is not part of that repository.
   textures: a ball in two interlocking halves, and one zigzag stroke around the Orb.
 - `skins/skin04.tga` (the star): redrawn by `tools/make-exclusive-skins.mjs` on 31/10/2026, 256x128 (Mad Orbs' own work,
   GPL v3). The original painted the same idea in soft blurs at 64x32: an 8-point star at each pole on a toothed dark disc.
+- `skins/skin06.tga` (the cow print): redrawn by `tools/make-exclusive-skins.mjs` on 31/10/2026, 256x128 (Mad Orbs' own
+  work, GPL v3). The original had the same idea, big round patches, blurred at 64x32 and in two of the three colours.
 - `skins/skin19.tga` (a baseball): no longer offered (too close to the tennis ball); the file stays for old pages.
 - `skins/skin24.tga`, `skin25.tga`, `skin26.tga`, `skin27.tga`, `skin28.tga` (Honeycomb, Flames, Royal, 8 Ball, Camo):
   new skins, not from the original game, drawn by `tools/make-exclusive-skins.mjs` for the Waves mode's milestones
