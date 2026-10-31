@@ -2,10 +2,11 @@
 // crowns came; skin27: the 8 ball, 29/10/2026; skin28: the camo, 30/10/2026, the look of the site's icon), won at the
 // waves' milestones (src/client/wavesProgress.ts), and the original game's styles redrawn (skin01: the tennis ball,
 // 30/10/2026, Erick: the original's hand-drawn seam came out lumpy; skin03: the lightning bolt, the same day; skin04: the
-// star, skin06: the cow print and skin07: the belt, 31/10/2026). Mad Orbs' own art, made here, not the original game's. A skin is a 64x32 equirectangular texture (the 8 ball, the camo and the redrawn ones 256x128, for their detail)
+// star, skin06: the cow print, skin07: the belt and skin08: the grille band, 31/10/2026). Mad Orbs' own art, made here,
+// not the original game's. A skin is a 64x32 equirectangular texture (the 8 ball, the camo and the redrawn ones 256x128, for their detail)
 // whose red, green and blue say how much of each of the player's three colours goes on each texel, black where all
 // three are 0 (src/client/render/baboRenderer.ts, Player::updateSkin).
-//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin01.tga, skin03.tga, skin04.tga, skin06.tga, skin07.tga, skin24.tga ... skin28.tga
+//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin01.tga, skin03.tga, skin04.tga, skin06.tga, skin07.tga, skin08.tga, skin24.tga ... skin28.tga
 //   node tools/make-exclusive-skins.mjs --preview  -> also shots/exclusive-skins.ppm (8x, to look at)
 //   node tools/make-exclusive-skins.mjs --drafts   -> also shots/drafts/<name>.tga: the draws kept for later (DRAFTS)
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -13,7 +14,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 /** The original game's size (the 8 ball is bigger: SIZES). */
 const W = 64;
 const H = 32;
-const SIZES = { skin01: [256, 128], skin03: [256, 128], skin04: [256, 128], skin06: [256, 128], skin07: [256, 128], skin27: [256, 128], skin28: [256, 128] };
+const SIZES = { skin01: [256, 128], skin03: [256, 128], skin04: [256, 128], skin06: [256, 128], skin07: [256, 128], skin08: [256, 128], skin27: [256, 128], skin28: [256, 128] };
 /** Samples per texel side: the edges come out smooth. */
 const SS = 6;
 
@@ -228,6 +229,17 @@ function roundRect(x, y, { w, h, r }) {
   return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
 }
 
+// ------------------------------------------------------------------ for the grille band
+/**
+ * The grille band (skin08) keeps the original's drawing, measured on its 64x32 grid (x = 64u, y = 32v), symmetric about
+ * the front (x 32) and the middle (y 16): a band in colour 1 between rows 7 and 25; at the front an oval in colour 2
+ * with three bars in colour 3, the middle one running on through the band to a dot near each pole; a slit out to each
+ * side; four windows at the back.
+ */
+const GRILLE_DOTS = [dirOf(0.5, 1.8 / 32), dirOf(0.5, 30.2 / 32)];
+/** Whether (x, y) is inside a rounded box centred on (cx, cy): half its width and height, and its corners' radius. */
+const inBox = (x, y, cx, cy, w, h, r) => roundRect(x - cx, y - cy, { w, h, r }) < 0;
+
 // ------------------------------------------------------------------ for the volleyball (a draft)
 /** tan 15°: each face's three strips split at ±15° from its middle. */
 const T15 = Math.tan(Math.PI / 12);
@@ -304,6 +316,30 @@ const SKINS = {
     if (stroke < -BELT_EDGE) return [0, 0, 1];
     if (stroke < 0) return [1, 0, 0];
     return [0, 1, 0];
+  },
+  // The grille band (the original game's skin08 redrawn, 31/10/2026, the same drawing: it was blurred at 64x32, and its
+  // dots near the poles came out as spikes)
+  skin08(u, v) {
+    const x = u * 64;
+    const y = v * 32;
+    // The dots near the poles, round on the Orb itself (a box on the grid would come out as a spike so near the pole)
+    const p = dirOf(u, v);
+    if (GRILLE_DOTS.some((c) => dot(p, c) > Math.cos(0.075))) return [0, 0, 1];
+    if (y <= 7 || y >= 25) return [0, 1, 0];
+    const fx = Math.abs(x - 32);
+    // The oval (a superellipse) and its bars
+    if (Math.pow(fx / 14, 2.6) + Math.pow(Math.abs(y - 16) / 6.6, 2.6) < 1) {
+      return inBox(fx, y, 0, 15.5, 2, 5.4, 1) || inBox(fx, y, 6, 15.5, 2, 5.2, 1) ? [0, 0, 1] : [0, 1, 0];
+    }
+    // The middle bar through the band, with a colour 2 margin
+    if (fx < 1) return [0, 0, 1];
+    if (fx < 2.2) return [0, 1, 0];
+    // The slits: colour 2 lines from the oval out, a colour 3 dash in each
+    if (inBox(fx, y, 21.5, 15.25, 3, 0.8, 0.6)) return [0, 0, 1];
+    if (inBox(fx, y, 20.5, 15.25, 7, 1.6, 1.2)) return [0, 1, 0];
+    // The windows at the back
+    if (inBox(Math.min(x, 64 - x), Math.abs(y - 16), 5.5, 6.3, 3.4, 1.1, 0.8)) return [0, 1, 0];
+    return [1, 0, 0];
   },
   // Honeycomb: green cells with red walls and a blue core in each
   skin24(u, v) {
@@ -414,9 +450,15 @@ const SKINS = {
   },
 };
 
+/** The robot's face: where the Orb at rest faces the viewer (orbStudio's FRONT), upright. */
+const ROBOT_C = dirOf(0.42, 0.703);
+const ROBOT_UP = norm(UP.map((x, i) => x - ROBOT_C[i] * dot(UP, ROBOT_C)));
+const ROBOT_RIGHT = cross(ROBOT_UP, ROBOT_C);
+
 /**
- * Draws kept for later, not in the game (Erick, 31/10/2026, choosing the star for Style 4: "guarda a de vôlei").
- * `--drafts` writes each one to shots/drafts/<name>.tga (256x128): copy it over a skin to try it.
+ * Draws kept for later, not in the game (Erick, 31/10/2026, choosing the star for Style 4: "guarda a de vôlei"; and the
+ * grille band for Style 8: "guarda a B", the robot). `--drafts` writes each one to shots/drafts/<name>.tga (256x128):
+ * copy it over a skin to try it.
  */
 const DRAFTS = {
   // A volleyball: the sphere split into the six faces of a cube, three strips on each, the neighbours' strips across
@@ -434,6 +476,38 @@ const DRAFTS = {
     const border = Math.min(Math.abs(c - T15 * a[k]), Math.abs(c + T15 * a[k])) / Math.sqrt(1 + T15 * T15);
     if (edge < VOLLEY_SEAM || Math.asin(Math.min(1, border)) < VOLLEY_SEAM) return [0, 0, 1];
     return Math.abs(c) < T15 * a[k] ? [0, 1, 0] : [1, 0, 0];
+  },
+  // A robot's head: a visor (colour 3) with two eyes (colour 1) and a mouth grille at the front, a bolt on each side, a
+  // seam over the back and a panel with three vents there; the head in colour 2
+  robot(u, v) {
+    const p = dirOf(u, v);
+    const z = dot(p, ROBOT_C);
+    const x = dot(p, ROBOT_RIGHT);
+    const y = dot(p, ROBOT_UP);
+    for (const s of [1, -1]) {
+      const d = Math.acos(Math.min(1, s * x));
+      if (d < 0.1) return [1, 0, 0];
+      if (d < 0.2) return [0, 0, 1];
+      if (d < 0.24) return [1, 0, 0];
+    }
+    if (z < -0.3 && roundRect(-x, y + 0.05, { w: 0.3, h: 0.24, r: 0.07 }) < 0) {
+      for (const vy of [0.1, -0.05, -0.2]) if (roundRect(-x, y - vy, { w: 0.22, h: 0.035, r: 0.035 }) < 0) return [0, 0, 1];
+      return [1, 0, 0];
+    }
+    if (z > 0.15) {
+      const visor = roundRect(x, y - 0.2, { w: 0.6, h: 0.2, r: 0.14 });
+      if (visor < 0) {
+        for (const s of [1, -1]) if (Math.hypot(x - s * 0.27, y - 0.2) < 0.1) return [1, 0, 0];
+        return [0, 0, 1];
+      }
+      if (visor < 0.04) return [1, 0, 0];
+      if (roundRect(x, y + 0.33, { w: 0.34, h: 0.12, r: 0.06 }) < 0) {
+        const slot = Math.abs(((x + 0.34) % 0.136) - 0.068);
+        return slot < 0.026 && Math.abs(y + 0.33) < 0.075 && Math.abs(x) < 0.3 ? [0, 0, 1] : [1, 0, 0];
+      }
+    }
+    if (z < -0.05 && Math.abs(y) < 0.025) return [0, 0, 1];
+    return [0, 1, 0];
   },
 };
 
