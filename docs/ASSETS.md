@@ -57,6 +57,8 @@ and is never distributed, so it is not part of that repository.
   and national laws; the Red Cross asks games not to use it.
 - `skins/skin16.tga`: the original company's name ("RndLabs") replaced with "MAD ORBS", in the
   same pixel lettering (2 px strokes, 18 rows, blue on red, between the same green octagons).
+- `skins/skin01.tga` (the tennis ball): redrawn by `tools/make-exclusive-skins.mjs` on 30/10/2026, 256x128 (Mad Orbs' own
+  work, GPL v3). The original drew the same idea, a ball in two interlocking halves, by hand on its 64x32 texture.
 - `skins/skin24.tga`, `skin25.tga`, `skin26.tga`, `skin27.tga`, `skin28.tga` (Honeycomb, Flames, Royal, 8 Ball, Camo):
   new skins, not from the original game, drawn by `tools/make-exclusive-skins.mjs` for the Waves mode's milestones
   (Mad Orbs' own work, GPL v3 like the rest). The 8 Ball and the Camo are 256x128, the others 64x32 like the original

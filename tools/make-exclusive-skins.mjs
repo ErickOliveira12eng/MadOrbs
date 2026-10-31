@@ -1,17 +1,18 @@
 // Draws Mad Orbs' own Orb skins (skin24..skin26: Honeycomb, Flames, Royal; Royal was named Crown until 29/10/2026, when the
 // crowns came; skin27: the 8 ball, 29/10/2026; skin28: the camo, 30/10/2026, the look of the site's icon), won at the
-// waves' milestones (src/client/wavesProgress.ts). Mad Orbs' own art, made here, not the original game's. A skin is a
-// 64x32 equirectangular texture (the 8 ball and the camo 256x128, for their detail) whose red, green and blue say how
-// much of each of the player's three colours goes on each texel, black where all three are 0
-// (src/client/render/baboRenderer.ts, Player::updateSkin).
-//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin24.tga ... skin28.tga
+// waves' milestones (src/client/wavesProgress.ts), and the original game's styles redrawn (skin01: the tennis ball,
+// 30/10/2026, Erick: the original's hand-drawn seam came out lumpy). Mad Orbs' own art, made here, not the original
+// game's. A skin is a 64x32 equirectangular texture (the 8 ball, the camo and the redrawn ones 256x128, for their detail)
+// whose red, green and blue say how much of each of the player's three colours goes on each texel, black where all
+// three are 0 (src/client/render/baboRenderer.ts, Player::updateSkin).
+//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin01.tga, skin24.tga ... skin28.tga
 //   node tools/make-exclusive-skins.mjs --preview  -> also shots/exclusive-skins.ppm (8x, to look at)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 /** The original game's size (the 8 ball is bigger: SIZES). */
 const W = 64;
 const H = 32;
-const SIZES = { skin27: [256, 128], skin28: [256, 128] };
+const SIZES = { skin01: [256, 128], skin27: [256, 128], skin28: [256, 128] };
 /** Samples per texel side: the edges come out smooth. */
 const SS = 6;
 
@@ -104,11 +105,63 @@ const KNOT_AT = (() => {
 const KNOT_DOWN = norm(UP.map((x, i) => -x + KNOT_AT[i] * dot(UP, KNOT_AT)));
 const KNOT_ACROSS = cross(KNOT_AT, KNOT_DOWN);
 
+// ------------------------------------------------------------------ for the tennis ball
+/**
+ * The tennis ball's seam: x = a cos t + b cos 3t, y = a sin t - b sin 3t, z = 2√(ab) sin 2t, on the sphere when
+ * a + b = 1 (b: how far the two halves reach into each other). Sampled, with each point's sideways direction (which half).
+ */
+const SEAM_B = 0.28;
+const SEAM_N = 2400;
+const SEAM = (() => {
+  const a = 1 - SEAM_B;
+  const b = SEAM_B;
+  const c = 2 * Math.sqrt(a * b);
+  const pts = [];
+  const sides = [];
+  for (let i = 0; i < SEAM_N; i++) {
+    const t = (i / SEAM_N) * Math.PI * 2;
+    const p = [a * Math.cos(t) + b * Math.cos(3 * t), a * Math.sin(t) - b * Math.sin(3 * t), c * Math.sin(2 * t)];
+    const d = [-a * Math.sin(t) - 3 * b * Math.sin(3 * t), a * Math.cos(t) - 3 * b * Math.cos(3 * t), 2 * c * Math.cos(2 * t)];
+    pts.push(p);
+    sides.push(norm(cross(p, d)));
+  }
+  return { pts, sides };
+})();
+/** The seam's half width, in radians of the Orb. */
+const SEAM_WIDTH = 0.045;
+/** The seam turned around the Orb (in turns) so the picker's still Orbs (orbStudio's FRONT) show its curve across the front. */
+const SEAM_TURN = -0.17;
+
+/** The seam point nearest to `p`: every 24th first, then the ones around the best of them. */
+function nearestSeam(p) {
+  const step = 24;
+  let best = -2;
+  let k = 0;
+  for (let i = 0; i < SEAM_N; i += step) {
+    const d = dot(p, SEAM.pts[i]);
+    if (d > best) [best, k] = [d, i];
+  }
+  const around = k;
+  for (let j = -step; j <= step; j++) {
+    const i = (around + j + SEAM_N) % SEAM_N;
+    const d = dot(p, SEAM.pts[i]);
+    if (d > best) [best, k] = [d, i];
+  }
+  return { dist: Math.acos(Math.min(1, best)), side: dot(p, SEAM.sides[k]) };
+}
+
 /**
  * Each skin: (u, v) -> [red, green, blue] shares, u around the Orb (0..1), v from the top row (0) to
  * the bottom one (1). All three 0 is black.
  */
 const SKINS = {
+  // The tennis ball (the original game's skin01 redrawn, 30/10/2026: its seam was drawn by hand on the 64x32 texture and
+  // came out lumpy on the Orb): the two halves in colours 1 and 3, the seam in colour 2
+  skin01(u, v) {
+    const { dist, side } = nearestSeam(dirOf(u + SEAM_TURN, v));
+    if (dist < SEAM_WIDTH) return [0, 1, 0];
+    return side > 0 ? [1, 0, 0] : [0, 0, 1];
+  },
   // Honeycomb: green cells with red walls and a blue core in each
   skin24(u, v) {
     // Texel units; cell centres 8 texels apart around the Orb, rows 6.4 apart, every other row
