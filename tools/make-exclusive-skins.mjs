@@ -2,10 +2,10 @@
 // crowns came; skin27: the 8 ball, 29/10/2026; skin28: the camo, 30/10/2026, the look of the site's icon), won at the
 // waves' milestones (src/client/wavesProgress.ts), and the original game's styles redrawn (skin01: the tennis ball,
 // 30/10/2026, Erick: the original's hand-drawn seam came out lumpy; skin03: the lightning bolt, the same day; skin04: the
-// star and skin06: the cow print, 31/10/2026). Mad Orbs' own art, made here, not the original game's. A skin is a 64x32 equirectangular texture (the 8 ball, the camo and the redrawn ones 256x128, for their detail)
+// star, skin06: the cow print and skin07: the belt, 31/10/2026). Mad Orbs' own art, made here, not the original game's. A skin is a 64x32 equirectangular texture (the 8 ball, the camo and the redrawn ones 256x128, for their detail)
 // whose red, green and blue say how much of each of the player's three colours goes on each texel, black where all
 // three are 0 (src/client/render/baboRenderer.ts, Player::updateSkin).
-//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin01.tga, skin03.tga, skin04.tga, skin06.tga, skin24.tga ... skin28.tga
+//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin01.tga, skin03.tga, skin04.tga, skin06.tga, skin07.tga, skin24.tga ... skin28.tga
 //   node tools/make-exclusive-skins.mjs --preview  -> also shots/exclusive-skins.ppm (8x, to look at)
 //   node tools/make-exclusive-skins.mjs --drafts   -> also shots/drafts/<name>.tga: the draws kept for later (DRAFTS)
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -13,7 +13,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 /** The original game's size (the 8 ball is bigger: SIZES). */
 const W = 64;
 const H = 32;
-const SIZES = { skin01: [256, 128], skin03: [256, 128], skin04: [256, 128], skin06: [256, 128], skin27: [256, 128], skin28: [256, 128] };
+const SIZES = { skin01: [256, 128], skin03: [256, 128], skin04: [256, 128], skin06: [256, 128], skin07: [256, 128], skin27: [256, 128], skin28: [256, 128] };
 /** Samples per texel side: the edges come out smooth. */
 const SS = 6;
 
@@ -202,6 +202,32 @@ const STAR_RIGHT = cross(STAR_UP, STAR_AXIS);
 const STAR = starPoly(8, 0.6, 0.27, Math.PI / 2);
 const STAR_DISC = starPoly(16, 0.86, 0.76, Math.PI / 2 + Math.PI / 16);
 
+// ------------------------------------------------------------------ for the belt
+/**
+ * The belt (skin07) keeps the original's drawing, measured on its 64x32 grid (x = 64u, y = 32v): two rails around the
+ * middle, centred 5 rows above and below it, and two rounded rings on them, a hole in each; every stroke 4 texels wide,
+ * 1 of edge on each side.
+ */
+const BELT_RAILS = [11, 21];
+const BELT_RINGS = [15.5, 47.5];
+/** The rings' centre line: a rounded rectangle, half its width and height, and its corners' radius. */
+const BELT_RING = { w: 8.5, h: 9.5, r: 6.25 };
+const BELT_HALF = 2;
+const BELT_EDGE = 1;
+/** How round the corners where the rails meet the rings are (the smooth minimum's reach, in texels). */
+const BELT_ROUND = 1.5;
+/** The smaller of two distances, rounded where they're close (a polynomial smooth minimum). */
+function smoothMin(a, b, k) {
+  const h = Math.max(k - Math.abs(a - b), 0) / k;
+  return Math.min(a, b) - (h * h * k) / 4;
+}
+/** Signed distance from (x, y) to a rounded rectangle centred on 0 (negative inside). */
+function roundRect(x, y, { w, h, r }) {
+  const qx = Math.abs(x) - (w - r);
+  const qy = Math.abs(y) - (h - r);
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
+}
+
 // ------------------------------------------------------------------ for the volleyball (a draft)
 /** tan 15°: each face's three strips split at ±15° from its middle. */
 const T15 = Math.tan(Math.PI / 12);
@@ -257,6 +283,26 @@ const SKINS = {
     const big = fbm2(q, 1.5, 41.2);
     if (big > 0.13) return [0, 0, 1];
     if (fbm2(q, 1.6, 77.7) > 0.2 && big < 0.07) return [1, 0, 0];
+    return [0, 1, 0];
+  },
+  // The belt (the original game's skin07 redrawn, 31/10/2026, the same drawing: it was good, only blocky at 64x32): rails
+  // and rings in colour 3 with an edge in colour 1, on colour 2; where they meet, the strokes merge, and the rings'
+  // holes cut the rails
+  skin07(u, v) {
+    const x = u * 64;
+    const y = v * 32;
+    let ring = Infinity;
+    for (const c of BELT_RINGS) {
+      const dx = ((((x - c) % 64) + 96) % 64) - 32;
+      ring = Math.min(ring, roundRect(dx, y - 16, BELT_RING));
+    }
+    if (ring < -BELT_HALF) return [0, 1, 0];
+    // The hole's edge goes all the way round, across the rails too
+    if (ring < -BELT_HALF + BELT_EDGE) return [1, 0, 0];
+    // Rings and rails merged with a small round where they meet (a smooth minimum)
+    const stroke = BELT_RAILS.reduce((d, r) => smoothMin(d, Math.abs(y - r) - BELT_HALF, BELT_ROUND), Math.abs(ring) - BELT_HALF);
+    if (stroke < -BELT_EDGE) return [0, 0, 1];
+    if (stroke < 0) return [1, 0, 0];
     return [0, 1, 0];
   },
   // Honeycomb: green cells with red walls and a blue core in each
