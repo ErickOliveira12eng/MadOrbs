@@ -1,18 +1,19 @@
 // Draws Mad Orbs' own Orb skins (skin24..skin26: Honeycomb, Flames, Royal; Royal was named Crown until 29/10/2026, when the
 // crowns came; skin27: the 8 ball, 29/10/2026; skin28: the camo, 30/10/2026, the look of the site's icon), won at the
 // waves' milestones (src/client/wavesProgress.ts), and the original game's styles redrawn (skin01: the tennis ball,
-// 30/10/2026, Erick: the original's hand-drawn seam came out lumpy; skin03: the lightning bolt, the same day). Mad Orbs' own art, made here, not the original
-// game's. A skin is a 64x32 equirectangular texture (the 8 ball, the camo and the redrawn ones 256x128, for their detail)
+// 30/10/2026, Erick: the original's hand-drawn seam came out lumpy; skin03: the lightning bolt, the same day; skin04: the
+// star, 31/10/2026). Mad Orbs' own art, made here, not the original game's. A skin is a 64x32 equirectangular texture (the 8 ball, the camo and the redrawn ones 256x128, for their detail)
 // whose red, green and blue say how much of each of the player's three colours goes on each texel, black where all
 // three are 0 (src/client/render/baboRenderer.ts, Player::updateSkin).
-//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin01.tga, skin03.tga, skin24.tga ... skin28.tga
+//   node tools/make-exclusive-skins.mjs            -> public/assets/skins/skin01.tga, skin03.tga, skin04.tga, skin24.tga ... skin28.tga
 //   node tools/make-exclusive-skins.mjs --preview  -> also shots/exclusive-skins.ppm (8x, to look at)
+//   node tools/make-exclusive-skins.mjs --drafts   -> also shots/drafts/<name>.tga: the draws kept for later (DRAFTS)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 /** The original game's size (the 8 ball is bigger: SIZES). */
 const W = 64;
 const H = 32;
-const SIZES = { skin01: [256, 128], skin03: [256, 128], skin27: [256, 128], skin28: [256, 128] };
+const SIZES = { skin01: [256, 128], skin03: [256, 128], skin04: [256, 128], skin27: [256, 128], skin28: [256, 128] };
 /** Samples per texel side: the edges come out smooth. */
 const SS = 6;
 
@@ -182,6 +183,31 @@ const BOLT_FACES = [dirOf(0.42, 0.703), dirOf(0.42, 0.703).map((x) => -x)].map((
   return { c, up, right: cross(up, c) };
 });
 
+// ------------------------------------------------------------------ for the star
+/** A star: `n` points at radius `out`, the notches between them at `inner`, the first point at the angle `turn`. */
+const starPoly = (n, out, inner, turn) =>
+  Array.from({ length: n * 2 }, (_, i) => {
+    const a = turn + (i * Math.PI) / n;
+    const r = i % 2 ? inner : out;
+    return [r * Math.cos(a), r * Math.sin(a)];
+  });
+/**
+ * The stars' axis: the Orb at rest's up tipped 0.6 rad towards the viewer, so the menu shows a star at the top front.
+ * Seen from above it (an orthographic view of the sphere), a point of the star points to the top of the Orb.
+ */
+const STAR_AXIS = norm(UP.map((x, i) => x * Math.cos(0.6) + VIEW[i] * Math.sin(0.6)));
+const STAR_UP = norm(UP.map((x, i) => x - STAR_AXIS[i] * dot(UP, STAR_AXIS)));
+const STAR_RIGHT = cross(STAR_UP, STAR_AXIS);
+/** The 8-point star (colour 1) and the toothed disc around it (colour 3), in units of the Orb's radius. */
+const STAR = starPoly(8, 0.6, 0.27, Math.PI / 2);
+const STAR_DISC = starPoly(16, 0.86, 0.76, Math.PI / 2 + Math.PI / 16);
+
+// ------------------------------------------------------------------ for the volleyball (a draft)
+/** tan 15°: each face's three strips split at ±15° from its middle. */
+const T15 = Math.tan(Math.PI / 12);
+/** The seams' half width, in radians of the Orb. */
+const VOLLEY_SEAM = 0.022;
+
 /**
  * Each skin: (u, v) -> [red, green, blue] shares, u around the Orb (0..1), v from the top row (0) to
  * the bottom one (1). All three 0 is black.
@@ -204,6 +230,17 @@ const SKINS = {
       if (inside) return [1, 0, 0];
       if (dist < BOLT_EDGE) return [0, 0, 1];
     }
+    return [0, 1, 0];
+  },
+  // The star (the original game's skin04 redrawn, 31/10/2026: an 8-point star at each pole on a toothed dark disc,
+  // painted in soft blurs at 64x32): the stars in colour 1 on toothed discs in colour 3, the rest in colour 2. Both
+  // poles have one (the star is the same seen from either side), so a rolling Orb shows one
+  skin04(u, v) {
+    const p = dirOf(u, v);
+    const x = dot(p, STAR_RIGHT);
+    const y = dot(p, STAR_UP);
+    if (polygon(STAR, x, y).inside) return [1, 0, 0];
+    if (polygon(STAR_DISC, x, y).inside) return [0, 0, 1];
     return [0, 1, 0];
   },
   // Honeycomb: green cells with red walls and a blue core in each
@@ -315,6 +352,29 @@ const SKINS = {
   },
 };
 
+/**
+ * Draws kept for later, not in the game (Erick, 31/10/2026, choosing the star for Style 4: "guarda a de vôlei").
+ * `--drafts` writes each one to shots/drafts/<name>.tga (256x128): copy it over a skin to try it.
+ */
+const DRAFTS = {
+  // A volleyball: the sphere split into the six faces of a cube, three strips on each, the neighbours' strips across
+  // theirs (the strips of the face around axis k run along axis (k + 2) % 3); the outer strips in colour 1, the middle
+  // ones in colour 2, the seams in colour 3
+  volleyball(u, v) {
+    const p = dirOf(u, v);
+    const a = p.map(Math.abs);
+    const k = a[0] >= a[1] && a[0] >= a[2] ? 0 : a[1] >= a[2] ? 1 : 2;
+    const m = (k + 2) % 3;
+    // The face's edges (the planes |p_k| = |p_j|) and the strips' borders (p_m = ±tan 15° |p_k|)
+    let edge = Infinity;
+    for (const j of [0, 1, 2]) if (j !== k) edge = Math.min(edge, Math.asin((a[k] - a[j]) / Math.SQRT2));
+    const c = p[m];
+    const border = Math.min(Math.abs(c - T15 * a[k]), Math.abs(c + T15 * a[k])) / Math.sqrt(1 + T15 * T15);
+    if (edge < VOLLEY_SEAM || Math.asin(Math.min(1, border)) < VOLLEY_SEAM) return [0, 0, 1];
+    return Math.abs(c) < T15 * a[k] ? [0, 1, 0] : [1, 0, 0];
+  },
+};
+
 function render(fn, W, H) {
   const px = new Float32Array(W * H * 3);
   for (let y = 0; y < H; y++) {
@@ -387,6 +447,13 @@ for (const [name, fn] of Object.entries(SKINS)) {
     console.log(`shots/${name}.ppm`);
   }
   console.log(`public/assets/skins/${name}.tga`);
+}
+if (process.argv.includes('--drafts')) {
+  mkdirSync('shots/drafts', { recursive: true });
+  for (const [name, fn] of Object.entries(DRAFTS)) {
+    writeFileSync(`shots/drafts/${name}.tga`, tga(render(fn, 256, 128), 256, 128));
+    console.log(`shots/drafts/${name}.tga`);
+  }
 }
 if (preview) {
   // One image with the skins one under the other, 8 times bigger
