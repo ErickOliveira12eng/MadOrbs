@@ -204,6 +204,8 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
           mode: 'tdm',
           mapName: VESUVIUS_MAP,
           vesuvius: { levels: forge.levels, weapon: forge.weapon },
+          // The run's reports say whose it is (src/client/vesuviusReport.ts): the server checks a win for the ranking
+          authToken: await account.accessToken(),
           onVesuviusEnd: () => void account.saveVesuviusProgress(),
           onVesuviusAction: (action) => {
             afterQuit =

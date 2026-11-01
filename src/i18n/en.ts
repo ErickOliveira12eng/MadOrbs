@@ -342,7 +342,7 @@ export const en = {
   'ranking.note.campaign': 'By levels won, then the shortest total time.',
   'ranking.noTime': 'Time: a record from before October 23, 2026 has none (—); it shows once that player reaches their best wave again.',
   'ranking.note.waves': 'By the highest wave reached; on a tie, whoever reached it sooner (each death adds 30 s), then whoever began with less Power.',
-  'ranking.note.vesuvius': 'By the best time to bring the Vesuvius down (each death adds 15 s), then the most wins. Only accounts whose Waves record, checked by the server, is past wave 100.',
+  'ranking.note.vesuvius': 'By the best time to bring the Vesuvius down (each death adds 15 s), in wins the server checked, then the most wins. Only accounts whose Waves record, also checked by the server, is past wave 100.',
   'ads.pleaTitle': 'Want to support this free project?',
   'ads.pleaText': 'Turn off your ad blocker for madorbs.com. The ads only show up here, never while you play.',
   'hud.dodge': 'Dodge!',

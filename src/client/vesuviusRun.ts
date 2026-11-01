@@ -23,6 +23,7 @@ import {
 } from '../sim/constants';
 import type { Game } from '../sim/game';
 import type { Player, SkinInfo } from '../sim/player';
+import { VESUVIUS_BOSS_LIFE, VESUVIUS_DEATH_PENALTY, VESUVIUS_ERUPTION } from '../sim/vesuvius';
 import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { VesuviusRenderer, type VesuviusMarks } from './render/vesuviusRenderer';
@@ -36,16 +37,16 @@ export const VES = {
   centre: { x: 15.5, y: 15.5 },
   /** Its size (hit and drawn; against the walls a little one), and its bar: so many of an ordinary Orb's (150: 15,000 points). */
   bossRadius: 1.4,
-  bossLife: 150,
+  bossLife: VESUVIUS_BOSS_LIFE,
   /** Its skin: the Flames (skin25) in lava's colours. */
   bossSkin: { skin: 'skin25', redDecal: [1, 0.5, 0.06], greenDecal: [0.32, 0.03, 0.01], blueDecal: [1, 0.86, 0.25] } as SkinInfo,
   /** Its life where a phase begins (2 and 3), and the seconds it erupts in between, untouchable. */
   phaseAt: [2 / 3, 1 / 3],
-  eruption: 4.5,
+  eruption: VESUVIUS_ERUPTION,
   /** The share of the enemies' damage the player takes (as in the Waves: their bots are the waves' ones). */
   playerDamage: WAVES.playerDamage,
   /** Seconds a death adds to the time, and before the player is back. */
-  deathPenalty: 15,
+  deathPenalty: VESUVIUS_DEATH_PENALTY,
   respawn: 5,
   /** A life pack heals this much; a fallen enemy leaves one at this chance, a grenade at this one. */
   lifePackHeal: 0.35,
@@ -139,8 +140,9 @@ export interface VesuviusEnd {
   /** The phase it ended in, and the share of the volcano's bar taken. */
   phase: number;
   share: number;
-  /** The time (seconds played, a death's penalty each), the deaths it counts, the kills. */
+  /** The time (seconds played, a death's penalty each), the seconds played alone, the deaths it counts, the kills. */
   time: number;
+  seconds: number;
   deaths: number;
   kills: number;
   /** A win faster than the best one before (`best`, null: none). */
@@ -823,7 +825,7 @@ export class VesuviusRun {
     const obsidian = runObsidian(this.share, this.phase - 1, me.kills, won, isBest);
     const { progress } = saveVesuviusRun(obsidian.total, won, won ? time : null);
     track('vesuvius_end', { result: won ? 'won' : 'lost', phase: this.phase, seconds: time, deaths: me.deaths, kills: me.kills, obsidian: obsidian.total, new_best: isBest });
-    return { won, phase: this.phase, share: obsidian.share, time, deaths: me.deaths, kills: me.kills, isBest, best, firstWin: won && this.before.wins === 0, obsidian, progress };
+    return { won, phase: this.phase, share: obsidian.share, time, seconds: this.elapsed, deaths: me.deaths, kills: me.kills, isBest, best, firstWin: won && this.before.wins === 0, obsidian, progress };
   }
 
   hud(): VesuviusHud {

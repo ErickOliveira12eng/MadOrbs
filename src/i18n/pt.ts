@@ -339,7 +339,7 @@ export const pt: Record<Key, string> = {
   'ranking.note.campaign': 'Por fases vencidas, depois o menor tempo total.',
   'ranking.noTime': 'Tempo: os recordes de antes de 23 de outubro de 2026 não têm (—); ele aparece quando a pessoa chegar de novo à sua maior onda.',
   'ranking.note.waves': 'Pela maior onda alcançada; no empate, quem chegou a ela mais rápido (cada morte soma 30 s) e, depois, quem começou com menos poder.',
-  'ranking.note.vesuvius': 'Pelo melhor tempo para derrubar o Vesúvio (cada morte soma 15 s), depois quem venceu mais vezes. Só contas com o recorde das Ondas acima da 100, conferido pelo servidor.',
+  'ranking.note.vesuvius': 'Pelo melhor tempo para derrubar o Vesúvio (cada morte soma 15 s), em vitórias conferidas pelo servidor, depois quem venceu mais vezes. Só contas com o recorde das Ondas acima da 100, também conferido pelo servidor.',
   'ads.pleaTitle': 'Quer apoiar este projeto grátis?',
   'ads.pleaText': 'Desative o bloqueador de anúncios para o madorbs.com. Os anúncios aparecem só aqui, nunca enquanto você joga.',
   'hud.dodge': 'Esquiva!',

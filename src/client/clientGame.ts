@@ -100,6 +100,7 @@ import type { CheckpointBuild, Levels, UpgradeID } from './wavesProgress';
 import { wavesPower } from './wavesPower';
 import { VES, VesuviusRun, type VesuviusEnd } from './vesuviusRun';
 import { VESUVIUS_LIVES, type ForgeLevels } from './vesuviusProgress';
+import { reportVesuviusRun } from './vesuviusReport';
 import { newRunId, reportWavesRun } from './wavesReport';
 import { PvpTutorial, WavesTutorial, type Tutorial, type TutorialCard, type TutorialHost, type TutorialKind } from './tutorial';
 import { ViewOverlay, scopeAlpha } from './ui/viewOverlay';
@@ -520,6 +521,8 @@ export class ClientGame {
 
   /** A Vesuvius run, or null. */
   private vesuvius: VesuviusRun | null = null;
+  /** The run told to the server (src/client/vesuviusReport.ts), signed in only: its id ('' : none, or its end sent). */
+  private vesuviusRunId = '';
 
   /**
    * The Vesuvius: Team Deathmatch with us alone on blue (the Forge's lives, its weapon) against the volcano in the
@@ -554,6 +557,8 @@ export class ClientGame {
       levels: setup.levels,
       weapon: setup.weapon,
       onPhase: (phase) => {
+        // The server notes when each phase begins (its check of a win)
+        if (this.vesuviusRunId) reportVesuviusRun({ phase: 'phase', id: this.vesuviusRunId, n: phase });
         this.hud.announceText(t('vesuvius.phase', { n: phase }), t(phase === 2 ? 'vesuvius.phase2' : 'vesuvius.phase3'), banner('#ffd9b0', '#ff5a14'), 3);
         audio.play(this.sounds.siren, 220);
         this.cam.viewShake = Math.max(this.cam.viewShake, 1.2);
@@ -583,7 +588,15 @@ export class ClientGame {
     this.hud.preloadCampaignAd();
   }
 
+  /** The run's end told to the server (a win is checked there before it reaches the ranking). Once. */
+  private reportVesuviusEnd(end: VesuviusEnd | null): void {
+    if (!this.vesuviusRunId) return;
+    reportVesuviusRun({ phase: 'end', id: this.vesuviusRunId, won: !!end?.won, seconds: end?.seconds ?? 0, deaths: end?.deaths ?? 0 });
+    this.vesuviusRunId = '';
+  }
+
   private endVesuvius(end: VesuviusEnd): void {
+    this.reportVesuviusEnd(end);
     this.opts.onVesuviusEnd?.(end);
     this.input.exitPointerLock();
     this.renderer.domElement.style.cursor = 'auto';
@@ -1109,6 +1122,7 @@ export class ClientGame {
       track('vesuvius_quit', { phase: this.vesuvius.phaseNumber, kills: this.me.kills, seconds });
       // What the run earned stays (the Obsidian), here and in the account
       const left = this.vesuvius.leave();
+      this.reportVesuviusEnd(left);
       if (left) this.opts.onVesuviusEnd?.(left);
     }
     else if (!this.camp && !this.waves && !this.vesuvius && !this.matchEnded) track('match_quit', { ...this.matchInfo(), seconds, kills: this.me.kills, deaths: this.me.deaths, reason: reason ? 'closed' : 'menu' });
@@ -1243,7 +1257,14 @@ export class ClientGame {
         this.opts.authToken,
       );
       window.addEventListener('pagehide', this.onPageHide);
-    } else if (this.vesuvius && this.opts.vesuvius) track('vesuvius_start', { weapon: this.opts.vesuvius.weapon });
+    } else if (this.vesuvius && this.opts.vesuvius) {
+      track('vesuvius_start', { weapon: this.opts.vesuvius.weapon });
+      // Signed in: the server keeps its clock of the run (only an account's win can be ranked)
+      if (this.opts.authToken) {
+        this.vesuviusRunId = newRunId();
+        reportVesuviusRun({ phase: 'start', id: this.vesuviusRunId }, this.opts.authToken);
+      }
+    }
     else track('match_start', { ...this.matchInfo(), ...(map ? { map } : {}), bots: this.online ? this.botsNow() : (this.opts.botCount ?? 0) });
   }
 

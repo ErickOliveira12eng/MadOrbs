@@ -339,7 +339,7 @@ export const es: Record<Key, string> = {
   'ranking.note.campaign': 'Por niveles ganados, luego el menor tiempo total.',
   'ranking.noTime': 'Tiempo: los récords de antes del 23 de octubre de 2026 no lo tienen (—); aparece cuando esa persona llegue de nuevo a su mejor oleada.',
   'ranking.note.waves': 'Por la oleada más alta alcanzada; en un empate, quien llegó antes (cada muerte suma 30 s) y, después, quien empezó con menos poder.',
-  'ranking.note.vesuvius': 'Por el mejor tiempo para derribar el Vesubio (cada muerte suma 15 s), luego quien ganó más veces. Solo cuentas con el récord de las Oleadas por encima de la 100, comprobado por el servidor.',
+  'ranking.note.vesuvius': 'Por el mejor tiempo para derribar el Vesubio (cada muerte suma 15 s), en victorias comprobadas por el servidor, luego quien ganó más veces. Solo cuentas con el récord de las Oleadas por encima de la 100, también comprobado por el servidor.',
   'ads.pleaTitle': '¿Quieres apoyar este proyecto gratis?',
   'ads.pleaText': 'Desactiva el bloqueador de anuncios para madorbs.com. Los anuncios solo aparecen aquí, nunca mientras juegas.',
   'hud.dodge': '¡Esquiva!',
