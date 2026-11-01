@@ -2664,6 +2664,11 @@
   top: 164px;
 }
 
+/* The Vesuvius's bar is taller, with its points under it */
+.h-feat.lower {
+  top: 192px;
+}
+
 .h-feat .fbox {
   display: flex;
   flex-direction: column;
@@ -4224,4 +4229,141 @@
   padding: 0 6px 6px;
   color: #ff9a9a;
   font: 800 12.5px var(--h-ui);
+}
+
+/* The Vesuvius (vesuviusRun.ts): the volcano's bar, wider, with the marks where its next phases begin and its points */
+.h-boss.vs {
+  color: #ffc49a;
+}
+
+.h-boss.vs span {
+  position: relative;
+  width: 460px;
+  height: 14px;
+  border-radius: 7px;
+  border-color: rgba(255, 140, 60, 0.6);
+}
+
+.h-boss.vs i {
+  background: linear-gradient(90deg, #ff3b1a, #ff8a1c 60%, #ffd34d);
+}
+
+.h-boss.vs em {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+  background: rgba(255, 240, 220, 0.85);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+}
+
+.h-boss.vs small {
+  color: var(--h-muted);
+  font: 800 12px var(--h-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Erupting: untouchable, the bar pulses */
+.h-boss.vs.immune span {
+  animation: h-immune 0.6s ease-in-out infinite alternate;
+}
+
+.h-boss.vs.immune small {
+  color: #ffd34d;
+}
+
+@keyframes h-immune {
+  from {
+    box-shadow: 0 0 0 rgba(255, 180, 60, 0);
+  }
+  to {
+    box-shadow: 0 0 14px rgba(255, 180, 60, 0.9);
+  }
+}
+
+/* The corner panel's three phases: done, now, to come */
+.h-vphases {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 4px 2px 6px;
+}
+
+.h-vphases span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--h-muted);
+  font: 700 12.5px var(--h-ui);
+  max-width: 200px;
+}
+
+.h-vphases b {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  font: 900 11px var(--h-ui);
+}
+
+.h-vphases .on {
+  color: #ffd9b0;
+}
+
+.h-vphases .on b {
+  border-color: #ff8a1c;
+  background: #ff5a14;
+  color: #fff;
+}
+
+.h-vphases .done {
+  opacity: 0.6;
+}
+
+.h-vphases .done b {
+  border-color: #6be894;
+  color: #6be894;
+}
+
+.h-wcores.obsidian {
+  color: #ffb36b;
+}
+
+.h-wcores.obsidian .h-core {
+  color: #ff7a2a;
+}
+
+/* The end panel: the Obsidian in lava's colours, the tip of a run lost */
+.wc-box.obsidian {
+  border-color: rgba(255, 140, 60, 0.5);
+  background: linear-gradient(180deg, rgba(58, 22, 10, 0.92), rgba(28, 12, 10, 0.92));
+}
+
+.wc-box.obsidian .wc-head {
+  color: #ffc49a;
+}
+
+.wc-box.obsidian .wc-total b {
+  color: #ffb36b;
+}
+
+.wc-box.obsidian .h-obsidian {
+  width: 24px;
+  height: 24px;
+  color: #ff8a3c;
+}
+
+.wc-box.vs-tip {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(20, 16, 24, 0.88);
+}
+
+.wc-box.vs-tip p {
+  margin: 0;
+  color: var(--h-text, #fff);
+  font: 700 15px/1.45 var(--h-ui);
 }

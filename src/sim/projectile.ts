@@ -85,6 +85,12 @@ export class Projectile {
   /** The bazooka's extra rockets (the waves' cards): their size, blast included, and their share of the damage. */
   size = 1;
   share = 1;
+  /**
+   * A rocket's top speed and how fast it gets there (the original's 10 and ×3 a second): the Vesuvius's rockets are
+   * slower, to be dodged (src/client/vesuviusRun.ts).
+   */
+  speedCap = 10;
+  accel = 3;
 
   constructor(position: Vec3, vel: Vec3, fromID: number, projectileType: number, uniqueID: number, weaponID = 0) {
     this.fromID = fromID;
@@ -191,9 +197,9 @@ export class Projectile {
     };
     if (type === PROJECTILE_ROCKET) {
       const speed = cf.vel.length();
-      if (speed > 10) cf.vel.mulIn(10 / speed);
+      if (speed > this.speedCap) cf.vel.mulIn(this.speedCap / speed);
       cf.position.addScaledIn(cf.vel, delay);
-      cf.vel.addIn(cf.vel.mul(delay * 3));
+      cf.vel.addIn(cf.vel.mul(delay * this.accel));
       if (wall(0.1)) cf.vel.set(0, 0, 0);
       return;
     }
@@ -233,13 +239,13 @@ export class Projectile {
     const type = this.projectileType;
 
     if (type === PROJECTILE_ROCKET) {
-      if (speed > 10) {
-        cf.vel.mulIn(10 / speed);
-        speed = 10;
+      if (speed > this.speedCap) {
+        cf.vel.mulIn(this.speedCap / speed);
+        speed = this.speedCap;
       }
       cf.position.addScaledIn(cf.vel, delay);
       // Exponential acceleration
-      cf.vel.addIn(cf.vel.mul(delay * 3));
+      cf.vel.addIn(cf.vel.mul(delay * this.accel));
     }
 
     if (type === PROJECTILE_COCKTAIL_MOLOTOV) {
@@ -285,7 +291,8 @@ export class Projectile {
       this.damageTime++;
       if (this.damageTime >= 20) {
         this.damageTime = 0;
-        game.radiusHit(cf.position, 0.5, this.fromID, WEAPON_COCKTAIL_MOLOTOV);
+        // (`share`: the Vesuvius's lava bombs burn less than a molotov)
+        game.radiusHit(cf.position, 0.5, this.fromID, WEAPON_COCKTAIL_MOLOTOV, false, -1, this.share);
       }
     }
 

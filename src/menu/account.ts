@@ -11,6 +11,7 @@ import { mergeProgress } from '../client/campaign';
 import { cleanSplits, mergeWavesRecord, type WavesRecord } from '../client/waves';
 import { visitor } from '../client/wavesReport';
 import { cleanBuilds, cleanLevels, loadProgress as loadWavesProgress, mergeBuilds, mergeProgress as mergeWavesProgress, type CheckpointBuild } from '../client/wavesProgress';
+import { cleanBest, cleanForge, loadVesuvius, mergeVesuvius } from '../client/vesuviusProgress';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../net/supabase';
 import type { VesuviusAccess } from '../sim/vesuvius';
 
@@ -163,7 +164,7 @@ export class Account {
     const client = this.client;
     const id = this.session?.user.id;
     if (!client || !id) return;
-    const [profile, stats, campaign, waves, wavesProgress] = await Promise.all([
+    const [profile, stats, campaign, waves, wavesProgress, vesuvius] = await Promise.all([
       client.from('profiles').select(PROFILE_COLUMNS).eq('id', id).maybeSingle(),
       client.from('player_stats').select(STATS_COLUMNS).eq('user_id', id),
       client.from('campaign_progress').select('level, best_seconds').eq('user_id', id),
@@ -171,7 +172,16 @@ export class Account {
       client.from('waves_records').select('*').eq('user_id', id).maybeSingle(),
       // (every column: builds only exists once 20261027120000_waves_builds.sql ran)
       client.from('waves_progress').select('*').eq('user_id', id).maybeSingle(),
+      // (only once 20261031140000_vesuvius_progress.sql ran: until then a warning, and the browser keeps it)
+      client.from('vesuvius_progress').select('*').eq('user_id', id).maybeSingle(),
     ]);
+    // The Vesuvius's Obsidian, Forge, best time and wins: the account's and this browser's, the most of each in both
+    if (vesuvius.error) console.warn('[account] cannot read the Vesuvius progress', vesuvius.error.message);
+    else {
+      const row = vesuvius.data as { earned: number; levels: unknown; best_time: number | null; wins: number; runs: number } | null;
+      const { upload } = mergeVesuvius(row ? { earned: row.earned, levels: cleanForge(row.levels), best: cleanBest(row.best_time), wins: row.wins, runs: row.runs } : null);
+      if (upload) void this.saveVesuviusProgress();
+    }
     void this.loadDebugTools();
     // The waves' Cores and Workshop levels: the account's and this browser's, the most of each in both
     if (wavesProgress.error) console.warn('[account] cannot read the waves progress', wavesProgress.error.message);
@@ -388,6 +398,14 @@ export class Account {
     const p = loadWavesProgress();
     const { error } = await this.client.rpc('record_waves_progress', { p_earned: p.earned, p_levels: p.levels });
     if (error) console.warn('[account] cannot save the waves progress', error.message);
+  }
+
+  /** The Vesuvius's Obsidian, Forge, best time or wins changed: the account keeps the most of each (vesuvius_progress). */
+  async saveVesuviusProgress(): Promise<void> {
+    if (!this.client || !this.session) return;
+    const p = loadVesuvius();
+    const { error } = await this.client.rpc('record_vesuvius_progress', { p_earned: p.earned, p_levels: p.levels, p_best_time: p.best, p_wins: p.wins, p_runs: p.runs });
+    if (error) console.warn('[account] cannot save the Vesuvius progress', error.message);
   }
 
   /** A game mode's ranking (for guests too: Supabase's client loads for it). */

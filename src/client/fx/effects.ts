@@ -1014,9 +1014,9 @@ export class Effects {
   /**
    * Projectile::update, PROJECTILE_ROCKET on clients: one smoke particle per tick.
    * Team coloured in TDM/CTF (team = owner's teamID, null if the owner is gone); `gold`: the waves' card
-   * rockets (the missile rain, the bazooka's extra rockets).
+   * rockets (the missile rain, the bazooka's extra rockets); `scale`: how much the smoke grows (the Vesuvius's, less).
    */
-  rocketSmoke(position: Vec3, gameType: number, team: number | null, gold = false): void {
+  rocketSmoke(position: Vec3, gameType: number, team: number | null, gold = false, scale = 1): void {
     let c1 = 1, c2 = 1, c3 = 1;
     if (gold) {
       c2 = 0.78;
@@ -1031,7 +1031,7 @@ export class Effects {
       }
     }
     this.dkp.dkpCreateParticle(position, new Vec3(), [c1, c2, c3, 0.75], [c1, c2, c3, 0], 0.125, randRange(0.6, 1.0),
-      this.options.reducedParticles ? 0.5 : 5.0, 0, 0, randRange(0, 30), this.tex_smoke1, DKP_SRC_ALPHA, DKP_ONE_MINUS_SRC_ALPHA, 0);
+      (this.options.reducedParticles ? 0.5 : 5.0) * scale, 0, 0, randRange(0, 30), this.tex_smoke1, DKP_SRC_ALPHA, DKP_ONE_MINUS_SRC_ALPHA, 0);
   }
 
   /** Projectile::update, PROJECTILE_GRENADE on clients: one additive glow per tick (team coloured). */

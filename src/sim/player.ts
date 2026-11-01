@@ -242,6 +242,11 @@ export class Player {
    * the heals given as a share of the bar heal as much of it.
    */
   lifeMax = 1;
+  /**
+   * The damage numbers over this Orb: points of its bar times this (1: a bar is 100 points). The Vesuvius's boss
+   * (src/client/vesuviusRun.ts) has a bar of many, its numbers are its points.
+   */
+  pointScale = 1;
   /** Power-ups of the waves mode (src/client/wavesRun.ts): damage dealt, damage taken, moving and firing. */
   damageBoost = 1;
   armorBoost = 1;

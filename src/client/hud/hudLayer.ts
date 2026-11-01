@@ -11,6 +11,8 @@ import type { FeatKind } from '../../sim/feats';
 import { drawMapPreview } from '../mapPreview';
 import { adBlockFound, adsAllowed, mountAd, refreshAd } from '../ads';
 import type { WavesEnd, WavesHud } from '../wavesRun';
+import { VES, type VesuviusEnd, type VesuviusHud } from '../vesuviusRun';
+import { forgeAffordable, obsidianBalance } from '../vesuviusProgress';
 import type { TutorialAction, TutorialCard, TutorialHud } from '../tutorial';
 import { WAVES } from '../waves';
 import { MILESTONES, affordable, balance, checkpoints, nextMilestone } from '../wavesProgress';
@@ -101,6 +103,8 @@ export interface HudFrame {
   campaign: CampaignHud | null;
   /** A run of the waves mode (offline), else null. */
   waves: WavesHud | null;
+  /** A Vesuvius run (offline), else null. */
+  vesuvius: VesuviusHud | null;
   /** A tutorial (offline, src/client/tutorial.ts), else null. */
   tutorial: TutorialHud | null;
   /** A private room's warm-up (host: we run the room), else null. */
@@ -711,6 +715,50 @@ export class HudLayer {
     fill();
   }
 
+  /**
+   * The end of a Vesuvius run: won (the time, a record?) or lost (the phase, the share of the bar taken, a tip); the
+   * Obsidian it earned and the balance; the Forge, play again or the menu.
+   */
+  showVesuviusEnd(e: VesuviusEnd & { onAction: (action: 'retry' | 'forge' | 'menu') => void }): void {
+    const head = e.won
+      ? `<div class="wave-reached"><span>${t('vesuvius.timeLabel')}</span><b>${clock(e.time)}</b></div>` +
+        (e.isBest ? `<div class="best new">${t(e.firstWin ? 'vesuvius.firstWin' : 'vesuvius.newBest')}</div>` : e.best !== null ? `<div class="best">${t('vesuvius.best', { time: clock(e.best) })}</div>` : '')
+      : `<div class="wave-reached"><span>${t('vesuvius.phaseLabel')}</span><b>${e.phase}</b></div>` +
+        `<div class="time">${t('vesuvius.barTaken', { n: Math.round(e.share * 100) })}</div>`;
+    const o = e.obsidian;
+    const row = (label: string, n: number) => `<div class="wc-row"><span>${label}</span><b>+${bigNum(n)}</b></div>`;
+    const canBuy = forgeAffordable(e.progress);
+    const box =
+      `<div class="wc-box obsidian"><div class="wc-head"><span class="wc-ico">${OBSIDIAN_SVG}</span>${t('vesuvius.obsidian')}</div>` +
+      row(t('vesuvius.endBar', { n: Math.round(o.share * 100) }), o.barObsidian) +
+      (o.phases ? row(t('vesuvius.endPhases', { n: o.phases }), o.phaseObsidian) : '') +
+      (o.kills ? row(t('wend.kills', { n: o.kills }), o.killObsidian) : '') +
+      (o.winObsidian ? row(t('vesuvius.endWin'), o.winObsidian) : '') +
+      (o.recordObsidian ? row(t('wend.record'), o.recordObsidian) : '') +
+      `<div class="wc-total"><span>${t('wend.total')}</span><b>+${bigNum(o.total)}</b></div>` +
+      `<div class="wc-bal">${t('vesuvius.balance', { n: bigNum(obsidianBalance(e.progress)) })}${canBuy ? ` · <b>${t(canBuy === 1 ? 'wend.canBuyOne' : 'wend.canBuy', { n: canBuy })}</b>` : ''}</div></div>`;
+    const trow = (label: string, v: string) => `<div class="wc-row"><span>${label}</span><b>${v}</b></div>`;
+    const side = e.won
+      ? `<div class="wc-box wt-box"><div class="wc-head"><span class="wt-ico">⏱</span>${t('vesuvius.timeLabel')}</div>` +
+        trow(t('wend.timePlayed'), clock(e.time - e.deaths * VES.deathPenalty)) +
+        (e.deaths ? trow(t('wend.timeDeaths', { n: e.deaths, s: VES.deathPenalty }), `+${clock(e.deaths * VES.deathPenalty)}`) : '') +
+        `<div class="wc-total"><span>${t('wend.total')}${e.isBest ? ` <em class="wt-rec">${t('wend.timeRecord')}</em>` : ''}</span><b>${clock(e.time)}</b></div></div>`
+      : `<div class="wc-box vs-tip"><div class="wc-head">${t('vesuvius.tipTitle')}</div><p>${t(e.phase === 1 ? 'vesuvius.tip1' : e.phase === 2 ? 'vesuvius.tip2' : 'vesuvius.tip3')}</p></div>`;
+    const wait = `<span class="wait">${CAMPAIGN_NEXT_WAIT}</span>`;
+    const buttons =
+      `<button type="button" data-a="menu"><span class="h-key">Esc</span>${t('waves.menu')}</button>` +
+      `<button type="button" class="shop" data-a="forge"><span class="h-key">W</span>${t('vesuvius.forge')}</button>` +
+      `<button type="button" class="primary" data-a="retry" disabled><span class="h-key">Enter</span>${t(e.won ? 'waves.retry' : 'campaign.tryAgain')}${wait}</button>`;
+    this.openEndPanel(
+      `<div class="t ${e.won ? 'won' : 'lost'}">${t(e.won ? 'vesuvius.wonTitle' : 'vesuvius.lostTitle')}</div><div class="lvl">${t('vesuvius.name')}</div>${head}` +
+        `<div class="wend-split"><div class="wu-side">${box}</div><div class="wu-side">${side}</div></div><div class="btns">${buttons}</div>`,
+      'retry',
+      (a) => e.onAction(a === 'menu' ? 'menu' : a === 'forge' ? 'forge' : 'retry'),
+      { KeyW: 'forge' },
+    );
+    this.r.campcard.classList.add('waves');
+  }
+
   /** The waves' cards waiting for a choice: their keys (1, 2, 3), the moment they start to answer. */
   private cardKeys: ((ev: KeyboardEvent) => void) | null = null;
 
@@ -927,6 +975,38 @@ export class HudLayer {
     setHTML(this.r.board, html);
   }
 
+  /**
+   * The Vesuvius's header: the phase, what is going on, the lives, the kills, the time; and the volcano's bar, with its
+   * points and the marks where the next phases begin.
+   */
+  private updateVesuviusHeader(v: VesuviusHud): void {
+    const hearts = '♥'.repeat(Math.min(6, Math.max(0, v.lives))) + (v.lives > 6 ? `+${v.lives - 6}` : '');
+    const doing = v.won ? t('vesuvius.won') : v.erupting ? t('vesuvius.erupting') : t(v.phase === 1 ? 'vesuvius.hint1' : v.phase === 2 ? 'vesuvius.hint2' : 'vesuvius.hint3');
+    const marks = VES.phaseAt.map((at) => `<em style="left:${(at * 100).toFixed(2)}%"></em>`).join('');
+    const html =
+      `<div class="h-wave"><span>${t('vesuvius.phaseLabel')}</span><b>${v.phase}</b><span>/ 3</span></div>` +
+      `<div class="h-mode">${doing}</div>` +
+      `<div class="h-camp"><span class="hearts" title="${t('waves.lives')}">${hearts || '—'}</span><span>${t(v.kills === 1 ? 'end.oneKill' : 'end.kills', { n: v.kills })}</span><span>${clock(v.time)}</span></div>` +
+      `<div class="h-boss vs${v.erupting ? ' immune' : ''}"><b>${esc(v.bossName)}</b><span><i style="width:${(Math.max(0, v.bossLife) * 100).toFixed(2)}%"></i>${marks}</span>` +
+      `<small>${v.erupting ? t('vesuvius.immune') : `${bigNum(v.bossPoints)} / ${bigNum(v.bossMax)}`}</small></div>`;
+    setHTML(this.r.match, html);
+    // The announcements under the volcano's bar and its points
+    this.r.feat.classList.toggle('lower', true);
+  }
+
+  /** The Vesuvius's corner panel: the three phases (done, now, to come), the best time, the Obsidian of the run. */
+  private updateVesuviusBoard(v: VesuviusHud): void {
+    let html = `<div class="h-bhead"><span class="h-label">${t('vesuvius.name')}</span><span class="sp"></span></div><div class="h-vphases">`;
+    for (const n of [1, 2, 3]) {
+      const cls = v.won || n < v.phase ? 'done' : n === v.phase ? 'on' : '';
+      html += `<span class="${cls}"><b>${n}</b>${t(n === 1 ? 'vesuvius.short1' : n === 2 ? 'vesuvius.short2' : 'vesuvius.short3')}</span>`;
+    }
+    html += `</div>`;
+    if (v.best !== null) html += `<div class="h-wrec">${t('vesuvius.best', { time: clock(v.best) })}</div>`;
+    html += `<div class="h-wcores obsidian">${OBSIDIAN_SVG}${t('vesuvius.obsidianRun', { n: bigNum(v.obsidian) })}</div>`;
+    setHTML(this.r.board, html);
+  }
+
   /** Our record before this match (online), or null (offline: no record). */
   setRecord(kills: number | null): void {
     this.recordBefore = kills;
@@ -990,7 +1070,7 @@ export class HudLayer {
     const menu = this.picker.visible;
     const table = !menu && (f.showScores || !playing);
     // The campaign has no respawn: its end panel instead of the death screen
-    const deadScreen = !menu && !table && playing && !alive && !spectator && !f.campaign && !f.waves?.over;
+    const deadScreen = !menu && !table && playing && !alive && !spectator && !f.campaign && !f.waves?.over && !f.vesuvius?.over;
     const liveHud = !menu && !table && alive && !spectator;
     this.deadScreen = deadScreen;
 
@@ -1008,10 +1088,10 @@ export class HudLayer {
     show(r.deadCard, deadScreen && !!this.death);
     show(r.respawn, deadScreen);
     // The waves: the same weapons at every spawn, no choice
-    show(r.next, deadScreen && enabledPrimaries().length > 0 && !f.waves);
+    show(r.next, deadScreen && enabledPrimaries().length > 0 && !f.waves && !f.vesuvius);
     show(r.scores, table);
     show(r.banner, !menu && !playing);
-    this.updateFeat(playing, !menu && !table && !f.campaign?.over && !f.waves?.over);
+    this.updateFeat(playing, !menu && !table && !f.campaign?.over && !f.waves?.over && !f.vesuvius?.over);
     // A tutorial's objective, and under the range's targets their damage and DPS
     show(r.tut, !menu && !table && !!f.tutorial);
     r.tut.classList.toggle('alone', !f.waves);
@@ -1042,7 +1122,7 @@ export class HudLayer {
       this.updateHealth(me);
       this.updateWeapons(me);
     }
-    this.updateAbilities(f.waves, liveHud);
+    this.updateAbilities(f.waves ?? f.vesuvius, liveHud);
     this.updatePickHint(f, liveHud);
     if (deadScreen) this.updateDeath(f);
     this.updateKiller(f, deadScreen);
@@ -1050,7 +1130,7 @@ export class HudLayer {
     if (!menu && !playing) this.updateBanner(f);
     this.updateCursors(f, !menu && alive && !spectator, !menu && deadScreen);
     // A banner on the right, every mode but the campaign: on the death screen and in the Esc menu
-    this.updateSideAd(!f.campaign && !f.waves?.over && (menu || deadScreen), menu);
+    this.updateSideAd(!f.campaign && !f.waves?.over && !f.vesuvius?.over && (menu || deadScreen), menu);
   }
 
   /**
@@ -1193,6 +1273,10 @@ export class HudLayer {
       this.updateWavesHeader(f.waves);
       return;
     }
+    if (f.vesuvius) {
+      this.updateVesuviusHeader(f.vesuvius);
+      return;
+    }
     if (f.tutorial?.title) {
       setHTML(this.r.match, `<div class="h-mode"><b>${t('tut.label')}</b> · ${esc(f.tutorial.title)}</div>`);
       return;
@@ -1255,6 +1339,10 @@ export class HudLayer {
     }
     if (f.waves) {
       this.updateWavesBoard(f.waves);
+      return;
+    }
+    if (f.vesuvius) {
+      this.updateVesuviusBoard(f.vesuvius);
       return;
     }
     const g = f.game;
@@ -1437,7 +1525,7 @@ export class HudLayer {
   }
 
   /** The waves' Workshop abilities (Shift, Q) and its recharging shield, over the life bar. */
-  private updateAbilities(w: WavesHud | null, live: boolean): void {
+  private updateAbilities(w: Pick<WavesHud, 'abilities' | 'reflector' | 'barrier'> | null, live: boolean): void {
     const r = this.r;
     for (const kind of ['dash', 'shock'] as const) {
       const a = live ? w?.abilities.find((x) => x.kind === kind) : undefined;
@@ -1517,6 +1605,8 @@ export class HudLayer {
     let n = 0;
     for (const p of f.players) {
       if (!p || p === f.me || !p.isAlive) continue;
+      // The volcano: its name and bar are the header's (its tag sat on the header when it was at the top of the view)
+      if (f.vesuvius && p.pointScale > 1) continue;
       const pt = f.project(p);
       if (!pt) continue;
       let el = this.tagEls[n];
@@ -1611,7 +1701,7 @@ export class HudLayer {
         if (pt) [d.x, d.y] = this.toStage(pt.x, pt.top);
       }
       if (!Number.isFinite(d.x)) continue;
-      const points = d.value * 100;
+      const points = d.value * 100 * d.target.pointScale;
       const text =
         d.kind === 'dodge' ? t('hud.dodge') : d.kind === 'immune' ? t('tut.immune') : (points >= 10 ? bigNum(Math.round(points)) : num(points, 1)) + (d.kind === 'crit' ? '!' : '');
       if (text !== d.text) d.el.textContent = d.text = text;
@@ -1705,7 +1795,7 @@ export class HudLayer {
       html =
         `<div class="h-ringwrap"><svg viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6"/>` +
         `<circle data-ring cx="36" cy="36" r="30" fill="none" stroke="#5fe27d" stroke-width="6" stroke-linecap="round" stroke-dasharray="${RESPAWN_C}"/></svg><b data-num></b></div>` +
-        `<div class="h-rtext"><strong data-title></strong><span>${t(f.waves ? 'waves.deathHint' : 'death.pickBelow')}</span></div>`;
+        `<div class="h-rtext"><strong data-title></strong><span>${t(f.waves ? 'waves.deathHint' : f.vesuvius ? 'vesuvius.deathHint' : 'death.pickBelow')}</span></div>`;
     } else if (mode === 'click') {
       html = `<span class="h-play pulse">${t(first ? 'death.clickJoin' : 'death.clickRespawn')}</span><div class="h-rtext"><span>${t('death.anywhere')}</span></div>`;
     } else {
@@ -2026,6 +2116,9 @@ const BADGE_ICON: Record<string, string> = {
 /** A Core, the waves' currency (as src/menu/icons.ts draws it). */
 const CORE_SVG =
   '<svg class="h-core" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".45"/><circle cx="12" cy="12" r="7" fill="currentColor"/><circle cx="9.8" cy="9.6" r="2.4" fill="#fff" opacity=".75"/></svg>';
+/** Obsidian, the Vesuvius's currency (as src/menu/icons.ts draws it). */
+const OBSIDIAN_SVG =
+  '<svg class="h-core h-obsidian" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2 4.5 8.5 12 22l7.5-13.5z"/><path fill="#fff" opacity=".55" d="M12 2 9 8.5h6z"/><path fill="none" stroke="#000" stroke-opacity=".35" stroke-width="1" d="M4.5 8.5h15M9 8.5 12 22l3-13.5"/></svg>';
 const CAMPAIGN_NEXT_WAIT = 3;
 
 /** Seconds before the side banner loads a new ad when it shows again. */

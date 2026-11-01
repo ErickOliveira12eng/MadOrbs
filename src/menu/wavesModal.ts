@@ -45,6 +45,7 @@ import type { OrbStudio } from './orbStudio';
 import { debugUnlockOn } from './accountModal';
 import { versioned } from '../sim/assetVersion';
 import { VESUVIUS_WAVE, vesuviusOpen, type VesuviusAccess } from '../sim/vesuvius';
+import { VesuviusForge } from './vesuviusForge';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -154,6 +155,8 @@ export class WavesModal {
    * window opens; null while it is asked; `failed`: the server couldn't be asked.
    */
   private vesuvius: { key: string; at: number; access: VesuviusAccess | null; failed: boolean } | null = null;
+  /** The Vesuvius's Forge, once the server opens it. */
+  private readonly forge: VesuviusForge;
 
   constructor(
     private readonly account: Account,
@@ -249,11 +252,18 @@ export class WavesModal {
       if (this.mode === 'vesuvius') this.checkVesuvius();
       this.render();
     });
-    $('vsPlay').addEventListener('click', () => {
-      if (!this.vesuvius?.access?.open) return;
-      this.close();
-      this.onVesuvius();
-    });
+    this.forge = new VesuviusForge(
+      account,
+      () => {
+        if (!this.vesuvius?.access?.open) return;
+        this.close();
+        this.onVesuvius();
+      },
+      () => {
+        this.close();
+        this.onSignIn();
+      },
+    );
     $('vsState').addEventListener('click', (e) => {
       if (!(e.target as HTMLElement).closest('[data-signin]')) return;
       this.close();
@@ -270,11 +280,13 @@ export class WavesModal {
     return !this.root.hidden;
   }
 
-  open(): void {
+  /** Opens on the Waves' Workshop, or on the Vesuvius (back from a run there that asked for its Forge). */
+  open(mode: 'waves' | 'vesuvius' = 'waves'): void {
     this.root.hidden = false;
     this.selected = null;
     this.weaponView = null;
-    this.mode = 'waves';
+    this.mode = mode;
+    this.forge.reset();
     // (the Vesuvius's tab shows whether it is open)
     this.checkVesuvius();
     this.render();
@@ -384,6 +396,8 @@ export class WavesModal {
     this.root.querySelector<HTMLElement>('.wv-guide')!.style.visibility = ves ? 'hidden' : '';
     $('wvPower').hidden = ves;
     $('wvCores').hidden = ves;
+    // (the Obsidian: the Vesuvius's currency, once it is open)
+    $('vsObsidian').hidden = !ves || !open;
     $('wvVesuvius').hidden = !ves;
     $('wvKicker').textContent = t(ves ? 'vesuvius.kicker' : 'menu.waves');
     $('wvHeading').textContent = t(ves ? 'vesuvius.name' : 'workshop.title');
@@ -395,20 +409,20 @@ export class WavesModal {
    * how far the record is from it and what is missing.
    */
   private renderVesuvius(record: number): void {
-    $('vsPic').style.backgroundImage = `url('${versioned('/menu/card-vesuvius.webp')}')`;
     const v = this.vesuvius;
     const access = v?.access ?? null;
-    const play = $<HTMLButtonElement>('vsPlay');
-    const state = $('vsState');
+    // Open: its Forge (the map's picture beside it), and how it opened
+    $('vsLocked').hidden = !!access?.open;
+    $('vsForge').hidden = !access?.open;
     if (access?.open) {
-      state.className = 'vs-state open';
-      state.innerHTML =
-        `<div class="vs-lock">${icon('lockOpen', 26)}<b>${t('vesuvius.open')}</b></div>` +
-        `<p class="vs-note">${access.test ? t('vesuvius.openTest') : t('vesuvius.openRecord', { n: access.wave ?? record })}</p>`;
-      play.disabled = false;
-      play.innerHTML = `${icon('play', 22)}${t('vesuvius.play')}`;
+      $('vsMini').style.backgroundImage = `url('${versioned('/menu/card-vesuvius.webp')}')`;
+      $('vsHow').textContent = access.test ? t('vesuvius.openTest') : t('vesuvius.openRecord', { n: access.wave ?? record });
+      this.forge.render();
       return;
     }
+    $('vsPic').style.backgroundImage = `url('${versioned('/menu/card-vesuvius.webp')}')`;
+    const play = $<HTMLButtonElement>('vsLockedBtn');
+    const state = $('vsState');
     const wave = Math.min(VESUVIUS_WAVE, Math.max(record, access?.wave ?? 0));
     const signin = access?.reason === 'signin';
     const note = !v || (!access && !v.failed)

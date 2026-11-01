@@ -5726,14 +5726,177 @@ input[type='range'] {
   place-items: center;
 }
 
-/* The Vesuvius: the map's picture, and what it takes to get in */
+/* The Vesuvius: locked (the map's picture, and what it takes to get in) or its Forge; its three phases under them */
 .wv-vesuvius {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   /* as tall as the Workshop's columns and milestones: the window keeps its size between the tabs */
   min-height: 651px;
   margin-top: 14px;
+}
+
+.vs-locked {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+}
+
+.vs-locked[hidden],
+.vs-forge[hidden] {
+  display: none;
+}
+
+.wv-body.vs-forge {
+  flex: 1;
+  margin-top: 0;
+}
+
+/* The Forge's tones: lava where the Workshop has gold */
+.vs-forge-title {
+  color: #ffb36b;
+}
+
+.vs-forge .wv-buy.vs-buy:not(:disabled) {
+  background: linear-gradient(180deg, #ff8a2a, #e8420e);
+  color: #2a0a00;
+}
+
+/* The Forge's prices in Obsidian's colour (the Workshop's Cores are cyan) */
+.vs-forge .wv-price:not(.off):not(.max),
+.vs-forge .wv-later li span:last-child {
+  color: #ffb36b;
+}
+
+.vs-forge .wv-price.off .obsidian-ico {
+  color: #6d5a50;
+  filter: none;
+}
+
+/* Obsidian: dark glass with an ember's glow */
+.obsidian-ico {
+  display: inline-flex;
+  color: #ff7a2a;
+  filter: drop-shadow(0 0 5px rgba(255, 110, 30, 0.6));
+}
+
+.wv-cores.vs-obsidian {
+  border-color: rgba(255, 130, 50, 0.6);
+  background: linear-gradient(180deg, rgba(70, 26, 10, 0.92), rgba(34, 12, 8, 0.92));
+}
+
+.wv-cores.vs-obsidian span:last-child {
+  color: #ffc49a;
+}
+
+.wv-cores.vs-obsidian.bought {
+  animation: vs-bought 0.7s ease-out;
+}
+
+@keyframes vs-bought {
+  from {
+    box-shadow: 0 0 0 3px rgba(255, 130, 50, 0.85), 0 0 30px rgba(255, 110, 30, 0.55);
+  }
+}
+
+/* The map's picture on the Forge's side: how it opened, the best time and the wins */
+.vs-mini {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 190px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 130, 40, 0.35);
+  background: #140a08 center / cover no-repeat;
+  box-shadow: inset 0 -110px 70px -30px rgba(10, 4, 2, 0.9);
+}
+
+.vs-how {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(20, 50, 30, 0.85);
+  border: 1px solid rgba(107, 232, 148, 0.5);
+  color: #6be894;
+  font: 800 12px var(--font-ui);
+}
+
+.vs-record {
+  display: flex;
+  gap: 18px;
+}
+
+.vs-record small {
+  display: block;
+  color: var(--muted);
+  font: 800 11px var(--font-ui);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.vs-record b {
+  font: 400 26px/1.1 var(--font-display);
+  color: #ffd9b0;
+}
+
+.wv-play.vs-play {
+  font-size: 21px;
+  white-space: nowrap;
+}
+
+.wv-play.vs-play:not(:disabled) {
+  background: linear-gradient(180deg, #ff9a3a, #e8420e);
+  box-shadow: 0 5px 0 #8f2406, 0 12px 26px rgba(232, 66, 14, 0.35);
+  color: #2a0a00;
+}
+
+/* The three phases, under the picture or the Forge */
+.vs-phases {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.vs-phases > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 130, 40, 0.25);
+  background: rgba(255, 110, 30, 0.06);
+}
+
+.vs-phases b {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ff8a2a, #e8420e);
+  color: #2a0a00;
+  font: 900 14px var(--font-ui);
+}
+
+.vs-phases strong {
+  display: block;
+  color: #ffd9b0;
+  font-size: 14px;
+}
+
+.vs-phases small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.35;
 }
 
 .vs-pic {
@@ -5964,7 +6127,8 @@ input[type='range'] {
 @media (max-width: 699px) {
   .wv-body,
   .wv-side,
-  .wv-vesuvius {
+  .vs-locked,
+  .vs-phases {
     grid-template-columns: minmax(0, 1fr);
   }
 

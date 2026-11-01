@@ -17,6 +17,7 @@ import { RANGE_MAP, type TutorialKind } from './client/tutorial';
 import { markTutorial } from './menu/tutorialModal';
 import { WEAPON_SMG } from './sim/constants';
 import { VESUVIUS_MAP } from './sim/vesuvius';
+import { loadVesuvius } from './client/vesuviusProgress';
 import { WavesModal } from './menu/wavesModal';
 import { StartScreen, type PlayMode } from './menu/menu';
 import { touchOnly } from './menu/pcOnly';
@@ -194,8 +195,30 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
         onProgress,
       );
     } else if (vesuvius) {
-      // For now the volcano map alone, empty, to walk around (the mode is being made)
-      game = await ClientGame.create($('game'), { ...common, mode: 'dm', mapName: VESUVIUS_MAP, botCount: 0, botSkill: settings.skill, mapRotation: [VESUVIUS_MAP] }, onProgress);
+      // The Vesuvius (src/client/vesuviusRun.ts) on its map, with the Forge's levels and its weapon
+      const forge = loadVesuvius();
+      game = await ClientGame.create(
+        $('game'),
+        {
+          ...common,
+          mode: 'tdm',
+          mapName: VESUVIUS_MAP,
+          vesuvius: { levels: forge.levels, weapon: forge.weapon },
+          onVesuviusEnd: () => void account.saveVesuviusProgress(),
+          onVesuviusAction: (action) => {
+            afterQuit =
+              action === 'retry'
+                ? () => void startGame('offline', undefined, false, undefined, undefined, true)
+                : () => {
+                    screen.show();
+                    void audio.playMusic(MENU_MUSIC, 255);
+                    if (action === 'forge') screen.openWaves('vesuvius');
+                  };
+            game.quit();
+          },
+        },
+        onProgress,
+      );
     } else if (level) {
       game = await ClientGame.create(
         $('game'),

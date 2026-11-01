@@ -72,6 +72,8 @@ const ICONS = {
   wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />',
   // Own pictograms: two orbs (lives), a Core (the waves' currency)
   orbs: '<circle cx="9" cy="12" r="6" /> <path d="M15 6.5a6 6 0 1 1 0 11" />',
+  // Obsidian, the Vesuvius's currency: a cut gem of dark glass
+  obsidian: '<path fill="currentColor" stroke="none" d="M12 2 4.5 8.5 12 22l7.5-13.5z" /> <path fill="#fff" stroke="none" opacity=".55" d="M12 2 9 8.5h6z" /> <path stroke="#000" stroke-opacity=".35" stroke-width="1" d="M4.5 8.5h15M9 8.5 12 22l3-13.5" />',
   core: '<circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".45" /> <circle cx="12" cy="12" r="7" fill="currentColor" stroke="none" /> <circle cx="9.8" cy="9.6" r="2.4" fill="#fff" stroke="none" opacity=".75" />',
 } as const;
 

@@ -42,6 +42,7 @@ import {
   WEAPON_FLAME_THROWER,
   WEAPON_GRENADE,
   WEAPON_NUCLEAR,
+  WEAPON_PHOTON_RIFLE,
   WEAPON_SHIELD,
   WEAPON_SNIPER,
 } from '../sim/constants';
@@ -97,6 +98,8 @@ import { cardDef, type CardID } from './wavesCards';
 import { POWERS, WAVES, type PermKind, type PowerKind } from './waves';
 import type { CheckpointBuild, Levels, UpgradeID } from './wavesProgress';
 import { wavesPower } from './wavesPower';
+import { VES, VesuviusRun, type VesuviusEnd } from './vesuviusRun';
+import { VESUVIUS_LIVES, type ForgeLevels } from './vesuviusProgress';
 import { newRunId, reportWavesRun } from './wavesReport';
 import { PvpTutorial, WavesTutorial, type Tutorial, type TutorialCard, type TutorialHost, type TutorialKind } from './tutorial';
 import { ViewOverlay, scopeAlpha } from './ui/viewOverlay';
@@ -157,6 +160,12 @@ export interface ClientGameOptions {
   onWavesEnd?: (end: WavesEnd) => void;
   /** The waves: a checkpoint beaten, its build saved (the account's copy). */
   onWavesBuild?: (wave: number, build: CheckpointBuild) => void;
+  /** The Vesuvius (offline, src/client/vesuviusRun.ts) on its map: the Forge's levels, the weapon to go in with. */
+  vesuvius?: { levels: ForgeLevels; weapon: number };
+  /** The end of a Vesuvius run: what the player chose (again, the Forge, or back to the menu). */
+  onVesuviusAction?: (action: 'retry' | 'forge' | 'menu') => void;
+  /** A Vesuvius run ended (or was left): the account keeps the Obsidian, the best time. */
+  onVesuviusEnd?: (end: VesuviusEnd) => void;
   /**
    * The testers' tools on the waves' Esc screen (the DEBUG_USER_IDS accounts): any card at any level, any
    * wave. A run they changed counts for nothing.
@@ -269,7 +278,7 @@ export class ClientGame {
     menu.onRoomAction = (a, extra) => this.conn?.send({ t: 'host', a, ...extra });
     // Pressing Escape while the mouse is captured releases it: open the menu like k_menuAccess. Not when the
     // game itself lets the mouse go (the waves' cards after a boss, a tutorial's card: only the cards show)
-    const freeMouse = () => !!this.camp?.over || !!this.waves?.over || !!this.waves?.choosing || !!this.tutorial?.waiting;
+    const freeMouse = () => !!this.camp?.over || !!this.waves?.over || !!this.waves?.choosing || !!this.vesuvius?.over || !!this.tutorial?.waiting;
     this.input.onPointerLockChange = (locked) => {
       if (!locked && this.running && !menu.visible && !freeMouse()) menu.show();
     };
@@ -333,6 +342,10 @@ export class ClientGame {
     }
     if (this.opts.waves) {
       this.startWaves(map, this.opts.waves);
+      return;
+    }
+    if (this.opts.vesuvius) {
+      this.startVesuvius(map, this.opts.vesuvius);
       return;
     }
     this.game = new Game(map, { gameType: ROOM_GAME_TYPE[this.opts.mode], onMapChangeRequest: () => void this.nextMap() });
@@ -501,6 +514,76 @@ export class ClientGame {
     }
     // The banner of the end panel loads now
     this.hud.preloadCampaignAd();
+  }
+
+  // ---------------------------------------------------------------- the Vesuvius
+
+  /** A Vesuvius run, or null. */
+  private vesuvius: VesuviusRun | null = null;
+
+  /**
+   * The Vesuvius: Team Deathmatch with us alone on blue (the Forge's lives, its weapon) against the volcano in the
+   * middle and the enemies from the edges on red; no score or time limit, no team balance. VesuviusRun does the rest.
+   */
+  private startVesuvius(map: GameMap, setup: NonNullable<ClientGameOptions['vesuvius']>): void {
+    this.svBackup = { ...sv };
+    sv.sv_scoreLimit = 0;
+    sv.sv_winLimit = 0;
+    sv.sv_gameTimeLimit = 0;
+    sv.sv_autoBalance = false;
+    sv.sv_forceRespawn = true;
+    sv.sv_timeToSpawn = VES.respawn;
+    this.game = new Game(map, { gameType: GAME_TYPE_TDM, onMapChangeRequest: () => {}, maxPlayers: 64 });
+    this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
+    this.me.skin = this.opts.skin;
+    this.me.crown = this.opts.crown ?? null;
+    this.me.teamID = PLAYER_TEAM_BLUE;
+    this.me.lives = VESUVIUS_LIVES + setup.levels.lives;
+    this.me.damageScale = VES.playerDamage;
+    this.me.nextSpawnWeapon = setup.weapon;
+    this.me.nextMeleeWeapon = WEAPON_KNIVES;
+    const banner = (c1: string, c2: string) => ({ c1, c2, glow: `${c2}77` });
+    this.vesuvius = new VesuviusRun({
+      game: this.game,
+      me: this.me,
+      bots: this.bots,
+      scene: this.scene,
+      names: [...BOT_NAMES].sort(() => Math.random() - 0.5),
+      bossName: t('vesuvius.name'),
+      randomSkin,
+      levels: setup.levels,
+      weapon: setup.weapon,
+      onPhase: (phase) => {
+        this.hud.announceText(t('vesuvius.phase', { n: phase }), t(phase === 2 ? 'vesuvius.phase2' : 'vesuvius.phase3'), banner('#ffd9b0', '#ff5a14'), 3);
+        audio.play(this.sounds.siren, 220);
+        this.cam.viewShake = Math.max(this.cam.viewShake, 1.2);
+      },
+      onWin: (position) => {
+        this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 4);
+        this.cam.viewShake = Math.max(this.cam.viewShake, 1.5);
+        this.hud.announceText(t('vesuvius.won'), t('vesuvius.wonSub'), banner('#fff1b8', '#ffb020'), 3);
+      },
+      onLaunch: (position) => audio.play3D(this.sounds.weapon[WEAPON_BAZOOKA], 8, position, 200),
+      onBeam: (position) => audio.play3D(this.sounds.weapon[WEAPON_PHOTON_RIFLE], 10, position, 255),
+      onDash: () => audio.play(this.sounds.equip, 160),
+      onEnd: (end) => this.endVesuvius(end),
+    });
+    this.onMapLoaded(map);
+    this.beginLoop();
+    // No weapon menu: Esc is a pause screen (the same weapon at every spawn)
+    this.hud.picker.pauseOnly = true;
+    this.hud.picker.tools = null;
+    this.hud.picker.hide();
+    this.game.requestSpawn(this.me);
+    // The banner of the end panel loads now
+    this.hud.preloadCampaignAd();
+  }
+
+  private endVesuvius(end: VesuviusEnd): void {
+    this.opts.onVesuviusEnd?.(end);
+    this.input.exitPointerLock();
+    this.renderer.domElement.style.cursor = 'auto';
+    this.hud.showVesuviusEnd({ ...end, onAction: (action) => this.opts.onVesuviusAction?.(action) });
   }
 
   // ---------------------------------------------------------------- tutorials
@@ -1018,8 +1101,13 @@ export class ClientGame {
       const left = this.waves.leave();
       this.reportWavesEnd('quit', left);
       if (left && !left.test) this.opts.onWavesEnd?.(left);
+    } else if (this.vesuvius && !this.vesuvius.over) {
+      track('vesuvius_quit', { phase: this.vesuvius.phaseNumber, kills: this.me.kills, seconds });
+      // What the run earned stays (the Obsidian), here and in the account
+      const left = this.vesuvius.leave();
+      if (left) this.opts.onVesuviusEnd?.(left);
     }
-    else if (!this.camp && !this.waves && !this.matchEnded) track('match_quit', { ...this.matchInfo(), seconds, kills: this.me.kills, deaths: this.me.deaths, reason: reason ? 'closed' : 'menu' });
+    else if (!this.camp && !this.waves && !this.vesuvius && !this.matchEnded) track('match_quit', { ...this.matchInfo(), seconds, kills: this.me.kills, deaths: this.me.deaths, reason: reason ? 'closed' : 'menu' });
     this.running = false;
     if (this.conn) {
       this.conn.onClose = undefined;
@@ -1038,6 +1126,7 @@ export class ClientGame {
     this.mapRenderer?.dispose();
     this.flagRenderer.dispose();
     this.waves?.dispose();
+    this.vesuvius?.dispose();
     this.effects.dispose();
     this.hud.dispose();
     this.overlay.dispose();
@@ -1089,7 +1178,7 @@ export class ClientGame {
 
   /** The mode, online or training, and the map: on every match event (and a private room's). */
   private matchInfo(): Record<string, string | number | boolean> {
-    return { mode: this.waves ? 'waves' : this.opts.mode, online: this.online, map: this.game.map.name, ...(this.room ? { private_room: true } : {}) };
+    return { mode: this.waves ? 'waves' : this.vesuvius ? 'vesuvius' : this.opts.mode, online: this.online, map: this.game.map.name, ...(this.room ? { private_room: true } : {}) };
   }
 
   /** The private room's tab of the Esc menu (null in a public room). */
@@ -1150,7 +1239,7 @@ export class ClientGame {
         this.opts.authToken,
       );
       window.addEventListener('pagehide', this.onPageHide);
-    }
+    } else if (this.vesuvius && this.opts.vesuvius) track('vesuvius_start', { weapon: this.opts.vesuvius.weapon });
     else track('match_start', { ...this.matchInfo(), ...(map ? { map } : {}), bots: this.online ? this.botsNow() : (this.opts.botCount ?? 0) });
   }
 
@@ -1192,7 +1281,7 @@ export class ClientGame {
    */
   private get paused(): boolean {
     if (this.tutorial?.waiting) return true;
-    const stops = (!!this.waves && !this.waves.over) || !!this.tutorial;
+    const stops = (!!this.waves && !this.waves.over) || (!!this.vesuvius && !this.vesuvius.over) || !!this.tutorial;
     return stops && (this.hud.picker.visible || !!this.waves?.choosing);
   }
 
@@ -1235,6 +1324,7 @@ export class ClientGame {
       return carrier && carrier.isAlive && v ? { position: v.renderPosition, angle: carrier.currentCF.angle } : null;
     });
     this.waves?.render(dt, now / 1000);
+    this.vesuvius?.render(dt, now / 1000);
     this.effects.render(this.cam.camera, alpha);
     this.renderer.setViewport(view.x, h - view.y - view.h, view.w, view.h);
     this.renderer.render(this.scene, this.cam.camera);
@@ -1261,7 +1351,7 @@ export class ClientGame {
     if (game.roundState !== this.lastRound) {
       this.lastRound = game.roundState;
       const over = game.roundState === GAME_BLUE_WIN || game.roundState === GAME_RED_WIN || game.roundState === GAME_DRAW;
-      if (over && !this.camp && !this.waves && !this.matchEnded) this.trackMatchEnd(game.roundState);
+      if (over && !this.camp && !this.waves && !this.vesuvius && !this.matchEnded) this.trackMatchEnd(game.roundState);
     }
 
     const menuOpen = this.hud.picker.visible;
@@ -1303,6 +1393,7 @@ export class ClientGame {
     this.updateCampaign();
     // The Workshop's abilities: Shift dashes, Q sends a shock wave
     this.waves?.update({ dash: input.wasPressed('ShiftLeft') || input.wasPressed('ShiftRight'), shock: input.wasPressed('KeyQ') });
+    this.vesuvius?.update({ dash: input.wasPressed('ShiftLeft') || input.wasPressed('ShiftRight') });
     this.tutorial?.update();
 
     if (this.conn) {
@@ -1560,10 +1651,12 @@ export class ClientGame {
       const pos = p.currentCF.position;
       const owner = game.players[p.fromID];
       switch (p.projectileType) {
-        case PROJECTILE_ROCKET:
-          // The waves' card rockets leave a gold trail
-          this.effects.rocketSmoke(pos, game.gameType, owner ? owner.teamID : null, p.rain);
+        case PROJECTILE_ROCKET: {
+          // The waves' card rockets leave a gold trail; the Vesuvius's (the red team's) a red one, thinner
+          const volcano = p.rain && owner?.teamID === PLAYER_TEAM_RED;
+          this.effects.rocketSmoke(pos, game.gameType, owner ? owner.teamID : null, p.rain && !volcano, volcano ? 0.3 * p.size : 1);
           break;
+        }
         case PROJECTILE_GRENADE:
           this.effects.grenadeTrail(pos, game.gameType, owner ? owner.teamID : null);
           break;
@@ -1821,7 +1914,7 @@ export class ClientGame {
       case 'playerJoin': {
         const p = game.players[e.playerID];
         // Offline the page says who joined; not in the campaign, the waves or the tutorials (the bots are the game itself)
-        if (p && !online && !this.camp && !this.waves && !this.opts.tutorial) this.hud.addChat(null, t('chat.joined', { name: p.name }));
+        if (p && !online && !this.camp && !this.waves && !this.vesuvius && !this.opts.tutorial) this.hud.addChat(null, t('chat.joined', { name: p.name }));
         break;
       }
       case 'chat': {
@@ -1842,7 +1935,7 @@ export class ClientGame {
         // Not in the campaign (dying ends the level there, the announcer has its own lines), nor in the
         // waves (killing a lot is the mode itself: "Unstoppable" all the time; Erick's call), nor in the
         // tutorials (their targets)
-        if (this.camp || this.waves || this.opts.tutorial) break;
+        if (this.camp || this.waves || this.vesuvius || this.opts.tutorial) break;
         // The big ones for everybody, the others only for the one who made them
         const who = game.players[e.playerID] ?? null;
         if (who !== me && !isAnnouncedToAll(e.feat)) break;
@@ -1938,6 +2031,7 @@ export class ClientGame {
       showScores: this.input.isDown(bindings.showScore) && !this.chat.active,
       campaign: this.campaignHud(),
       waves: this.waves?.hud() ?? null,
+      vesuvius: this.vesuvius?.hud() ?? null,
       tutorial: this.tutorial?.hud() ?? null,
       warmup: this.room?.warmup ? { host: this.room.host === this.me.playerID } : null,
       vsPeople: this.online && !this.room && this.matchBots ? { kills: Math.max(0, this.peopleKills) } : null,

@@ -466,9 +466,9 @@ export class StartScreen {
   }
 
   /** The waves' Workshop (its card, or back from a run that asked for it): the ranking beside it on the Survival tab. */
-  openWaves(): void {
+  openWaves(mode: 'waves' | 'vesuvius' = 'waves'): void {
     this.lobbyRanking.showTab('waves');
-    this.waves.open();
+    this.waves.open(mode);
   }
 
   private setName(name: string): void {

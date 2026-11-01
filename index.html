@@ -250,6 +250,7 @@
             <section class="info-block">
               <h2 data-i18n="home.newsTitle">What's new</h2>
               <ul class="info-news">
+                <li><time datetime="2026-10-31" data-i18n="home.news55Date">October 31, 2026</time><b data-i18n="home.news55Title">The volcano wakes up</b><span data-i18n="home.news55">The Vesuvius is open to those past wave 100: a boss that never leaves the middle of the crater, three phases, rockets along red lines, lava bombs, missiles from the sky, a ring of fire and a beam to hide from. It has its own currency, Obsidian, and its own workshop, the Forge.</span></li>
                 <li><time datetime="2026-10-31" data-i18n="home.news54Date">October 31, 2026</time><b data-i18n="home.news54Title">Something in the volcano</b><span data-i18n="home.news54">The Survival window has a new tab: the Vesuvius, a new mode in the crater of a volcano, still being made. It opens to those whose record gets past wave 100 of the Waves, on their account and checked by the server.</span></li>
                 <li><time datetime="2026-10-31" data-i18n="home.news53Date">October 31, 2026</time><b data-i18n="home.news53Title">A world map Orb, and more styles touched up</b><span data-i18n="home.news53">Style 6 is now a world map: the sea in your second colour, the land in your first and the ice in your third, the Americas facing you. The yin-yang keeps turning all the way round, so it shows whole from the back too. The beach ball, the eye (the bosses wear it too), the Flames and Mad Orbs, with smaller letters you can read, are redrawn sharp. The Camo lost its bandana: just camouflage now, in your three colours. And the Royal Orb is gone; wave 50 now gives the silver crown.</span></li>
                 <li><time datetime="2026-10-31" data-i18n="home.news52Date">October 31, 2026</time><b data-i18n="home.news52Title">More Orb styles redrawn, and a new one</b><span data-i18n="home.news52">More of the old Orb styles, drawn by hand at low resolution, are now sharp. Style 4 is an eight-point star at each pole (your first colour, on toothed discs in your third). Styles 7 (the belt with two rings), 8 (the band with the grille), 18 (the two faces, now truly round), 21 (the bars) and 22 (the waves) keep their drawings, redrawn sharp. Style 11 is now a proper basketball (the seams in your third colour, the caps in your second), and Style 23 a true yin-yang in your first and third colours. And a new style, Style 29: a skull at the front and crossed bones at the back.</span></li>
@@ -487,7 +488,7 @@
             <button type="button" data-mode="vesuvius" role="tab" aria-selected="false"><span class="vs-tab-ico"></span><span data-i18n="vesuvius.name">Vesuvius</span></button>
           </div>
           <a class="camp-guide wv-guide" data-i18n-attr="href=link.waves" href="/waves" target="_blank" rel="noopener" data-i18n="campaign.howItWorks">How it works</a>
-          <span class="wv-chips"><span id="wvRecord" class="wv-record" hidden></span><span id="wvPower" class="wv-power"></span><span id="wvCores" class="wv-cores"></span></span>
+          <span class="wv-chips"><span id="wvRecord" class="wv-record" hidden></span><span id="wvPower" class="wv-power"></span><span id="wvCores" class="wv-cores"></span><span id="vsObsidian" class="wv-cores vs-obsidian" hidden></span></span>
           <button class="icon-btn modal-close" type="button" data-close data-i18n-attr="aria-label=controls.close" aria-label="Close"><span data-icon="x"></span></button>
         </header>
         <div class="wv-body">
@@ -519,11 +520,37 @@
           <div id="wvTrack" class="wv-track"></div>
         </div>
         <div id="wvVesuvius" class="wv-vesuvius" hidden>
-          <div id="vsPic" class="vs-pic"><span class="vs-soon" data-i18n="vesuvius.building">Under construction: just the map for now</span></div>
-          <div class="vs-info">
-            <p class="vs-text" data-i18n="vesuvius.text">A new challenge in the crater of a volcano, for those who got past wave 100 of the Waves.</p>
-            <div id="vsState" class="vs-state" aria-live="polite"></div>
-            <button id="vsPlay" class="wv-play" type="button"></button>
+          <!-- Locked: the map's picture, and what it takes to get in -->
+          <div id="vsLocked" class="vs-locked">
+            <div id="vsPic" class="vs-pic"><span class="vs-soon" data-i18n="vesuvius.tag">A boss that never moves · 3 phases</span></div>
+            <div class="vs-info">
+              <p class="vs-text" data-i18n="vesuvius.text">In the middle of the crater the volcano never moves: dodge its rockets, lava bombs and missiles from the sky while enemies come in from the edges. Three phases, each worse than the last, with a currency and a workshop of their own.</p>
+              <div id="vsState" class="vs-state" aria-live="polite"></div>
+              <button id="vsLockedBtn" class="wv-play" type="button" disabled></button>
+            </div>
+          </div>
+          <!-- Open: its Forge (its own currency, Obsidian: src/menu/vesuviusForge.ts), the weapon, the best time, PLAY -->
+          <div id="vsForge" class="wv-body vs-forge" hidden>
+            <section class="wv-list">
+              <h3 class="vs-forge-title" data-i18n="vesuvius.forge">Forge</h3>
+              <div id="vsUpgrades" class="wv-rows"></div>
+              <div id="vsSave" class="wv-save"></div>
+            </section>
+            <section id="vsDetail" class="wv-detail" aria-live="polite"></section>
+            <aside class="wv-side">
+              <div id="vsMini" class="vs-mini"><span id="vsHow" class="vs-how"></span><div id="vsRecord" class="vs-record"></div></div>
+              <div class="wv-box">
+                <h3 data-i18n="vesuvius.weapon">Weapon</h3>
+                <div id="vsWeapons" class="wv-weapon-pick"></div>
+              </div>
+              <button id="vsPlay" class="wv-play vs-play" type="button"></button>
+            </aside>
+          </div>
+          <!-- The three phases, as the run plays them (src/client/vesuviusRun.ts PHASES) -->
+          <div class="vs-phases">
+            <div><b>1</b><span><strong data-i18n="vesuvius.short1">Rockets and lava bombs</strong><small data-i18n="vesuvius.about1">Red lines show where the rockets fly; circles, where the bombs fall.</small></span></div>
+            <div><b>2</b><span><strong data-i18n="vesuvius.short2">Missiles from the sky and the ring of fire</strong><small data-i18n="vesuvius.about2">It erupts: missiles rain down and a ring of fire leaves a gap to go through.</small></span></div>
+            <div><b>3</b><span><strong data-i18n="vesuvius.short3">The beam and the rising lava</strong><small data-i18n="vesuvius.about3">A beam sweeps the crater: only a wall stops it. The lava around it rises.</small></span></div>
           </div>
         </div>
       </div>
