@@ -215,6 +215,8 @@ export class Player {
   cardSteady = false;
   /** Times its weapons' spread (the waves' boss: a better shot than anyone, WAVES.boss.spread). */
   spreadScale = 1;
+  /** Times its weapons' recoil (the waves' boss: none, its chain gun pushed it back and it seemed to run away). */
+  recoilScale = 1;
   /**
    * The waves' allies (the Shadow card, the Necromancer's risen): their own side walks and shoots through
    * them, and they through it (Game.performPlayerCollisions, Game.passesThrough).

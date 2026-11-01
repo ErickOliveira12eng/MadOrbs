@@ -10,7 +10,7 @@ import type { Player, SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
-import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, ELITE, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, ELITE, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, recordWave, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
@@ -59,7 +59,9 @@ export interface WavesHud {
 
 /** The end of a run. */
 export interface WavesEnd {
+  /** The wave the run reached, and the one its record holds (recordWave: never past a boss that didn't fall). */
   wave: number;
+  recordWave: number;
   kills: number;
   seconds: number;
   isBest: boolean;
@@ -212,6 +214,10 @@ export class WavesRun {
   private readonly nukers: { p: Player; fuse: number; beep: number }[] = [];
   /** Bots of this wave to come in before its nuke bot (-1: none in this wave). */
   private nukeIn = -1;
+  /** The boss waves whose boss hasn't fallen yet, oldest first (a checkpoint counts once its boss fell). */
+  private readonly bossesUp: number[] = [];
+  /** The ranking's time when each wave began (the record's time is its wave's: recordWave). */
+  private readonly reachedTimes = new Map<number, number>();
   /** Seconds before the Shadow card's fallen allies come back. */
   private allyClock = 0;
   /** A tester changed the run (the waves' Esc screen, DEBUG_USER_IDS accounts): it counts for nothing. */
@@ -313,6 +319,13 @@ export class WavesRun {
     const bossUp = !!this.boss?.isAlive;
     if (this.bossUp && !bossUp && this.boss && this.boss.lives <= 0) {
       this.bosses++;
+      this.bossesUp.shift();
+      // A checkpoint wave already gone by with its boss alive: saved now that it fell
+      const b = this.waveBuild;
+      if (b && b.wave < this.wave && !this.tested && !this.bossesUp.some((w) => w <= b.wave)) {
+        this.saveCheckpoint(b.wave, b.build);
+        this.waveBuild = null;
+      }
       // The boss fell: three cards of every rarity, the game waits for the choice
       this.offerCards();
     }
@@ -464,7 +477,11 @@ export class WavesRun {
     const bossLate = this.bossPending;
     // A checkpoint wave beaten (the next one begins): the build the run had as that wave began is saved for it (not
     // what its boss gave: a run begun there plays that wave and its boss again)
-    if (this.wave >= CHECKPOINT && this.wave % CHECKPOINT === 0 && !this.tested && this.waveBuild?.wave === this.wave) this.saveCheckpoint(this.wave, this.waveBuild.build);
+    // (and only once its boss fell: Erick, 01/11/2026; else when it does, a later wave)
+    if (this.wave >= CHECKPOINT && this.wave % CHECKPOINT === 0 && !this.tested && this.waveBuild?.wave === this.wave && !this.bossesUp.some((w) => w <= this.wave)) {
+      this.saveCheckpoint(this.wave, this.waveBuild.build);
+      this.waveBuild = null;
+    }
     this.wave++;
     if (this.wave % CHECKPOINT === 0) this.waveBuild = { wave: this.wave, build: this.build() };
     this.spec = waveSpec(this.wave);
@@ -475,11 +492,13 @@ export class WavesRun {
     const base = fromStart ? 0 : (this.record?.splits[this.ctx.startWave] ?? null);
     this.reachedAt = base === null ? null : base + this.elapsed - (fromStart ? 0 : this.firstWaveAt) + WAVES.deathPenalty * this.deathsBefore;
     if (this.reachedAt !== null && this.wave % CHECKPOINT === 0) this.splits[this.wave] = Math.round(this.reachedAt);
+    if (this.reachedAt !== null) this.reachedTimes.set(this.wave, Math.round(this.reachedAt));
     this.waveLeft = this.spec.seconds;
     this.pending = this.spec.total + carried;
     this.nukeIn = this.wave >= WAVES.nuke.from ? Math.floor(Math.random() * Math.max(1, Math.min(WAVES.nuke.among, this.spec.total))) : -1;
     this.spawnWait = 0.5;
     this.bossPending = this.spec.boss || bossLate;
+    if (this.spec.boss) this.bossesUp.push(this.wave);
     this.nextCrate = WAVES.crates.every;
     track('wave_start', { wave: this.wave, boss: this.spec.boss });
     this.ctx.onWave(this.spec);
@@ -677,12 +696,20 @@ export class WavesRun {
     const strength = bossStrength(this.wave);
     p.radius = strength.radius;
     p.wallRadius = WAVES.boss.radius;
-    p.damageScale = WAVES.boss.damageScale * this.spec.toughness * strength.tough;
-    p.lifeMax = WAVES.boss.life;
+    // As tough as before (WAVES.boss.damageScale, its growth, bossGuard), but most of it as life (Erick, 01/11/2026: a
+    // hit reading 0.1 was frustrating, "it should take damage but have a lot of life"): a hit takes WAVES.boss.defence
+    // of what it takes from an ordinary enemy of the wave, the bar is that much bigger (the same time to bring it
+    // down), and its damage numbers read in points of that bar (Player.pointScale)
+    const tough = WAVES.boss.damageScale * strength.tough;
+    p.damageScale = WAVES.boss.defence * this.spec.toughness;
+    p.lifeMax = (WAVES.boss.life * WAVES.boss.defence) / tough;
+    p.pointScale = p.lifeMax;
     p.damageBoost = this.spec.hitBoost * strength.hit;
     p.speedBoost = WAVES.botSpeed;
-    // Its weapon, and the best shot of the wave (WAVES.boss)
+    // Its weapon, and the best shot of the wave (WAVES.boss); no recoil (Erick, 01/11/2026: the chain gun pushed it
+    // back at every burst, it seemed to run away from the player)
     p.spreadScale = WAVES.boss.spread;
+    p.recoilScale = 0;
     const bot = new BotController(p, 1, { primary: WAVES.boss.weapon, secondary: WEAPON_KNIVES });
     bot.aimScale = WAVES.boss.aim;
     bot.lead = 0;
@@ -1262,19 +1289,24 @@ export class WavesRun {
   private finish(): WavesEnd {
     this.over = true;
     const kills = this.ctx.me.kills;
-    const wave = Math.max(this.ctx.startWave, this.wave);
+    const reached = Math.max(this.ctx.startWave, this.wave);
+    // The record never past a boss that didn't fall (its time and checkpoints with it)
+    const wave = recordWave(this.ctx.startWave, reached, this.bosses);
     const test = this.tested;
-    const time = test || this.reachedAt === null ? null : Math.round(this.reachedAt);
-    const isBest = !test && saveWavesRun(wave, kills, time, this.splits);
+    const time = test ? null : (this.reachedTimes.get(wave) ?? null);
+    const splits: Record<number, number> = {};
+    for (const [n, sec] of Object.entries(this.splits)) if (Number(n) <= wave + 1) splits[Number(n)] = sec;
+    const isBest = !test && wave >= this.ctx.startWave && saveWavesRun(wave, kills, time, splits);
     const cores = test
       ? { waves: 0, waveCores: 0, kills, killCores: 0, bosses: this.bosses, bossCores: 0, recordCores: 0, total: 0 }
-      : runCores(this.ctx.startWave, wave, kills, this.bosses, isBest);
+      : runCores(this.ctx.startWave, reached, kills, this.bosses, isBest);
     const before = this.record?.wave ?? 0;
     const startTime = this.ctx.startWave === 1 ? 0 : (this.record?.splits[this.ctx.startWave] ?? 0);
     const playTime = time === null ? 0 : Math.max(0, time - startTime - WAVES.deathPenalty * this.deathsBefore);
     const splitsBefore = { ...(this.record?.splits ?? {}) };
     return {
-      wave,
+      wave: reached,
+      recordWave: wave,
       kills,
       seconds: this.elapsed,
       isBest,
@@ -1288,7 +1320,7 @@ export class WavesRun {
       test,
       time,
       deaths: this.deathsBefore,
-      splits: test ? {} : { ...this.splits },
+      splits: test ? {} : splits,
       startTime,
       playTime,
       splitsBefore,

@@ -3216,6 +3216,11 @@
   color: var(--h-gold-1);
 }
 
+/* The waves: a boss that didn't fall holds the record */
+.h-campend .best.boss-up {
+  color: #ffb36b;
+}
+
 .h-campend .save {
   margin-top: 12px;
   padding: 8px 12px;

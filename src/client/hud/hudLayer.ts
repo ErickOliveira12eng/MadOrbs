@@ -609,6 +609,8 @@ export class HudLayer {
     const head =
       `<div class="wave-reached"><span>${t('waves.label')}</span><b>${e.wave}</b></div>` +
       `<div class="time">${kills}</div>` +
+      // A boss that didn't fall holds the record before its wave
+      (!e.test && e.recordWave < e.wave ? `<div class="best boss-up">${t('wend.bossUp', { b: e.recordWave + 1, n: e.recordWave })}</div>` : '') +
       // A tester's run (the Esc screen's tools) counts for nothing
       (e.test
         ? `<div class="best">${t('test.run')}</div>`
@@ -644,7 +646,7 @@ export class HudLayer {
       .sort((a, b) => a[0] - b[0]);
     const timeBox = e.test
       ? ''
-      : `<div class="wc-box wt-box"><div class="wc-head"><span class="wt-ico">⏱</span>${t('wend.time', { n: e.wave })}</div>` +
+      : `<div class="wc-box wt-box"><div class="wc-head"><span class="wt-ico">⏱</span>${t('wend.time', { n: e.recordWave })}</div>` +
         (e.time === null
           ? `<div class="wt-none">${t('waves.rankNoTime')}</div>`
           : (e.startWave > 1 ? trow(t('wend.timeStart', { n: e.startWave }), clock(e.startTime)) : '') +
@@ -672,9 +674,9 @@ export class HudLayer {
           .map((m) => `<span class="wu-chip">${prizeArt(m)}<span><b>${'skin' in m ? orbName(m.skin) : prizeName(m)}</b><em>${t('workshop.atWave', { n: m.wave })}</em></span></span>`)
           .join('') +
         `</div></div>`;
-    const record = Math.max(e.wave, e.recordBefore);
+    const record = Math.max(e.recordWave, e.recordBefore);
     const before = checkpoints(e.recordBefore);
-    const newCheckpoint = checkpoints(e.wave).filter((w) => w > 1 && !before.includes(w)).pop();
+    const newCheckpoint = checkpoints(e.recordWave).filter((w) => w > 1 && !before.includes(w)).pop();
     const next = nextMilestone(record);
     if (next) {
       const prev = [...MILESTONES].reverse().find((m) => m.wave < next.wave)?.wave ?? 0;

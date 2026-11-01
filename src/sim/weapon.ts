@@ -160,11 +160,11 @@ export class Weapon {
       if (flashes.length > 0) {
         owner.currentCF.position.z = 0.25;
         const { origin, direction } = this.firingOriginAndDirection(owner);
-        // Recoil
-        owner.currentCF.vel.subIn(direction.mul(this.reculVel));
+        // Recoil (none for the waves' boss: Player.recoilScale)
+        owner.currentCF.vel.subIn(direction.mul(this.reculVel * owner.recoilScale));
         const playSound = owner.fireFrameDelay === 0;
         if (playSound) owner.fireFrameDelay = 2;
-        owner.shootShakeDis = direction.mul(-this.reculVel * 0.5);
+        owner.shootShakeDis = direction.mul(-this.reculVel * owner.recoilScale * 0.5);
         game.events.push({ type: 'fire', playerID: owner.playerID, weaponID: this.weaponID, nuzzleID: this.firingNuzzle, origin, direction });
         // A grenade or molotov lands where the mouse is, up to its full throw (throwPower)
         const power = throwPower(this.projectileType, origin, owner.currentCF.mousePosOnMap);
