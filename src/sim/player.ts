@@ -289,6 +289,13 @@ export class Player {
   screenHit = 0;
   firedShowDelay = 0;
   grenadeDelay = 0;
+  /**
+   * Seconds a grenade or molotov thrown stops the gun: the original, the throw's whole delay (1 s); the waves (Erick,
+   * 01/11/2026: a throw held the gun back too long) only the throw itself. The next throw still waits its delay.
+   */
+  throwPause = Infinity;
+  /** The gun waiting for a throw to end (throwPause). */
+  private gunWait = 0;
   meleeDelay = 0;
   nbGrenadeLeft = 2;
   nbMolotovLeft = 1;
@@ -428,6 +435,7 @@ export class Player {
       this.firedShowDelay -= delay;
       if (this.firedShowDelay < 0) this.firedShowDelay = 0;
     }
+    if (this.gunWait > 0) this.gunWait = Math.max(0, this.gunWait - delay);
     if (this.grenadeDelay > 0) {
       this.grenadeDelay -= delay;
       if (this.grenadeDelay < 0) this.grenadeDelay = 0;
@@ -560,7 +568,7 @@ export class Player {
     // the button blew the rocket up 0.25 s after launch, right in front of the shooter (bots hold it).
     const holdingOverRocket = this.weapon?.weaponID === WEAPON_BAZOOKA && this.rocketInAir && !input.shootPressed;
     if (input.shoot && this.initedMouseClic && !holdingOverRocket) {
-      if (this.weapon && this.grenadeDelay === 0 && this.meleeDelay === 0) {
+      if (this.weapon && this.gunWait === 0 && this.meleeDelay === 0) {
         this.firedShowDelay = 2;
         this.weapon.shoot(this);
       }
@@ -585,6 +593,7 @@ export class Player {
         // The shooter's client counts its own grenades (the server keeps its own count)
         if (game.mode === 'client') this.nbGrenadeLeft--;
         this.grenadeDelay = weaponDefs[WEAPON_GRENADE].fireDelay;
+        this.gunWait = Math.min(this.grenadeDelay, this.throwPause);
         this.throwProjectileWeapon(WEAPON_GRENADE);
       }
     }
@@ -595,6 +604,7 @@ export class Player {
         this.lastShootWasNade = false;
         if (game.mode === 'client') this.nbMolotovLeft--;
         this.grenadeDelay = weaponDefs[WEAPON_COCKTAIL_MOLOTOV].fireDelay;
+        this.gunWait = Math.min(this.grenadeDelay, this.throwPause);
         this.throwProjectileWeapon(WEAPON_COCKTAIL_MOLOTOV);
       }
     }
@@ -785,6 +795,7 @@ export class Player {
     this.playFrame = 0;
     this.shotTokens = 3;
     this.grenadeDelay = 0;
+    this.gunWait = 0;
     this.meleeDelay = 0;
     this.nbGrenadeLeft = 2;
     this.nbMolotovLeft = 1;

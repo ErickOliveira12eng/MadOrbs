@@ -279,6 +279,8 @@ export class WavesRun {
     ctx.me.maxGrenades = Math.max(ctx.me.maxGrenades, 2 + ctx.levels.grenades);
     // and get only part of the damage bonuses
     ctx.me.grenadeBonus = WAVES.grenadeBonus;
+    // A grenade or molotov stops his gun only while it is thrown (Erick, 01/11/2026)
+    ctx.me.throwPause = WAVES.throwPause;
     // The player's own death leaves nothing on the floor (the life and the grenades come from the crates)
     ctx.me.lifePackChance = 0;
     ctx.me.grenadeDropChance = 0;

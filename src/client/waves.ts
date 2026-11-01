@@ -105,6 +105,8 @@ export const WAVES = {
    * (BotController.huntBias; Erick, 01/11/2026: a little more on the player, not ignoring them).
    */
   huntBias: 1.8,
+  /** Seconds a grenade or molotov stops the player's gun (Player.throwPause; 1 s elsewhere, the original). */
+  throwPause: 0.25,
   /** The same for the bots that hit from afar (the sniper, the photon rifle, the bazooka) and the boss: the player nearly always. */
   huntBiasFar: 4,
   /**
