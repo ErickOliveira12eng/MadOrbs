@@ -74,7 +74,9 @@ export const CARD_LEVELS: Record<CardID, number[]> = {
   blast: [0, 0.5, 0.6, 0.7, 0.85, 1],
   ricochet: [0, 1, 2, 3, 4, 5],
   missiles: [0, 3, 5, 7],
-  shadow: [0, 1, 2, 3],
+  // The share of the player's bonuses the one ally takes (01/11/2026, Erick: one ally, the level raises its share;
+  // until then 1, 2 and 3 allies with half of them each)
+  shadow: [0, 0.5, 0.75, 1],
   // (2, 3 and 4 s until 19/10/2026: Erick, too weak, a crowd's worth of shots got through the rest of the time)
   reflect: [0, 4, 6, 8],
   silver: [0, 5, 4, 3],
@@ -109,11 +111,11 @@ export const SILVER_LIFE = 1.05;
  * go to fight, and the room they keep beside him. They take none of his other upgrades.
  */
 /**
- * Shadow allies: `share` of each of the player's bonuses (18/10/2026, Erick: a share of his attributes; it was 1.15x
- * the damage he takes and 0.9x his damage): with none they're an ordinary orb, with his they follow, never past him.
- * 80% on 18/10, half since 19/10/2026 (Erick: they got too strong).
+ * The Shadow ally: one, with CARD_LEVELS.shadow of each of the player's bonuses (18/10/2026, Erick: a share of his
+ * attributes; it was 1.15x the damage he takes and 0.9x his damage): with none it's an ordinary orb, with his it
+ * follows, never past him (100% at the top level). 80% on 18/10, half from 19/10/2026 (Erick: too strong, with up to 3).
  */
-export const SHADOW_ALLY = { share: 0.5, skill: 0.8, respawn: 8, slack: 4.5, gap: 0.8 };
+export const SHADOW_ALLY = { skill: 0.8, respawn: 8, slack: 4.5, gap: 0.8 };
 /**
  * The allies' colours in place of the blue team's (Player.teamTint; 13/10/2026: the same blue as the player,
  * he lost himself among them): the Shadow's a light cyan blue, the Necromancer's risen a ghostly green.
@@ -133,7 +135,6 @@ export function cardValue(id: CardID, level: number): string {
     case 'pierce':
     case 'ricochet':
     case 'missiles':
-    case 'shadow':
       return String(v);
     case 'vampire':
       return String(Math.round(v * 100));

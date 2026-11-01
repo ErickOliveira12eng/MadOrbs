@@ -811,8 +811,8 @@ export class WavesRun {
     if (lv) this.cards[id] = lv;
     else delete this.cards[id];
     if (id !== 'shadow') return;
-    // Fewer allies: the extra ones go; more: they come now
-    for (const p of this.allies.splice(CARD_LEVELS.shadow[lv])) this.remove(p);
+    // No card: the ally goes; a level: it comes now (its share follows the level: allyStrength)
+    for (const p of this.allies.splice(lv ? 1 : 0)) this.remove(p);
     this.reviveAllies();
   }
 
@@ -1041,13 +1041,13 @@ export class WavesRun {
   }
 
   /**
-   * A Shadow ally's strength, from the player's as it is now (the Workshop, the run's power-ups, the cards):
-   * SHADOW_ALLY.share of each of his bonuses (damage, attack speed, speed, protection from his defence and life,
-   * criticals, poison, ice). Never stronger than him.
+   * The Shadow ally's strength, from the player's as it is now (the Workshop, the run's power-ups, the cards): the
+   * card level's share (CARD_LEVELS.shadow: 50%, 75%, 100%) of each of his bonuses (damage, attack speed, speed,
+   * protection from his defence and life, criticals, poison, ice). Never stronger than him.
    */
   private allyStrength(p: Player): void {
     const me = this.ctx.me;
-    const share = SHADOW_ALLY.share;
+    const share = CARD_LEVELS.shadow[this.cards.shadow ?? 0] ?? 0;
     const part = (mine: number) => 1 + (mine - 1) * share;
     // What reaches him of a blow (defence, timed shield, a bigger life bar), from his own base
     const protect = Math.min(1, me.armorBoost / me.lifeMax);
@@ -1062,12 +1062,12 @@ export class WavesRun {
     p.grenadeBonus = me.grenadeBonus;
   }
 
-  /** The Shadow card: as many allies as its level, the fallen ones back beside the player. */
+  /** The Shadow card: one ally (its level is its strength), back beside the player when it fell. */
   private reviveAllies(): void {
     const { game, me, bots } = this.ctx;
-    // With the player only (they come back when he spawns)
+    // With the player only (it comes back when he spawns)
     if (!me.isAlive) return;
-    const want = CARD_LEVELS.shadow[this.cards.shadow ?? 0];
+    const want = this.cards.shadow ? 1 : 0;
     while (this.allies.length < want) {
       const p = game.addPlayer(this.ctx.allyName, true);
       if (!p) break;

@@ -780,7 +780,7 @@ export class HudLayer {
           (double ? `<span class="up2">${t('cards.double', { n: next - level })}</span>` : '') +
           `<span class="rar">${t(`cards.${def.rarity}`)}</span>${cardIcon(id)}` +
           `<b>${t(`card.${id}`)}</b><em>${lv}</em>` +
-          `<p>${next === 1 && (id === 'pierce' || id === 'ricochet' || id === 'shadow') ? t(`card.${id}.descOne`) : t(`card.${id}.desc`, { v: cardValue(id, next) })}</p>` +
+          `<p>${next === 1 && (id === 'pierce' || id === 'ricochet') ? t(`card.${id}.descOne`) : t(`card.${id}.desc`, { v: cardValue(id, next) })}</p>` +
           `<span class="h-key">${i + 1}</span></button>`
         );
       })
