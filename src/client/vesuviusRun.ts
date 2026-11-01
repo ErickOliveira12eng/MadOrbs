@@ -86,7 +86,7 @@ type TimedPower = 'speed' | 'rapid' | 'shield' | 'fury';
 /** The attacks that take turns (the rockets come on their own clock besides). */
 type Major = 'mortar' | 'missiles' | 'ring' | 'beam';
 
-interface PhaseSpec {
+export interface PhaseSpec {
   /** Rockets: every so many seconds, so many at once. */
   volley: { every: number; count: number };
   /** The attacks that take turns, and the seconds between two. */
@@ -102,7 +102,7 @@ interface PhaseSpec {
 }
 
 /** The volcano gets worse with each phase (Erick, 31/10/2026: the dynamic changes with its life). */
-const PHASES: PhaseSpec[] = [
+export const PHASES: PhaseSpec[] = [
   { volley: { every: 2.6, count: 1 }, majors: ['mortar'], majorEvery: 6.5, mortars: 3, missiles: 0, rings: 1, adds: { every: 14, count: 2, max: 4, wave: 6 } },
   { volley: { every: 2.8, count: 3 }, majors: ['missiles', 'ring', 'mortar'], majorEvery: 6, mortars: 4, missiles: 5, rings: 1, adds: { every: 12, count: 3, max: 6, wave: 12 } },
   { volley: { every: 2.5, count: 5 }, majors: ['beam', 'missiles', 'ring', 'mortar'], majorEvery: 5.5, mortars: 4, missiles: 7, rings: 2, adds: { every: 11, count: 3, max: 8, wave: 16 } },
