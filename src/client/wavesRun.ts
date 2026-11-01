@@ -11,7 +11,7 @@ import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, ELITE, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
-import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
+import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
@@ -206,6 +206,8 @@ export class WavesRun {
   private silverCharge = 0;
   private reflectClock = 0;
   private readonly risen: { p: Player; left: number }[] = [];
+  /** When the last one rose (the run's clock: one at most every NECRO_GAP seconds). */
+  private risenAt = -Infinity;
   /** Seconds before the Shadow card's fallen allies come back. */
   private allyClock = 0;
   /** A tester changed the run (the waves' Esc screen, DEBUG_USER_IDS accounts): it counts for nothing. */
@@ -994,6 +996,7 @@ export class WavesRun {
   /** The Necromancer card: maybe the enemy just killed rises there, on the player's side, for a while. */
   private raise(victim: Player, position: Vec3): void {
     const level = this.cards.necro ?? 0;
+    if (this.elapsed - this.risenAt < NECRO_GAP) return;
     if (Math.random() >= CARD_LEVELS.necro[level]) return;
     if (this.risen.filter((r) => r.p.isAlive).length >= NECRO_MAX[level]) return;
     const { game, me, bots } = this.ctx;
@@ -1036,6 +1039,7 @@ export class WavesRun {
     p.lastCF.position.copy(p.currentCF.position);
     p.currentCF.vel.set(0, 0, 0);
     r.left = NECRO_TIME;
+    this.risenAt = this.elapsed;
     this.ctx.onRise(p.currentCF.position.clone(), false);
   }
 

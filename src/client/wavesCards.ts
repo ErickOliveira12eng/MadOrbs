@@ -122,8 +122,13 @@ export const SHADOW_ALLY = { skill: 0.8, respawn: 8, slack: 4.5, gap: 0.8 };
  */
 export const SHADOW_TINT: Omit<SkinInfo, 'skin'> = { redDecal: [0.7, 1, 1], greenDecal: [0, 0.8, 0.95], blueDecal: [0, 0.32, 0.45] };
 export const UNDEAD_TINT: Omit<SkinInfo, 'skin'> = { redDecal: [0.75, 1, 0.75], greenDecal: [0.2, 0.8, 0.35], blueDecal: [0.05, 0.3, 0.12] };
-/** Necromancer: seconds a risen enemy fights for the player, and how many at once, by level. */
+/**
+ * Necromancer: seconds a risen enemy fights for the player, the fewest seconds between two risen (01/11/2026, Erick:
+ * they came up too often: measured headless at ~60 kills a minute, 12 to 20 a minute by level; with the gap 5 to 6,
+ * never past 15 however many fall; 3 s gave 7 to 9, 6 s 3 to 5), and how many at once, by level.
+ */
 export const NECRO_TIME = 10;
+export const NECRO_GAP = 4;
 export const NECRO_MAX = [0, 3, 4, 5];
 
 export type CardLevels = Partial<Record<CardID, number>>;
