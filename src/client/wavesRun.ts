@@ -651,6 +651,9 @@ export class WavesRun {
     }
     if (!escort) this.waveSpawns++;
     game.requestSpawn(p);
+    // The nuke bot: no gun at all, only the nuke on its Orb (Erick, 01/11/2026: its chain gun's recoil pushed it back;
+    // its one aim is to follow the player and blow up)
+    if (nuke) p.weapon = null;
     return true;
   }
 
