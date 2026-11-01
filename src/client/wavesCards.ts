@@ -6,6 +6,7 @@
 // What each level does lives here; WavesRun applies it to the player (src/sim/player.ts: extra volleys,
 // piercing, criticals, dodging, the reflector) and the HUD shows the cards.
 import type { SkinInfo } from '../sim/player';
+import { WEAPON_BAZOOKA, WEAPON_PHOTON_RIFLE } from '../sim/constants';
 
 export type CardID = 'double' | 'parallel' | 'fan' | 'pierce' | 'crit' | 'vampire' | 'rage' | 'dodge' | 'grenadier' | 'blast' | 'ricochet' | 'missiles' | 'shadow' | 'reflect' | 'silver' | 'necro';
 export type Rarity = 'common' | 'epic' | 'legendary';
@@ -132,6 +133,19 @@ export const NECRO_GAP = 4;
 export const NECRO_MAX = [0, 3, 4, 5];
 
 export type CardLevels = Partial<Record<CardID, number>>;
+
+/** The shot cards: more bullets, through and from one enemy to the next (CARD_GAP counts their levels). */
+export const SHOT_CARDS: readonly CardID[] = ['double', 'parallel', 'fan', 'pierce', 'ricochet'];
+/**
+ * The weapons the shot cards do little for (Erick, 01/11/2026: Parallel, Ricochet and the rest "had no effect" on the
+ * bazooka and the flame thrower; the photon too): each level of a shot card the player holds adds this share to the
+ * damage of that weapon's own hits (Player.weaponBoost). Measured headless on wave 20 (the median of 8 runs, the damage
+ * a second in the wave's bars), with the five at 5: chain gun 2.39, dual machine gun 2.44, flame thrower 2.64 (its extra
+ * flames make up for the Pierce and Ricochet, bullets' only: none for it), bazooka 1.53, photon 1.05. With these (+75%
+ * and +175% at 25 levels), the same runs: bazooka 2.05, photon 2.16 (the gain falls short of the bonus: the crowd dies
+ * before it comes close, a rocket finds fewer around its target).
+ */
+export const CARD_GAP: Partial<Record<number, number>> = { [WEAPON_BAZOOKA]: 0.03, [WEAPON_PHOTON_RIFLE]: 0.07 };
 
 /** A card's number at a level, as its text shows it (a share as a percent, life as points, seconds). */
 export function cardValue(id: CardID, level: number): string {

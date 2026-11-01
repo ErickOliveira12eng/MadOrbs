@@ -219,6 +219,8 @@ export class Player {
   recoilScale = 1;
   /** Seconds shown over its head, 0: none (the waves' nuke bot about to blow up). */
   countdown = 0;
+  /** Times the damage of its gun's own hits (the waves: the shot cards its weapon makes little of, turned into damage). */
+  weaponBoost = 1;
   /**
    * The waves' allies (the Shadow card, the Necromancer's risen): their own side walks and shoots through
    * them, and they through it (Game.performPlayerCollisions, Game.passesThrough).
@@ -958,6 +960,7 @@ export class Player {
     // A tougher babo (the campaign's bosses); the waves' power-ups (fury on the shooter, shield here)
     cdamage *= this.damageScale * this.armorBoost;
     if (from !== this) cdamage *= (1 + (from.damageBoost - 1) * bonus) * from.shotScale;
+    if (from !== this && from.weapon && fromWeaponID === from.weapon.weaponID) cdamage *= from.weaponBoost;
     // The waves' cards: a critical hit (double damage), a dodged one (both shown: the damage numbers)
     const crit = from !== this && canCrit && from.critChance > 0 && Math.random() < from.critChance;
     if (crit) cdamage *= 2;

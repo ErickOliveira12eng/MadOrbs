@@ -968,7 +968,7 @@ export class HudLayer {
     const stats =
       stat(t('up.life'), `${Math.round(Math.max(0, me.life) * me.lifeMax * 100)} / ${Math.round(me.lifeMax * 100)}`, me.lifeMax > 1) +
       stat(t('up.barrier'), me.barrierMax > 0 ? `${Math.round(me.barrier * 100)} / ${Math.round(me.barrierMax * 100)}` : '—', me.barrierMax > 0) +
-      stat(t('up.damage'), x(me.damageBoost), me.damageBoost > 1) +
+      stat(t('up.damage'), x(me.damageBoost * me.weaponBoost), me.damageBoost * me.weaponBoost > 1) +
       stat(t('up.fire'), x(me.fireBoost), me.fireBoost > 1) +
       stat(t('up.speed'), x(me.speedBoost), me.speedBoost > 1) +
       stat(t('up.armor'), defence > 0.005 ? `−${pct(defence)}` : '0%', defence > 0.005) +

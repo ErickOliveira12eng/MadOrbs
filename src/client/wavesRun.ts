@@ -11,7 +11,7 @@ import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, ELITE, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
-import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
+import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
@@ -387,6 +387,8 @@ export class WavesRun {
     // The Workshop's Life: a bigger bar (100 to 150 points), not a smaller blow
     me.lifeMax = 1 + UPGRADE_STEP.life * lv.life;
     me.damageBoost = (1 + UPGRADE_STEP.damage * lv.damage) * (1 + PERM_STEP * perm.permDamage) * (this.timers.fury > 0 ? BOOSTS.fury : 1);
+    // The shot cards the weapon in hand makes little of, as damage of its own hits (CARD_GAP)
+    me.weaponBoost = 1 + (CARD_GAP[me.weapon?.weaponID ?? -1] ?? 0) * SHOT_CARDS.reduce((n, id) => n + (this.cards[id] ?? 0), 0);
     // The cards (wavesCards.ts)
     const card = (id: CardID) => CARD_LEVELS[id][this.cards[id] ?? 0];
     me.extraShotChance = card('double');
