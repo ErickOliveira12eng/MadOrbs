@@ -1462,6 +1462,17 @@ export class HudLayer {
       }
     }
 
+    // The crates (the Waves, the Vesuvius): a brown dot each (Erick, 31/10/2026), under the Orbs
+    for (const c of g.crates) {
+      ctx.fillStyle = '#a8713a';
+      ctx.strokeStyle = 'rgba(30, 16, 6, 0.9)';
+      ctx.lineWidth = 1 * s;
+      ctx.beginPath();
+      ctx.arc(X(c.position.x), Y(c.position.y), 2.8 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
     if (me.teamID !== PLAYER_TEAM_SPECTATOR) {
       for (const p of f.players) {
         if (!p || p === me || !p.isAlive) continue;
