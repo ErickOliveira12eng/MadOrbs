@@ -76,7 +76,7 @@ import {
   type RoomMode,
   type ServerMessage,
 } from '../net/protocol';
-import { audio } from './audio/audio';
+import { SOUND_GAP, SOUND_VARY, audio } from './audio/audio';
 import { preloadAssets, getModel, MODEL_DOUILLE, MODEL_GIB } from './assets';
 import { GameCamera, LENS_HEIGHT } from './camera';
 import { createDkoObject3D } from './engine/dko';
@@ -1750,7 +1750,8 @@ export class ClientGame {
         const p = game.players[e.playerID];
         if (!p) break;
         this.babos.get(p.playerID)?.fire(e.weaponID, e.nuzzleID);
-        audio.play3D(S.weapon[e.weaponID], 5, p.currentCF.position, 255);
+        // Each Orb's gun at most SOUND_GAP.fire apart (the Waves' attack speed and Double shot went far past it)
+        if (audio.ready(`fire${p.playerID}`, SOUND_GAP.fire)) audio.play3D(S.weapon[e.weaponID], 5, p.currentCF.position, 255, false, 'sfx', SOUND_VARY.fire);
         // The waves' Silver bullet card loads with the player's firing (not the Double shot's second volley)
         if (this.waves && !online && p === me && !e.extra) this.waves.onFire(e.weaponID, e.origin, e.direction);
         if (e.weaponID === WEAPON_GRENADE || e.weaponID === 9) {
@@ -1850,7 +1851,7 @@ export class ClientGame {
         // Our shot touched this babo on our screen: blood and hit marker now, the server confirms
         this.effects.playerHit(e.position, weaponDefs[e.weaponID]?.damage ?? 0.1);
         this.hud.hitMarker();
-        audio.play(S.hitConfirm, 250);
+        if (audio.ready('hitMarker', SOUND_GAP.hitMarker)) audio.play(S.hitConfirm, 250);
         const pending = this.predictedHits.get(e.playerID) ?? [];
         pending.push(performance.now());
         this.predictedHits.set(e.playerID, pending);
@@ -1878,7 +1879,7 @@ export class ClientGame {
           this.effects.playerHit(e.position, e.damage);
           if (e.fromID === me.playerID && e.playerID !== me.playerID) {
             this.hud.hitMarker();
-            audio.play(S.hitConfirm, 250);
+            if (audio.ready('hitMarker', SOUND_GAP.hitMarker)) audio.play(S.hitConfirm, 250);
           }
         }
         if (e.playerID === me.playerID && (e.weaponID === WEAPON_BAZOOKA || e.weaponID === WEAPON_GRENADE || e.weaponID === WEAPON_NUCLEAR)) {

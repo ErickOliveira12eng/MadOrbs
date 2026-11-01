@@ -9,7 +9,7 @@
 // before renderer.render().
 import * as THREE from 'three';
 import { Vec3, rotateAboutAxis, randRange, crand, cross, dot } from '../../sim/vec';
-import { audio, type SoundHandle } from '../audio/audio';
+import { SOUND_GAP, SOUND_VARY, audio, type SoundHandle } from '../audio/audio';
 import { loadTexture } from '../engine/textures';
 import { FxTextureArray, type FxTexture } from './fxTextures';
 import { QuadBatch } from './quadBatch';
@@ -808,8 +808,8 @@ export class Effects {
     d.dkpCreateParticle(p2, front.mul(2.0), [1, 1, 1, 0.75], [1, 1, 1, 0], 0.125, 0.25, 0.5, 0, 0, 90, this.tex_smoke1, DKP_SRC_ALPHA, DKP_ONE_MINUS_SRC_ALPHA, 0);
     d.dkpCreateParticle(p2, front.mul(4.0), [1, 1, 1, 0.75], [1, 1, 1, 0], 0.125, 0.25, 0.25, 0, 0, 90, this.tex_smoke1, DKP_SRC_ALPHA, DKP_ONE_MINUS_SRC_ALPHA, 0);
 
-    // on ricoche!
-    audio.play3D(this.sfx_ric[crand() % 5], 2, p2, 150);
+    // on ricoche! (not the cards' extra bullets: the shot they come with rings already; at most SOUND_GAP.impact)
+    if (!card && audio.ready('impact', SOUND_GAP.impact)) audio.play3D(this.sfx_ric[crand() % 5], 2, p2, 150, false, 'sfx', SOUND_VARY.impact);
   }
 
   /**
@@ -1119,7 +1119,7 @@ export class Effects {
 
   /** Player::hit (client): hit sound + blood. cdamage as computed by Player::hit. */
   playerHit(position: Vec3, cdamage: number): void {
-    audio.play3D(this.sfx_hit[crand() % 2], 5, position, 255);
+    if (audio.ready('hit', SOUND_GAP.hit)) audio.play3D(this.sfx_hit[crand() % 2], 5, position, 255, false, 'sfx', SOUND_VARY.hit);
     this.spawnBlood(position, cdamage);
   }
 
@@ -1187,7 +1187,9 @@ export class Effects {
       const normal = new Vec3();
       if (fxRayTest(this.map, p1, p2, normal)) {
         if (!d.soundPlayed) {
-          if (d.type === DOUILLE_TYPE_DOUILLE) audio.play3D(this.sfx_douille[crand() % 3], 1, d.position, 255);
+          if (d.type === DOUILLE_TYPE_DOUILLE) {
+            if (audio.ready('shell', SOUND_GAP.shell)) audio.play3D(this.sfx_douille[crand() % 3], 1, d.position, 255, false, 'sfx', SOUND_VARY.shell);
+          }
           else if (d.type === DOUILLE_TYPE_GIB) this.spawnBlood(d.position, 0.1);
           d.soundPlayed = true;
         }

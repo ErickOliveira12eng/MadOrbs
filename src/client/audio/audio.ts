@@ -40,6 +40,23 @@ const CROWD_FALL = 0.6;
 const CROWD_RMS = 10 ** (-18 / 20);
 const CROWD_EXP = 0.7;
 /**
+ * How often a sound of a kind may start, at most (seconds between two; Erick, 01/11/2026: with the Waves' shot cards
+ * and attack speed the sound got strange, it bothered). Measured headless on wave 15 shooting into the crowd: with
+ * Double, Parallel, Fan, Pierce, Ricochet and attack speed x4 the player's shooting started ~685 effects a second
+ * (37 shots, 267 bullets with an impact each, 126 hits with a blood sound and a hit marker each), ~50 without cards:
+ * the mixer's 64 voices cut each other hundreds of times a second (a scratchy buzz) and the same recording started
+ * many times at once sounded robotic. Past these rates more of the same is a buzz, not more information:
+ *  - `fire`: one shooter's own weapon (each Orb its own count, so a crowd never silences the player's gun);
+ *  - `hitMarker`: the 2D hit confirmation, loud and sharp (it reached 126 a second);
+ *  - `hit`: the blood sound of a hit Orb, `impact`: a bullet's ricochet (the cards' extra bullets have none: the
+ *    shot they come with has its own), `shell`: an empty shell landing.
+ * Below them (a few orbs fighting, any weapon without cards) nothing changes.
+ */
+export const SOUND_GAP = { fire: 1 / 20, hitMarker: 1 / 12, hit: 1 / 15, impact: 1 / 20, shell: 1 / 15 };
+/** A little pitch of its own for each repeat of a sound (+-this share of the speed): the same recording over and over sounds less mechanical. */
+export const SOUND_VARY = { fire: 0.03, hit: 0.05, impact: 0.05, shell: 0.05 };
+
+/**
  * The limiter's makeup gain taken back: Web Audio raises a compressor's output by (1 / full range gain)^0.6,
  * +1.37 dB with these settings (measured with an OfflineAudioContext, 14/10/2026).
  */
@@ -77,6 +94,8 @@ class AudioSystem {
   private crowdLevel = 1;
   /** The effects playing now, oldest first (MAX_SAME_SOUND, MAX_SFX). */
   private voices: Voice[] = [];
+  /** When each kind of rate-limited sound last started (ready(), SOUND_GAP), in ms. */
+  private lastStart = new Map<string, number>();
   private musicBus!: GainNode;
   /** The map's own sounds (rain, wind, lava), with their own volume. */
   private ambientBus!: GainNode;
@@ -287,6 +306,18 @@ class AudioSystem {
     return { voices: this.voices.length, level: this.crowdLevel, rms: Math.sqrt(this.crowdPower) };
   }
 
+  /**
+   * A sound of this `key` may start: `gap` seconds or more since the last one of it (SOUND_GAP). True notes it as
+   * started now; false: too soon, the caller leaves it out.
+   */
+  ready(key: string, gap: number): boolean {
+    const now = performance.now();
+    const last = this.lastStart.get(key);
+    if (last !== undefined && now - last < gap * 1000) return false;
+    this.lastStart.set(key, now);
+    return true;
+  }
+
   /** 2D sound (dksPlaySound). Returns the source so loops can be stopped (null: not played). */
   play(sound: SoundHandle | null | undefined, volume = 255, loop = false, bus: SoundBus = 'sfx'): AudioBufferSourceNode | null {
     if (!this.ctx || !sound?.buffer) return null;
@@ -302,7 +333,7 @@ class AudioSystem {
     return src;
   }
 
-  /** 3D sound (dksPlay3DSound(sound, channel, range, position, volume)). */
+  /** 3D sound (dksPlay3DSound(sound, channel, range, position, volume)). `vary`: its pitch moved by up to this share (SOUND_VARY). */
   play3D(
     sound: SoundHandle | null | undefined,
     range: number,
@@ -310,11 +341,13 @@ class AudioSystem {
     volume = 255,
     loop = false,
     bus: SoundBus = 'sfx',
+    vary = 0,
   ): { source: AudioBufferSourceNode; panner: PannerNode; gain: GainNode } | null {
     if (!this.ctx || !sound?.buffer) return null;
     const src = this.ctx.createBufferSource();
     src.buffer = sound.buffer;
     src.loop = loop;
+    if (vary) src.playbackRate.value = 1 + (Math.random() * 2 - 1) * vary;
     const panner = this.ctx.createPanner();
     panner.panningModel = 'equalpower';
     panner.distanceModel = 'inverse';
