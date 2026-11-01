@@ -67,6 +67,33 @@ export const UPGRADES: Upgrade[] = [
  */
 // (speed 0.1 until 01/11/2026: Erick, the moving speed effects at 60% of what they were)
 export const UPGRADE_STEP = { life: 0.2, armor: 0.12, damage: 0.25, fire: 0.2, speed: 0.06, luck: 0.1, drops: 0.1 };
+/**
+ * The Workshop's mastery (Erick, 01/11/2026: no wave the player can never pass): past their top level these go on
+ * without end, each level times this (damage, attack speed, life up; the damage taken down), each one MASTERY_GROW
+ * dearer than the one before (the first, the top level's price times it).
+ */
+export const MASTERY: Partial<Record<UpgradeID, number>> = { damage: 1.04, fire: 1.04, life: 1.04, armor: 0.97 };
+export const MASTERY_GROW = 1.12;
+/** Levels past the top kept at most (the account's table takes up to 1,000 a level since 20261101160000_waves_mastery.sql). */
+const MASTERY_MAX = 900;
+
+/** What the Workshop's damage, attack speed, life or defence multiply at a level (its steps, then its mastery). */
+export function workshopFactor(id: 'damage' | 'fire' | 'life' | 'armor', level: number): number {
+  const top = UPGRADES.find((u) => u.id === id)!.costs.length;
+  const base = Math.min(level, top);
+  const mastery = (MASTERY[id] ?? 1) ** Math.max(0, level - top);
+  return (id === 'armor' ? 1 - UPGRADE_STEP.armor * base : 1 + UPGRADE_STEP[id] * base) * mastery;
+}
+
+/** The levels an upgrade can reach: its prices, or no end with a mastery. */
+export const topLevel = (u: Upgrade): number => (MASTERY[u.id] ? u.costs.length + MASTERY_MAX : u.costs.length);
+
+/** The price of an upgrade's level `i + 1` (0-based `i`): its list, then its mastery's. */
+export function levelCost(u: Upgrade, i: number): number {
+  if (i < u.costs.length) return u.costs[i];
+  return Math.round(u.costs[u.costs.length - 1] * MASTERY_GROW ** (i - u.costs.length + 1));
+}
+
 export const BREATHER = [0, 0.3, 0.5, 0.7];
 export const SECOND_WIND_LIFE = 0.5;
 
@@ -258,7 +285,7 @@ export function cleanBuild(raw: unknown): CheckpointBuild | null {
   }
   for (const c of CARDS) {
     const v = r.cards?.[c.id];
-    if (typeof v === 'number' && Number.isInteger(v) && v > 0) cards[c.id] = Math.min(c.max, v);
+    if (typeof v === 'number' && Number.isInteger(v) && v > 0) cards[c.id] = Math.min(c.max, 999, v);
   }
   const at = typeof r.at === 'number' && Number.isFinite(r.at) ? r.at : 0;
   return { perms, cards, at };
@@ -332,7 +359,7 @@ const MAX_CORES = 100_000_000;
 /** The levels' cost: every level bought, at its price. */
 export function spent(levels: Levels): number {
   let s = 0;
-  for (const u of UPGRADES) for (let i = 0; i < Math.min(levels[u.id], u.costs.length); i++) s += u.costs[i];
+  for (const u of UPGRADES) for (let i = 0; i < Math.min(levels[u.id], topLevel(u)); i++) s += levelCost(u, i);
   return s;
 }
 
@@ -348,7 +375,7 @@ export function cleanLevels(raw: unknown): Levels {
   const r = raw as Record<string, unknown>;
   for (const u of UPGRADES) {
     const v = r[u.id];
-    if (typeof v === 'number' && Number.isFinite(v)) out[u.id] = Math.max(0, Math.min(u.costs.length, Math.floor(v)));
+    if (typeof v === 'number' && Number.isFinite(v)) out[u.id] = Math.max(0, Math.min(topLevel(u), Math.floor(v)));
   }
   return out;
 }
@@ -436,7 +463,7 @@ export function addCores(n: number): WavesProgress {
 
 /** The price of an upgrade's next level, or null at the top. */
 export function nextCost(u: Upgrade, levels: Levels): number | null {
-  return levels[u.id] < u.costs.length ? u.costs[levels[u.id]] : null;
+  return levels[u.id] < topLevel(u) ? levelCost(u, levels[u.id]) : null;
 }
 
 /** Buys an upgrade's next level when the Cores reach; returns the new progress, or null. */

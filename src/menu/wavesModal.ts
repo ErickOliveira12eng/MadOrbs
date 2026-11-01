@@ -36,6 +36,9 @@ import {
   type UpgradeGroup,
   type UpgradeID,
   type WavesProgress,
+  levelCost,
+  topLevel,
+  workshopFactor,
 } from '../client/wavesProgress';
 import { track } from '../client/analytics';
 import { bigNum, num, t, type Key } from '../i18n';
@@ -102,15 +105,17 @@ const FIT_MIN_WIDTH = 700;
 function upgradeValue(id: UpgradeID, level: number): string {
   const pct = (x: number) => `+${Math.round(x * 100)}%`;
   switch (id) {
+    // (damage, attack speed, life and defence go on past their top: the mastery, workshopFactor)
     case 'life':
-      return String(Math.round(100 * (1 + UPGRADE_STEP.life * level)));
+      return String(Math.round(100 * workshopFactor('life', level)));
     case 'damage':
     case 'fire':
+      return pct(workshopFactor(id, level) - 1);
     case 'speed':
     case 'luck':
       return pct(UPGRADE_STEP[id] * level);
     case 'armor':
-      return level ? `-${Math.round(UPGRADE_STEP.armor * level * 100)}%` : '0%';
+      return level ? `-${Math.round((1 - workshopFactor('armor', level)) * 100)}%` : '0%';
     case 'drops':
       return `${Math.round((0.5 + UPGRADE_STEP.drops * level) * 100)}%`;
     case 'lives':
@@ -535,8 +540,10 @@ export class WavesModal {
   private row(u: Upgrade, p: WavesProgress, cash: number): string {
     const level = p.levels[u.id];
     const cost = nextCost(u, p.levels);
+    // Past the top, the mastery's levels (MASTERY)
+    const mastery = level > u.costs.length ? `<span class="wv-lvtext wv-mastery">+${level - u.costs.length}</span>` : '';
     const pips =
-      u.costs.length > 5 ? `<span class="wv-lvtext">${level}/${u.costs.length}</span>` : u.costs.map((_, i) => `<i class="${i < level ? 'on' : ''}"></i>`).join('');
+      (u.costs.length > 5 ? `<span class="wv-lvtext">${Math.min(level, u.costs.length)}/${u.costs.length}</span>` : u.costs.map((_, i) => `<i class="${i < level ? 'on' : ''}"></i>`).join('')) + mastery;
     const price =
       cost === null ? `<span class="wv-price max">${t('workshop.max')}</span>` : `<span class="wv-price${cost > cash ? ' off' : ''}">${coreIcon(12)}${bigNum(cost)}</span>`;
     return (
@@ -565,9 +572,12 @@ export class WavesModal {
   private renderDetail(p: WavesProgress, cash: number): void {
     const u = UPGRADES.find((x) => x.id === this.selected)!;
     const level = p.levels[u.id];
-    const max = u.costs.length;
+    const top = u.costs.length;
+    const max = topLevel(u);
     const cost = nextCost(u, p.levels);
     const bars = u.costs.map((_, i) => `<i class="${i < level ? 'on' : i === level ? 'next' : ''}"></i>`).join('');
+    // A level's name: its number, or past the top its mastery's
+    const name = (l: number) => (l > top ? t('workshop.mastery', { n: l - top }) : t('workshop.levelN', { n: l }));
     let body: string;
     if (cost === null) {
       body =
@@ -576,7 +586,7 @@ export class WavesModal {
     } else {
       const later = [];
       for (let l = level + 2; l <= Math.min(max, level + 1 + LATER_LEVELS); l++) {
-        later.push(`<li><span>${t('workshop.levelN', { n: l })}</span><b>${upgradeValue(u.id, l)}</b><span>${coreIcon(12)}${bigNum(u.costs[l - 1])}</span></li>`);
+        later.push(`<li><span>${name(l)}</span><b>${upgradeValue(u.id, l)}</b><span>${coreIcon(12)}${bigNum(levelCost(u, l - 1))}</span></li>`);
       }
       const short = cost > cash;
       // What its next level adds to the Power
@@ -585,18 +595,19 @@ export class WavesModal {
       body =
         `<div class="wv-compare"><div class="wv-now"><small>${t('workshop.now')}</small><b>${upgradeValue(u.id, level)}</b></div>` +
         `<span class="wv-arrow">${icon('arrowRight', 28)}</span>` +
-        `<div class="wv-now on"><small>${t('workshop.levelN', { n: level + 1 })}</small><b>${upgradeValue(u.id, level + 1)}</b></div></div>` +
+        `<div class="wv-now on"><small>${name(level + 1)}</small><b>${upgradeValue(u.id, level + 1)}</b></div></div>` +
         (gain > 0 ? `<div class="wv-gain">${icon('zap', 15)}${t('workshop.powerGain', { n: bigNum(gain) })}</div>` : '') +
         (later.length ? `<ul class="wv-later">${later.join('')}</ul>` : '') +
         `<div class="wv-buyzone"><button type="button" class="wv-buy" data-buy="${u.id}"${short ? ' disabled' : ''}>` +
-        `${t('workshop.upgradeTo', { n: level + 1 })}<span class="wv-cost">${coreIcon(15)}${bigNum(cost)}</span></button>` +
+        `${level + 1 > top ? t('workshop.masteryTo', { n: level + 1 - top }) : t('workshop.upgradeTo', { n: level + 1 })}<span class="wv-cost">${coreIcon(15)}${bigNum(cost)}</span></button>` +
         `<small class="${short ? 'short' : ''}">${short ? t('workshop.need', { n: bigNum(cost - cash) }) : t('workshop.left', { n: bigNum(cash - cost) })}</small></div>`;
     }
     $('wvDetail').className = `wv-detail ${u.group}`;
     $('wvDetail').innerHTML =
       `<div class="wv-detail-head"><span class="wv-bigico">${icon(UPGRADE_ICON[u.id], 36)}</span>` +
       `<div><small>${t(`workshop.group.${u.group}`)}</small><h4>${t(`up.${u.id}`)}</h4><p>${t(`up.${u.id}.desc`)}</p></div></div>` +
-      `<div class="wv-level"><span>${t('workshop.level', { n: level, max })}</span><span class="wv-bars">${bars}</span></div>` +
+      `<div class="wv-level"><span>${level > top ? t('workshop.mastery', { n: level - top }) : t('workshop.level', { n: level, max: top })}</span><span class="wv-bars">${bars}</span></div>` +
+      (max > top && level >= top - 1 ? `<p class="wv-mhint">${t('workshop.masteryHint')}</p>` : '') +
       body;
   }
 

@@ -984,7 +984,7 @@ export class HudLayer {
           .map((c) => {
             const def = cardDef(c.id);
             return (
-              `<div class="h-wsc ${def.rarity}">${cardIcon(c.id, 'h-cardmini')}<div><b>${t(`card.${c.id}`)} <em>${c.level}/${def.max}</em></b>` +
+              `<div class="h-wsc ${def.rarity}">${cardIcon(c.id, 'h-cardmini')}<div><b>${t(`card.${c.id}`)} <em>${def.max === Infinity ? t('waves.permLevel', { n: c.level }) : `${c.level}/${def.max}`}</em></b>` +
               `<small>${t(`card.${c.id}.desc`, { v: cardValue(c.id, c.level) })}</small></div></div>`
             );
           })
@@ -2144,6 +2144,9 @@ const CARD_PATHS: Record<CardID, string> = {
   reflect: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M14.5 15a2.5 2.5 0 0 0 0-5H9"/><path d="m11 8-2 2 2 2"/>',
   silver: '<path d="M3 9h10a5 3 0 0 1 0 6H3z"/><path d="M7 9v6"/><path d="M20 3v4M18 5h4"/>',
   necro: '<path d="m12.5 17-.5-1-.5 1h1z"/><path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20v1a1 1 0 0 0 1 1z"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/>',
+  xdamage: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/>',
+  xfire: '<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+  xarmor: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 9v6M9 12h6"/>',
 };
 const cardIcon = (id: CardID, cls = 'h-cardico') =>
   `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CARD_PATHS[id]}</svg>`;

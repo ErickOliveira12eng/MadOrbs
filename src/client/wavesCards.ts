@@ -8,7 +8,9 @@
 import type { SkinInfo } from '../sim/player';
 import { WEAPON_BAZOOKA, WEAPON_PHOTON_RIFLE } from '../sim/constants';
 
-export type CardID = 'double' | 'parallel' | 'fan' | 'pierce' | 'crit' | 'vampire' | 'rage' | 'dodge' | 'grenadier' | 'blast' | 'ricochet' | 'missiles' | 'shadow' | 'reflect' | 'silver' | 'necro';
+export type CardID = 'double' | 'parallel' | 'fan' | 'pierce' | 'crit' | 'vampire' | 'rage' | 'dodge' | 'grenadier' | 'blast' | 'ricochet' | 'missiles' | 'shadow' | 'reflect' | 'silver' | 'necro' | StatCardID;
+/** The stat cards (STAT_CARDS): damage, attack speed, defence, with no top level. */
+export type StatCardID = 'xdamage' | 'xfire' | 'xarmor';
 export type Rarity = 'common' | 'epic' | 'legendary';
 
 export interface CardDef {
@@ -18,6 +20,8 @@ export interface CardDef {
   max: number;
   /** The first wave its offer can come on (the legendaries: 40). */
   from?: number;
+  /** A stat card (STAT_CARDS): no top level, offered by chance in any offer and always once the others are all taken. */
+  stat?: boolean;
 }
 
 export const CARDS: CardDef[] = [
@@ -37,7 +41,24 @@ export const CARDS: CardDef[] = [
   { id: 'missiles', rarity: 'legendary', max: 3, from: 40 },
   { id: 'silver', rarity: 'legendary', max: 3, from: 40 },
   { id: 'necro', rarity: 'legendary', max: 3, from: 40 },
+  { id: 'xdamage', rarity: 'common', max: Infinity, stat: true },
+  { id: 'xfire', rarity: 'common', max: Infinity, stat: true },
+  { id: 'xarmor', rarity: 'common', max: Infinity, stat: true },
 ];
+
+/**
+ * The stat cards (Erick, 01/11/2026: no wave the player can never pass, the damage must grow without end): damage,
+ * attack speed and defence, the crates' main ones, each level times `step` of what the player has (damage and attack
+ * speed up, the damage taken down), with no top level. Each slot of an offer that would hold a new common card holds one
+ * instead at STAT_CHANCE; once every other card is at its top, the offers are these three. Two picks every ten waves
+ * (wave 5's commons, then the boss) give x1.25 damage, the boss's own growth a boss (bossGuard).
+ */
+export const STAT_CARDS: Record<StatCardID, number> = { xdamage: 1.12, xfire: 1.1, xarmor: 0.94 };
+export const STAT_CHANCE = 0.2;
+
+/** A stat card's effect at a level: what it multiplies (damage, attack speed, the damage taken). */
+export const statFactor = (id: StatCardID, level: number): number => STAT_CARDS[id] ** level;
+export const isStatCard = (id: CardID): id is StatCardID => id in STAT_CARDS;
 
 /**
  * A choice of common cards after every this many waves, not the boss's (10, 20, 30...: its choice has every rarity),
@@ -82,6 +103,10 @@ export const CARD_LEVELS: Record<CardID, number[]> = {
   reflect: [0, 4, 6, 8],
   silver: [0, 5, 4, 3],
   necro: [0, 0.2, 0.3, 0.4],
+  // (the stat cards have no top level: statFactor)
+  xdamage: [],
+  xfire: [],
+  xarmor: [],
 };
 
 /** Berserker (the card 'rage'): its extra damage counts below this share of the life (15/10/2026, Erick). */
@@ -149,6 +174,10 @@ export const CARD_GAP: Partial<Record<number, number>> = { [WEAPON_BAZOOKA]: 0.0
 
 /** A card's number at a level, as its text shows it (a share as a percent, life as points, seconds). */
 export function cardValue(id: CardID, level: number): string {
+  if (isStatCard(id)) {
+    const f = statFactor(id, level);
+    return id === 'xarmor' ? `-${Math.round((1 - f) * 100)}%` : `+${Math.round((f - 1) * 100)}%`;
+  }
   const v = CARD_LEVELS[id][level] ?? 0;
   switch (id) {
     case 'pierce':
@@ -172,7 +201,7 @@ export function cardValue(id: CardID, level: number): string {
  * Fewer when fewer are left.
  */
 export function rollCards(n: number, owned: CardLevels, count = 3, commonOnly = false): CardID[] {
-  const pool = CARDS.filter((c) => (owned[c.id] ?? 0) < c.max && n >= (c.from ?? 0) && (!commonOnly || c.rarity === 'common'));
+  const pool = CARDS.filter((c) => !c.stat && (owned[c.id] ?? 0) < c.max && n >= (c.from ?? 0) && (!commonOnly || c.rarity === 'common'));
   const out: CardID[] = [];
   while (out.length < count && pool.length) {
     let r = Math.random() * pool.reduce((s, c) => s + RARITY_WEIGHT[c.rarity], 0);
@@ -208,7 +237,8 @@ export const DOUBLE_CHANCE = 0.2;
  */
 export function offerCards(n: number, owned: CardLevels, commonOnly: boolean): CardOffer[] {
   const ids = rollCards(n, owned, 3, commonOnly);
-  if (!ids.length) return [];
+  // Every other card at its top: the three stat cards (without end)
+  if (!ids.length) return (Object.keys(STAT_CARDS) as StatCardID[]).map((id) => ({ id, up: 1 }));
   const level = (id: CardID) => owned[id] ?? 0;
   const left = (id: CardID) => cardDef(id).max - level(id);
   const open = (c: CardDef) => left(c.id) > 0 && n >= (c.from ?? 0);
@@ -220,7 +250,7 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean): C
     for (let i = offer.length - 1; i >= 0; i--) if (i !== keep) return i;
     return -1;
   };
-  const mine = CARDS.filter((c) => level(c.id) > 0 && open(c) && (!commonOnly || c.rarity === 'common')).map((c) => c.id);
+  const mine = CARDS.filter((c) => !c.stat && level(c.id) > 0 && open(c) && (!commonOnly || c.rarity === 'common')).map((c) => c.id);
   const rareNew = offer.some((o) => cardDef(o.id).rarity !== 'common' && level(o.id) === 0);
   const double = !commonOnly || rareNew || Math.random() < DOUBLE_CHANCE;
   const fits = (id: CardID) => !double || left(id) >= 2;
@@ -251,6 +281,19 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean): C
       }
       offer[at] = { id: pick.id, up: 1 };
     }
+  }
+  // The stat cards (STAT_CARDS): a new common card's place at STAT_CHANCE; the offer filled up to three with them
+  const stats = (Object.keys(STAT_CARDS) as StatCardID[]).sort(() => Math.random() - 0.5);
+  const nextStat = () => stats.find((id) => !offer.some((o) => o.id === id));
+  offer.forEach((o, i) => {
+    if (i === slot || cardDef(o.id).rarity !== 'common' || level(o.id) > 0 || Math.random() >= STAT_CHANCE) return;
+    const id = nextStat();
+    if (id) offer[i] = { id, up: 1 };
+  });
+  while (offer.length < 3) {
+    const id = nextStat();
+    if (!id) break;
+    offer.push({ id, up: 1 });
   }
   return offer;
 }

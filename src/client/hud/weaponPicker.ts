@@ -357,7 +357,7 @@ export class WeaponPicker {
           (r) =>
             `<div class="h-trow ${r.tone ?? ''}${r.level ? ' on' : ''}"><span>${esc(r.name)}</span>` +
             `<button type="button" data-act="trow" data-kind="${kind}" data-id="${r.id}" data-d="-1"${r.level ? '' : ' disabled'} aria-label="−">−</button>` +
-            `<b>${r.level}/${r.max}</b>` +
+            `<b>${r.level}/${r.max === Infinity ? '∞' : r.max}</b>` +
             `<button type="button" data-act="trow" data-kind="${kind}" data-id="${r.id}" data-d="1"${r.level < r.max ? '' : ' disabled'} aria-label="+">+</button></div>`,
         )
         .join('');

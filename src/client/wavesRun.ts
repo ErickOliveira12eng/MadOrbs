@@ -11,8 +11,8 @@ import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, ELITE, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
-import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
-import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
+import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, statFactor, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
+import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, workshopFactor, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
 export interface WavesHud {
@@ -382,11 +382,12 @@ export class WavesRun {
     const perm = this.perms;
     const lv = this.ctx.levels;
     me.speedBoost = Math.min(2, (1 + UPGRADE_STEP.speed * lv.speed) * (1 + PERM_SPEED_STEP * perm.permSpeed) * (this.timers.speed > 0 ? BOOSTS.speed : 1));
-    me.fireBoost = (1 + UPGRADE_STEP.fire * lv.fire) * (1 + PERM_STEP * perm.permFire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1);
-    me.armorBoost = (1 - PERM_STEP) ** perm.permArmor * (this.timers.shield > 0 ? BOOSTS.shield : 1) * (1 - UPGRADE_STEP.armor * lv.armor);
+    // (the Workshop's with its mastery, workshopFactor; the stat cards without end, statFactor)
+    me.fireBoost = workshopFactor('fire', lv.fire) * (1 + PERM_STEP * perm.permFire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1) * statFactor('xfire', this.cards.xfire ?? 0);
+    me.armorBoost = (1 - PERM_STEP) ** perm.permArmor * (this.timers.shield > 0 ? BOOSTS.shield : 1) * workshopFactor('armor', lv.armor) * statFactor('xarmor', this.cards.xarmor ?? 0);
     // The Workshop's Life: a bigger bar (100 to 150 points), not a smaller blow
-    me.lifeMax = 1 + UPGRADE_STEP.life * lv.life;
-    me.damageBoost = (1 + UPGRADE_STEP.damage * lv.damage) * (1 + PERM_STEP * perm.permDamage) * (this.timers.fury > 0 ? BOOSTS.fury : 1);
+    me.lifeMax = workshopFactor('life', lv.life);
+    me.damageBoost = workshopFactor('damage', lv.damage) * (1 + PERM_STEP * perm.permDamage) * (this.timers.fury > 0 ? BOOSTS.fury : 1) * statFactor('xdamage', this.cards.xdamage ?? 0);
     // The shot cards the weapon in hand makes little of, as damage of its own hits (CARD_GAP)
     me.weaponBoost = 1 + (CARD_GAP[me.weapon?.weaponID ?? -1] ?? 0) * SHOT_CARDS.reduce((n, id) => n + (this.cards[id] ?? 0), 0);
     // The cards (wavesCards.ts)

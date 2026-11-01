@@ -6257,3 +6257,15 @@ input[type='range'] {
   background: #5ff0e0;
   color: #032925;
 }
+
+/* The Workshop's mastery (MASTERY): its levels past the top, and the hint */
+.wv-lvtext.wv-mastery {
+  margin-left: 4px;
+  color: #ffd36b;
+}
+
+.wv-mhint {
+  margin: 4px 0 0;
+  color: #ffd36b;
+  font: 700 12px/1.35 var(--ui, inherit);
+}
