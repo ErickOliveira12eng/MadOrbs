@@ -24,6 +24,7 @@ import {
   checkpoints,
   claimDaily,
   dailyState,
+  buildCards,
   headStartPowers,
   loadProgress,
   nextCost,
@@ -462,7 +463,7 @@ export class WavesModal {
     // What the run begins with: the build saved when a run last beat this checkpoint, else random upgrades
     const build = startWave > 1 ? loadProgress().builds[startWave] : undefined;
     const perms = startWave === 1 ? '—' : `+${build ? Object.values(build.perms).reduce((n, v) => n + (v ?? 0), 0) : headStartPowers(startWave)}`;
-    const cards = startWave === 1 || !build ? '—' : String(Object.keys(build.cards).length);
+    const cards = startWave === 1 || !build ? '—' : String(Object.keys(buildCards(build, startWave)).length);
     const arrow = (to: number | undefined, name: 'chevron_left' | 'chevron_right', label: Key) =>
       `<button type="button" class="wv-arrow"${to === undefined ? ' disabled' : ` data-start="${to}"`} aria-label="${t(label)}">${icon(name, 20)}</button>`;
     // The dots: a window of DOTS around the chosen wave when there are more

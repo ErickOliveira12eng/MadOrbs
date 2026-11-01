@@ -4,8 +4,8 @@
 // Kept in this browser (madorbs.wavesProgress) and, signed in, in the account (waves_progress).
 import type { CrownTier } from '../sim/crowns';
 import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_DUAL_MACHINE_GUN, WEAPON_FLAME_THROWER, WEAPON_SMG } from '../sim/constants';
-import { PERM_KINDS, type PermKind } from './waves';
-import { CARDS, type CardID } from './wavesCards';
+import { PERM_KINDS, waveSpec, type PermKind } from './waves';
+import { CARDS, COMMON_CARDS_EVERY, type CardID, type CardLevels } from './wavesCards';
 
 export type UpgradeID = 'life' | 'armor' | 'damage' | 'fire' | 'speed' | 'lives' | 'grenades' | 'luck' | 'drops' | 'breather' | 'secondWind' | 'cap' | 'dash' | 'barrier' | 'shock' | 'reroll';
 
@@ -277,6 +277,37 @@ export function cleanBuilds(raw: unknown): Record<number, CheckpointBuild> {
 }
 
 /** A run beat checkpoint wave `wave` with this build: kept here (the account gets it from the caller). */
+/**
+ * The most card levels a run can hold as wave `wave` begins: a choice after each boss before it and after each wave
+ * 5, 15, 25... before it, two levels at most each (an offer's "+2").
+ */
+export function maxCardLevels(wave: number): number {
+  let picks = 0;
+  for (let w = 1; w < wave; w++) {
+    if (waveSpec(w).boss) picks++;
+    if (w % COMMON_CARDS_EVERY === 0 && w % 10 !== 0) picks++;
+  }
+  return 2 * picks;
+}
+
+/**
+ * The cards a run begun on checkpoint `wave` gets from its build: each at most its top level, and no more levels in
+ * all than a run can have by then (maxCardLevels), the highest ones going down first. Until 01/11/2026 a checkpoint
+ * kept the card of its own wave's boss (Erick: beat the boss of 70, take its card, leave on wave 71, start on 70
+ * again, one more card each time); the builds made so are trimmed here.
+ */
+export function buildCards(build: CheckpointBuild, wave: number): CardLevels {
+  const cards: CardLevels = {};
+  for (const c of CARDS) if (build.cards[c.id]) cards[c.id] = Math.min(c.max, build.cards[c.id]!);
+  let extra = Object.values(cards).reduce((a, b) => a + (b ?? 0), 0) - maxCardLevels(wave);
+  while (extra-- > 0) {
+    const ids = Object.keys(cards) as CardID[];
+    const top = ids.reduce((a, b) => (cards[b]! > cards[a]! ? b : a));
+    if (--cards[top]! <= 0) delete cards[top];
+  }
+  return cards;
+}
+
 export function saveBuild(wave: number, build: CheckpointBuild): void {
   const p = loadProgress();
   p.builds[wave] = build;

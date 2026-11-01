@@ -12,7 +12,7 @@ import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, ELITE, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
-import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, headStartPowers, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
+import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
 export interface WavesHud {
@@ -193,6 +193,8 @@ export class WavesRun {
   /** The last wave (5, 15, 25...) whose common cards were offered; one whose cards wait for the offer on screen (0: none). */
   private commonCardsAt = 0;
   private owedCards = 0;
+  /** The build as the current checkpoint wave began (saveCheckpoint keeps that one when the wave is beaten). */
+  private waveBuild: { wave: number; build: CheckpointBuild } | null = null;
   private killsSeen = 0;
   private grenadeClock = 0;
   /** The Blast card: enemies a blast killed (their own death makes no blast: no chain); the Missiles card's clock. */
@@ -240,7 +242,8 @@ export class WavesRun {
     const build = ctx.startWave > 1 && !this.script ? loadProgress().builds[ctx.startWave] : undefined;
     if (build) {
       for (const k of PERM_KINDS) this.perms[k] = Math.min(this.permCap, build.perms[k] ?? 0);
-      for (const c of CARDS) if (build.cards[c.id]) this.cards[c.id] = Math.min(c.max, build.cards[c.id]!);
+      // (never more card levels than a run can have by this wave: buildCards)
+      Object.assign(this.cards, buildCards(build, ctx.startWave));
     } else {
       for (let i = 0; i < headStartPowers(ctx.startWave); i++) {
         const k = rollPerm(this.full);
@@ -451,9 +454,11 @@ export class WavesRun {
     // The bots (and the boss) the last wave still had to send come too
     const carried = this.pending;
     const bossLate = this.bossPending;
-    // A checkpoint wave beaten (the next one begins): what the run has now is saved for it
-    if (this.wave >= CHECKPOINT && this.wave % CHECKPOINT === 0 && !this.tested) this.saveCheckpoint(this.wave);
+    // A checkpoint wave beaten (the next one begins): the build the run had as that wave began is saved for it (not
+    // what its boss gave: a run begun there plays that wave and its boss again)
+    if (this.wave >= CHECKPOINT && this.wave % CHECKPOINT === 0 && !this.tested && this.waveBuild?.wave === this.wave) this.saveCheckpoint(this.wave, this.waveBuild.build);
     this.wave++;
+    if (this.wave % CHECKPOINT === 0) this.waveBuild = { wave: this.wave, build: this.build() };
     this.spec = waveSpec(this.wave);
     this.phase = 'fight';
     this.deathsBefore = this.ctx.me.deaths;
@@ -753,13 +758,18 @@ export class WavesRun {
     return this.cards[id] ?? 0;
   }
 
-  /** The build of checkpoint `wave`: the crates' permanent power-ups and the cards, kept for a run begun there. */
-  private saveCheckpoint(wave: number): void {
+  /** The run's build now: the crates' permanent power-ups and the cards. */
+  private build(): CheckpointBuild {
     const perms: CheckpointBuild['perms'] = {};
     for (const k of PERM_KINDS) if (this.perms[k] > 0) perms[k] = this.perms[k];
-    const build: CheckpointBuild = { perms, cards: { ...this.cards }, at: Date.now() };
-    saveBuild(wave, build);
-    this.ctx.onCheckpointBuild?.(wave, build);
+    return { perms, cards: { ...this.cards }, at: Date.now() };
+  }
+
+  /** The build of checkpoint `wave` (as that wave began), kept for a run begun there. */
+  private saveCheckpoint(wave: number, build: CheckpointBuild): void {
+    const saved = { ...build, at: Date.now() };
+    saveBuild(wave, saved);
+    this.ctx.onCheckpointBuild?.(wave, saved);
   }
 
   /** The player took card `i` of the offer: its levels (one, or two), and the run goes on (or the next offer comes). */
