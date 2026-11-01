@@ -173,6 +173,8 @@ export interface VesuviusContext {
   onDash: () => void;
   /** A crate's power-up was taken (the banner, the sound). */
   onPower: (kind: PowerKind) => void;
+  /** The page closes mid-run: the run's end as it stands (the server's numbers). */
+  onClosed: (end: VesuviusEnd) => void;
   onEnd: (end: VesuviusEnd) => void;
 }
 
@@ -262,7 +264,9 @@ export class VesuviusRun {
 
   /** The page closes mid-run: the Obsidian stays in this browser. */
   private readonly onPageHide = (): void => {
-    if (!this.over) this.leave();
+    if (this.over) return;
+    const end = this.leave();
+    if (end) this.ctx.onClosed(end);
   };
 
   /** The volcano in its place, looking at the player. */

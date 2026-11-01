@@ -575,6 +575,7 @@ export class ClientGame {
         this.hud.announceText(t(`power.${kind}` as const), t(`power.${kind}.sub` as const), banner('#ffffff', POWERS[kind].color), 1.6);
         audio.play(kind === 'life' ? this.sounds.lifePack : this.sounds.equip, 255);
       },
+      onClosed: (end) => this.reportVesuviusEnd('closed', end),
       onEnd: (end) => this.endVesuvius(end),
     });
     this.onMapLoaded(map);
@@ -588,15 +589,31 @@ export class ClientGame {
     this.hud.preloadCampaignAd();
   }
 
-  /** The run's end told to the server (a win is checked there before it reaches the ranking). Once. */
-  private reportVesuviusEnd(end: VesuviusEnd | null): void {
+  /**
+   * The run's end told to the server (a win is checked there before it reaches the ranking; every run goes to the admin
+   * page's numbers): won or died (`end`, the run's own numbers), left by the menu, or the tab closing. Once.
+   */
+  private reportVesuviusEnd(result: 'died' | 'quit' | 'closed', end: VesuviusEnd | null): void {
     if (!this.vesuviusRunId) return;
-    reportVesuviusRun({ phase: 'end', id: this.vesuviusRunId, won: !!end?.won, seconds: end?.seconds ?? 0, deaths: end?.deaths ?? 0 });
+    const won = !!end?.won;
+    reportVesuviusRun({
+      phase: 'end',
+      id: this.vesuviusRunId,
+      won,
+      result: won ? 'won' : result,
+      reached: end?.phase ?? this.vesuvius?.phaseNumber ?? 1,
+      share: end?.share ?? 0,
+      seconds: end?.seconds ?? 0,
+      deaths: end?.deaths ?? this.me.deaths,
+      kills: end?.kills ?? this.me.kills,
+      obsidian: end?.obsidian.total ?? 0,
+      fps: this.fps(),
+    });
     this.vesuviusRunId = '';
   }
 
   private endVesuvius(end: VesuviusEnd): void {
-    this.reportVesuviusEnd(end);
+    this.reportVesuviusEnd('died', end);
     this.opts.onVesuviusEnd?.(end);
     this.input.exitPointerLock();
     this.renderer.domElement.style.cursor = 'auto';
@@ -1122,7 +1139,7 @@ export class ClientGame {
       track('vesuvius_quit', { phase: this.vesuvius.phaseNumber, kills: this.me.kills, seconds });
       // What the run earned stays (the Obsidian), here and in the account
       const left = this.vesuvius.leave();
-      this.reportVesuviusEnd(left);
+      this.reportVesuviusEnd('quit', left);
       if (left) this.opts.onVesuviusEnd?.(left);
     }
     else if (!this.camp && !this.waves && !this.vesuvius && !this.matchEnded) track('match_quit', { ...this.matchInfo(), seconds, kills: this.me.kills, deaths: this.me.deaths, reason: reason ? 'closed' : 'menu' });
@@ -1262,7 +1279,8 @@ export class ClientGame {
       // Signed in: the server keeps its clock of the run (only an account's win can be ranked)
       if (this.opts.authToken) {
         this.vesuviusRunId = newRunId();
-        reportVesuviusRun({ phase: 'start', id: this.vesuviusRunId }, this.opts.authToken);
+        const v = this.opts.vesuvius;
+        reportVesuviusRun({ phase: 'start', id: this.vesuviusRunId, weapon: v.weapon, levels: { ...v.levels } }, this.opts.authToken);
       }
     }
     else track('match_start', { ...this.matchInfo(), ...(map ? { map } : {}), bots: this.online ? this.botsNow() : (this.opts.botCount ?? 0) });
