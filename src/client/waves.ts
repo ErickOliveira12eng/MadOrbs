@@ -55,6 +55,11 @@ export const WAVES = {
   lifePackHeal: 0.25,
   lifePackChance: 0.07,
   /**
+   * The chance a fallen bot drops its weapon: the life pack's (01/11/2026, Erick: the floor filled with weapons; it was
+   * always, as in the original). The boss still always drops its own.
+   */
+  weaponDropChance: 0.07,
+  /**
    * The crates for a hurt player: below `below` of his life, the life power-up's weight (POWERS) grows, up to `most`
    * times at none (with half the life ~22% of the crates give life, with a quarter ~41%, near none ~53%).
    */

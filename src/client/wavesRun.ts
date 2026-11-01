@@ -544,6 +544,8 @@ export class WavesRun {
     p.lifePackChance = WAVES.lifePackChance;
     // Grenades: none (only the crates give them, since 19/10/2026; one at the life pack's chance before)
     p.grenadeDropChance = 0;
+    // Its weapon: seldom (the life pack's chance)
+    p.weaponDropChance = WAVES.weaponDropChance;
     // They come in from the map's edges, never out of its middle
     p.edgeSpawn = true;
     // An elite, maybe (waves.ts): its traits on top of the wave's numbers
@@ -996,6 +998,7 @@ export class WavesRun {
       p.takesLifePacks = false;
       p.lifePackChance = 0;
       p.grenadeDropChance = 0;
+      p.weaponDropChance = 0;
       r = { p, left: 0 };
       this.risen.push(r);
     }
@@ -1082,6 +1085,7 @@ export class WavesRun {
       p.takesLifePacks = false;
       p.lifePackChance = 0;
       p.grenadeDropChance = 0;
+      p.weaponDropChance = 0;
       p.lives = 0;
       this.allies.push(p);
     }
