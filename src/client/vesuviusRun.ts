@@ -60,23 +60,25 @@ export const VES = {
    */
   crates: { start: 2, every: 30, eruption: 1, max: 3 },
   /** The lava: its reach from the middle in each phase (it rises in the third), its burn a second, how often. */
-  lava: { radius: [2.4, 2.4, 3.4], dps: 0.3, every: 0.4 },
+  // (the attacks' damage 25% less since 01/11/2026: Erick never won; tools/vesuvius-sim.ts, half the Forge took a third
+  // of the bar, the whole Forge won 3 runs of 4 with 3 to 5 deaths; their first numbers in the comments)
+  lava: { radius: [2.4, 2.4, 3.4], dps: 0.225, every: 0.4 }, // 0.3
   /**
    * Rockets along a red line: the warning's seconds, their speed (starting, at most, how fast they get there), their
    * share of the bazooka's damage, the angle between two of a volley (degrees).
    */
-  rocket: { windup: 0.85, speed: 3, cap: 6.5, accel: 1.5, share: 0.42, spread: 13 },
+  rocket: { windup: 0.85, speed: 3, cap: 6.5, accel: 1.5, share: 0.315, spread: 13 }, // 0.42
   /** Lava bombs (molotovs) in a high arc onto circles: their flight, the circle, how long their fire burns, its share of a molotov's. */
-  mortar: { flight: 1.4, radius: 1.1, fire: 4.5, spread: 3, burn: 0.35 },
+  mortar: { flight: 1.4, radius: 1.1, fire: 4.5, spread: 3, burn: 0.2625 }, // 0.35
   /**
    * Missiles from the sky onto circles: the warning, the circle (their blast's reach: the bazooka's 2 times their size),
    * their fall's speed and height, their share, their size.
    */
-  missile: { windup: 1.5, radius: 1.3, speed: 12, height: 9, share: 0.6, size: 0.65, gap: 1.4 },
+  missile: { windup: 1.5, radius: 1.3, speed: 12, height: 9, share: 0.45, size: 0.65, gap: 1.4 }, // 0.6
   /** The ring of fire: the warning, how many small rockets, the gap's width (rockets left out), their speed and share. */
-  ring: { windup: 1.2, count: 28, gap: 4, speed: 3.2, share: 0.35, size: 0.6 },
+  ring: { windup: 1.2, count: 28, gap: 4, speed: 3.2, share: 0.2625, size: 0.6 }, // 0.35
   /** The beam: the warning, the sweep (seconds, degrees a second), its width, its burn a second. */
-  beam: { windup: 1.3, sweep: 3.4, turn: 55, width: 0.42, dps: 0.55, every: 0.15 },
+  beam: { windup: 1.3, sweep: 3.4, turn: 55, width: 0.42, dps: 0.4125, every: 0.15 }, // 0.55
 };
 
 /** What a crate drops, by weight: life most of the time (more when hurt), grenades, one of the 15 s ones. */
@@ -101,11 +103,15 @@ export interface PhaseSpec {
   adds: { every: number; count: number; max: number; wave: number };
 }
 
-/** The volcano gets worse with each phase (Erick, 31/10/2026: the dynamic changes with its life). */
+/**
+ * The volcano gets worse with each phase (Erick, 31/10/2026: the dynamic changes with its life). The adds since
+ * 01/11/2026 (Erick: too many of them, his damage didn't kill them, no time left for the volcano) as waves 4, 8 and 12's,
+ * at most 3, 5 and 6 standing, a little less often (they were waves 6, 12 and 16's, 4, 6 and 8, every 14, 12 and 11 s).
+ */
 export const PHASES: PhaseSpec[] = [
-  { volley: { every: 2.6, count: 1 }, majors: ['mortar'], majorEvery: 6.5, mortars: 3, missiles: 0, rings: 1, adds: { every: 14, count: 2, max: 4, wave: 6 } },
-  { volley: { every: 2.8, count: 3 }, majors: ['missiles', 'ring', 'mortar'], majorEvery: 6, mortars: 4, missiles: 5, rings: 1, adds: { every: 12, count: 3, max: 6, wave: 12 } },
-  { volley: { every: 2.5, count: 5 }, majors: ['beam', 'missiles', 'ring', 'mortar'], majorEvery: 5.5, mortars: 4, missiles: 7, rings: 2, adds: { every: 11, count: 3, max: 8, wave: 16 } },
+  { volley: { every: 2.6, count: 1 }, majors: ['mortar'], majorEvery: 6.5, mortars: 3, missiles: 0, rings: 1, adds: { every: 16, count: 2, max: 3, wave: 4 } },
+  { volley: { every: 2.8, count: 3 }, majors: ['missiles', 'ring', 'mortar'], majorEvery: 6, mortars: 4, missiles: 5, rings: 1, adds: { every: 14, count: 2, max: 5, wave: 8 } },
+  { volley: { every: 2.5, count: 5 }, majors: ['beam', 'missiles', 'ring', 'mortar'], majorEvery: 5.5, mortars: 4, missiles: 7, rings: 2, adds: { every: 13, count: 3, max: 6, wave: 12 } },
 ];
 
 /** What the HUD shows of a run (HudLayer). */

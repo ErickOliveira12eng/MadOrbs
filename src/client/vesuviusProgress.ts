@@ -55,10 +55,10 @@ export const VESUVIUS_WEAPONS = [WEAPON_SMG, WEAPON_DUAL_MACHINE_GUN, WEAPON_CHA
 
 /**
  * What a run earns: the volcano's bar taken (OBSIDIAN.bar for the whole of it), each phase reached past the first, the
- * kills, the win, a new best time. A win with no Forge: ~120 + 80 + ~25 + 200 = ~425 (+60 a record); a run lost at half
- * the bar ~100.
+ * kills, the win, a new best time. Twice as much since 01/11/2026 (Erick: the whole Forge, 6,380, took ~60 lost runs at
+ * ~100 each; now ~25 to 30): a win ~240 + 160 + ~50 + 400 = ~850 (+120 a record); a run lost at half the bar ~200.
  */
-export const OBSIDIAN = { bar: 120, phase: 40, kill: 1, win: 200, record: 60 };
+export const OBSIDIAN = { bar: 240, phase: 80, kill: 2, win: 400, record: 120 };
 
 export interface RunObsidian {
   /** The share of the volcano's bar taken (0 to 1), and its Obsidian. */
