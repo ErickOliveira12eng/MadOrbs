@@ -208,6 +208,10 @@ export class WavesRun {
   private readonly risen: { p: Player; left: number }[] = [];
   /** When the last one rose (the run's clock: one at most every NECRO_GAP seconds). */
   private risenAt = -Infinity;
+  /** The nuke bots standing (WAVES.nuke): the seconds left to the blast once armed (-1: not yet), to the next siren. */
+  private readonly nukers: { p: Player; fuse: number; beep: number }[] = [];
+  /** Bots of this wave to come in before its nuke bot (-1: none in this wave). */
+  private nukeIn = -1;
   /** Seconds before the Shadow card's fallen allies come back. */
   private allyClock = 0;
   /** A tester changed the run (the waves' Esc screen, DEBUG_USER_IDS accounts): it counts for nothing. */
@@ -380,6 +384,8 @@ export class WavesRun {
         this.ctx.onReflect();
       }
     }
+    // The nuke bots: armed close to the player, a blast when the fuse runs out
+    this.updateNukes();
     // Necromancer: the risen go back to dust after a while
     for (const r of this.risen) {
       if (!r.p.isAlive) continue;
@@ -471,6 +477,7 @@ export class WavesRun {
     if (this.reachedAt !== null && this.wave % CHECKPOINT === 0) this.splits[this.wave] = Math.round(this.reachedAt);
     this.waveLeft = this.spec.seconds;
     this.pending = this.spec.total + carried;
+    this.nukeIn = this.wave >= WAVES.nuke.from ? Math.floor(Math.random() * Math.max(1, Math.min(WAVES.nuke.among, this.spec.total))) : -1;
     this.spawnWait = 0.5;
     this.bossPending = this.spec.boss || bossLate;
     this.nextCrate = WAVES.crates.every;
@@ -526,7 +533,9 @@ export class WavesRun {
    */
   private spawnBot(escort?: { of: Player; side: number }): boolean {
     const { game, bots } = this.ctx;
-    const loadout = { primary: this.spec.weapons[Math.floor(Math.random() * this.spec.weapons.length)], secondary: WEAPON_KNIVES };
+    // The wave's nuke bot (WAVES.nuke), never one of the boss's escorts
+    const nuke = !escort && this.nukeIn === 0;
+    const loadout = { primary: this.spec.weapons[Math.floor(Math.random() * this.spec.weapons.length)], secondary: nuke ? WEAPON_NUCLEAR : WEAPON_KNIVES };
     // A fallen enemy's Orb (never a Shadow ally's nor a risen one's: they kept their name and side and took a new skin)
     let i = bots.findIndex((b) => b.player !== this.boss && !b.player.isAlive && b.player.lives <= 0 && !this.allies.includes(b.player) && !this.risen.some((r) => r.p === b.player));
     let p: Player | null = i >= 0 ? bots[i].player : null;
@@ -555,10 +564,10 @@ export class WavesRun {
     p.weaponDropChance = WAVES.weaponDropChance;
     // They come in from the map's edges, never out of its middle
     p.edgeSpawn = true;
-    // An elite, maybe (waves.ts): its traits on top of the wave's numbers
-    const traits = rollElite(this.wave);
+    // An elite, maybe (waves.ts): its traits on top of the wave's numbers (the nuke bot: none, its own mark)
+    const traits = nuke ? [] : rollElite(this.wave);
     const strength = eliteStrength(this.wave);
-    p.badges = traits;
+    p.badges = nuke ? ['nuke'] : traits;
     p.radius = 0.25;
     p.lifeMax = 1;
     p.teamTint = null;
@@ -589,8 +598,58 @@ export class WavesRun {
     }
     // They come for the player, wherever they are
     bots[i].hunt = this.ctx.me;
+    if (nuke) {
+      // Fast and straight at the player, the nuke kept on its Orb (it never drops it: the run sets it off)
+      p.speedBoost = WAVES.nuke.speed;
+      bots[i].rush = true;
+      bots[i].charge = this.ctx.me;
+      bots[i].holdMelee = true;
+      this.nukers.push({ p, fuse: -1, beep: 0 });
+    }
+    if (!escort && this.nukeIn >= 0) this.nukeIn--;
     game.requestSpawn(p);
     return true;
+  }
+
+  /**
+   * The nuke bots (WAVES.nuke): one close to the player and in sight arms (the siren), and blows up when its fuse runs
+   * out, unless it was killed first (it then never does).
+   */
+  private updateNukes(): void {
+    const { game, me } = this.ctx;
+    const N = WAVES.nuke;
+    for (let k = this.nukers.length - 1; k >= 0; k--) {
+      const n = this.nukers[k];
+      const p = n.p;
+      if (!p.isAlive) {
+        // Killed (or gone): defused
+        this.nukers.splice(k, 1);
+        continue;
+      }
+      const pos = p.currentCF.position;
+      if (n.fuse < 0) {
+        if (!me.isAlive || pos.sub(me.currentCF.position).length() > N.arm) continue;
+        if (game.map.rayTest(pos.clone(), me.currentCF.position.clone(), new Vec3())) continue;
+        n.fuse = N.fuse;
+        n.beep = 0;
+      }
+      // The siren (the Nuke Bot's own sound and its model's blinking), again every `beep` seconds
+      n.beep -= TICK;
+      if (n.beep <= 0) {
+        n.beep = N.beep;
+        p.meleeWeapon?.shootMelee();
+        game.events.push({ type: 'melee', playerID: p.playerID, weaponID: WEAPON_NUCLEAR });
+      }
+      n.fuse -= TICK;
+      if (n.fuse > 0) continue;
+      // Boom: `damage` of a life bar to the player's side in the radius (his defence, shield and bar still count)
+      this.nukers.splice(k, 1);
+      const at = pos.clone();
+      game.explosion(at.clone(), new Vec3(0, 0, 1), N.radius, p.playerID);
+      const share = N.damage / (weaponDefs[WEAPON_NUCLEAR].damage * WAVES.playerDamage * Math.max(0.01, p.damageBoost));
+      game.radiusHit(at, N.radius, p.playerID, WEAPON_NUCLEAR, true, p.playerID, share);
+      this.remove(p);
+    }
   }
 
   private spawnBoss(): void {

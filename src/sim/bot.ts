@@ -123,6 +123,13 @@ export class BotController {
    * that distance and in and out of sight round the corners).
    */
   rush = false;
+  /** Keeps its secondary in hand and never uses it (the waves' nuke bot: the run sets its nuke off itself). */
+  holdMelee = false;
+  /**
+   * Charges this one: straight at it while in sight, else the way there, never strafing nor keeping a distance (the
+   * waves' nuke bot: it strafed off and blew up 4 cells away or round a corner). It still shoots whoever it sees.
+   */
+  charge: Player | null = null;
 
   /** `loadout`: always these weapons (the campaign: the chapter's weapon), else picked at random. */
   constructor(
@@ -217,7 +224,19 @@ export class BotController {
     const duel = !!target && (!goal || (!goal.urgent && best < 7));
     // An escort with some slack fights whoever is in sight while it stays near the one it guards
     const freeToFight = !!this.escort && this.escortSlack > 0 && !!target && duel && distance(pos, this.escort.currentCF.position) < this.escortSlack;
-    if (this.escort?.isAlive && !freeToFight) {
+    const charge = this.charge?.isAlive ? this.charge.currentCF.position : null;
+    if (charge && !game.map.rayTest(pos.clone(), charge.clone(), new Vec3())) {
+      moveTo = new Vec3(charge.x, charge.y, 0);
+      this.path = [];
+    } else if (charge) {
+      // Out of sight: the way there, again every half second
+      if (this.path.length === 0 || this.repathTimer <= 0) {
+        this.repathTimer = 0.5;
+        this.path = findPath(game, pos, charge.clone());
+      }
+      while (this.path.length && distance(this.path[0], new Vec3(pos.x, pos.y, 0)) < 0.35) this.path.shift();
+      moveTo = this.path.length ? this.path[0] : new Vec3(charge.x, charge.y, 0);
+    } else if (this.escort?.isAlive && !freeToFight) {
       // Escort: beside the one it guards, on its side of its way (shooting whoever is in sight)
       const g = this.escort.currentCF;
       const v = g.vel.length() > 0.3 ? g.vel.clone().normalizeIn() : new Vec3(0, 1, 0);
@@ -342,7 +361,7 @@ export class BotController {
       // Occasional grenade / molotov / secondary
       if (best > 3 && best < 7 && Math.random() < 0.004) input.throwGrenadePressed = true;
       if (best > 2 && best < 6 && Math.random() < 0.002) input.throwMolotovPressed = true;
-      const melee = p.meleeWeapon?.weaponID;
+      const melee = this.holdMelee ? undefined : p.meleeWeapon?.weaponID;
       if (melee === WEAPON_KNIVES && best < 1.1) input.melee = true;
       if (melee === WEAPON_SHIELD && p.life < 0.5 && Math.random() < 0.05) input.melee = true;
       if (melee === WEAPON_NUCLEAR && best < 3 && Math.random() < 0.01) input.melee = true;

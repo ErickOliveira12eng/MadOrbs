@@ -2122,8 +2122,9 @@ const ABILITY_ICON = {
   shock: '<svg class="h-abico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>',
 };
 
-/** The waves' elites' traits before their name (waves.ts): fast, brute, sharpshooter, tank. */
+/** The waves' elites' traits before their name (waves.ts): fast, brute, sharpshooter, tank; and the nuke bot's bomb. */
 const BADGE_ICON: Record<string, string> = {
+  nuke: '<svg class="h-trait nuke" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="13" r="8" fill="currentColor"/><path d="M15.5 6.5 18 4M20 2l-1 1M21 5h-1M19 7l1 1"/></svg>',
   fast: '<svg class="h-trait fast" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>',
   brute: '<svg class="h-trait brute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m13 19 6-6M14.5 17.5 3.6 6.6A2 2 0 0 1 3 5.2V3h2.2a2 2 0 0 1 1.4.6l10.9 10.9M16 16l4 4M19 21l2-2M14.8 6.2l2.6-2.6A2 2 0 0 1 18.8 3H21v2.2a2 2 0 0 1-.6 1.4l-2.6 2.6M5 14l4 4M7.5 16.5 4 20M5 21l-2-2"/></svg>',
   sniper: '<svg class="h-trait sniper" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M22 12h-4M6 12H2M12 6V2M12 22v-4"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>',

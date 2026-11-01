@@ -100,6 +100,15 @@ export const WAVES = {
    * 24/10/2026: some should come at you, the snipers keep away).
    */
   rushShare: 0.4,
+  /**
+   * The nuke bot (Erick, 01/11/2026): from wave `from` on, one bot a wave (one of its first `among` to come in) runs
+   * at `speed` (the bots walk at botSpeed, the player at 1) straight at the player with the Nuke Bot secondary on its
+   * Orb (the original drops it on the floor; this one keeps it). Within `arm` cells of the player, in sight, it arms:
+   * the siren, again every `beep` seconds, and after `fuse` seconds it blows up there: `radius` cells, `damage` of a
+   * life bar to everyone of the player's side in it (before his defence, shield and bigger bar). Killed before that, it
+   * doesn't. The blast takes the bot with it (no kill for anyone).
+   */
+  nuke: { from: 51, among: 12, speed: 1.5, arm: 2, fuse: 2.5, beep: 1.25, radius: 3.5, damage: 0.6 },
 };
 
 /**

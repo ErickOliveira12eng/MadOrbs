@@ -477,6 +477,10 @@
   color: #9fd3ff;
 }
 
+.h-trait.nuke {
+  color: #ffb02e;
+}
+
 .h-tag .lag,
 .h-tag .bot {
   margin-left: 6px;
