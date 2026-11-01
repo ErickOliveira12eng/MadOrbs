@@ -26,7 +26,8 @@ import type { Player, SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { VesuviusRenderer, type VesuviusMarks } from './render/vesuviusRenderer';
-import { ELITE, WAVES, eliteStrength, rollElite, waveSpec, type WaveSpec } from './waves';
+import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
+import { BOOSTS, ELITE, WAVES, eliteStrength, rollElite, waveSpec, type PowerKind, type WaveSpec } from './waves';
 import { FORGE_BARRIER, FORGE_DASH, FORGE_STEP, VESUVIUS_LIVES, loadVesuvius, runObsidian, saveVesuviusRun, type ForgeLevels, type RunObsidian, type VesuviusProgress } from './vesuviusProgress';
 
 /** The rules. Damage in shares of the player's bar (100 points), before his defence. */
@@ -50,6 +51,13 @@ export const VES = {
   lifePackHeal: 0.35,
   lifePackChance: 0.18,
   grenadeChance: 0.08,
+  /**
+   * Crates (Erick, 31/10/2026: some power-ups and life, fewer than in the Waves, whose crates come 3 at each break and
+   * one every 20 s, up to 6): `start` at the start, one every `every` seconds and `eruption` at each eruption, at most
+   * `max` on the map, never in the lava. What they drop: life, grenades and the 15 s ones (CRATE_POWERS), never the
+   * Waves' permanent ones (the Forge is this mode's progress).
+   */
+  crates: { start: 2, every: 30, eruption: 1, max: 3 },
   /** The lava: its reach from the middle in each phase (it rises in the third), its burn a second, how often. */
   lava: { radius: [2.4, 2.4, 3.4], dps: 0.3, every: 0.4 },
   /**
@@ -69,6 +77,10 @@ export const VES = {
   /** The beam: the warning, the sweep (seconds, degrees a second), its width, its burn a second. */
   beam: { windup: 1.3, sweep: 3.4, turn: 55, width: 0.42, dps: 0.55, every: 0.15 },
 };
+
+/** What a crate drops, by weight: life most of the time (more when hurt), grenades, one of the 15 s ones. */
+const CRATE_POWERS: Partial<Record<PowerKind, number>> = { life: 10, ammo: 5, speed: 3, rapid: 3, shield: 3, fury: 3 };
+type TimedPower = 'speed' | 'rapid' | 'shield' | 'fury';
 
 /** The attacks that take turns (the rockets come on their own clock besides). */
 type Major = 'mortar' | 'missiles' | 'ring' | 'beam';
@@ -112,6 +124,8 @@ export interface VesuviusHud {
   best: number | null;
   /** Obsidian earned so far (a win and a record add theirs at the end). */
   obsidian: number;
+  /** The crates' 15 s power-ups on, with their seconds left. */
+  powers: { kind: PowerKind; left: number }[];
   abilities: { kind: 'dash' | 'shock'; ready: number }[];
   barrier: { now: number; max: number } | null;
   reflector: null;
@@ -155,6 +169,8 @@ export interface VesuviusContext {
   onLaunch: (position: Vec3) => void;
   onBeam: (position: Vec3) => void;
   onDash: () => void;
+  /** A crate's power-up was taken (the banner, the sound). */
+  onPower: (kind: PowerKind) => void;
   onEnd: (end: VesuviusEnd) => void;
 }
 
@@ -167,6 +183,12 @@ const DEG = Math.PI / 180;
 
 export class VesuviusRun {
   private readonly renderer: VesuviusRenderer;
+  /** The crates and the power-ups on the floor, drawn as the Waves' (src/client/render/wavesRenderer.ts). */
+  private readonly crateRenderer: WavesRenderer;
+  private powers: FloorPower[] = [];
+  private nextPowerID = 1;
+  private crateAt: number = VES.crates.every;
+  private timers: Record<TimedPower, number> = { speed: 0, rapid: 0, shield: 0, fury: 0 };
   private readonly boss: Player;
   private phase = 1;
   /** The attacks' clock: it runs while the player and the volcano are up (not the pauses, not while he is dead). */
@@ -198,6 +220,7 @@ export class VesuviusRun {
 
   constructor(private readonly ctx: VesuviusContext) {
     this.renderer = new VesuviusRenderer(ctx.scene);
+    this.crateRenderer = new WavesRenderer(ctx.scene);
     const { game, me, levels } = ctx;
     game.lifePackHeal = VES.lifePackHeal;
     // The player: his own colours, the Forge's shield, bag of grenades; his death leaves nothing
@@ -231,6 +254,7 @@ export class VesuviusRun {
     boss.meleeWeapon = null;
     this.boss = boss;
     this.holdBoss();
+    this.dropCrates(VES.crates.start);
     window.addEventListener('pagehide', this.onPageHide);
   }
 
@@ -257,11 +281,13 @@ export class VesuviusRun {
     const boss = this.boss;
     this.elapsed += TICK;
     // The Forge, every tick (the dash and the shield are the waves' own)
-    me.damageBoost = 1 + FORGE_STEP.damage * levels.damage;
-    me.fireBoost = 1 + FORGE_STEP.fire * levels.fire;
-    me.armorBoost = 1 - FORGE_STEP.armor * levels.armor;
+    // (and the crates' 15 s power-ups on top)
+    for (const k of Object.keys(this.timers) as TimedPower[]) this.timers[k] = Math.max(0, this.timers[k] - TICK);
+    me.damageBoost = (1 + FORGE_STEP.damage * levels.damage) * (this.timers.fury > 0 ? BOOSTS.fury : 1);
+    me.fireBoost = (1 + FORGE_STEP.fire * levels.fire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1);
+    me.armorBoost = (1 - FORGE_STEP.armor * levels.armor) * (this.timers.shield > 0 ? BOOSTS.shield : 1);
     me.lifeMax = 1 + FORGE_STEP.life * levels.life;
-    me.speedBoost = 1 + FORGE_STEP.speed * levels.speed;
+    me.speedBoost = (1 + FORGE_STEP.speed * levels.speed) * (this.timers.speed > 0 ? BOOSTS.speed : 1);
     this.dashWait = Math.max(0, this.dashWait - TICK);
     if (me.isAlive && keys.dash && levels.dash > 0 && this.dashWait <= 0) this.dash();
     // The same weapon at every spawn, the Forge's grenades on top of the usual ones
@@ -293,9 +319,25 @@ export class VesuviusRun {
     // A phase reached: its threshold, or a blow that would have killed it (its second wind went)
     if (this.phase < 3 && (boss.secondWind < 3 - this.phase || boss.life <= VES.phaseAt[this.phase - 1])) this.nextPhase();
 
+    // The power-ups on the floor: taken by walking over them, gone after a while
+    for (const p of this.powers) p.age += TICK;
+    this.powers = this.powers.filter((p) => {
+      if (p.age >= p.life) return false;
+      if (me.isAlive && Math.hypot(me.currentCF.position.x - p.x, me.currentCF.position.y - p.y) < me.radius + 0.3) {
+        this.take(p.kind);
+        return false;
+      }
+      return true;
+    });
+
     if (!me.isAlive) return;
     this.clock += TICK;
     this.updateLava();
+    // A crate now and then
+    if (this.clock >= this.crateAt) {
+      this.crateAt = this.clock + VES.crates.every;
+      this.dropCrates(1);
+    }
     // The eruption: the volcano untouchable until it ends
     if (this.eruptUntil && this.clock >= this.eruptUntil) {
       this.eruptUntil = 0;
@@ -361,6 +403,7 @@ export class VesuviusRun {
     this.majorTurn = 0;
     this.missiles(14, true);
     for (let i = 0; i < 3; i++) this.throwOut(i < 2 ? PROJECTILE_LIFE_PACK : PROJECTILE_DROPED_GRENADE);
+    this.dropCrates(VES.crates.eruption);
     track('vesuvius_phase', { phase: this.phase, seconds: Math.round(this.elapsed) });
     this.ctx.onPhase(this.phase);
   }
@@ -606,6 +649,69 @@ export class VesuviusRun {
     this.ctx.game.spawnProjectile(this.mouth(a, 0.2), v, this.boss.playerID, type, 0);
   }
 
+  // ---------------------------------------------------------------- crates
+
+  /**
+   * Up to `n` crates more (at most VES.crates.max), on open floor away from the player, the spawns, each other and the
+   * lava at its highest.
+   */
+  private dropCrates(n: number): void {
+    const { game, me } = this.ctx;
+    const map = game.map;
+    const [w, h] = map.size;
+    const free = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && map.cells[y * w + x].passable;
+    const lava = VES.lava.radius[2] + 1.2;
+    for (let k = 0; k < n && game.crates.length < VES.crates.max; k++) {
+      for (let tries = 0; tries < 300; tries++) {
+        const x = Math.floor(Math.random() * w);
+        const y = Math.floor(Math.random() * h);
+        let open = true;
+        for (let dy = -1; dy <= 1 && open; dy++) for (let dx = -1; dx <= 1 && open; dx++) open = free(x + dx, y + dy);
+        if (!open) continue;
+        const cx = x + 0.5;
+        const cy = y + 0.5;
+        const far = (px: number, py: number, d: number) => Math.hypot(cx - px, cy - py) >= d;
+        if (!far(VES.centre.x, VES.centre.y, lava)) continue;
+        if (!far(me.currentCF.position.x, me.currentCF.position.y, 3)) continue;
+        if (!map.dmSpawns.every((s) => far(s.x, s.y, 1.5))) continue;
+        if (!game.crates.every((c) => far(c.position.x, c.position.y, 4))) continue;
+        game.addCrate(cx, cy);
+        break;
+      }
+    }
+  }
+
+  /** A crate was hit (the game's 'crate' event): it shakes; broken, it drops a power-up (more often life when hurt). */
+  onCrate(crateID: number, position: Vec3, broken: boolean): void {
+    this.crateRenderer.crateHit(crateID, position.x, position.y, broken);
+    if (!broken || this.over) return;
+    const me = this.ctx.me;
+    const hurt = me.isAlive && me.life < 0.5 ? 2 : 1;
+    const kinds = Object.keys(CRATE_POWERS) as PowerKind[];
+    const weight = (k: PowerKind) => CRATE_POWERS[k]! * (k === 'life' ? hurt : 1);
+    let r = Math.random() * kinds.reduce((s, k) => s + weight(k), 0);
+    let kind: PowerKind = 'life';
+    for (const k of kinds) {
+      r -= weight(k);
+      if (r <= 0) {
+        kind = k;
+        break;
+      }
+    }
+    this.powers.push({ id: this.nextPowerID++, kind, x: position.x, y: position.y, age: 0, life: WAVES.powerOnFloor });
+  }
+
+  /** A power-up taken: half a bar of life, grenades and a molotov, or one of the 15 s ones (as in the Waves). */
+  private take(kind: PowerKind): void {
+    const me = this.ctx.me;
+    if (kind === 'life') me.life = Math.min(1, me.life + 0.5);
+    else if (kind === 'ammo') {
+      me.nbGrenadeLeft = Math.min(Math.max(5, me.maxGrenades), me.nbGrenadeLeft + 2);
+      me.nbMolotovLeft = Math.min(3, me.nbMolotovLeft + 1);
+    } else if (kind in this.timers) this.timers[kind as TimedPower] = WAVES.powerSeconds;
+    this.ctx.onPower(kind);
+  }
+
   /** The Forge's dash: the way the keys go (else towards the aim), untouchable for a moment. */
   private dash(): void {
     const me = this.ctx.me;
@@ -736,6 +842,7 @@ export class VesuviusRun {
       time: this.time,
       best: this.before.best,
       obsidian: runObsidian(this.share, this.phase - 1, me.kills, false, false).total,
+      powers: (Object.keys(this.timers) as TimedPower[]).filter((k) => this.timers[k] > 0).map((k) => ({ kind: k, left: this.timers[k] })),
       abilities: this.ctx.levels.dash > 0 ? [{ kind: 'dash', ready: 1 - this.dashWait / FORGE_DASH[this.ctx.levels.dash] }] : [],
       barrier: me.barrierMax > 0 ? { now: me.barrier, max: me.barrierMax } : null,
       reflector: null,
@@ -744,7 +851,7 @@ export class VesuviusRun {
     };
   }
 
-  render(_dt: number, time: number): void {
+  render(dt: number, time: number): void {
     const k = (from: number, at: number) => Math.max(0, Math.min(1, (this.clock - from) / Math.max(1e-6, at - from)));
     const marks: VesuviusMarks = {
       lines: [],
@@ -765,6 +872,7 @@ export class VesuviusRun {
       marks.beam = { x: from.x, y: from.y, angle: b.angle, length: this.reach(b.angle), on: this.clock >= b.on, k: k(b.from, b.on) };
     }
     this.renderer.render(marks, time);
+    this.crateRenderer.render(this.ctx.game.crates, this.powers, [], dt, time);
   }
 
   /** The run being played, for analytics. */
@@ -775,5 +883,6 @@ export class VesuviusRun {
   dispose(): void {
     window.removeEventListener('pagehide', this.onPageHide);
     this.renderer.dispose();
+    this.crateRenderer.dispose();
   }
 }

@@ -73,7 +73,7 @@ export const es: Record<Key, string> = {
   'home.newsTitle': 'Novedades',
   'home.news55Date': '31 de octubre de 2026',
   'home.news55Title': 'El volcán despertó',
-  'home.news55': 'El Vesubio se abrió para quienes pasaron la oleada 100: un jefe que nunca sale del centro del cráter, tres fases, cohetes por líneas rojas, bombas de lava, misiles del cielo, un anillo de fuego y un rayo del que esconderse. Tiene su propia moneda, la Obsidiana, y su propio taller, la Forja.',
+  'home.news55': 'El Vesubio se abrió para quienes pasaron la oleada 100: un jefe que nunca sale del centro del cráter, tres fases, cohetes por líneas rojas, bombas de lava, misiles del cielo, un anillo de fuego y un rayo del que esconderse, con algunas cajas de vida y mejoras. Tiene su propia moneda, la Obsidiana, y su propio taller, la Forja.',
   'home.news54Date': '31 de octubre de 2026',
   'home.news54Title': 'Hay algo en el volcán',
   'home.news54': 'La ventana de la Supervivencia tiene una pestaña nueva: el Vesubio, un modo nuevo en el cráter de un volcán, todavía en construcción. Se abre para quienes tienen un récord por encima de la oleada 100 de las Oleadas, en su cuenta y comprobado por el servidor.',

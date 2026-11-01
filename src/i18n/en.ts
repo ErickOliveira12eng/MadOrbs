@@ -75,7 +75,7 @@ export const en = {
   'home.newsTitle': "What's new",
   'home.news55Date': 'October 31, 2026',
   'home.news55Title': 'The volcano wakes up',
-  'home.news55': 'The Vesuvius is open to those past wave 100: a boss that never leaves the middle of the crater, three phases, rockets along red lines, lava bombs, missiles from the sky, a ring of fire and a beam to hide from. It has its own currency, Obsidian, and its own workshop, the Forge.',
+  'home.news55': 'The Vesuvius is open to those past wave 100: a boss that never leaves the middle of the crater, three phases, rockets along red lines, lava bombs, missiles from the sky, a ring of fire and a beam to hide from, with a few crates of life and power-ups. It has its own currency, Obsidian, and its own workshop, the Forge.',
   'home.news54Date': 'October 31, 2026',
   'home.news54Title': 'Something in the volcano',
   'home.news54': 'The Survival window has a new tab: the Vesuvius, a new mode in the crater of a volcano, still being made. It opens to those whose record gets past wave 100 of the Waves, on their account and checked by the server.',

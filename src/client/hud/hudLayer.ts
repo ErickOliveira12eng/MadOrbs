@@ -983,10 +983,16 @@ export class HudLayer {
     const hearts = '♥'.repeat(Math.min(6, Math.max(0, v.lives))) + (v.lives > 6 ? `+${v.lives - 6}` : '');
     const doing = v.won ? t('vesuvius.won') : v.erupting ? t('vesuvius.erupting') : t(v.phase === 1 ? 'vesuvius.hint1' : v.phase === 2 ? 'vesuvius.hint2' : 'vesuvius.hint3');
     const marks = VES.phaseAt.map((at) => `<em style="left:${(at * 100).toFixed(2)}%"></em>`).join('');
+    // The crates' 15 s power-ups on, as in the Waves
+    const powers = v.powers.length
+      ? `<span class="h-powers">` +
+        v.powers.map((p) => `<span title="${t(`power.${p.kind}` as Key)}"><img src="${powerIconUrl(p.kind)}" alt="" /><i style="width:${Math.round((p.left / 15) * 100)}%"></i></span>`).join('') +
+        `</span>`
+      : '';
     const html =
       `<div class="h-wave"><span>${t('vesuvius.phaseLabel')}</span><b>${v.phase}</b><span>/ 3</span></div>` +
       `<div class="h-mode">${doing}</div>` +
-      `<div class="h-camp"><span class="hearts" title="${t('waves.lives')}">${hearts || '—'}</span><span>${t(v.kills === 1 ? 'end.oneKill' : 'end.kills', { n: v.kills })}</span><span>${clock(v.time)}</span></div>` +
+      `<div class="h-camp"><span class="hearts" title="${t('waves.lives')}">${hearts || '—'}</span><span>${t(v.kills === 1 ? 'end.oneKill' : 'end.kills', { n: v.kills })}</span><span>${clock(v.time)}</span>${powers}</div>` +
       `<div class="h-boss vs${v.erupting ? ' immune' : ''}"><b>${esc(v.bossName)}</b><span><i style="width:${(Math.max(0, v.bossLife) * 100).toFixed(2)}%"></i>${marks}</span>` +
       `<small>${v.erupting ? t('vesuvius.immune') : `${bigNum(v.bossPoints)} / ${bigNum(v.bossMax)}`}</small></div>`;
     setHTML(this.r.match, html);

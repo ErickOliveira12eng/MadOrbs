@@ -73,7 +73,7 @@ export const pt: Record<Key, string> = {
   'home.newsTitle': 'Novidades',
   'home.news55Date': '31 de outubro de 2026',
   'home.news55Title': 'O vulcão acordou',
-  'home.news55': 'O Vesúvio abriu para quem passou da onda 100: um chefão que nunca sai do meio da cratera, três fases, foguetes por linhas vermelhas, bombas de lava, mísseis do céu, um anel de fogo e um raio para se esconder. Tem moeda própria, a Obsidiana, e oficina própria, a Forja.',
+  'home.news55': 'O Vesúvio abriu para quem passou da onda 100: um chefão que nunca sai do meio da cratera, três fases, foguetes por linhas vermelhas, bombas de lava, mísseis do céu, um anel de fogo e um raio para se esconder, com algumas caixas de vida e melhorias. Tem moeda própria, a Obsidiana, e oficina própria, a Forja.',
   'home.news54Date': '31 de outubro de 2026',
   'home.news54Title': 'Tem algo no vulcão',
   'home.news54': 'A janela da Sobrevivência ganhou uma aba nova: o Vesúvio, um modo novo na cratera de um vulcão, ainda em construção. Ele abre para quem tem o recorde acima da onda 100 das Ondas, na conta e conferido pelo servidor.',

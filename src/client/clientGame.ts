@@ -566,6 +566,10 @@ export class ClientGame {
       onLaunch: (position) => audio.play3D(this.sounds.weapon[WEAPON_BAZOOKA], 8, position, 200),
       onBeam: (position) => audio.play3D(this.sounds.weapon[WEAPON_PHOTON_RIFLE], 10, position, 255),
       onDash: () => audio.play(this.sounds.equip, 160),
+      onPower: (kind) => {
+        this.hud.announceText(t(`power.${kind}` as const), t(`power.${kind}.sub` as const), banner('#ffffff', POWERS[kind].color), 1.6);
+        audio.play(kind === 'life' ? this.sounds.lifePack : this.sounds.equip, 255);
+      },
       onEnd: (end) => this.endVesuvius(end),
     });
     this.onMapLoaded(map);
@@ -1909,6 +1913,7 @@ export class ClientGame {
       case 'crate':
         // The waves mode: a crate hit (it shakes) or broken (splinters, a power-up)
         this.waves?.onCrate(e.crateID, e.position, e.broken);
+        this.vesuvius?.onCrate(e.crateID, e.position, e.broken);
         audio.play3D(this.sounds.grenadeRebond, 6, e.position, e.broken ? 255 : 140);
         break;
       case 'playerJoin': {
