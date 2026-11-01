@@ -3057,10 +3057,9 @@
 }
 
 .h-perms > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  max-width: 200px;
+  display: grid;
+  grid-template-columns: repeat(3, max-content);
+  gap: 4px 6px;
   margin-top: 4px;
 }
 
@@ -3072,8 +3071,8 @@
 }
 
 .h-perms img {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
 }
 
 .h-wbreak,
@@ -3953,7 +3952,8 @@
   gap: 6px;
   padding: 6px 6px 2px;
   color: #9ff6ec;
-  font: 900 13.5px var(--h-ui);
+  font: 900 12.5px var(--h-ui);
+  white-space: nowrap;
 }
 
 /* The waves' Workshop abilities beside the grenades (HudLayer.updateAbilities) */
@@ -4198,9 +4198,8 @@
 .h-wcards {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  padding: 6px 4px 2px;
-  max-width: 200px;
+  gap: 4px;
+  padding: 6px 2px 2px;
 }
 
 .h-wcards.end {
@@ -4213,11 +4212,16 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 2px 5px;
-  border-radius: 7px;
+  padding: 1px 4px;
+  border-radius: 6px;
   border: 1px solid rgba(143, 163, 199, 0.6);
   background: rgba(14, 16, 40, 0.7);
-  font: 900 11.5px var(--h-ui);
+  font: 900 10.5px var(--h-ui);
+}
+
+.h-wcards:not(.end) .h-cardmini {
+  width: 13px;
+  height: 13px;
 }
 
 .h-wcards span.epic {
@@ -4375,4 +4379,147 @@
   margin: 0;
   color: var(--h-text, #fff);
   font: 700 15px/1.45 var(--h-ui);
+}
+
+/* The waves' Tab: the player's stats (HudLayer.updateWavesStats; Erick, 01/11/2026: the bots' table told nothing) */
+.h-wstats {
+  left: 50%;
+  top: 64px;
+  transform: translateX(-50%);
+  width: 920px;
+  box-sizing: border-box;
+  padding: 20px 22px 18px;
+  background: var(--h-panel-strong);
+}
+
+.h-wsgrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.h-wst {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.h-wst span {
+  display: block;
+  color: var(--h-muted);
+  font: 800 12px var(--h-ui);
+}
+
+.h-wst b {
+  display: block;
+  margin-top: 2px;
+  font: 900 21px var(--h-ui);
+  color: var(--h-muted);
+}
+
+.h-wst.on b {
+  color: #fff;
+}
+
+.h-wscols {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.h-wscols h3 {
+  margin: 0 0 6px;
+  color: var(--h-muted);
+  font: 900 12px var(--h-ui);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.h-wsperms {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.h-wsp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 4px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  font: 800 13.5px var(--h-ui);
+}
+
+.h-wsp img {
+  width: 24px;
+  height: 24px;
+}
+
+.h-wsp span {
+  flex: 1;
+}
+
+.h-wsp.full {
+  background: rgba(255, 205, 70, 0.12);
+  box-shadow: inset 0 0 0 1.5px var(--h-gold-1);
+}
+
+.h-wsp.full b {
+  color: var(--h-gold-1);
+}
+
+.h-wscards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.h-wsc {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 6px 9px;
+  border-radius: 10px;
+  border: 1px solid rgba(143, 163, 199, 0.45);
+  background: rgba(14, 16, 40, 0.6);
+}
+
+.h-wsc.epic {
+  border-color: rgba(176, 123, 255, 0.7);
+}
+
+.h-wsc.legendary {
+  border-color: rgba(255, 194, 58, 0.75);
+}
+
+.h-wsc .h-cardmini {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  flex: none;
+}
+
+.h-wsc b {
+  display: block;
+  font: 900 13px var(--h-ui);
+}
+
+.h-wsc b em {
+  color: var(--h-muted);
+  font-style: normal;
+}
+
+.h-wsc small {
+  display: block;
+  margin-top: 1px;
+  color: var(--h-muted);
+  font: 700 11px/1.25 var(--h-ui);
+}
+
+.h-wsnone {
+  color: var(--h-muted);
+  font: 700 13px var(--h-ui);
 }

@@ -329,6 +329,7 @@ export class HudLayer {
   <div class="h-panel h-mine" data-r="mine"></div>
   <div class="h-panel h-vote" data-r="vote" hidden></div>
 </div>
+<div class="h-abs h-panel h-wstats" data-r="wstats" hidden></div>
 <div class="h-abs h-panel h-scores" data-r="scores" hidden>
   <div class="h-thead"><div><h2>${t('table.title')}</h2><p data-r="tsub"></p></div><div class="h-tclock" data-r="tclock"></div></div>
   <table class="h-table"><thead data-r="thead"></thead><tbody data-r="table"></tbody></table>
@@ -952,6 +953,52 @@ export class HudLayer {
     this.r.feat.classList.toggle('low', !!w.bossLife);
   }
 
+  /**
+   * The waves' Tab (Erick, 01/11/2026: the bots' table told nothing): the player's stats as they are now (life, shield,
+   * damage, attack speed, speed, defence, critical, dodge), the run's upgrades by name and level, the cards with what
+   * each one does at its level.
+   */
+  private updateWavesStats(f: HudFrame): void {
+    const w = f.waves!;
+    const me = f.me;
+    const x = (v: number) => `×${num(Math.round(v * 100) / 100)}`;
+    const pct = (v: number) => `${Math.round(v * 100)}%`;
+    const stat = (label: string, value: string, on: boolean) => `<div class="h-wst${on ? ' on' : ''}"><span>${label}</span><b>${value}</b></div>`;
+    const defence = 1 - me.armorBoost;
+    const stats =
+      stat(t('up.life'), `${Math.round(Math.max(0, me.life) * me.lifeMax * 100)} / ${Math.round(me.lifeMax * 100)}`, me.lifeMax > 1) +
+      stat(t('up.barrier'), me.barrierMax > 0 ? `${Math.round(me.barrier * 100)} / ${Math.round(me.barrierMax * 100)}` : '—', me.barrierMax > 0) +
+      stat(t('up.damage'), x(me.damageBoost), me.damageBoost > 1) +
+      stat(t('up.fire'), x(me.fireBoost), me.fireBoost > 1) +
+      stat(t('up.speed'), x(me.speedBoost), me.speedBoost > 1) +
+      stat(t('up.armor'), defence > 0.005 ? `−${pct(defence)}` : '0%', defence > 0.005) +
+      stat(t('card.crit'), pct(me.critChance), me.critChance > 0) +
+      stat(t('card.dodge'), pct(me.dodgeChance), me.dodgeChance > 0);
+    const perms = w.perms.length
+      ? w.perms
+          .map((p) => `<div class="h-wsp${p.full ? ' full' : ''}"><img src="${powerIconUrl(p.kind)}" alt="" /><span>${t(`power.${p.kind}` as Key)}</span><b>${t('waves.permLevel', { n: p.level })}</b>${p.full ? `<i class="h-max">${t('waves.livesMax')}</i>` : ''}</div>`)
+          .join('')
+      : `<div class="h-wsnone">${t('wstats.none')}</div>`;
+    const cards = w.cards.length
+      ? w.cards
+          .map((c) => {
+            const def = cardDef(c.id);
+            return (
+              `<div class="h-wsc ${def.rarity}">${cardIcon(c.id, 'h-cardmini')}<div><b>${t(`card.${c.id}`)} <em>${c.level}/${def.max}</em></b>` +
+              `<small>${t(`card.${c.id}.desc`, { v: cardValue(c.id, c.level) })}</small></div></div>`
+            );
+          })
+          .join('')
+      : `<div class="h-wsnone">${t('wstats.none')}</div>`;
+    setHTML(
+      this.r.wstats,
+      `<div class="h-thead"><div><h2>${t('wstats.title')}</h2><p>${t('waves.label')} ${w.wave} · ${t(w.kills === 1 ? 'end.oneKill' : 'end.kills', { n: w.kills })}${w.record ? ` · ${t('waves.record', { n: w.record })}` : ''}</p></div></div>` +
+        `<div class="h-wsgrid">${stats}</div>` +
+        `<div class="h-wscols"><section><h3>${t('waves.upgrades')}</h3><div class="h-wsperms">${perms}</div></section>` +
+        `<section><h3>${t('wstats.cards')}</h3><div class="h-wscards">${cards}</div></section></div>`,
+    );
+  }
+
   /** The waves' corner panel: the enemies of the wave still to beat, the record. */
   private updateWavesBoard(w: WavesHud): void {
     let html = `<div class="h-bhead"><span class="h-label">${t('campaign.enemies')}</span><span class="sp"></span></div>`;
@@ -966,7 +1013,7 @@ export class HudLayer {
       html +=
         `<div class="h-perms"><span class="h-label">${t('waves.upgrades')}</span><div>` +
         w.perms
-          .map((p) => `<span class="${p.full ? 'full' : ''}" title="${t(`power.${p.kind}` as Key)}${p.full ? ` · ${t('waves.permFull')}` : ''}"><img src="${powerIconUrl(p.kind)}" alt="" /><b>${t('waves.permLevel', { n: p.level })}</b>${p.full ? `<i class="h-max">${t('waves.livesMax')}</i>` : ''}</span>`)
+          .map((p) => `<span class="${p.full ? 'full' : ''}" title="${t(`power.${p.kind}` as Key)} · ${t('waves.permLevel', { n: p.level })}${p.full ? ` · ${t('waves.permFull')}` : ''}"><img src="${powerIconUrl(p.kind)}" alt="" /><b>${p.level}</b></span>`)
           .join('') +
         `</div></div>`;
     if (w.record) html += `<div class="h-wrec">${t('waves.record', { n: w.record })}</div>`;
@@ -1097,7 +1144,10 @@ export class HudLayer {
     show(r.respawn, deadScreen);
     // The waves: the same weapons at every spawn, no choice
     show(r.next, deadScreen && enabledPrimaries().length > 0 && !f.waves && !f.vesuvius);
-    show(r.scores, table);
+    // The waves' Tab: the player's stats, not the bots' table (Erick, 01/11/2026)
+    const stats = table && !!f.waves && !f.waves.over && playing;
+    show(r.scores, table && !stats);
+    show(r.wstats, stats);
     show(r.banner, !menu && !playing);
     this.updateFeat(playing, !menu && !table && !f.campaign?.over && !f.waves?.over && !f.vesuvius?.over);
     // A tutorial's objective, and under the range's targets their damage and DPS
@@ -1134,7 +1184,8 @@ export class HudLayer {
     this.updatePickHint(f, liveHud);
     if (deadScreen) this.updateDeath(f);
     this.updateKiller(f, deadScreen);
-    if (table) this.updateTable(f, playing);
+    if (stats) this.updateWavesStats(f);
+    else if (table) this.updateTable(f, playing);
     if (!menu && !playing) this.updateBanner(f);
     this.updateCursors(f, !menu && alive && !spectator, !menu && deadScreen);
     // A banner on the right, every mode but the campaign: on the death screen and in the Esc menu
