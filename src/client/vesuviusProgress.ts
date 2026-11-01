@@ -36,7 +36,8 @@ export const FORGE_GROUPS: ForgeGroup[] = ['attack', 'defense', 'moving'];
  * Player.lifeMax), 7% less damage taken, a recharging shield (Player.barrier) of this share of a life, one more life,
  * speed +5%, a dash (Shift: untouchable while it lasts) with these seconds to recharge.
  */
-export const FORGE_STEP = { damage: 0.12, fire: 0.1, life: 0.2, armor: 0.07, speed: 0.05 };
+// (speed 0.05 until 01/11/2026: Erick, every moving speed effect at 60%)
+export const FORGE_STEP = { damage: 0.12, fire: 0.1, life: 0.2, armor: 0.07, speed: 0.03 };
 export const FORGE_BARRIER = [0, 0.15, 0.25, 0.35];
 export const FORGE_DASH = [0, 5, 4, 3];
 

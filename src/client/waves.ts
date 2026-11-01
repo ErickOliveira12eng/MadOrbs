@@ -297,8 +297,11 @@ export const POWERS: Record<PowerKind, { weight: number; timed: boolean; perm: b
   ice: { weight: 5, timed: false, perm: true, color: '#7fd8ff' },
 };
 
-/** The timed ones' effect on the player (speed: 1.35 until 26/10/2026, Erick: 30% less, 1.25). */
-export const BOOSTS = { speed: 1.25, rapid: 1.6, shield: 0.5, fury: 2 };
+/**
+ * The timed ones' effect on the player (speed: 1.35 until 26/10/2026, Erick: 30% less, 1.25; 1.15 since 01/11/2026,
+ * Erick: every moving speed effect at 60%). The Vesuvius's crates give the same.
+ */
+export const BOOSTS = { speed: 1.15, rapid: 1.6, shield: 0.5, fury: 2 };
 
 /**
  * The bomb: every enemy on the screen (behind a wall too) and the ones in sight up to `radius` cells, each losing
@@ -312,7 +315,8 @@ export const BOMB = { radius: 12, lives: 3 };
 /** A level of a permanent one: +10% fire rate and damage; 10% less damage taken. */
 export const PERM_STEP = 0.1;
 /** A level of the permanent speed: +7% (10% until 26/10/2026, Erick: 30% less). */
-export const PERM_SPEED_STEP = 0.07;
+// (0.07 until 01/11/2026: Erick, every moving speed effect at 60%)
+export const PERM_SPEED_STEP = 0.042;
 /**
  * Poison: life per second per level (a bot has 1); ice: speed lost per level, at most ICE_MAX. Half of what they were
  * since 19/10/2026 (Erick; 0.08, 0.15 and 0.6).

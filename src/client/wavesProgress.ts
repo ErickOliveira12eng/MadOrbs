@@ -65,7 +65,8 @@ export const UPGRADES: Upgrade[] = [
  * you untouchable while it lasts (Player.hitSV), the shock wave hits by the wave's toughness (SHOCK.lives) and recharges
  * sooner, the second wind has two levels (one save each).
  */
-export const UPGRADE_STEP = { life: 0.2, armor: 0.12, damage: 0.25, fire: 0.2, speed: 0.1, luck: 0.1, drops: 0.1 };
+// (speed 0.1 until 01/11/2026: Erick, the moving speed effects at 60% of what they were)
+export const UPGRADE_STEP = { life: 0.2, armor: 0.12, damage: 0.25, fire: 0.2, speed: 0.06, luck: 0.1, drops: 0.1 };
 export const BREATHER = [0, 0.3, 0.5, 0.7];
 export const SECOND_WIND_LIFE = 0.5;
 
