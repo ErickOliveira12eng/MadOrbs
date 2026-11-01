@@ -126,6 +126,11 @@ export class BotController {
   /** Keeps its secondary in hand and never uses it (the waves' nuke bot: the run sets its nuke off itself). */
   holdMelee = false;
   /**
+   * Picking whom to shoot, the others than `hunt` count this many times farther than they are (the waves, Erick
+   * 01/11/2026: the bots should go for the player a little more than for his Shadow and risen ones, not ignore them).
+   */
+  huntBias = 1;
+  /**
    * Charges this one: straight at it while in sight, else the way there, never strafing nor keeping a distance (the
    * waves' nuke bot: it strafed off and blew up 4 cells away or round a corner). It still shoots whoever it sees.
    */
@@ -198,17 +203,20 @@ export class BotController {
     }
 
     const pos = p.currentCF.position;
-    // --- Target selection: closest visible enemy
+    // --- Target selection: closest visible enemy (the one it hunts counts closer: huntBias)
     let target: Player | null = null;
     let best = Infinity;
+    let bestScore = Infinity;
     for (const o of game.players) {
       if (!o || o === p || !o.isAlive) continue;
       if (game.isTeamGame && o.teamID === p.teamID) continue;
       const d = distance(pos, o.currentCF.position);
-      if (d > 14 || d >= best) continue;
+      const score = o === this.hunt ? d : d * this.huntBias;
+      if (d > 14 || score >= bestScore) continue;
       const n = new Vec3();
       if (game.map.rayTest(pos.clone(), o.currentCF.position.clone(), n)) continue;
       best = d;
+      bestScore = score;
       target = o;
     }
     if (target !== this.lastTarget) {
@@ -361,6 +369,16 @@ export class BotController {
       // Occasional grenade / molotov / secondary
       if (best > 3 && best < 7 && Math.random() < 0.004) input.throwGrenadePressed = true;
       if (best > 2 && best < 6 && Math.random() < 0.002) input.throwMolotovPressed = true;
+      // The waves (huntBias): the thrown ones at the one it hunts whenever he is in sight and in reach, whoever it shoots
+      // (Erick, 01/11/2026: what hits from afar must keep the player on the move)
+      const prey = this.hunt;
+      if ((input.throwGrenadePressed || input.throwMolotovPressed) && this.huntBias > 1 && prey?.isAlive && prey !== target) {
+        const dp = distance(pos, prey.currentCF.position);
+        if (dp > 2 && dp < 7 && !game.map.rayTest(pos.clone(), prey.currentCF.position.clone(), new Vec3())) {
+          input.mousePosOnMap = prey.currentCF.position.add(this.aimError);
+          input.mousePosOnMap.z = 0;
+        }
+      }
       const melee = this.holdMelee ? undefined : p.meleeWeapon?.weaponID;
       if (melee === WEAPON_KNIVES && best < 1.1) input.melee = true;
       if (melee === WEAPON_SHIELD && p.life < 0.5 && Math.random() < 0.05) input.melee = true;

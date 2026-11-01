@@ -1701,7 +1701,9 @@ export class HudLayer {
       if (el.className !== cls) el.className = cls;
       // ping > 12 network frames: the original's *LAGGER* tag; online, the bots filling the room say so
       const mark = f.online && p.isBot ? `<span class="bot">${t('table.bot')}</span>` : p.pingFrames > 12 ? '<span class="lag">LAG</span>' : '';
-      setHTML(el.firstElementChild as HTMLElement, p.badges.map((b) => BADGE_ICON[b] ?? '').join('') + esc(p.name) + mark);
+      // The waves' nuke bot armed: the seconds left over its head
+      const fuse = p.countdown > 0 ? `<b class="h-fuse">${num(Math.ceil(p.countdown * 10) / 10)}</b>` : '';
+      setHTML(el.firstElementChild as HTMLElement, fuse + p.badges.map((b) => BADGE_ICON[b] ?? '').join('') + esc(p.name) + mark);
       if (hurt) {
         const bar = el.lastElementChild as HTMLElement;
         const fill = bar.lastElementChild as HTMLElement;

@@ -4523,3 +4523,22 @@
   color: var(--h-muted);
   font: 700 13px var(--h-ui);
 }
+
+/* The waves' nuke bot armed: the seconds to its blast over its head (WAVES.nuke) */
+.h-fuse {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  margin-bottom: 3px;
+  color: #ff4a36;
+  font: 900 26px/1 var(--h-ui);
+  text-shadow: 0 0 10px rgba(255, 60, 40, 0.75), 0 2px 0 rgba(0, 0, 0, 0.8);
+  animation: h-fuse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes h-fuse {
+  to {
+    transform: translateX(-50%) scale(1.18);
+  }
+}

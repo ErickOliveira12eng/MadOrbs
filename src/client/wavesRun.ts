@@ -3,14 +3,14 @@
 // break and now and then), the power-ups they drop and their effects, the lives and the end.
 import * as THREE from 'three';
 import { BotController } from '../sim/bot';
-import { PLAYER_STATUS_DEAD, PLAYER_TEAM_BLUE, PLAYER_TEAM_RED, PROJECTILE_DROPED_WEAPON, PROJECTILE_ROCKET, TICK, WEAPON_BAZOOKA, WEAPON_GRENADE, WEAPON_KNIVES, WEAPON_NUCLEAR, WEAPON_SNIPER } from '../sim/constants';
+import { PLAYER_STATUS_DEAD, PLAYER_TEAM_BLUE, PLAYER_TEAM_RED, PROJECTILE_DROPED_WEAPON, PROJECTILE_ROCKET, TICK, WEAPON_BAZOOKA, WEAPON_GRENADE, WEAPON_KNIVES, WEAPON_NUCLEAR, WEAPON_PHOTON_RIFLE, WEAPON_SNIPER } from '../sim/constants';
 import type { Game } from '../sim/game';
 import { weaponDefs } from '../sim/gameVar';
 import type { Player, SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
-import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, ELITE, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, recordWave, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, ELITE, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, cardDef, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
@@ -157,6 +157,12 @@ export interface WavesContext {
   tutorial?: boolean;
 }
 
+/** The weapons that hit from afar: their bots go for the player nearly always (WAVES.huntBiasFar). */
+const FAR_WEAPONS = new Set([WEAPON_SNIPER, WEAPON_PHOTON_RIFLE, WEAPON_BAZOOKA]);
+
+/** The nuke bot's fiery tint in place of the red team's (WAVES.nuke): it must read as a kamikaze at a glance. */
+const NUKE_TINT: Omit<SkinInfo, 'skin'> = { redDecal: [1, 0.82, 0.15], greenDecal: [1, 0.42, 0.05], blueDecal: [0.4, 0.08, 0.02] };
+
 export class WavesRun {
   private readonly renderer: WavesRenderer;
   private wave = 0;
@@ -212,8 +218,9 @@ export class WavesRun {
   private risenAt = -Infinity;
   /** The nuke bots standing (WAVES.nuke): the seconds left to the blast once armed (-1: not yet), to the next siren. */
   private readonly nukers: { p: Player; fuse: number; beep: number }[] = [];
-  /** Bots of this wave to come in before its nuke bot (-1: none in this wave). */
-  private nukeIn = -1;
+  /** Which of this wave's bots (by the order they come in) are nuke bots, and how many came in so far. */
+  private nukeSlots = new Set<number>();
+  private waveSpawns = 0;
   /** The boss waves whose boss hasn't fallen yet, oldest first (a checkpoint counts once its boss fell). */
   private readonly bossesUp: number[] = [];
   /** The ranking's time when each wave began (the record's time is its wave's: recordWave). */
@@ -495,7 +502,12 @@ export class WavesRun {
     if (this.reachedAt !== null) this.reachedTimes.set(this.wave, Math.round(this.reachedAt));
     this.waveLeft = this.spec.seconds;
     this.pending = this.spec.total + carried;
-    this.nukeIn = this.wave >= WAVES.nuke.from ? Math.floor(Math.random() * Math.max(1, Math.min(WAVES.nuke.among, this.spec.total))) : -1;
+    // Its nuke bots (nukeBots): that many of its first bots, picked at random
+    this.waveSpawns = 0;
+    this.nukeSlots.clear();
+    const nukes = nukeBots(this.wave);
+    const among = Math.max(nukes, Math.min(Math.max(WAVES.nuke.among, 4 * nukes), this.spec.total));
+    while (this.nukeSlots.size < Math.min(nukes, among)) this.nukeSlots.add(Math.floor(Math.random() * among));
     this.spawnWait = 0.5;
     this.bossPending = this.spec.boss || bossLate;
     if (this.spec.boss) this.bossesUp.push(this.wave);
@@ -553,7 +565,7 @@ export class WavesRun {
   private spawnBot(escort?: { of: Player; side: number }): boolean {
     const { game, bots } = this.ctx;
     // The wave's nuke bot (WAVES.nuke), never one of the boss's escorts
-    const nuke = !escort && this.nukeIn === 0;
+    const nuke = !escort && this.nukeSlots.has(this.waveSpawns);
     const loadout = { primary: this.spec.weapons[Math.floor(Math.random() * this.spec.weapons.length)], secondary: nuke ? WEAPON_NUCLEAR : WEAPON_KNIVES };
     // A fallen enemy's Orb (never a Shadow ally's nor a risen one's: they kept their name and side and took a new skin)
     let i = bots.findIndex((b) => b.player !== this.boss && !b.player.isAlive && b.player.lives <= 0 && !this.allies.includes(b.player) && !this.risen.some((r) => r.p === b.player));
@@ -589,6 +601,8 @@ export class WavesRun {
     p.badges = nuke ? ['nuke'] : traits;
     p.radius = 0.25;
     p.lifeMax = 1;
+    p.pointScale = 1;
+    p.countdown = 0;
     p.teamTint = null;
     // Every elite: twice the life, a little more damage and defense, a little bigger, darker red (ELITE)
     if (traits.length) {
@@ -615,17 +629,27 @@ export class WavesRun {
       // A little faster than the boss, to catch up with it
       p.speedBoost = Math.max(p.speedBoost, WAVES.botSpeed * 1.15);
     }
-    // They come for the player, wherever they are
+    // They come for the player, wherever they are, and shoot him first unless one of his allies is much closer (those
+    // hitting from afar, nearly always him: they must keep him on the move)
     bots[i].hunt = this.ctx.me;
+    bots[i].huntBias = FAR_WEAPONS.has(loadout.primary) ? WAVES.huntBiasFar : WAVES.huntBias;
     if (nuke) {
-      // Fast and straight at the player, the nuke kept on its Orb (it never drops it: the run sets it off)
+      // Fast and straight at the player, the nuke kept on its Orb (it never drops it: the run sets it off), fiery, and
+      // as tough as the wave's boss (its life as the boss's: a big bar, real hits, spawnBoss)
       p.speedBoost = WAVES.nuke.speed;
+      p.teamTint = NUKE_TINT;
+      const tough = WAVES.boss.damageScale * bossStrength(this.wave).tough;
+      p.damageScale = WAVES.boss.defence * this.spec.toughness;
+      p.lifeMax = (WAVES.nuke.life * WAVES.boss.life * WAVES.boss.defence) / tough;
+      p.pointScale = p.lifeMax;
       bots[i].rush = true;
       bots[i].charge = this.ctx.me;
       bots[i].holdMelee = true;
+      // Only the player: it never turns on his Shadow or risen ones (Erick, 01/11/2026)
+      bots[i].huntBias = Infinity;
       this.nukers.push({ p, fuse: -1, beep: 0 });
     }
-    if (!escort && this.nukeIn >= 0) this.nukeIn--;
+    if (!escort) this.waveSpawns++;
     game.requestSpawn(p);
     return true;
   }
@@ -642,6 +666,7 @@ export class WavesRun {
       const p = n.p;
       if (!p.isAlive) {
         // Killed (or gone): defused
+        p.countdown = 0;
         this.nukers.splice(k, 1);
         continue;
       }
@@ -651,6 +676,8 @@ export class WavesRun {
         if (game.map.rayTest(pos.clone(), me.currentCF.position.clone(), new Vec3())) continue;
         n.fuse = N.fuse;
         n.beep = 0;
+        // Armed: slow, so the player can run out of its reach
+        p.speedBoost = N.slow;
       }
       // The siren (the Nuke Bot's own sound and its model's blinking), again every `beep` seconds
       n.beep -= TICK;
@@ -660,7 +687,9 @@ export class WavesRun {
         game.events.push({ type: 'melee', playerID: p.playerID, weaponID: WEAPON_NUCLEAR });
       }
       n.fuse -= TICK;
+      p.countdown = Math.max(0.01, n.fuse);
       if (n.fuse > 0) continue;
+      p.countdown = 0;
       // Boom: `damage` of a life bar to the player's side in the radius (his defence, shield and bar still count)
       this.nukers.splice(k, 1);
       const at = pos.clone();
@@ -714,6 +743,8 @@ export class WavesRun {
     bot.aimScale = WAVES.boss.aim;
     bot.lead = 0;
     bot.hunt = this.ctx.me;
+    // The player first, as the bots hitting from afar (Erick, 01/11/2026)
+    bot.huntBias = WAVES.huntBiasFar;
     const i = bots.findIndex((b) => b.player === p);
     if (i >= 0) bots[i] = bot;
     else bots.push(bot);
@@ -1377,6 +1408,11 @@ export class WavesRun {
   }
 
   render(dt: number, time: number): void {
+    // The nuke bots armed: their reach on the floor, pulsing faster as the fuse runs out
+    this.renderer.nukeZones(
+      this.nukers.filter((n) => n.fuse >= 0 && n.p.isAlive).map((n) => ({ x: n.p.currentCF.position.x, y: n.p.currentCF.position.y, radius: WAVES.nuke.radius, k: 1 - n.fuse / WAVES.nuke.fuse })),
+      time,
+    );
     // Enemies hit by the poison or ice shots: a ring under them
     const marks = this.reds()
       .filter((p) => p.isAlive && (p.poisonLeft > 0 || p.chillLeft > 0))

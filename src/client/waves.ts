@@ -101,14 +101,23 @@ export const WAVES = {
    */
   rushShare: 0.4,
   /**
-   * The nuke bot (Erick, 01/11/2026): from wave `from` on, one bot a wave (one of its first `among` to come in) runs
-   * at `speed` (the bots walk at botSpeed, the player at 1) straight at the player with the Nuke Bot secondary on its
-   * Orb (the original drops it on the floor; this one keeps it). Within `arm` cells of the player, in sight, it arms:
-   * the siren, again every `beep` seconds, and after `fuse` seconds it blows up there: `radius` cells, `damage` of a
-   * life bar to everyone of the player's side in it (before his defence, shield and bigger bar). Killed before that, it
-   * doesn't. The blast takes the bot with it (no kill for anyone).
+   * Picking whom to shoot, the player's Shadow and risen ones count this many times farther than they are
+   * (BotController.huntBias; Erick, 01/11/2026: a little more on the player, not ignoring them).
    */
-  nuke: { from: 51, among: 12, speed: 1.5, arm: 2, fuse: 2.5, beep: 1.25, radius: 3.5, damage: 0.6 },
+  huntBias: 1.8,
+  /** The same for the bots that hit from afar (the sniper, the photon rifle, the bazooka) and the boss: the player nearly always. */
+  huntBiasFar: 4,
+  /**
+   * The nuke bot (Erick, 01/11/2026): from wave `from` on, some bots of a wave (nukeBots: one, one more every `every`
+   * waves; among its first `among` to come in) run at `speed` (the bots walk at botSpeed, the player at 1) straight at
+   * the player with the Nuke Bot secondary on its Orb (the original drops it on the floor; this one keeps it), in a
+   * fiery tint, as tough as the wave's boss times `life` (the same day: a strong player shot it down before it came
+   * near; it is there to make him run). Within `arm` cells of the player, in sight, it arms: it slows to `slow`, the
+   * siren sounds every `beep` seconds, the seconds left show over its head and its reach on the floor, and after `fuse`
+   * seconds it blows up there: `radius` cells, `damage` of a life bar to everyone of the player's side in it (before his
+   * defence, shield and bigger bar). Killed before that, it doesn't. The blast takes the bot with it (no kill for anyone).
+   */
+  nuke: { from: 51, every: 25, among: 12, speed: 1.8, slow: 0.35, life: 1, arm: 2.5, fuse: 3, beep: 1, radius: 3.5, damage: 0.6 },
 };
 
 /**
@@ -204,9 +213,15 @@ export type EliteKind = 'fast' | 'brute' | 'sniper' | 'tank';
 export const ELITE_KINDS: EliteKind[] = ['fast', 'brute', 'sniper', 'tank'];
 export const ELITE_FROM = 10;
 
-/** The share of a wave's bots that are elites: 10% on wave 10, 60% from wave 40. */
+/**
+ * The share of a wave's bots that are elites: 10% on wave 10, 60% from wave 40; from wave 50 a little more each wave
+ * (Erick, 01/11/2026: more of them on the high waves), 0.3 points a wave up to 80% (63% on 60, 67.5% on 75, 75% on
+ * 100, 80% from 117).
+ */
 export function eliteShare(n: number): number {
-  return n < ELITE_FROM ? 0 : Math.min(0.6, 0.1 + (n - ELITE_FROM) / 60);
+  if (n < ELITE_FROM) return 0;
+  const base = Math.min(0.6, 0.1 + (n - ELITE_FROM) / 60);
+  return n <= 50 ? base : Math.min(0.8, 0.6 + 0.003 * (n - 50));
 }
 
 /** The chance an elite has a second trait: from wave 30, up to 50% on wave 50. */
@@ -271,6 +286,12 @@ export function bossGuard(n: number): number {
  * `start` on, in order, `bosses` of them fell: the first that didn't holds the record at the wave before it. The
  * server keeps the same rule with the run's boss count (src/server/wavesRuns.ts).
  */
+/** The nuke bots of wave n (WAVES.nuke): none before `from`, one, then one more every `every` waves (2 on 75, 3 on 100...). */
+export function nukeBots(n: number): number {
+  const N = WAVES.nuke;
+  return n < N.from ? 0 : 1 + Math.floor((n - (N.from - 1)) / N.every);
+}
+
 export function recordWave(start: number, reached: number, bosses: number): number {
   let fell = bosses;
   for (let n = start; n <= reached; n++) {

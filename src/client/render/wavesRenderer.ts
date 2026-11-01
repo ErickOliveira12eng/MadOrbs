@@ -139,6 +139,8 @@ export class WavesRenderer {
   private readonly blastRingGeometry = new THREE.RingGeometry(0.72, 1, 48);
   private readonly blastDiscGeometry = new THREE.CircleGeometry(1, 40);
   private blasts: BlastView[] = [];
+  /** The armed nuke bots' reach (nukeZones). */
+  private readonly nukeViews: BlastView[] = [];
   private spareBlasts: BlastView[] = [];
 
   constructor(scene: THREE.Scene) {
@@ -254,6 +256,34 @@ export class WavesRenderer {
     b.disc.position.set(x, y, 0.04);
     b.ring.visible = b.disc.visible = true;
     this.blasts.push(b);
+  }
+
+  /**
+   * The armed nuke bots' reach (WavesRun, WAVES.nuke): a red disc and ring on the floor where the blast will land, the
+   * ring pulsing faster as the fuse runs out (`k`: 0 armed, 1 the blast).
+   */
+  nukeZones(zones: readonly { x: number; y: number; radius: number; k: number }[], time: number): void {
+    while (this.nukeViews.length < zones.length) {
+      const ringMaterial = new THREE.MeshBasicMaterial({ color: 0xff3020, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+      const discMaterial = new THREE.MeshBasicMaterial({ color: 0xff2010, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+      const ring = new THREE.Mesh(this.blastRingGeometry, ringMaterial);
+      const disc = new THREE.Mesh(this.blastDiscGeometry, discMaterial);
+      ring.renderOrder = disc.renderOrder = ON_FLOOR;
+      this.root.add(disc, ring);
+      this.nukeViews.push({ ring, disc, ringMaterial, discMaterial, radius: 0, age: 0 });
+    }
+    this.nukeViews.forEach((v, i) => {
+      const z = zones[i];
+      v.ring.visible = v.disc.visible = !!z;
+      if (!z) return;
+      const pulse = 0.5 + 0.5 * Math.sin(time * (6 + 18 * z.k));
+      v.ring.position.set(z.x, z.y, 0.046);
+      v.disc.position.set(z.x, z.y, 0.041);
+      v.ring.scale.setScalar(z.radius);
+      v.disc.scale.setScalar(z.radius);
+      v.ringMaterial.opacity = 0.55 + 0.45 * pulse;
+      v.discMaterial.opacity = 0.1 + 0.18 * z.k + 0.08 * pulse;
+    });
   }
 
   /** The blast rings grow out fast and fade. */

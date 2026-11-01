@@ -217,6 +217,8 @@ export class Player {
   spreadScale = 1;
   /** Times its weapons' recoil (the waves' boss: none, its chain gun pushed it back and it seemed to run away). */
   recoilScale = 1;
+  /** Seconds shown over its head, 0: none (the waves' nuke bot about to blow up). */
+  countdown = 0;
   /**
    * The waves' allies (the Shadow card, the Necromancer's risen): their own side walks and shoots through
    * them, and they through it (Game.performPlayerCollisions, Game.passesThrough).
