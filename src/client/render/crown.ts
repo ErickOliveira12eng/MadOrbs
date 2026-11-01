@@ -127,6 +127,13 @@ let shared: {
   gem: THREE.BufferGeometry;
 } | null = null;
 
+/**
+ * The crown as worn (Erick, 01/11/2026, a test): 30% smaller and slid a little down the Orb's side (radians round its
+ * centre, to its left of the aim), tilted with it.
+ */
+const WORN_SCALE = 0.7;
+const WORN_TILT = 0.35;
+
 /** A crown of `tier`, its foot on the top of an Orb of radius 0.25 centred at the origin (Z up). */
 export function makeCrown(tier: CrownTier): THREE.Group {
   shared ??= {
@@ -137,8 +144,17 @@ export function makeCrown(tier: CrownTier): THREE.Group {
   };
   const metal = new THREE.MeshMatcapMaterial({ matcap: matcap(tier), side: THREE.DoubleSide });
   const gemMat = new THREE.MeshMatcapMaterial({ matcap: matcap('gem') });
+  // The callers turn `group` (the aim, the menu's sway); it holds the crown worn smaller and tilted a little to the side
+  // (WORN_SCALE, WORN_TILT): `inner` is the crown as modelled, its smaller foot set back on the Orb's surface
   const group = new THREE.Group();
-  group.add(new THREE.Mesh(shared.band, metal), new THREE.Mesh(shared.lip, metal));
+  const tilt = new THREE.Group();
+  tilt.rotation.x = WORN_TILT;
+  const inner = new THREE.Group();
+  inner.scale.setScalar(WORN_SCALE);
+  inner.position.z = Math.sqrt(0.25 ** 2 - (WORN_SCALE * BAND_R) ** 2) - WORN_SCALE * BAND_Z;
+  tilt.add(inner);
+  group.add(tilt);
+  inner.add(new THREE.Mesh(shared.band, metal), new THREE.Mesh(shared.lip, metal));
   // The rims: at the foot and a little above it
   for (const [z, r, tube] of [
     [BAND_Z + 0.006, BAND_R + 0.004, RIM],
@@ -147,7 +163,7 @@ export function makeCrown(tier: CrownTier): THREE.Group {
     // A torus of radius r and tube `tube` (the geometry is 1 and 1: scaled per axis would bend it, so built per rim)
     const rim = new THREE.Mesh(new THREE.TorusGeometry(r, tube, 12, 96), metal);
     rim.position.z = z;
-    group.add(rim);
+    inner.add(rim);
   }
   // A ball on each point, and a gem on the band under each valley
   for (let p = 0; p < POINTS; p++) {
@@ -156,14 +172,14 @@ export function makeCrown(tier: CrownTier): THREE.Group {
     const ball = new THREE.Mesh(shared.ball, metal);
     ball.scale.setScalar(0.024);
     ball.position.set(Math.cos(a) * r, Math.sin(a) * r, BAND_Z + BAND_H + SPIKE_H + 0.02);
-    group.add(ball);
+    inner.add(ball);
     const v = a + Math.PI / POINTS;
     const gem = new THREE.Mesh(shared.gem, gemMat);
     gem.scale.set(0.028, 0.028, 0.032);
     const gr = BAND_R + FLARE * 0.2 + 0.016;
     gem.position.set(Math.cos(v) * gr, Math.sin(v) * gr, BAND_Z + BAND_H * 0.34);
     gem.rotation.z = v;
-    group.add(gem);
+    inner.add(gem);
   }
   return group;
 }
