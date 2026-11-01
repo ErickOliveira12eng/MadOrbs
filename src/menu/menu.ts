@@ -87,7 +87,7 @@ export class StartScreen {
   private readonly ranking: RankingModal;
   private readonly lobbyRanking: LobbyRanking;
   /** The ranking tab of the mode being played, for the way back (null: leave it as it is). */
-  private playedTab: 'online' | 'waves' | null = null;
+  private playedTab: 'online' | 'waves' | 'vesuvius' | null = null;
   private readonly room: RoomModal;
   /** The account whose Orb was already brought into this page's settings. */
   private orbSyncedFor = '';
@@ -185,7 +185,7 @@ export class StartScreen {
       () => this.renderProgress(),
       () => {
         this.play('offline', false);
-        this.playedTab = 'waves';
+        this.playedTab = 'vesuvius';
         onVesuvius();
       },
     );
@@ -467,7 +467,7 @@ export class StartScreen {
 
   /** The waves' Workshop (its card, or back from a run that asked for it): the ranking beside it on the Survival tab. */
   openWaves(mode: 'waves' | 'vesuvius' = 'waves'): void {
-    this.lobbyRanking.showTab('waves');
+    this.lobbyRanking.showTab(mode);
     this.waves.open(mode);
   }
 

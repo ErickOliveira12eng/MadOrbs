@@ -14,8 +14,11 @@ import { skinInfo } from './settings';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
-const MODES: RankingMode[] = ['dm', 'tdm', 'ctf', 'waves'];
-const MODE_ICON: Record<RankingMode, IconName> = { dm: 'crosshair', tdm: 'team', ctf: 'flag_fill', campaign: 'swords', waves: 'waves' };
+const MODES: RankingMode[] = ['dm', 'tdm', 'ctf', 'waves', 'vesuvius'];
+const MODE_ICON: Record<RankingMode, IconName> = { dm: 'crosshair', tdm: 'team', ctf: 'flag_fill', campaign: 'swords', waves: 'waves', vesuvius: 'flame' };
+
+/** The Vesuvius's ranking isn't in the database yet (supabase/migrations/20261031150000_vesuvius_ranking.sql): "soon". */
+export const notYet = (e: unknown) => /unknown mode/i.test(String(e));
 /** The podium's Orbs, drawn this big (px; the first bigger). */
 const PODIUM_ORB = [0, 104, 84, 84];
 
@@ -57,6 +60,12 @@ export const COLUMNS: Record<RankingMode, { head: Key; cell: (r: RankingRow) => 
     { head: 'ranking.power', cell: (r) => (typeof r.stats.power === 'number' ? bigNum(r.stats.power) : '—') },
     { head: 'ranking.runs', cell: (r) => bigNum(r.stats.runs) },
   ],
+  // The best time to bring the volcano down (the deaths counted), then the wins (Erick, 31/10/2026)
+  vesuvius: [
+    { head: 'vesuvius.bestLabel', cell: (r) => (typeof r.stats.time === 'number' ? clock(r.stats.time) : '—') },
+    { head: 'vesuvius.winsLabel', cell: (r) => bigNum(r.stats.wins) },
+    { head: 'ranking.runs', cell: (r) => bigNum(r.stats.runs) },
+  ],
 };
 
 /** A row's Orb in its colours (a small ball). */
@@ -93,7 +102,7 @@ export class RankingModal {
       b.type = 'button';
       b.dataset.mode = mode;
       b.setAttribute('role', 'radio');
-      b.innerHTML = `${icon(MODE_ICON[mode], 16)}<span>${mode === 'campaign' ? t('menu.campaign') : mode === 'waves' ? t('menu.waves') : modeShort(mode)}</span>`;
+      b.innerHTML = `${icon(MODE_ICON[mode], 16)}<span>${mode === 'campaign' ? t('menu.campaign') : mode === 'waves' ? t('menu.waves') : mode === 'vesuvius' ? t('vesuvius.name') : modeShort(mode)}</span>`;
       b.addEventListener('click', () => {
         this.mode = mode;
         void this.render();
@@ -174,7 +183,7 @@ export class RankingModal {
         console.warn('[ranking]', e);
         if (this.mode === mode) {
           body.classList.remove('stale');
-          this.setBody(`<p class="ranking-note">${t('ranking.error')}</p>`);
+          this.setBody(`<p class="ranking-note">${t(notYet(e) ? 'ranking.soon' : 'ranking.error')}</p>`);
         }
         return;
       }
@@ -196,7 +205,7 @@ export class RankingModal {
     const step = (r: RankingRow) =>
       `<div class="rk-step p${r.rank}${r.is_me ? ' me' : ''}">` +
       `<span class="rk-medal">${r.rank}</span>` +
-      `<img class="rk-orb" alt="" width="${PODIUM_ORB[r.rank]}" height="${PODIUM_ORB[r.rank]}" style="${orbStyle(r)}" data-orb="${[r.skin, r.red, r.green, r.blue, PODIUM_ORB[r.rank], (mode === 'waves' && crownFor(r.stats.wave ?? 0)) || ''].join('|')}" />` +
+      `<img class="rk-orb" alt="" width="${PODIUM_ORB[r.rank]}" height="${PODIUM_ORB[r.rank]}" style="${orbStyle(r)}" data-orb="${[r.skin, r.red, r.green, r.blue, PODIUM_ORB[r.rank], ((mode === 'waves' || mode === 'vesuvius') && crownFor(r.stats.wave ?? 0)) || ''].join('|')}" />` +
       `<b class="rk-name">${name(r)}</b><small class="rk-tag">#${esc(r.tag)}${you(r)}</small>` +
       `<span class="rk-big">${by.cell(r)}</span><span class="rk-label">${t(by.head)}</span>` +
       (cols[1] ? `<span class="rk-more">${t(cols[1].head)}: <b>${cols[1].cell(r)}</b>${mode === 'waves' && cols[2] ? ` · ${t(cols[2].head)}: <b>${cols[2].cell(r)}</b>` : ''}</span>` : '') +

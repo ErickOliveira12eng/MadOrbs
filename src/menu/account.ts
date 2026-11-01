@@ -40,7 +40,7 @@ export interface Profile {
 
 /** Online stats of one game mode (player_stats). */
 /** A ranking (leaderboard): its modes, and one row (src/menu/rankingModal.ts). */
-export type RankingMode = 'dm' | 'tdm' | 'ctf' | 'campaign' | 'waves';
+export type RankingMode = 'dm' | 'tdm' | 'ctf' | 'campaign' | 'waves' | 'vesuvius';
 export interface RankingRow {
   rank: number;
   tag: string;
@@ -434,7 +434,8 @@ export class Account {
         headers: { apikey: SUPABASE_PUBLISHABLE_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify(args),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // (with the database's reason: "unknown mode", a ranking whose SQL isn't in yet)
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text().catch(() => '')).slice(0, 200)}`);
       return (await res.json()) as (RankingRow & { total?: number })[];
     };
     if (!this.noNearRanking) {

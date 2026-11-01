@@ -948,7 +948,8 @@ select:focus-visible {
 
 .lr-tabs {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* (Multiplayer, Survival, and the Vesuvius narrower: a short name) */
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.2fr) minmax(0, 0.9fr);
   gap: 6px;
 }
 
@@ -980,6 +981,21 @@ select:focus-visible {
 .lr-tabs button[data-tab='waves'] {
   border-color: rgba(255, 90, 90, 0.5);
   color: #ffb3b6;
+}
+
+.lr-tabs button[data-tab='vesuvius'] {
+  border-color: rgba(255, 140, 50, 0.5);
+  color: #ffc49a;
+}
+
+.lr-tabs button[data-tab='vesuvius']:hover {
+  background: rgba(255, 120, 40, 0.12);
+}
+
+.lr-tabs button[data-tab='vesuvius'][aria-selected='true'] {
+  border-color: #ff8a2a;
+  background: linear-gradient(180deg, #ff9a3a 0%, #e8420e 100%);
+  text-shadow: 0 1px 0 rgba(110, 30, 0, 0.55);
 }
 
 .lr-tabs button[data-tab='online']:hover {
