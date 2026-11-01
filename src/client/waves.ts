@@ -91,7 +91,7 @@ export const WAVES = {
    * wave 60 the boss didn't make up for some 40 bots less: 61 against 99 on wave 59).
    */
   bossWave: { share: 0.6, fullFrom: 30 },
-  boss: { radius: 0.45, damageScale: 0.22, weapon: WEAPON_CHAIN_GUN, aim: 0.3, spread: 0.35, life: 1.6 },
+  boss: { radius: 0.45, damageScale: 0.22, weapon: WEAPON_CHAIN_GUN, aim: 0.3, spread: 0.35, life: 1.6, guard: { at30: 1.5, at40: 2, at50: 6, grow: 1.5 } },
   /** Bots that come with the boss and walk beside it. */
   escorts: 2,
   /**
@@ -247,7 +247,20 @@ export function eliteStrength(n: number): { speed: number; hit: number; aim: num
  */
 export function bossStrength(n: number): { radius: number; hit: number; tough: number } {
   const k = Math.max(0, Math.floor(n / WAVES.bossEvery) - 1);
-  return { radius: Math.min(1.1, 0.6 + 0.1 * k), hit: 2.5 + k, tough: 1 / (1 + 0.2 * k) };
+  return { radius: Math.min(1.1, 0.6 + 0.1 * k), hit: 2.5 + k, tough: 1 / (1 + 0.2 * k) / bossGuard(n) };
+}
+
+/**
+ * How many times less damage the boss of wave n takes, on top of the wave's toughness and its own growth (Erick,
+ * 01/11/2026: it was far too weak; measured headless, a late build, the whole Workshop, the crates' Damage and Attack
+ * speed at 15, the shot cards, Critical and Ricochet at 5 and the Silver bullet, brought it down in about a second in
+ * its sight on any wave from 40 to 80): a little more on wave 30 and 40, much more on 50, then each boss far stronger
+ * than the one before (WAVES.boss.guard: x1.5, x2, x6, then x1.5 a boss: x9 on 60, x13.5 on 70, x20 on 80...).
+ */
+export function bossGuard(n: number): number {
+  const g = WAVES.boss.guard;
+  if (n >= 50) return g.at50 * g.grow ** Math.floor((n - 50) / WAVES.bossEvery);
+  return n >= 40 ? g.at40 : n >= 30 ? g.at30 : 1;
 }
 
 /** A bot's traits on wave n: none (most), one, or two later on. */
