@@ -162,7 +162,7 @@ export interface ClientGameOptions {
   /** The waves: a checkpoint beaten, its build saved (the account's copy). */
   onWavesBuild?: (wave: number, build: CheckpointBuild) => void;
   /** The Vesuvius (offline, src/client/vesuviusRun.ts) on its map: the Forge's levels, the weapon to go in with. */
-  vesuvius?: { levels: ForgeLevels; weapon: number };
+  vesuvius?: { levels: ForgeLevels; weapon: number; level: number };
   /** The end of a Vesuvius run: what the player chose (again, the Forge, or back to the menu). */
   onVesuviusAction?: (action: 'retry' | 'forge' | 'menu') => void;
   /** A Vesuvius run ended (or was left): the account keeps the Obsidian, the best time. */
@@ -547,6 +547,7 @@ export class ClientGame {
     this.me.nextMeleeWeapon = WEAPON_KNIVES;
     const banner = (c1: string, c2: string) => ({ c1, c2, glow: `${c2}77` });
     this.vesuvius = new VesuviusRun({
+      level: setup.level,
       game: this.game,
       me: this.me,
       bots: this.bots,
@@ -1280,7 +1281,7 @@ export class ClientGame {
       if (this.opts.authToken) {
         this.vesuviusRunId = newRunId();
         const v = this.opts.vesuvius;
-        reportVesuviusRun({ phase: 'start', id: this.vesuviusRunId, weapon: v.weapon, levels: { ...v.levels } }, this.opts.authToken);
+        reportVesuviusRun({ phase: 'start', id: this.vesuviusRunId, weapon: v.weapon, levels: { ...v.levels }, level: v.level }, this.opts.authToken);
       }
     }
     else track('match_start', { ...this.matchInfo(), ...(map ? { map } : {}), bots: this.online ? this.botsNow() : (this.opts.botCount ?? 0) });

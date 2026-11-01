@@ -3,6 +3,7 @@
 // the volcano down and the wins. Kept in this browser (madorbs.vesuvius) and, signed in, in the account
 // (vesuvius_progress).
 import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_DUAL_MACHINE_GUN, WEAPON_FLAME_THROWER, WEAPON_SMG } from '../sim/constants';
+import { vesuviusScale } from '../sim/vesuvius';
 
 export type ForgeID = 'damage' | 'fire' | 'grenades' | 'life' | 'armor' | 'barrier' | 'lives' | 'speed' | 'dash';
 
@@ -39,6 +40,31 @@ export const FORGE_GROUPS: ForgeGroup[] = ['attack', 'defense', 'moving'];
 // (speed 0.05 until 01/11/2026: Erick, every moving speed effect at 60%)
 export const FORGE_STEP = { damage: 0.12, fire: 0.1, life: 0.2, armor: 0.07, speed: 0.03 };
 export const FORGE_BARRIER = [0, 0.15, 0.25, 0.35];
+/**
+ * The Forge's mastery (Erick, 01/11/2026, with the levels without end): past their top, damage, attack speed, life and
+ * defence go on, each level times this (the damage taken down for the defence), each one FORGE_MASTERY_GROW dearer (the
+ * first, the top level's price times it), as the Waves' Workshop (src/client/wavesProgress.ts MASTERY).
+ */
+export const FORGE_MASTERY: Partial<Record<ForgeID, number>> = { damage: 1.04, fire: 1.04, life: 1.04, armor: 0.97 };
+export const FORGE_MASTERY_GROW = 1.12;
+const FORGE_MASTERY_MAX = 900;
+
+/** What the Forge's damage, attack speed, life or defence multiply at a level (its steps, then its mastery). */
+export function forgeFactor(id: 'damage' | 'fire' | 'life' | 'armor', level: number): number {
+  const top = FORGE.find((u) => u.id === id)!.costs.length;
+  const base = Math.min(level, top);
+  const mastery = (FORGE_MASTERY[id] ?? 1) ** Math.max(0, level - top);
+  return (id === 'armor' ? 1 - FORGE_STEP.armor * base : 1 + FORGE_STEP[id] * base) * mastery;
+}
+
+/** The levels a Forge upgrade can reach: its prices, or no end with a mastery. */
+export const forgeTop = (u: ForgeUpgrade): number => (FORGE_MASTERY[u.id] ? u.costs.length + FORGE_MASTERY_MAX : u.costs.length);
+
+/** The price of a Forge upgrade's level `i + 1` (0-based `i`): its list, then its mastery's. */
+export function forgeLevelCost(u: ForgeUpgrade, i: number): number {
+  if (i < u.costs.length) return u.costs[i];
+  return Math.round(u.costs[u.costs.length - 1] * FORGE_MASTERY_GROW ** (i - u.costs.length + 1));
+}
 export const FORGE_DASH = [0, 5, 4, 3];
 
 /** The run's lives with no Forge, and the most it can add. */
@@ -74,13 +100,15 @@ export interface RunObsidian {
   total: number;
 }
 
-export function runObsidian(share: number, phases: number, kills: number, won: boolean, isBest: boolean): RunObsidian {
+export function runObsidian(share: number, phases: number, kills: number, won: boolean, isBest: boolean, level = 1): RunObsidian {
   const s = Math.max(0, Math.min(1, share));
-  const barObsidian = Math.round(s * OBSIDIAN.bar);
-  const phaseObsidian = Math.max(0, phases) * OBSIDIAN.phase;
-  const killObsidian = Math.max(0, kills) * OBSIDIAN.kill;
-  const winObsidian = won ? OBSIDIAN.win : 0;
-  const recordObsidian = isBest ? OBSIDIAN.record : 0;
+  // (a higher level pays as much more as it is harder: vesuviusScale)
+  const k = vesuviusScale(level);
+  const barObsidian = Math.round(s * OBSIDIAN.bar * k);
+  const phaseObsidian = Math.round(Math.max(0, phases) * OBSIDIAN.phase * k);
+  const killObsidian = Math.round(Math.max(0, kills) * OBSIDIAN.kill * k);
+  const winObsidian = won ? Math.round(OBSIDIAN.win * k) : 0;
+  const recordObsidian = isBest ? Math.round(OBSIDIAN.record * k) : 0;
   return {
     share: s,
     barObsidian,
@@ -105,10 +133,14 @@ export interface VesuviusProgress {
   levels: ForgeLevels;
   /** The weapon chosen last. */
   weapon: number;
-  /** The best time to bring the volcano down (seconds, the deaths counted), null: never won. */
+  /** The best time to bring the volcano down (seconds, the deaths counted) on level 1, null: never won. */
   best: number | null;
   wins: number;
   runs: number;
+  /** The highest level won (0: none), the best time on each level won, the level chosen to go in next. */
+  level: number;
+  bests: Record<number, number>;
+  start: number;
 }
 
 export function cleanForge(raw: unknown): ForgeLevels {
@@ -117,7 +149,7 @@ export function cleanForge(raw: unknown): ForgeLevels {
   const r = raw as Record<string, unknown>;
   for (const u of FORGE) {
     const v = r[u.id];
-    if (typeof v === 'number' && Number.isFinite(v)) out[u.id] = Math.max(0, Math.min(u.costs.length, Math.floor(v)));
+    if (typeof v === 'number' && Number.isFinite(v)) out[u.id] = Math.max(0, Math.min(forgeTop(u), Math.floor(v)));
   }
   return out;
 }
@@ -130,7 +162,7 @@ export function cleanBest(v: unknown): number | null {
 }
 
 export function loadVesuvius(): VesuviusProgress {
-  const p: VesuviusProgress = { earned: 0, levels: { ...NO_FORGE }, weapon: WEAPON_SMG, best: null, wins: 0, runs: 0 };
+  const p: VesuviusProgress = { earned: 0, levels: { ...NO_FORGE }, weapon: WEAPON_SMG, best: null, wins: 0, runs: 0, level: 0, bests: {}, start: 1 };
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Record<string, unknown> | null;
     if (!raw) return p;
@@ -140,6 +172,20 @@ export function loadVesuvius(): VesuviusProgress {
     p.best = cleanBest(raw.best);
     p.wins = count(raw.wins, 1_000_000);
     p.runs = count(raw.runs, 1_000_000);
+    p.level = count(raw.level, 10000);
+    p.start = Math.max(1, count(raw.start, 10000));
+    if (raw.bests && typeof raw.bests === 'object') {
+      for (const [k, v] of Object.entries(raw.bests as Record<string, unknown>)) {
+        const n = Number(k);
+        const b = cleanBest(v);
+        if (Number.isInteger(n) && n >= 1 && n <= 10000 && b !== null) p.bests[n] = b;
+      }
+    }
+    // (a win from before the levels: level 1's)
+    if (p.best !== null) {
+      p.level = Math.max(p.level, 1);
+      p.bests[1] = Math.min(p.bests[1] ?? p.best, p.best);
+    }
   } catch {
     /* storage unavailable or corrupt: a fresh start */
   }
@@ -157,7 +203,7 @@ export function saveVesuvius(p: VesuviusProgress): void {
 /** The levels' cost: every level bought, at its price. */
 export function forgeSpent(levels: ForgeLevels): number {
   let s = 0;
-  for (const u of FORGE) for (let i = 0; i < Math.min(levels[u.id], u.costs.length); i++) s += u.costs[i];
+  for (const u of FORGE) for (let i = 0; i < Math.min(levels[u.id], forgeTop(u)); i++) s += forgeLevelCost(u, i);
   return s;
 }
 
@@ -167,7 +213,7 @@ export function obsidianBalance(p: VesuviusProgress): number {
 }
 
 export function forgeCost(u: ForgeUpgrade, levels: ForgeLevels): number | null {
-  return levels[u.id] < u.costs.length ? u.costs[levels[u.id]] : null;
+  return levels[u.id] < forgeTop(u) ? forgeLevelCost(u, levels[u.id]) : null;
 }
 
 /** Buys an upgrade's next level when the Obsidian reaches; the new progress, or null. */
@@ -191,17 +237,23 @@ export function forgeAffordable(p: VesuviusProgress): number {
  * A run is over: its Obsidian added, the run counted, a win counted and its time kept when it is the best. The new
  * progress, and whether the time was a new best.
  */
-export function saveVesuviusRun(obsidian: number, won: boolean, time: number | null): { progress: VesuviusProgress; isBest: boolean } {
+export function saveVesuviusRun(obsidian: number, won: boolean, time: number | null, level = 1): { progress: VesuviusProgress; isBest: boolean } {
   const p = loadVesuvius();
   p.earned = Math.min(MAX_OBSIDIAN, p.earned + Math.max(0, Math.floor(obsidian)));
   p.runs++;
   let isBest = false;
   if (won) {
     p.wins++;
-    if (time !== null && (p.best === null || time < p.best)) {
-      p.best = Math.round(time);
+    // The level won: the next one opens (and is the one chosen next, when this was the highest)
+    if (level > p.level) {
+      p.level = level;
+      p.start = level + 1;
+    }
+    if (time !== null && (p.bests[level] === undefined || time < p.bests[level])) {
+      p.bests[level] = Math.round(time);
       isBest = true;
     }
+    if (level === 1 && time !== null && (p.best === null || time < p.best)) p.best = Math.round(time);
   }
   saveVesuvius(p);
   return { progress: p, isBest };
@@ -211,7 +263,9 @@ export function saveVesuviusRun(obsidian: number, won: boolean, time: number | n
  * The account's progress and this browser's: the most Obsidian ever earned, the highest level of each upgrade, the
  * best time, the most wins and runs. Saved here; `upload`: this browser has more than the account.
  */
-export function mergeVesuvius(remote: { earned: number; levels: ForgeLevels; best: number | null; wins: number; runs: number } | null): { merged: VesuviusProgress; upload: boolean } {
+export function mergeVesuvius(
+  remote: { earned: number; levels: ForgeLevels; best: number | null; wins: number; runs: number; level?: number; levelTime?: number | null } | null,
+): { merged: VesuviusProgress; upload: boolean } {
   const local = loadVesuvius();
   if (!remote) return { merged: local, upload: local.earned > 0 || local.runs > 0 };
   const merged: VesuviusProgress = {
@@ -221,7 +275,15 @@ export function mergeVesuvius(remote: { earned: number; levels: ForgeLevels; bes
     best: local.best === null ? remote.best : remote.best === null ? local.best : Math.min(local.best, remote.best),
     wins: Math.max(local.wins, remote.wins),
     runs: Math.max(local.runs, remote.runs),
+    bests: { ...local.bests },
   };
+  // The highest level the server checked won, with its time: the next one chosen when it is past this browser's
+  const won = Math.max(0, Math.floor(remote.level ?? 0));
+  if (won > merged.level) {
+    if (merged.start <= merged.level + 1) merged.start = won + 1;
+    merged.level = won;
+  }
+  if (won > 0 && remote.levelTime != null) merged.bests[won] = Math.min(merged.bests[won] ?? remote.levelTime, remote.levelTime);
   let upload = local.earned > remote.earned || local.wins > remote.wins || local.runs > remote.runs || (local.best !== null && (remote.best === null || local.best < remote.best));
   for (const u of FORGE) {
     if (remote.levels[u.id] > merged.levels[u.id]) merged.levels[u.id] = remote.levels[u.id];

@@ -178,8 +178,12 @@ export class Account {
     // The Vesuvius's Obsidian, Forge, best time and wins: the account's and this browser's, the most of each in both
     if (vesuvius.error) console.warn('[account] cannot read the Vesuvius progress', vesuvius.error.message);
     else {
-      const row = vesuvius.data as { earned: number; levels: unknown; best_time: number | null; wins: number; runs: number } | null;
-      const { upload } = mergeVesuvius(row ? { earned: row.earned, levels: cleanForge(row.levels), best: cleanBest(row.best_time), wins: row.wins, runs: row.runs } : null);
+      const row = vesuvius.data as { earned: number; levels: unknown; best_time: number | null; wins: number; runs: number; checked_level?: number; checked_time?: number | null } | null;
+      // (the highest level the server checked won, and its time: since 20261101170000_vesuvius_levels.sql)
+      const checked = row ? Number(row.checked_level ?? (row.checked_time ? 1 : 0)) || 0 : 0;
+      const { upload } = mergeVesuvius(
+        row ? { earned: row.earned, levels: cleanForge(row.levels), best: cleanBest(row.best_time), wins: row.wins, runs: row.runs, level: checked, levelTime: cleanBest(row.checked_time) } : null,
+      );
       if (upload) void this.saveVesuviusProgress();
     }
     void this.loadDebugTools();
@@ -378,6 +382,8 @@ export class Account {
         open: body.open === true,
         wave: typeof body.wave === 'number' ? body.wave : null,
         test: body.test === true,
+        ...(typeof body.level === 'number' ? { level: body.level } : {}),
+        ...(typeof body.maxLevel === 'number' ? { maxLevel: body.maxLevel } : {}),
         ...(body.reason === 'signin' || body.reason === 'unknown' ? { reason: body.reason } : {}),
       };
     } catch {

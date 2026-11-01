@@ -23,13 +23,13 @@ import {
 } from '../sim/constants';
 import type { Game } from '../sim/game';
 import type { Player, SkinInfo } from '../sim/player';
-import { VESUVIUS_BOSS_LIFE, VESUVIUS_DEATH_PENALTY, VESUVIUS_ERUPTION } from '../sim/vesuvius';
+import { VESUVIUS_BOSS_LIFE, VESUVIUS_DEATH_PENALTY, VESUVIUS_ERUPTION, VESUVIUS_LEVEL_WAVES, vesuviusScale } from '../sim/vesuvius';
 import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { VesuviusRenderer, type VesuviusMarks } from './render/vesuviusRenderer';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOOSTS, ELITE, WAVES, eliteStrength, rollElite, waveSpec, type PowerKind, type WaveSpec } from './waves';
-import { FORGE_BARRIER, FORGE_DASH, FORGE_STEP, VESUVIUS_LIVES, loadVesuvius, runObsidian, saveVesuviusRun, type ForgeLevels, type RunObsidian, type VesuviusProgress } from './vesuviusProgress';
+import { FORGE_BARRIER, FORGE_DASH, FORGE_STEP, VESUVIUS_LIVES, loadVesuvius, runObsidian, saveVesuviusRun, type ForgeLevels, type RunObsidian, type VesuviusProgress, forgeFactor } from './vesuviusProgress';
 
 /** The rules. Damage in shares of the player's bar (100 points), before his defence. */
 export const VES = {
@@ -116,6 +116,8 @@ export const PHASES: PhaseSpec[] = [
 
 /** What the HUD shows of a run (HudLayer). */
 export interface VesuviusHud {
+  /** The level played. */
+  level: number;
   /** 1 to 3; `erupting`: between two, the volcano untouchable. */
   phase: number;
   erupting: boolean;
@@ -151,8 +153,11 @@ export interface VesuviusEnd {
   seconds: number;
   deaths: number;
   kills: number;
-  /** A win faster than the best one before (`best`, null: none). */
+  /** A win faster than the best one before on this level (`best`, null: none). */
   isBest: boolean;
+  /** The level played, and whether this win opened the next one. */
+  level: number;
+  opened: boolean;
   best: number | null;
   firstWin: boolean;
   obsidian: RunObsidian;
@@ -170,6 +175,8 @@ export interface VesuviusContext {
   randomSkin: () => SkinInfo;
   levels: ForgeLevels;
   weapon: number;
+  /** The level played (1 and up: vesuviusScale). */
+  level: number;
   /** A phase begins (2 and 3: the eruption), the volcano fell. */
   onPhase: (phase: number) => void;
   onWin: (position: Vec3) => void;
@@ -227,6 +234,10 @@ export class VesuviusRun {
   private endIn = 0;
   over = false;
   private readonly before = loadVesuvius();
+  /** The level's scale of the volcano's life and damage, of the Obsidian (vesuviusScale). */
+  private get scale(): number {
+    return vesuviusScale(this.ctx.level);
+  }
 
   constructor(private readonly ctx: VesuviusContext) {
     this.renderer = new VesuviusRenderer(ctx.scene);
@@ -247,10 +258,11 @@ export class VesuviusRun {
     boss.spawnImmune = false;
     boss.radius = VES.bossRadius;
     boss.wallRadius = 0.5;
-    boss.damageScale = 1 / VES.bossLife;
-    boss.pointScale = VES.bossLife;
+    // (its life and its attacks' damage times the level's scale)
+    boss.damageScale = 1 / (VES.bossLife * this.scale);
+    boss.pointScale = VES.bossLife * this.scale;
     // Its attacks are given in shares of the player's bar: undo the player's share of the enemies' damage
-    boss.damageBoost = 1 / VES.playerDamage;
+    boss.damageBoost = this.scale / VES.playerDamage;
     boss.takesLifePacks = false;
     boss.lifePackChance = 0;
     boss.grenadeDropChance = 0;
@@ -295,10 +307,11 @@ export class VesuviusRun {
     // The Forge, every tick (the dash and the shield are the waves' own)
     // (and the crates' 15 s power-ups on top)
     for (const k of Object.keys(this.timers) as TimedPower[]) this.timers[k] = Math.max(0, this.timers[k] - TICK);
-    me.damageBoost = (1 + FORGE_STEP.damage * levels.damage) * (this.timers.fury > 0 ? BOOSTS.fury : 1);
-    me.fireBoost = (1 + FORGE_STEP.fire * levels.fire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1);
-    me.armorBoost = (1 - FORGE_STEP.armor * levels.armor) * (this.timers.shield > 0 ? BOOSTS.shield : 1);
-    me.lifeMax = 1 + FORGE_STEP.life * levels.life;
+    // (with its mastery past the top: forgeFactor)
+    me.damageBoost = forgeFactor('damage', levels.damage) * (this.timers.fury > 0 ? BOOSTS.fury : 1);
+    me.fireBoost = forgeFactor('fire', levels.fire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1);
+    me.armorBoost = forgeFactor('armor', levels.armor) * (this.timers.shield > 0 ? BOOSTS.shield : 1);
+    me.lifeMax = forgeFactor('life', levels.life);
     me.speedBoost = (1 + FORGE_STEP.speed * levels.speed) * (this.timers.speed > 0 ? BOOSTS.speed : 1);
     this.dashWait = Math.max(0, this.dashWait - TICK);
     if (me.isAlive && keys.dash && levels.dash > 0 && this.dashWait <= 0) this.dash();
@@ -393,7 +406,7 @@ export class VesuviusRun {
     this.addGap -= TICK;
     if (this.addsDue > 0 && this.addGap <= 0) {
       this.addGap = 0.6;
-      if (this.enemies().filter((p) => p.isAlive).length < spec.adds.max) this.spawnAdd(spec.adds.wave);
+      if (this.enemies().filter((p) => p.isAlive).length < spec.adds.max) this.spawnAdd(spec.adds.wave + VESUVIUS_LEVEL_WAVES * (this.ctx.level - 1));
       this.addsDue--;
     }
   }
@@ -830,12 +843,16 @@ export class VesuviusRun {
     const me = this.ctx.me;
     const won = this.won;
     const time = Math.round(this.time);
-    const best = this.before.best;
+    const level = this.ctx.level;
+    const best = this.before.bests[level] ?? null;
     const isBest = won && (best === null || time < best);
-    const obsidian = runObsidian(this.share, this.phase - 1, me.kills, won, isBest);
-    const { progress } = saveVesuviusRun(obsidian.total, won, won ? time : null);
-    track('vesuvius_end', { result: won ? 'won' : 'lost', phase: this.phase, seconds: time, deaths: me.deaths, kills: me.kills, obsidian: obsidian.total, new_best: isBest });
-    return { won, phase: this.phase, share: obsidian.share, time, seconds: this.elapsed, deaths: me.deaths, kills: me.kills, isBest, best, firstWin: won && this.before.wins === 0, obsidian, progress };
+    const obsidian = runObsidian(this.share, this.phase - 1, me.kills, won, isBest, level);
+    const { progress } = saveVesuviusRun(obsidian.total, won, won ? time : null, level);
+    track('vesuvius_end', { result: won ? 'won' : 'lost', phase: this.phase, seconds: time, deaths: me.deaths, kills: me.kills, obsidian: obsidian.total, new_best: isBest, level });
+    return {
+      won, phase: this.phase, share: obsidian.share, time, seconds: this.elapsed, deaths: me.deaths, kills: me.kills, isBest, best,
+      firstWin: won && this.before.wins === 0, obsidian, progress, level, opened: won && level > this.before.level,
+    };
   }
 
   hud(): VesuviusHud {
@@ -843,17 +860,18 @@ export class VesuviusRun {
     const boss = this.boss;
     const life = this.won ? 0 : boss.isAlive ? Math.max(0, boss.life) : 0;
     return {
+      level: this.ctx.level,
       phase: this.phase,
       erupting: this.eruptUntil > 0,
       bossName: boss.name,
       bossLife: life,
-      bossPoints: Math.ceil(life * VES.bossLife * 100),
-      bossMax: VES.bossLife * 100,
+      bossPoints: Math.ceil(life * VES.bossLife * this.scale * 100),
+      bossMax: Math.round(VES.bossLife * this.scale * 100),
       lives: me.lives + (me.isAlive ? 1 : 0),
       kills: me.kills,
       time: this.time,
-      best: this.before.best,
-      obsidian: runObsidian(this.share, this.phase - 1, me.kills, false, false).total,
+      best: this.before.bests[this.ctx.level] ?? null,
+      obsidian: runObsidian(this.share, this.phase - 1, me.kills, false, false, this.ctx.level).total,
       powers: (Object.keys(this.timers) as TimedPower[]).filter((k) => this.timers[k] > 0).map((k) => ({ kind: k, left: this.timers[k] })),
       abilities: this.ctx.levels.dash > 0 ? [{ kind: 'dash', ready: 1 - this.dashWait / FORGE_DASH[this.ctx.levels.dash] }] : [],
       barrier: me.barrierMax > 0 ? { now: me.barrier, max: me.barrierMax } : null,

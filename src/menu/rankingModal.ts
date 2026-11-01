@@ -60,8 +60,10 @@ export const COLUMNS: Record<RankingMode, { head: Key; cell: (r: RankingRow) => 
     { head: 'ranking.power', cell: (r) => (typeof r.stats.power === 'number' ? bigNum(r.stats.power) : '—') },
     { head: 'ranking.runs', cell: (r) => bigNum(r.stats.runs) },
   ],
-  // The best time to bring the volcano down (the deaths counted), then the wins (Erick, 31/10/2026)
+  // The highest level won (01/11/2026), then the best time on it (the deaths counted), then the wins (Erick, 31/10/2026);
+  // before the levels' migration, a win counts as level 1
   vesuvius: [
+    { head: 'vesuvius.levelLabel', cell: (r) => (typeof r.stats.level === 'number' ? bigNum(r.stats.level) : typeof r.stats.time === 'number' ? '1' : '—') },
     { head: 'vesuvius.bestLabel', cell: (r) => (typeof r.stats.time === 'number' ? clock(r.stats.time) : '—') },
     { head: 'vesuvius.winsLabel', cell: (r) => bigNum(r.stats.wins) },
     { head: 'ranking.runs', cell: (r) => bigNum(r.stats.runs) },

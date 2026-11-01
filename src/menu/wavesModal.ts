@@ -423,6 +423,7 @@ export class WavesModal {
     if (access?.open) {
       $('vsMini').style.backgroundImage = `url('${versioned('/menu/card-vesuvius.webp')}')`;
       $('vsHow').textContent = access.test ? t('vesuvius.openTest') : t('vesuvius.openRecord', { n: access.wave ?? record });
+      this.forge.setAccess(access);
       this.forge.render();
       return;
     }

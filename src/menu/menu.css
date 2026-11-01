@@ -1106,6 +1106,11 @@ select:focus-visible {
   gap: 6px;
 }
 
+/* The Vesuvius: the level, and the time on it */
+.lr-row.timed.one {
+  grid-template-columns: 34px 20px minmax(0, 1fr) auto 48px;
+}
+
 .lr-row.head {
   height: 20px;
   background: none !important;
@@ -5864,6 +5869,20 @@ input[type='range'] {
 .wv-play.vs-play {
   font-size: 21px;
   white-space: nowrap;
+}
+
+/* The level to go in at (01/11/2026): the Waves' wave picker in lava */
+.wv-wave.vs-level {
+  border-color: #ff7a2a;
+  background: rgba(255, 110, 30, 0.14);
+}
+
+.wv-wave.vs-level span {
+  color: #ffc49a;
+}
+
+.wv-wave.vs-level b {
+  color: #ff9a3a;
 }
 
 .wv-play.vs-play:not(:disabled) {

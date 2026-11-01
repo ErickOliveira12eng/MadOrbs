@@ -18,7 +18,7 @@ const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s) % 60)
  * The waves' time to reach the best wave, beside it (Erick, 24/10/2026: the time breaks the ties, it should be seen
  * and raced); none for a run from a checkpoint never reached with a time.
  */
-const wavesTime = (mode: RankingMode, r: RankingRow) => (mode === 'waves' && typeof r.stats.time === 'number' ? `<small>${clock(r.stats.time)}</small>` : '');
+const wavesTime = (mode: RankingMode, r: RankingRow) => ((mode === 'waves' || mode === 'vesuvius') && typeof r.stats.time === 'number' ? `<small>${clock(r.stats.time)}</small>` : '');
 
 type Tab = 'online' | 'waves' | 'vesuvius';
 
@@ -152,13 +152,17 @@ export class LobbyRanking {
     const { rows, total } = got;
     const by = COLUMNS[mode][0];
     // The waves: the time in a column of its own (Erick, 24/10/2026: titles over the numbers)
-    const timed = mode === 'waves';
+    // (the Vesuvius: the level, and the time on it in a column of its own, 01/11/2026)
+    const timed = mode === 'waves' || mode === 'vesuvius';
+    const one = mode === 'vesuvius' ? ' one' : '';
     const time = (r: RankingRow) => `<span class="time">${typeof r.stats.time === 'number' ? clock(r.stats.time) : '—'}</span>`;
     // and the Power the record's run began with (Erick, 28/10/2026)
     const power = (r: RankingRow) => `<span class="time">${typeof r.stats.power === 'number' ? bigNum(r.stats.power) : '—'}</span>`;
     let html = rows.length
-      ? `<li class="lr-row head${timed ? ' timed' : ''}" aria-hidden="true"><span>#</span><span></span><span>${t('ranking.player')}</span>` +
-        `<span class="val">${t(timed ? 'lobby.colWave' : by.head)}</span>${timed ? `<span class="time">${t('ranking.reachTime')}</span><span class="time">${t('ranking.power')}</span>` : ''}</li>`
+      ? `<li class="lr-row head${timed ? ` timed${one}` : ''}" aria-hidden="true"><span>#</span><span></span><span>${t('ranking.player')}</span>` +
+        `<span class="val">${t(mode === 'waves' ? 'lobby.colWave' : by.head)}</span>` +
+        (mode === 'waves' ? `<span class="time">${t('ranking.reachTime')}</span><span class="time">${t('ranking.power')}</span>` : one ? `<span class="time">${t('vesuvius.timeLabel')}</span>` : '') +
+        `</li>`
       : '';
     let last = 0;
     for (const r of rows) {
@@ -166,11 +170,11 @@ export class LobbyRanking {
       if (last > 0 && r.rank > last + 1) html += `<li class="lr-gap" aria-hidden="true">⋯</li>`;
       last = r.rank;
       html +=
-        `<li class="lr-row${timed ? ' timed' : ''}${r.is_me ? ' me' : ''}${r.rank <= 3 ? ` m${r.rank}` : ''}">` +
+        `<li class="lr-row${timed ? ` timed${one}` : ''}${r.is_me ? ' me' : ''}${r.rank <= 3 ? ` m${r.rank}` : ''}">` +
         `<span class="pos">${bigNum(r.rank)}</span>` +
         `<i class="orb" style="${orbStyle(r)}"></i>` +
         `<b class="who">${r.is_me ? t('ranking.you') : esc(r.name || 'Orb')}</b>` +
-        `<span class="val">${by.cell(r)}</span>${timed ? time(r) + power(r) : ''}</li>`;
+        `<span class="val">${by.cell(r)}</span>${mode === 'waves' ? time(r) + power(r) : one ? time(r) : ''}</li>`;
     }
     this.setList(html || `<li class="lr-note">${t('ranking.empty')}</li>`);
     this.renderPerf(mode, rows.find((r) => r.is_me) ?? null, total);

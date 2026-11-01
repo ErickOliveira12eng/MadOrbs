@@ -1,10 +1,13 @@
 // The Vesuvius's Forge (src/client/vesuviusProgress.ts), in the Survival window's Vesuvius tab once the server opens
 // it: its own upgrades bought with its own currency, Obsidian (Erick, 31/10/2026: the Waves' Workshop doesn't count
 // there). The Waves' Workshop's layout: the list by kind, the chosen one in detail with the button that buys it, and
-// what the run goes in with (the weapon), the best time, PLAY.
+// what the run goes in with (the weapon), the best time, PLAY. Since 01/11/2026 the levels (src/sim/vesuvius.ts
+// vesuviusScale: each one won opens the next, the server says up to which) and the mastery of damage, attack speed,
+// life and defence past their top (FORGE_MASTERY).
 import { track } from '../client/analytics';
 import { weaponLook } from '../client/wavesPrize';
-import { FORGE, FORGE_BARRIER, FORGE_DASH, FORGE_GROUPS, FORGE_STEP, VESUVIUS_LIVES, VESUVIUS_WEAPONS, buyForge, forgeCost, loadVesuvius, obsidianBalance, saveVesuvius, type ForgeGroup, type ForgeID, type ForgeUpgrade, type VesuviusProgress } from '../client/vesuviusProgress';
+import { FORGE, FORGE_BARRIER, FORGE_DASH, FORGE_GROUPS, FORGE_STEP, VESUVIUS_LIVES, VESUVIUS_WEAPONS, buyForge, forgeCost, forgeFactor, forgeLevelCost, forgeTop, loadVesuvius, obsidianBalance, saveVesuvius, type ForgeGroup, type ForgeID, type ForgeUpgrade, type VesuviusProgress } from '../client/vesuviusProgress';
+import { VESUVIUS_LEVEL_STEP, vesuviusScale, type VesuviusAccess } from '../sim/vesuvius';
 import { bigNum, num, t } from '../i18n';
 import type { Account } from './account';
 import { icon, type IconName } from './icons';
@@ -31,18 +34,19 @@ export const obsidianIcon = (size = 18) => `<span class="obsidian-ico">${icon('o
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s) % 60).padStart(2, '0')}`;
 
-/** What an upgrade gives at a level, as the Forge says it. */
+/** What an upgrade gives at a level, as the Forge says it (past the top, with its mastery). */
 function forgeValue(id: ForgeID, level: number): string {
-  const pct = (x: number) => `+${Math.round(x * 100)}%`;
+  const pct = (x: number) => `+${bigNum(Math.round(x * 100))}%`;
   switch (id) {
     case 'damage':
     case 'fire':
+      return pct(forgeFactor(id, level) - 1);
     case 'speed':
       return pct(FORGE_STEP[id] * level);
     case 'life':
-      return String(Math.round(100 * (1 + FORGE_STEP.life * level)));
+      return bigNum(Math.round(100 * forgeFactor('life', level)));
     case 'armor':
-      return level ? `-${Math.round(FORGE_STEP.armor * level * 100)}%` : '0%';
+      return level ? `-${Math.round((1 - forgeFactor('armor', level)) * 100)}%` : '0%';
     case 'barrier':
       return `${Math.round(FORGE_BARRIER[level] * 100)}%`;
     case 'lives':
@@ -59,6 +63,9 @@ const LATER_LEVELS = 3;
 
 export class VesuviusForge {
   private selected: ForgeID | null = null;
+  /** The server's word: the highest level won (checked) and the highest this account may start. */
+  private won = 0;
+  private maxLevel = 1;
 
   constructor(
     private readonly account: Account,
@@ -94,6 +101,14 @@ export class VesuviusForge {
       saveVesuvius(p);
       this.render();
     });
+    $('vsLevels').addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-level]');
+      if (!b || b.disabled) return;
+      const p = loadVesuvius();
+      p.start = Math.max(1, Math.min(this.maxLevel, Number(b.dataset.level)));
+      saveVesuvius(p);
+      this.render();
+    });
     $('vsPlay').addEventListener('click', () => this.onPlay());
     $('vsSave').addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('button')) this.onSignIn();
@@ -103,6 +118,17 @@ export class VesuviusForge {
   /** The window opens on the Vesuvius: the first upgrade worth buying chosen. */
   reset(): void {
     this.selected = null;
+  }
+
+  /** The server's answer (GET /api/vesuvius): up to which level the picker goes. */
+  setAccess(access: VesuviusAccess): void {
+    this.won = access.level ?? 0;
+    this.maxLevel = Math.max(1, access.maxLevel ?? 1);
+  }
+
+  /** The level the run goes in at: the one chosen, at most the highest open. */
+  private level(p: VesuviusProgress): number {
+    return Math.max(1, Math.min(this.maxLevel, p.start));
   }
 
   render(): void {
@@ -125,7 +151,9 @@ export class VesuviusForge {
   private row(u: ForgeUpgrade, p: VesuviusProgress, cash: number): string {
     const level = p.levels[u.id];
     const cost = forgeCost(u, p.levels);
-    const pips = u.costs.map((_, i) => `<i class="${i < level ? 'on' : ''}"></i>`).join('');
+    // Past the top, the mastery's levels (FORGE_MASTERY)
+    const mastery = level > u.costs.length ? `<span class="wv-lvtext wv-mastery">+${level - u.costs.length}</span>` : '';
+    const pips = u.costs.map((_, i) => `<i class="${i < level ? 'on' : ''}"></i>`).join('') + mastery;
     const price =
       cost === null ? `<span class="wv-price max">${t('workshop.max')}</span>` : `<span class="wv-price${cost > cash ? ' off' : ''}">${obsidianIcon(12)}${bigNum(cost)}</span>`;
     return (
@@ -138,9 +166,12 @@ export class VesuviusForge {
   private renderDetail(p: VesuviusProgress, cash: number): void {
     const u = FORGE.find((x) => x.id === this.selected) ?? FORGE[0];
     const level = p.levels[u.id];
-    const max = u.costs.length;
+    const top = u.costs.length;
+    const max = forgeTop(u);
     const cost = forgeCost(u, p.levels);
     const bars = u.costs.map((_, i) => `<i class="${i < level ? 'on' : i === level ? 'next' : ''}"></i>`).join('');
+    // A level's name: its number, or past the top its mastery's
+    const name = (l: number) => (l > top ? t('workshop.mastery', { n: l - top }) : t('workshop.levelN', { n: l }));
     let body: string;
     if (cost === null) {
       body =
@@ -149,31 +180,34 @@ export class VesuviusForge {
     } else {
       const later = [];
       for (let l = level + 2; l <= Math.min(max, level + 1 + LATER_LEVELS); l++) {
-        later.push(`<li><span>${t('workshop.levelN', { n: l })}</span><b>${forgeValue(u.id, l)}</b><span>${obsidianIcon(12)}${bigNum(u.costs[l - 1])}</span></li>`);
+        later.push(`<li><span>${name(l)}</span><b>${forgeValue(u.id, l)}</b><span>${obsidianIcon(12)}${bigNum(forgeLevelCost(u, l - 1))}</span></li>`);
       }
       const short = cost > cash;
       body =
         `<div class="wv-compare"><div class="wv-now"><small>${t('workshop.now')}</small><b>${forgeValue(u.id, level)}</b></div>` +
         `<span class="wv-arrow">${icon('arrowRight', 28)}</span>` +
-        `<div class="wv-now on"><small>${t('workshop.levelN', { n: level + 1 })}</small><b>${forgeValue(u.id, level + 1)}</b></div></div>` +
+        `<div class="wv-now on"><small>${name(level + 1)}</small><b>${forgeValue(u.id, level + 1)}</b></div></div>` +
         (later.length ? `<ul class="wv-later">${later.join('')}</ul>` : '') +
         `<div class="wv-buyzone"><button type="button" class="wv-buy vs-buy" data-buy="${u.id}"${short ? ' disabled' : ''}>` +
-        `${t('workshop.upgradeTo', { n: level + 1 })}<span class="wv-cost">${obsidianIcon(15)}${bigNum(cost)}</span></button>` +
+        `${level + 1 > top ? t('workshop.masteryTo', { n: level + 1 - top }) : t('workshop.upgradeTo', { n: level + 1 })}<span class="wv-cost">${obsidianIcon(15)}${bigNum(cost)}</span></button>` +
         `<small class="${short ? 'short' : ''}">${short ? t('vesuvius.need', { n: bigNum(cost - cash) }) : t('vesuvius.left', { n: bigNum(cash - cost) })}</small></div>`;
     }
     $('vsDetail').className = `wv-detail ${TONE[u.group]}`;
     $('vsDetail').innerHTML =
       `<div class="wv-detail-head"><span class="wv-bigico">${icon(FORGE_ICON[u.id], 36)}</span>` +
       `<div><small>${t(u.group === 'moving' ? 'vesuvius.groupMoving' : u.group === 'attack' ? 'workshop.group.attack' : 'workshop.group.defense')}</small><h4>${t(`up.${u.id}`)}</h4><p>${t(`up.${u.id}.desc`)}</p></div></div>` +
-      `<div class="wv-level"><span>${t('workshop.level', { n: level, max })}</span><span class="wv-bars">${bars}</span></div>` +
+      `<div class="wv-level"><span>${level > top ? t('workshop.mastery', { n: level - top }) : t('workshop.level', { n: level, max: top })}</span><span class="wv-bars">${bars}</span></div>` +
+      (max > top && level >= top - 1 ? `<p class="wv-mhint">${t('workshop.masteryHint')}</p>` : '') +
       body;
   }
 
-  /** The best time and the wins, the weapon to go in with (one at a time, with arrows), PLAY. */
+  /** The highest level won and the wins, the level to go in at, the weapon (one at a time, with arrows), PLAY. */
   private renderSide(p: VesuviusProgress): void {
+    const won = Math.max(this.won, Math.min(p.level, this.maxLevel));
     $('vsRecord').innerHTML =
-      `<div><small>${t('vesuvius.bestLabel')}</small><b>${p.best !== null ? clock(p.best) : '—'}</b></div>` +
+      `<div><small>${t('vesuvius.topLevel')}</small><b>${won ? bigNum(won) : '—'}</b></div>` +
       `<div><small>${t('vesuvius.winsLabel')}</small><b>${bigNum(p.wins)}</b></div>`;
+    this.renderLevels(p);
     const all = VESUVIUS_WEAPONS;
     const i = Math.max(0, all.indexOf(p.weapon));
     const look = weaponLook(all[i]);
@@ -186,5 +220,26 @@ export class VesuviusForge {
       `<div class="wv-gun"><span class="wv-gun-pic"><img src="${look.picture}" alt="" /></span><b>${look.name}</b><span class="wv-dots">${dots}</span></div>` +
       arrow(1, 'chevronRight', t('workshop.nextWeapon'));
     $('vsPlay').innerHTML = `${icon('play', 22)}${t('vesuvius.play')}`;
+  }
+
+  /**
+   * The level, big between two arrows as the Waves' start (the next one past the highest open stays shut): its best
+   * time, how much stronger the volcano is, how much more Obsidian it pays.
+   */
+  private renderLevels(p: VesuviusProgress): void {
+    const level = this.level(p);
+    const arrow = (to: number, name: IconName, label: string) =>
+      `<button type="button" class="wv-arrow"${to < 1 || to > this.maxLevel ? ' disabled' : ''} data-level="${to}" aria-label="${label}">${icon(name, 20)}</button>`;
+    const best = p.bests[level];
+    const more = Math.round((vesuviusScale(level) - 1) * 100);
+    $('vsLevels').innerHTML =
+      `<div class="wv-pick">${arrow(level - 1, 'chevronLeft', t('vesuvius.prevLevel'))}` +
+      `<div class="wv-wave vs-level"><span>${t('vesuvius.levelLabel')}</span><b>${bigNum(level)}</b></div>` +
+      `${arrow(level + 1, 'chevronRight', t('vesuvius.nextLevel'))}</div>` +
+      `<div class="wv-facts"><div><small>${t('workshop.timeShort')}</small><b>${best !== undefined ? clock(best) : '—'}</b></div>` +
+      `<div><small>${t('vesuvius.levelPower')}</small><b>${more ? `+${bigNum(more)}%` : '—'}</b></div>` +
+      `<div><small>${t('vesuvius.obsidian')}</small><b class="gain">×${num(vesuviusScale(level))}</b></div></div>`;
+    $('vsLevelNote').textContent =
+      level >= this.maxLevel ? t('vesuvius.levelNote', { n: level, m: level + 1 }) : t('vesuvius.levelAbout', { n: Math.round(VESUVIUS_LEVEL_STEP * 100) });
   }
 }

@@ -80,12 +80,15 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
   }
   // The Vesuvius: only when the server says this account may (its checked record past wave 100, or a tester's
   // account with "everything unlocked" ticked); the Workshop's tab asked already, asked again at the door
+  // (and its level: at most one past the highest the server checked won)
+  let vesuviusLevel = 1;
   if (vesuvius) {
     const access = await account.vesuviusAccess(debugUnlockOn(account.debugTools.zoom));
     if (!access?.open) {
       screen.show(t(access ? 'vesuvius.denied' : 'vesuvius.offline'));
       return;
     }
+    vesuviusLevel = Math.max(1, Math.min(loadVesuvius().start, access.maxLevel ?? 1));
   }
   // From the second match this browser plays, an ad blocker on asks (once a visit) to be turned off
   await screen.beforePlay();
@@ -203,7 +206,7 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
           ...common,
           mode: 'tdm',
           mapName: VESUVIUS_MAP,
-          vesuvius: { levels: forge.levels, weapon: forge.weapon },
+          vesuvius: { levels: forge.levels, weapon: forge.weapon, level: vesuviusLevel },
           // The run's reports say whose it is (src/client/vesuviusReport.ts): the server checks a win for the ranking
           authToken: await account.accessToken(),
           onVesuviusEnd: () => void account.saveVesuviusProgress(),

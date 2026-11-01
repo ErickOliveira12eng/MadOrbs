@@ -21,6 +21,17 @@ export const VESUVIUS_BOSS_LIFE = 150;
 export const VESUVIUS_ERUPTION = 4.5;
 export const VESUVIUS_DEATH_PENALTY = 15;
 
+/**
+ * The levels (Erick, 01/11/2026: more than one, without end like the Waves): beating level n opens n + 1. Level n's
+ * volcano has VESUVIUS_LEVEL_STEP more life and damage a level than the first's, its adds come VESUVIUS_LEVEL_WAVES
+ * waves stronger a level, its Obsidian is as much more (vesuviusScale). The server lets an account start at most one
+ * level past the highest it checked won.
+ */
+export const VESUVIUS_LEVEL_STEP = 0.25;
+export const VESUVIUS_LEVEL_WAVES = 3;
+export const VESUVIUS_MAX_LEVEL = 10000;
+export const vesuviusScale = (level: number): number => 1 + VESUVIUS_LEVEL_STEP * (Math.max(1, Math.floor(level)) - 1);
+
 /** GET /api/vesuvius's answer. */
 export interface VesuviusAccess {
   open: boolean;
@@ -28,6 +39,9 @@ export interface VesuviusAccess {
   wave: number | null;
   /** Open as a tester's account. */
   test: boolean;
+  /** The highest level the server checked won (0: none), and the highest the account may start (that one + 1). */
+  level?: number;
+  maxLevel?: number;
   /** Why it isn't: no account signed in, or no way to read the records. */
   reason?: 'signin' | 'unknown';
 }

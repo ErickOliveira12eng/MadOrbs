@@ -6,7 +6,7 @@
 import { lang } from '../i18n';
 
 export type VesuviusRunReport =
-  | { phase: 'start'; id: string; weapon: number; levels: Record<string, number> }
+  | { phase: 'start'; id: string; weapon: number; levels: Record<string, number>; level: number }
   | { phase: 'phase'; id: string; n: number }
   | {
       phase: 'end';

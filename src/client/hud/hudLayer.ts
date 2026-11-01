@@ -725,6 +725,7 @@ export class HudLayer {
   showVesuviusEnd(e: VesuviusEnd & { onAction: (action: 'retry' | 'forge' | 'menu') => void }): void {
     const head = e.won
       ? `<div class="wave-reached"><span>${t('vesuvius.timeLabel')}</span><b>${clock(e.time)}</b></div>` +
+        (e.opened ? `<div class="best new">${t('vesuvius.opened', { n: bigNum(e.level + 1) })}</div>` : '') +
         (e.isBest ? `<div class="best new">${t(e.firstWin ? 'vesuvius.firstWin' : 'vesuvius.newBest')}</div>` : e.best !== null ? `<div class="best">${t('vesuvius.best', { time: clock(e.best) })}</div>` : '')
       : `<div class="wave-reached"><span>${t('vesuvius.phaseLabel')}</span><b>${e.phase}</b></div>` +
         `<div class="time">${t('vesuvius.barTaken', { n: Math.round(e.share * 100) })}</div>`;
@@ -751,9 +752,9 @@ export class HudLayer {
     const buttons =
       `<button type="button" data-a="menu"><span class="h-key">Esc</span>${t('waves.menu')}</button>` +
       `<button type="button" class="shop" data-a="forge"><span class="h-key">W</span>${t('vesuvius.forge')}</button>` +
-      `<button type="button" class="primary" data-a="retry" disabled><span class="h-key">Enter</span>${t(e.won ? 'waves.retry' : 'campaign.tryAgain')}${wait}</button>`;
+      `<button type="button" class="primary" data-a="retry" disabled><span class="h-key">Enter</span>${t(e.opened ? 'vesuvius.nextLevel' : e.won ? 'waves.retry' : 'campaign.tryAgain')}${wait}</button>`;
     this.openEndPanel(
-      `<div class="t ${e.won ? 'won' : 'lost'}">${t(e.won ? 'vesuvius.wonTitle' : 'vesuvius.lostTitle')}</div><div class="lvl">${t('vesuvius.name')}</div>${head}` +
+      `<div class="t ${e.won ? 'won' : 'lost'}">${t(e.won ? 'vesuvius.wonTitle' : 'vesuvius.lostTitle')}</div><div class="lvl">${t('vesuvius.name')} · ${t('vesuvius.levelN', { n: bigNum(e.level) })}</div>${head}` +
         `<div class="wend-split"><div class="wu-side">${box}</div><div class="wu-side">${side}</div></div><div class="btns">${buttons}</div>`,
       'retry',
       (a) => e.onAction(a === 'menu' ? 'menu' : a === 'forge' ? 'forge' : 'retry'),
@@ -1051,7 +1052,7 @@ export class HudLayer {
 
   /** The Vesuvius's corner panel: the three phases (done, now, to come), the best time, the Obsidian of the run. */
   private updateVesuviusBoard(v: VesuviusHud): void {
-    let html = `<div class="h-bhead"><span class="h-label">${t('vesuvius.name')}</span><span class="sp"></span></div><div class="h-vphases">`;
+    let html = `<div class="h-bhead"><span class="h-label">${t('vesuvius.name')}</span><span class="sp"></span><span class="h-vlevel">${t('vesuvius.levelN', { n: bigNum(v.level) })}</span></div><div class="h-vphases">`;
     for (const n of [1, 2, 3]) {
       const cls = v.won || n < v.phase ? 'done' : n === v.phase ? 'on' : '';
       html += `<span class="${cls}"><b>${n}</b>${t(n === 1 ? 'vesuvius.short1' : n === 2 ? 'vesuvius.short2' : 'vesuvius.short3')}</span>`;
