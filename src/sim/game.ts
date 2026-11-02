@@ -108,6 +108,8 @@ export interface GameOptions {
    * byte). Offline a game may hold more (the waves: WAVES.maxOrbs).
    */
   maxPlayers?: number;
+  /** Every player's pace in this game (Player.pace; the normal modes: NORMAL_PACE). 1 by default. */
+  pace?: number;
 }
 
 /** Player.edgeSpawn: a spawn point this close to the map's edge (cells) counts as on the edge. */
@@ -133,6 +135,8 @@ export class Game {
   projectiles: Projectile[] = [];
   readonly events = new EventQueue();
   readonly gameType: number;
+  /** Every player's pace here (GameOptions.pace: the normal modes' NORMAL_PACE), under the speed boosts. */
+  readonly pace: number;
   roundState = GAME_PLAYING;
   gameTimeLeft = sv.sv_gameTimeLimit;
   roundTimeLeft = sv.sv_roundTimeLimit;
@@ -166,6 +170,7 @@ export class Game {
     this.mode = opts.mode ?? 'local';
     this.net = opts.net ?? null;
     this.gameType = opts.gameType ?? GAME_TYPE_DM;
+    this.pace = opts.pace ?? 1;
     if (opts.maxPlayers && opts.maxPlayers > MAX_PLAYER && this.mode === 'local') this.players = new Array(opts.maxPlayers).fill(null);
     this.resetFlags();
   }

@@ -32,7 +32,7 @@ const BY: Record<RankingMode, Key> = {
   campaign: 'lobby.rankBy.campaign',
   vesuvius: 'lobby.rankBy.vesuvius',
 };
-/** The top rows (a guest sees only the top: a longer one). */
+/** The top rows (a guest sees only the top: a longer one; so does an account not in the ranking or near its top). */
 const TOP = 3;
 const GUEST_TOP = 6;
 /** A list read again after this long. */
@@ -113,7 +113,11 @@ export class LobbyRanking {
     const key = `${mode}:${signed}`;
     const got = this.cache.get(key);
     if (got && performance.now() - got.at < CACHE_MS) return got;
-    const { rows, total } = await this.account.rankingNear(mode, signed ? TOP : GUEST_TOP);
+    let { rows, total } = await this.account.rankingNear(mode, signed ? TOP : GUEST_TOP);
+    // Signed in, but not in this ranking yet or among its first few: the guests' longer top (Erick, 02/11/2026: an account
+    // just made saw the top 3 alone, with no rows of its own around it; his, second, saw 5)
+    const me = rows.find((r) => r.is_me);
+    if (signed && rows.length >= TOP && (!me || me.rank <= GUEST_TOP)) ({ rows, total } = await this.account.rankingNear(mode, GUEST_TOP));
     const fresh = { at: performance.now(), rows, total };
     this.cache.set(key, fresh);
     return fresh;

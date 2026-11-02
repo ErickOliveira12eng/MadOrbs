@@ -553,7 +553,7 @@ export class Player {
 
   /** The speed power-ups and the ice shots' chill (the waves): the acceleration, the top speed and (HANDLING.grip) the friction. */
   get pace(): number {
-    return this.speedBoost * (1 - this.chill) * (this.dashLeft > 0 ? 1 : this.drag);
+    return this.game.pace * this.speedBoost * (1 - this.chill) * (this.dashLeft > 0 ? 1 : this.drag);
   }
 
   /** The part of its weapon's original recoil each shot gives (HANDLING; the waves' rapid fire: less per shot, the same per second). */

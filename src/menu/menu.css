@@ -3040,6 +3040,78 @@ input[type='range'] {
   letter-spacing: 0.5px;
 }
 
+/* The account window is narrow: the two previews side by side on top, the choices under them, each row on one line */
+.account-xhair .xh-body {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.account-xhair .xh-prev {
+  grid-template-rows: none;
+  grid-template-columns: 1fr 1fr;
+}
+
+.account-xhair .xh-prev .floor {
+  min-height: 84px;
+}
+
+.account-xhair .xh-opts {
+  gap: 6px;
+}
+
+.account-xhair .xh-row {
+  flex-wrap: nowrap;
+  margin-bottom: 4px;
+}
+
+.account-xhair .xh-opt {
+  flex: 1;
+  min-width: 0;
+  height: 46px;
+  padding: 0 4px;
+}
+
+.account-xhair .xh-opt svg {
+  width: 38px;
+  height: 38px;
+}
+
+.account-xhair .xh-opt i {
+  width: 22px;
+  height: 22px;
+}
+
+.account-xhair .xh-row.sizes .xh-opt {
+  height: 38px;
+}
+
+/* A short window: lower previews and buttons, so the window fits without scrolling (it scrolls past that) */
+@media (max-height: 760px) {
+  .account-xhair {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+  .account-xhair h3 {
+    margin-bottom: 8px;
+  }
+  .account-xhair .xh-body {
+    gap: 8px;
+  }
+  .account-xhair .xh-prev .floor {
+    min-height: 58px;
+  }
+  .account-xhair .xh-opt {
+    height: 40px;
+  }
+  .account-xhair .xh-opt svg {
+    width: 32px;
+    height: 32px;
+  }
+  .account-xhair .xh-row.sizes .xh-opt {
+    height: 34px;
+  }
+}
+
 .xh-body {
   display: grid;
   grid-template-columns: 170px minmax(0, 1fr);

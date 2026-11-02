@@ -172,6 +172,13 @@ applyClientWeaponTuning();
 export const HANDLING = { brake: 6, grip: true, recoil: 0.5, steadyRecoil: true };
 export const CLASSIC_HANDLING: typeof HANDLING = { brake: 0, grip: false, recoil: 1, steadyRecoil: false };
 
+/**
+ * The normal modes' pace (Deathmatch, Team Deathmatch, Capture the Flag, online and the training, and the PvP tutorial;
+ * GameOptions.pace, Player.paceScale): 10% faster than the original's, its acceleration, top speed and grip with it
+ * (Erick, 02/11/2026: after the waves' speed upgrades a match felt slow). The waves and the Vesuvius keep the original's.
+ */
+export const NORMAL_PACE = 1.1;
+
 /** Server-side weapon damage for the rocket (GameProjectile.cpp: sv_serverType forced to 1). */
 export function bazookaDamage(): number {
   return sv.sv_serverType === SERVER_TYPE_PRO ? sv.sv_zookaDamage : 0.75;

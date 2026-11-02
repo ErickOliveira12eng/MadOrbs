@@ -52,7 +52,7 @@ import { loadAnnouncer, playAnnouncer } from './featSounds';
 import { applyFeatCounts, isAnnouncedToAll } from '../sim/feats';
 import type { GameEvent } from '../sim/events';
 import { Game, type ClientNet } from '../sim/game';
-import { CLASSIC_HANDLING, HANDLING, sv, weaponDefs } from '../sim/gameVar';
+import { CLASSIC_HANDLING, HANDLING, NORMAL_PACE, sv, weaponDefs } from '../sim/gameVar';
 import { BotController, BOT_NAMES, randomSkin } from '../sim/bot';
 import { GameMap, THEME_LAVA, WEATHER_RAIN, loadMap } from '../sim/map';
 import { MiniBot, type Player, type SkinInfo } from '../sim/player';
@@ -357,7 +357,7 @@ export class ClientGame {
       this.startVesuvius(map, this.opts.vesuvius);
       return;
     }
-    this.game = new Game(map, { gameType: ROOM_GAME_TYPE[this.opts.mode], onMapChangeRequest: () => void this.nextMap() });
+    this.game = new Game(map, { gameType: ROOM_GAME_TYPE[this.opts.mode], onMapChangeRequest: () => void this.nextMap(), pace: NORMAL_PACE });
     this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
     this.me.skin = this.opts.skin;
     this.me.crown = this.opts.crown ?? null;
@@ -643,7 +643,8 @@ export class ClientGame {
     sv.sv_scoreLimit = 0;
     sv.sv_winLimit = 0;
     sv.sv_gameTimeLimit = 0;
-    this.game = new Game(map, { gameType: GAME_TYPE_DM, onMapChangeRequest: () => {} });
+    // (the PvP tutorial: a normal match's pace)
+    this.game = new Game(map, { gameType: GAME_TYPE_DM, onMapChangeRequest: () => {}, pace: NORMAL_PACE });
     this.me = this.game.addPlayer(this.opts.playerName || 'Orb')!;
     this.me.skin = this.opts.skin;
     this.me.crown = this.opts.crown ?? null;
@@ -977,7 +978,7 @@ export class ClientGame {
     sv.sv_enableSecondary = welcome.rules.enableSecondary;
     sv.sv_forceRespawn = welcome.rules.forceRespawn;
 
-    this.game = new Game(map, { mode: 'client', net: this.makeNet(conn), gameType: welcome.gameType });
+    this.game = new Game(map, { mode: 'client', net: this.makeNet(conn), gameType: welcome.gameType, pace: NORMAL_PACE });
     this.applyTeams(welcome.teams);
     welcome.flags.forEach(([state, x, y], i) => this.game.applyFlag(i, state, new Vec3(x, y, 0)));
     this.applyPlayers(welcome.players);
