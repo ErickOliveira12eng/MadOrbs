@@ -2097,8 +2097,42 @@
 }
 
 .h-pausecard .h-pfoot {
+  flex-wrap: wrap;
   justify-content: center;
 }
+
+/* The crosshair's look in the Esc menu (WeaponPicker.renderCrosshair; its choices, crosshairPicker, are styled in
+   menu.css, shared with the account window) */
+.h-pickin.xhair {
+  display: grid;
+  place-items: center;
+}
+
+.h-xcard {
+  width: 660px;
+  padding: 24px 30px 22px;
+  border-radius: 22px;
+  background: var(--h-panel-strong);
+  border: 1px solid var(--h-line-strong);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+.h-xcard h2 {
+  margin: 6px 0 4px;
+  font: 400 44px/1 var(--h-display);
+  letter-spacing: 1.5px;
+}
+
+.h-xcard .sub {
+  margin: 0 0 18px;
+  color: var(--h-muted);
+  font: 700 15px var(--h-ui);
+}
+
+.h-xcard .xh-body {
+  margin-bottom: 20px;
+}
+
 
 /* With the waves' stats under it (WeaponPicker.pauseStats, the Tab's: HudLayer.wavesStats): one wide card, the title
    and the buttons on a row, the stats below */

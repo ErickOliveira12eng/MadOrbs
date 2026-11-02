@@ -251,6 +251,7 @@
             <section class="info-block">
               <h2 data-i18n="home.newsTitle">What's new</h2>
               <ul class="info-news">
+                <li><time datetime="2026-11-02" data-i18n="home.news76Date">November 2, 2026</time><b data-i18n="home.news76Title">Your shots stand out, and a crosshair your way</b><span data-i18n="home.news76">Your own shots are now a light blue, and the others' a faint red, thinner and more see-through: in the middle of a fight you can tell yours apart. And the crosshair can be changed in the Esc menu (the Crosshair button) and in the account window (the button at the top of the start screen): its shape, color and size.</span></li>
                 <li><time datetime="2026-11-02" data-i18n="home.news75Date">November 2, 2026</time><b data-i18n="home.news75Title">Waves: your stats in the pause, and a nuke that hurts</b><span data-i18n="home.news75">The Waves' pause (Esc) now shows your stats, the run's upgrades and its cards, like the Tab. And the nuke bot's blast takes 60% of your whole health (the bar and the energy shield), whatever your defense: with the Workshop it barely did anything. Hear the siren, run.</span></li>
                 <li><time datetime="2026-11-02" data-i18n="home.news74Date">November 2, 2026</time><b data-i18n="home.news74Title">Lighter movement and recoil</b><span data-i18n="home.news74">Your Orb now stops and turns much sooner: let go of the keys and it slides less than half as far, and switching direction it no longer drifts off the old way, even with the speed power-ups. The weapons' recoil is half of what it was: you can walk towards where you shoot, even with the chain gun.</span></li>
                 <li><time datetime="2026-11-01" data-i18n="home.news73Date">November 1, 2026</time><b data-i18n="home.news73Title">Vesuvius: levels without end</b><span data-i18n="home.news73">Win the Vesuvius and the next level opens: each one's volcano has 25% more life and damage, stronger enemies and 25% more Obsidian. Pick the level in the Forge, where Damage, Attack speed, Life and Defense now go on past their top with the Mastery. The Vesuvius ranking goes by the highest level won, then the time on it.</span></li>
@@ -495,6 +496,11 @@
             <button id="accountSignOut" class="btn-ghost" type="button"><span data-icon="log_out"></span><span data-i18n="account.signOut">Sign out</span></button>
           </footer>
         </div>
+        <!-- The crosshair (src/client/crosshair.ts), for everyone: the Esc menu has the same choices -->
+        <section class="account-xhair" aria-labelledby="accountXhairTitle">
+          <h3 id="accountXhairTitle" data-i18n="xhair.title">Crosshair</h3>
+          <div id="accountXhair"></div>
+        </section>
         <p id="accountError" class="message account-error" role="alert" hidden></p>
       </div>
     </div>

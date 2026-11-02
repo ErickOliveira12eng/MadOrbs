@@ -36,6 +36,7 @@ import type { ViewRect } from '../view';
 import { HudArt, type OrbPictureFn } from './hudArt';
 import { esc, mouseIcon, pingColor, plain, signalIcon, weaponIcon } from './icons';
 import { WeaponPicker } from './weaponPicker';
+import { CROSSHAIR_SIZES, crosshair as crosshairLook, crosshairShapes, type Crosshair } from '../crosshair';
 import { enabledPrimaries, enabledSecondaries, weaponInfo } from './weaponInfo';
 
 const STAGE_H = 900;
@@ -185,6 +186,9 @@ export class HudLayer {
 
   private readonly stage: HTMLElement;
   private readonly r: Record<string, HTMLElement> = {};
+  /** The crosshair drawn (src/client/crosshair.ts, chosen in the Esc menu) and its size. */
+  private xhairDrawn: Crosshair | null = null;
+  private xhairScale = 1;
   private readonly tagEls: HTMLElement[] = [];
   /** The shooting range's lines under its targets; the keys of a tutorial's card (Enter). */
   private readonly meterEls: HTMLElement[] = [];
@@ -288,8 +292,7 @@ export class HudLayer {
 <span class="h-tag killer" data-r="ktag" hidden></span>
 <svg class="h-xhair" data-r="xhair" viewBox="-28 -28 56 56" aria-hidden="true">
   <circle data-r="reload" r="21" fill="none" stroke="#9dffb0" stroke-width="3" stroke-linecap="round" stroke-dasharray="${2 * Math.PI * 21} ${2 * Math.PI * 21}" transform="rotate(-90)" opacity=".9"/>
-  <g stroke="#000" stroke-opacity=".55" stroke-width="4.5" stroke-linecap="round" fill="none"><circle r="8"/><path d="M0 -17V-12M0 12V17M-17 0H-12M12 0H17"/></g>
-  <g stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"><circle r="8"/><path d="M0 -17V-12M0 12V17M-17 0H-12M12 0H17"/></g>
+  <g data-r="xshape"></g>
   <g data-r="hitmark" stroke="#ff4d4d" stroke-width="3" stroke-linecap="round" opacity="0"><path d="M6 6L11 11M-6 6L-11 11M6 -6L11 -11M-6 -6L-11 -11"/></g>
 </svg>
 <svg class="h-arrow" data-r="arrow" viewBox="0 0 22 28" aria-hidden="true" hidden><path d="M2 2L2 23L7.5 17.5L11.5 26L15 24.4L11.2 16.2L19 16.2Z" fill="#fff" stroke="#0b1020" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -1825,7 +1828,13 @@ export class HudLayer {
     show(r.xhair, crosshair);
     show(r.arrow, arrow);
     if (crosshair) {
-      r.xhair.style.transform = `translate(${mx.toFixed(1)}px, ${my.toFixed(1)}px)`;
+      const look = crosshairLook();
+      if (look !== this.xhairDrawn) {
+        this.xhairDrawn = look;
+        this.xhairScale = CROSSHAIR_SIZES[look.size];
+        r.xshape.innerHTML = crosshairShapes(look);
+      }
+      r.xhair.style.transform = `translate(${mx.toFixed(1)}px, ${my.toFixed(1)}px) scale(${this.xhairScale})`;
       setStyle(r.xhair, 'opacity', (1 - f.scope).toFixed(2));
       setStyle(r.hitmark, 'opacity', this.hit.toFixed(2));
       // Reloads (fireDelay >= 1, the shotgun's 6-shell reload): a ring instead of "Reloading"

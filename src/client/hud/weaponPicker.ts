@@ -2,7 +2,8 @@
 // (Client.cpp); like there, the choice applies at the next spawn (nextSpawnWeapon /
 // nextMeleeWeapon) and the menu shows when joining a game. In a private room it has a second tab,
 // the room: the invitation link, the players and, for its host, the controls (start the match after
-// the warm-up, map, teams, kick, lock).
+// the warm-up, map, teams, kick, lock). Its "Crosshair" button (also on the waves' pause screen) opens the
+// crosshair's look: shape, colour and size (src/client/crosshair.ts, Erick, 02/11/2026).
 import { PLAYER_TEAM_AUTO_ASSIGN, PLAYER_TEAM_BLUE, PLAYER_TEAM_RED, PLAYER_TEAM_SPECTATOR, WEAPON_KNIVES, WEAPON_SMG } from '../../sim/constants';
 import { sv } from '../../sim/gameVar';
 import type { HostAction } from '../../net/protocol';
@@ -11,6 +12,7 @@ import type { HudArt } from './hudArt';
 import { CHECK, esc, mouseIcon, plain, weaponIcon } from './icons';
 import { enabledPrimaries, enabledSecondaries, weaponInfo } from './weaponInfo';
 import { t } from '../../i18n';
+import { crosshairPicker, pickCrosshair } from '../crosshair';
 
 /** A private room as its tab shows it (src/client/clientGame.ts roomView). */
 export interface RoomView {
@@ -34,6 +36,10 @@ export interface RoomView {
   maxPlayers: number;
   players: { id: number; name: string; tag: string; team: number; host: boolean; me: boolean }[];
 }
+
+/** The footer's "Crosshair" button's picture. */
+const XHAIR_ICON =
+  '<svg width="18" height="18" viewBox="-12 -12 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle r="5.5"/><path d="M0 -11V-8M0 8V11M-11 0H-8M8 0H11"/></svg>';
 
 const CROWN =
   '<svg class="h-crown" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="#ffd34d" stroke="#8a5a00" stroke-width="1.4" stroke-linejoin="round"/></svg>';
@@ -104,6 +110,8 @@ export class WeaponPicker {
   room: (() => RoomView | null) | null = null;
   /** Which tab shows (the room's only in a private room). */
   tab: 'weapons' | 'room' = 'weapons';
+  /** The crosshair's look in place of the menu (its footer's button), until "Back" or the menu closes. */
+  private crosshairView = false;
   /** The host's controls: an action, with its player, team or map. */
   onRoomAction: ((action: HostAction, extra?: { id?: number; team?: number; map?: string }) => void) | null = null;
   private copiedAt = 0;
@@ -151,6 +159,19 @@ export class WeaponPicker {
           break;
         case 'copy':
           void this.copyLink();
+          break;
+        case 'xhair':
+          this.crosshairView = true;
+          this.render();
+          break;
+        case 'xdone':
+          this.crosshairView = false;
+          this.render();
+          break;
+        case 'xshape':
+        case 'xcolor':
+        case 'xsize':
+          if (pickCrosshair(b)) this.render();
           break;
         case 'trow': {
           const tools = this.tools;
@@ -246,7 +267,10 @@ export class WeaponPicker {
     if (this.visible === v) return;
     this.visible = v;
     // The tools start again from the wave being fought (a jump asked for begins as the game goes on)
-    if (!v) this.toolWave = this.toolQueued = 0;
+    if (!v) {
+      this.toolWave = this.toolQueued = 0;
+      this.crosshairView = false;
+    }
     if (v) this.render();
     else if (this.el.contains(document.activeElement)) (document.activeElement as HTMLElement).blur(); // Space must not press a button
     this.el.hidden = !v;
@@ -262,6 +286,10 @@ export class WeaponPicker {
   }
 
   render(): void {
+    if (this.crosshairView) {
+      this.renderCrosshair();
+      return;
+    }
     const room = this.room?.() ?? null;
     if (!room) this.tab = 'weapons';
     if (room && this.tab === 'room') {
@@ -278,6 +306,7 @@ export class WeaponPicker {
         `<div class="h-pickin pause${this.tools ? ' tools' : ''}${stats ? ' stats' : ''}">${this.toolsPanel()}<div class="h-pausecard">` +
         `<div class="h-ptitle"><span class="h-label">${where}</span><h2>${t('pause.title')}</h2><p class="sub">${t('pause.sub')}</p></div><div class="h-pfoot">` +
         `<button type="button" class="h-ghost danger" data-act="quit">${t('pick.quit')}</button>` +
+        this.crosshairButton() +
         `<button type="button" class="h-play" data-act="back">${t('pick.back')} <span class="h-key">Esc</span></button>` +
         `</div>${stats ? `<div class="h-pstats">${this.statsHtml}</div>` : ''}</div></div>`;
       const panel = this.el.querySelector('.h-tools');
@@ -335,7 +364,23 @@ export class WeaponPicker {
       `<div class="h-pfoot">` +
       `<button type="button" class="h-ghost danger" data-act="quit">${t('pick.quit')}</button>` +
       (this.canSpectate ? `<button type="button" class="h-ghost" data-act="spectate">${t(this.spectating ? 'pick.playAgain' : 'pick.spectate')}</button>` : '') +
+      this.crosshairButton() +
       `<button type="button" class="h-play" data-act="back">${t(this.joined ? 'pick.back' : 'pick.join')} <span class="h-key">Esc</span></button>` +
+      `</div></div>`;
+  }
+
+  private crosshairButton(): string {
+    return `<button type="button" class="h-ghost" data-act="xhair">${XHAIR_ICON}${t('xhair.title')}</button>`;
+  }
+
+  /** The crosshair's look (crosshairPicker): every click saves it, and the HUD draws it from then on. */
+  private renderCrosshair(): void {
+    const where = [this.modeName, this.mapName].filter(Boolean).map(esc).join(' · ');
+    this.el.innerHTML =
+      `<div class="h-pickin xhair"><div class="h-xcard">` +
+      `<span class="h-label">${where}</span><h2>${t('xhair.title')}</h2><p class="sub">${t('xhair.sub')}</p>${crosshairPicker()}` +
+      `<div class="h-pfoot"><button type="button" class="h-ghost" data-act="xdone">${t('xhair.done')}</button>` +
+      `<button type="button" class="h-play" data-act="back">${t(this.pauseOnly || this.joined ? 'pick.back' : 'pick.join')} <span class="h-key">Esc</span></button></div>` +
       `</div></div>`;
   }
 

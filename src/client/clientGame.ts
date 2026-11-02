@@ -81,7 +81,7 @@ import { preloadAssets, getModel, MODEL_DOUILLE, MODEL_GIB } from './assets';
 import { GameCamera, LENS_HEIGHT } from './camera';
 import { createDkoObject3D } from './engine/dko';
 import { addGameLights, createRenderer } from './engine/renderer';
-import { Effects, type BrassEjection } from './fx/effects';
+import { Effects, type BrassEjection, type ShotRole } from './fx/effects';
 import { bindings, Input } from './input';
 import { Connection, defaultServerUrl, privateRoomUrl, type WelcomeMessage } from './net/connection';
 import { MapRenderer } from './render/mapRender';
@@ -1784,9 +1784,9 @@ export class ClientGame {
           shooter.firedShowDelay = 2;
           if (e.weaponID !== WEAPON_FLAME_THROWER) this.babos.get(shooter.playerID)?.fire(e.weaponID, e.nuzzleID);
           const brass = this.brassFor(shooter, e.weaponID, e.nuzzleID);
-          this.effects.weaponFireRemote(e.weaponID, damage, shooter.teamID, e.p1, e.p2, e.normal, shooter.currentCF.angle, brass, S.weapon[e.weaponID]);
+          this.effects.weaponFireRemote(e.weaponID, damage, this.shotRole(shooter), e.p1, e.p2, e.normal, shooter.currentCF.angle, brass, S.weapon[e.weaponID]);
         } else if (e.weaponID === WEAPON_FLAME_THROWER) this.effects.flameThrowerFire(e.p1, e.p2, e.normal);
-        else this.effects.spawnImpact(e.p1, e.p2, e.normal, e.weaponID, damage, shooter ? shooter.teamID : 0, !!e.card);
+        else this.effects.spawnImpact(e.p1, e.p2, e.normal, e.weaponID, damage, this.shotRole(shooter), !!e.card);
         // We got hit: we get pushed (ClientRecv NET_SVCL_PLAYER_SHOOT)
         if (fromServer && e.hitPlayerID === me.playerID && me.isAlive) {
           const dir = e.p2.sub(e.p1).normalizeIn();
@@ -2055,6 +2055,16 @@ export class ClientGame {
     if (!pending.length) return false;
     pending.shift();
     return true;
+  }
+
+  /**
+   * Whose a shot is, for its trail (Effects.spawnImpact, SHOT_LOOK): the player's own, a teammate's in a team game
+   * (the waves' Shadows and undead too), else an enemy's (everyone else in Deathmatch).
+   */
+  private shotRole(shooter: Player | null | undefined): ShotRole {
+    const me = this.me;
+    if (shooter === me) return 'me';
+    return shooter && this.game.gameType !== GAME_TYPE_DM && shooter.teamID === me.teamID ? 'ally' : 'enemy';
   }
 
   /** Casing ejection data (Weapon::shoot, ejectingBrass dummy). */

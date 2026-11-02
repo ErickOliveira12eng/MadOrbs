@@ -1,5 +1,7 @@
 // The account window: signed out, what an account gives and Google's button; signed in, the
-// name, the player ID, sign out and delete the account. The stats have their own window (statsModal.ts).
+// name, the player ID, sign out and delete the account. The stats have their own window (statsModal.ts). For
+// everyone, the crosshair's look (src/client/crosshair.ts, the same choices as the Esc menu).
+import { crosshairPicker, pickCrosshair } from '../client/crosshair';
 import { t } from '../i18n';
 import { MAX_NAME_LENGTH, cleanName, isReservedName, limitNameInput } from '../net/protocol';
 import type { Account, SaveError } from './account';
@@ -106,6 +108,9 @@ export class AccountModal {
       });
     }
     $('accountDelete').addEventListener('click', () => void this.deleteAccount());
+    $('accountXhair').addEventListener('click', (e) => {
+      if (pickCrosshair(e.target)) $('accountXhair').innerHTML = crosshairPicker();
+    });
     account.onChange(() => this.render());
   }
 
@@ -148,6 +153,7 @@ export class AccountModal {
     $('accountOut').hidden = signedIn;
     $('accountIn').hidden = !signedIn;
     if (!this.isOpen) return;
+    $('accountXhair').innerHTML = crosshairPicker();
     if (!signedIn) {
       this.showGoogle();
       return;
