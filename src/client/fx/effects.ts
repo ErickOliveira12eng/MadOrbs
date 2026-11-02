@@ -345,13 +345,14 @@ export type ShotRole = 'me' | 'ally' | 'enemy';
  * A shot's trail by whose it is (Erick, 02/11/2026: players said their shots and the bots' looked the same; the
  * original coloured them by team only, grey for everyone in Deathmatch): the player's own in a very light blue, at the
  * original's width; an enemy's in a very faint red, thinner and more see-through, a teammate's the same in a faint
- * blue-grey. `color`: the tracer (and the photon's glow), `smoke`: the smoke trail, `size`: its width, `alpha`: how
+ * blue-grey (the same day, ~15% stronger, Erick: the colours a little more saturated, the others' a little more
+ * opaque). `color`: the tracer (and the photon's glow), `smoke`: the smoke trail, `size`: its width, `alpha`: how
  * opaque it all is.
  */
 const SHOT_LOOK: Record<ShotRole, { color: [number, number, number]; smoke: [number, number, number]; size: number; alpha: number }> = {
-  me: { color: [0.62, 0.86, 1], smoke: [0.8, 0.92, 1], size: 1, alpha: 1 },
-  ally: { color: [0.55, 0.62, 0.8], smoke: [0.66, 0.7, 0.78], size: 0.6, alpha: 0.4 },
-  enemy: { color: [0.9, 0.55, 0.55], smoke: [0.82, 0.66, 0.66], size: 0.6, alpha: 0.4 },
+  me: { color: [0.56, 0.84, 1], smoke: [0.77, 0.91, 1], size: 1, alpha: 1 },
+  ally: { color: [0.51, 0.59, 0.8], smoke: [0.64, 0.69, 0.78], size: 0.6, alpha: 0.46 },
+  enemy: { color: [0.9, 0.5, 0.5], smoke: [0.82, 0.64, 0.64], size: 0.6, alpha: 0.46 },
 };
 
 /** Game.h Trail (bullet trail). trailType 0 = smoke trail + bullet glow, 1 = glow trail (photon). */
