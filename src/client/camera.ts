@@ -30,6 +30,12 @@ export const LENS_HEIGHT = Math.tan((ORIGINAL_FOV * Math.PI) / 360) / Math.tan((
 /** The everyday view: a little wider than the original's (one notch of the debug zoom). */
 export const DEFAULT_ZOOM = 1.15;
 
+/**
+ * How far the view shakes against the original (Game::update: viewShake * .1): half (Erick, 02/11/2026: players said it
+ * shook too hard, a headache). Its length is the original's.
+ */
+const SHAKE_SCALE = 0.5;
+
 export class GameCamera {
   readonly camera = new THREE.PerspectiveCamera(RENDER_FOV, VIEW_ASPECT, 1, 50 * LENS_HEIGHT);
   camPos = new Vec3();
@@ -125,11 +131,11 @@ export class GameCamera {
     }
     this.camPos.addIn(this.camDest.sub(this.camPos).mul(2.5 * delay));
 
-    // View shake (explosions)
+    // View shake (explosions), SHAKE_SCALE of the original's
     if (this.viewShake > 0) {
       if (this.viewShake > 2.5) this.viewShake = 2.5;
       let dir = new Vec3(1, 0, 0);
-      dir = rotateAboutAxis(dir, randRange(0, 360), Z_AXIS).mul(this.viewShake * 0.1);
+      dir = rotateAboutAxis(dir, randRange(0, 360), Z_AXIS).mul(this.viewShake * 0.1 * SHAKE_SCALE);
       this.camPos.addIn(dir);
       this.viewShake -= delay * 0.75;
       if (this.viewShake < 0) this.viewShake = 0;

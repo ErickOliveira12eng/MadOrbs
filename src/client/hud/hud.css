@@ -146,8 +146,9 @@
   text-shadow: 0 2px 0 rgba(90, 50, 0, 0.75), 0 0 10px rgba(255, 190, 60, 0.75);
 }
 
+/* (purple, like its ripples: green looked like life) */
 .h-dmg.poison {
-  color: #9df06a;
+  color: #c99bff;
 }
 
 .h-dmg.burn {

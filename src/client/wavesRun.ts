@@ -486,12 +486,18 @@ export class WavesRun {
     if (this.reachedAt !== null) this.reachedTimes.set(this.wave, Math.round(this.reachedAt));
     this.waveLeft = this.spec.seconds;
     this.pending = this.spec.total + carried;
-    // Its nuke bots (nukeBots): that many of its first bots, picked at random
+    // Its nuke bots (nukeBots): spread over its bots, the first early and the last towards the end (WAVES.nuke.spread)
     this.waveSpawns = 0;
     this.nukeSlots.clear();
-    const nukes = nukeBots(this.wave);
-    const among = Math.max(nukes, Math.min(Math.max(WAVES.nuke.among, 4 * nukes), this.spec.total));
-    while (this.nukeSlots.size < Math.min(nukes, among)) this.nukeSlots.add(Math.floor(Math.random() * among));
+    const nukes = Math.min(nukeBots(this.wave), this.pending);
+    const [early, late] = WAVES.nuke.spread;
+    for (let i = 0; i < nukes; i++) {
+      const at = nukes === 1 ? early : early + ((late - early) * i) / (nukes - 1);
+      let slot = Math.round((at + (Math.random() - 0.5) * WAVES.nuke.jitter) * this.pending);
+      slot = Math.max(0, Math.min(this.pending - 1, slot));
+      while (this.nukeSlots.has(slot)) slot = (slot + 1) % this.pending;
+      this.nukeSlots.add(slot);
+    }
     this.spawnWait = 0.5;
     this.bossPending = this.spec.boss || bossLate;
     if (this.spec.boss) this.bossesUp.push(this.wave);

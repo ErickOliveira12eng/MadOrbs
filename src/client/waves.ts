@@ -111,7 +111,8 @@ export const WAVES = {
   huntBiasFar: 4,
   /**
    * The nuke bot (Erick, 01/11/2026): from wave `from` on, some bots of a wave (nukeBots: one, one more every `every`
-   * waves; among its first `among` to come in) run at `speed` (the bots walk at botSpeed, the player at 1) straight at
+   * waves; spread over the wave, Erick 02/11/2026: they came together among its first 12: the first at `spread[0]` of
+   * its bots, the last at `spread[1]`, the others between, each moved by up to half of `jitter`) run at `speed` (the bots walk at botSpeed, the player at 1) straight at
    * the player with the Nuke Bot secondary on its Orb (the original drops it on the floor; this one keeps it), in a
    * fiery tint, as tough as the wave's boss times `life` (the same day: a strong player shot it down before it came
    * near; it is there to make him run). Within `arm` cells of the player, in sight, it arms: it slows to `slow`, the
@@ -119,10 +120,10 @@ export const WAVES = {
    * seconds it blows up there: `radius` cells (3.5 until the same day: Erick, a little more). The player in it loses
    * `share` of his whole health, the life bar and the energy shield both full (the shield first), whatever his defence
    * (Player.blastSV; Erick, 02/11/2026: it was `damage` of a bar before his defence, shield and bigger bar, and a run at
-   * wave 51 lost nothing: the defence took 62% to 98% of it and the shield the rest); his Shadow and his risen lose
-   * `damage` of a bar before theirs. Killed before that, it doesn't. The blast takes the bot with it (no kill for anyone).
+   * wave 51 lost nothing: the defence took 62% to 98% of it and the shield the rest; 0.6 until the same evening, Erick:
+   * a little more); his Shadow and his risen lose `damage` of a bar before theirs. Killed before that, it doesn't. The blast takes the bot with it (no kill for anyone).
    */
-  nuke: { from: 51, every: 25, among: 12, speed: 1.8, slow: 0.35, life: 1, arm: 2.5, fuse: 3, beep: 1, radius: 4.5, share: 0.6, damage: 0.6 },
+  nuke: { from: 51, every: 25, spread: [0.03, 0.75], jitter: 0.08, speed: 1.8, slow: 0.35, life: 1, arm: 2.5, fuse: 3, beep: 1, radius: 4.5, share: 0.7, damage: 0.7 },
 };
 
 /**
@@ -359,7 +360,8 @@ export const POWERS: Record<PowerKind, { weight: number; timed: boolean; perm: b
   permDamage: { weight: 7, timed: false, perm: true, color: '#e8402f' },
   permArmor: { weight: 7, timed: false, perm: true, color: '#7b61ff' },
   permSpeed: { weight: 7, timed: false, perm: true, color: '#14b8c7' },
-  poison: { weight: 5, timed: false, perm: true, color: '#7ed321' },
+  // (purple: green looks like life, Erick 02/11/2026)
+  poison: { weight: 5, timed: false, perm: true, color: '#a855f7' },
   ice: { weight: 5, timed: false, perm: true, color: '#7fd8ff' },
 };
 

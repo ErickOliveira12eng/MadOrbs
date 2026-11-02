@@ -15,7 +15,7 @@ import { POWERS, type PowerKind } from '../waves';
 const ON_FLOOR = FX_RENDER_ORDER.floorMarks + 1;
 const ABOVE_FLOOR = FX_RENDER_ORDER.floorMarks + 2;
 
-/** An enemy under the poison or ice shots (streaks over it and ripples where it goes, light green or light blue). */
+/** An enemy under the poison or ice shots (streaks over it and ripples where it goes, light purple or light blue). */
 export interface AilmentMark {
   id: number;
   x: number;
@@ -37,8 +37,11 @@ export interface FloorPower {
 }
 
 const CRATE_SIZE = 0.6;
-/** The poison and ice looks: light green, light blue. */
-const POISON_LOOK = new THREE.Color(0x86ff5c);
+/**
+ * The poison and ice looks: light purple, light blue. The poison was light green until 02/11/2026 (Erick: green looks
+ * like life, and the healing is green): purple, the poison of the Japanese games (Pokémon, Dragon Quest).
+ */
+const POISON_LOOK = new THREE.Color(0xa64dff);
 const ICE_LOOK = new THREE.Color(0x7fd4ff);
 const MAX_STREAKS = 400;
 const MAX_RIPPLES = 160;
@@ -124,7 +127,7 @@ export class WavesRenderer {
   private readonly powers = new Map<number, PowerView>();
   private splinters: Splinter[] = [];
   // The poison and ice shots' look, after the rainy maps' rain (falling streaks) and its ripples on
-  // the floor: over an enemy, light green (poison) or light blue (ice), the ripples left where it goes
+  // the floor: over an enemy, light purple (poison) or light blue (ice), the ripples left where it goes
   private readonly streaks: { x: number; y: number; z: number; color: THREE.Color }[] = [];
   private readonly streakPositions = new Float32Array(MAX_STREAKS * 6);
   private readonly streakColors = new Float32Array(MAX_STREAKS * 6);
@@ -232,6 +235,12 @@ export class WavesRenderer {
     }
     r.age = 0;
     r.material.color.copy(color);
+    // The poison's purple laid over the floor (added to a light sand floor it turned pink); the ice's light added to it
+    const blending = color === POISON_LOOK ? THREE.NormalBlending : THREE.AdditiveBlending;
+    if (r.material.blending !== blending) {
+      r.material.blending = blending;
+      r.material.needsUpdate = true;
+    }
     r.mesh.position.set(x, y, 0.025);
     r.mesh.visible = true;
     this.ripples.push(r);
