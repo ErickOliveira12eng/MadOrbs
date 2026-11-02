@@ -12,7 +12,7 @@ import { t } from '../i18n';
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 /** The crown buttons say only the metal (the section's title says crown); the full name is the tooltip. */
-const CROWN_LABEL = { bronze: 'orb.crownBronze', silver: 'orb.crownSilver', gold: 'orb.crownGold' } as const satisfies Record<CrownTier, string>;
+const CROWN_LABEL = { bronze: 'orb.crownBronze', silver: 'orb.crownSilver', gold: 'orb.crownGold', platinum: 'orb.crownPlatinum' } as const satisfies Record<CrownTier, string>;
 
 /** Ready-made colour sets: [colour 1, colour 2, colour 3]. */
 const PRESETS: [string, string, string][] = [

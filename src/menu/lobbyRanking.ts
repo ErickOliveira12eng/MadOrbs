@@ -9,7 +9,8 @@ import { bigNum, t, type Key } from '../i18n';
 import type { RoomMode } from '../net/protocol';
 import type { Account, RankingMode, RankingRow } from './account';
 import { icon } from './icons';
-import { COLUMNS, esc, notYet, orbStyle } from './rankingModal';
+import type { OrbStudio } from './orbStudio';
+import { COLUMNS, drawOrbPics, esc, notYet, orbImg } from './rankingModal';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -54,6 +55,8 @@ export class LobbyRanking {
     /** "See all": the ranking window on this mode. */
     onFull: (mode: RankingMode) => void,
     onSignIn: () => void,
+    /** Draws each row's Orb as its player chose it. */
+    private readonly studio: OrbStudio,
   ) {
     for (const b of $('lrTabs').querySelectorAll<HTMLElement>('[data-tab]')) {
       b.addEventListener('click', () => {
@@ -117,7 +120,9 @@ export class LobbyRanking {
   }
 
   private setList(html: string): void {
-    if (html !== this.shown.list) $('lrList').innerHTML = this.shown.list = html;
+    if (html === this.shown.list) return;
+    $('lrList').innerHTML = this.shown.list = html;
+    void drawOrbPics($('lrList'), this.studio);
   }
 
   private setPerf(html: string): void {
@@ -172,7 +177,7 @@ export class LobbyRanking {
       html +=
         `<li class="lr-row${timed ? ` timed${one}` : ''}${r.is_me ? ' me' : ''}${r.rank <= 3 ? ` m${r.rank}` : ''}">` +
         `<span class="pos">${bigNum(r.rank)}</span>` +
-        `<i class="orb" style="${orbStyle(r)}"></i>` +
+        orbImg(r, 24) +
         `<b class="who">${r.is_me ? t('ranking.you') : esc(r.name || 'Orb')}</b>` +
         `<span class="val">${by.cell(r)}</span>${mode === 'waves' ? time(r) + power(r) : one ? time(r) : ''}</li>`;
     }

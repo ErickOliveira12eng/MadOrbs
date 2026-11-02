@@ -73,6 +73,42 @@ export const COLUMNS: Record<RankingMode, { head: Key; cell: (r: RankingRow) => 
 /** A row's Orb in its colours (a small ball). */
 export const orbStyle = (r: RankingRow) => `background: radial-gradient(circle at 35% 30%, ${r.red}, ${r.green} 55%, ${r.blue})`;
 
+/** The rows' Orbs drawn for the rankings (this window's and the start screen's column), by skin, colours and size. */
+const orbPics = new Map<string, string>();
+
+/**
+ * A row's Orb as its player chose it (Erick, 02/11/2026: the colours' gradient alone wasn't their Orb): its picture
+ * once drawn (drawOrbPics), the gradient of its colours until then.
+ */
+export function orbImg(r: RankingRow, size: number): string {
+  const key = [r.skin, r.red, r.green, r.blue, size].join('|');
+  const src = orbPics.get(key);
+  return src
+    ? `<img class="orb ready" alt="" width="${size}" height="${size}" src="${src}" />`
+    : `<img class="orb" alt="" width="${size}" height="${size}" style="${orbStyle(r)}" data-orbpic="${esc(key)}" />`;
+}
+
+/** Draws the Orbs orbImg left waiting in `root`, one at a time by the OrbStudio, each kept for the next list. */
+export async function drawOrbPics(root: HTMLElement, studio: OrbStudio): Promise<void> {
+  for (const img of root.querySelectorAll<HTMLImageElement>('img[data-orbpic]')) {
+    const key = img.dataset.orbpic!;
+    let src = orbPics.get(key);
+    if (!src) {
+      const [skin, red, green, blue, size] = key.split('|');
+      try {
+        src = await studio.picture(skinInfo({ skin, red, green, blue }), Number(size) * 2);
+      } catch {
+        continue;
+      }
+      orbPics.set(key, src);
+    }
+    img.src = src;
+    img.removeAttribute('style');
+    img.removeAttribute('data-orbpic');
+    img.classList.add('ready');
+  }
+}
+
 export class RankingModal {
   private readonly root = $('rankingModal');
   private mode: RankingMode = 'dm';
@@ -145,6 +181,7 @@ export class RankingModal {
     if (html === this.shown) return;
     $('rankingBody').innerHTML = this.shown = html;
     void this.drawOrbs();
+    if (this.studio) void drawOrbPics($('rankingBody'), this.studio);
   }
 
   /** The podium's Orbs: drawn by the OrbStudio (kept), the row's colours until then. */
@@ -231,7 +268,7 @@ export class RankingModal {
         list +=
           `<div class="rk-row${r.is_me ? ' me' : ''}" style="${grid}">` +
           `<span class="pos">${r.rank}</span>` +
-          `<span class="who"><i class="orb" style="${orbStyle(r)}"></i><b>${name(r)}</b><small>#${esc(r.tag)}</small>${you(r)}</span>` +
+          `<span class="who">${orbImg(r, 22)}<b>${name(r)}</b><small>#${esc(r.tag)}</small>${you(r)}</span>` +
           shownCols.map((c, i) => `<span${i === 0 ? ' class="by"' : ''}>${c.cell(r)}</span>`).join('') +
           `</div>`;
       }

@@ -157,6 +157,7 @@ export class StartScreen {
       () => this.settings.mode,
       (mode) => this.ranking.open(mode),
       () => this.accountModal.open(),
+      studio,
     );
     this.room = new RoomModal(
       () => this.settings.mode,

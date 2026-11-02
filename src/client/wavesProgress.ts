@@ -148,6 +148,8 @@ export const MILESTONES: Milestone[] = [
   { wave: 75, skin: 'skin16' },
   { wave: 90, skin: 'skin14' },
   { wave: 100, crown: 'gold' },
+  // (Erick, 02/11/2026: a little bigger than the others)
+  { wave: 200, crown: 'platinum' },
 ];
 
 /** The Orbs only the waves give (src/menu/settings.ts keeps them out of the others' reach). */

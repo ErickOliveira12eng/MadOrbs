@@ -1048,7 +1048,7 @@ select:focus-visible {
 
 .lr-row {
   display: grid;
-  grid-template-columns: 38px 20px minmax(0, 1fr) auto;
+  grid-template-columns: 38px 24px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   height: 38px;
@@ -1081,11 +1081,16 @@ select:focus-visible {
   color: #e0a77a;
 }
 
+/* (the colours' gradient until the Orb's picture is drawn: rankingModal.ts orbImg) */
 .lr-row .orb {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.35);
+}
+
+.lr-row .orb.ready,
+.rk-row .who .orb.ready {
+  border-radius: 0;
 }
 
 .lr-row .who {
@@ -1102,13 +1107,13 @@ select:focus-visible {
 
 /* The column titles over the numbers; the waves' time in a column of its own */
 .lr-row.timed {
-  grid-template-columns: 34px 20px minmax(0, 1fr) auto 44px 44px;
+  grid-template-columns: 34px 24px minmax(0, 1fr) auto 44px 44px;
   gap: 6px;
 }
 
 /* The Vesuvius: the level, and the time on it */
 .lr-row.timed.one {
-  grid-template-columns: 34px 20px minmax(0, 1fr) auto 48px;
+  grid-template-columns: 34px 24px minmax(0, 1fr) auto 48px;
 }
 
 .lr-row.head {
@@ -2277,10 +2282,10 @@ kbd.mouse .icon {
   flex-wrap: wrap;
 }
 
-/* The Survival crowns: none, bronze, silver, gold (the locked ones dimmed, with the wave that gives them) */
+/* The Survival crowns: none, bronze, silver, gold, platinum (the locked ones dimmed, with the wave that gives them) */
 .orb-crowns {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -3730,10 +3735,9 @@ input[type='range'] {
 .rk-row .who .orb {
   flex: none;
   align-self: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.35);
 }
 
 .rk-row .who b {
