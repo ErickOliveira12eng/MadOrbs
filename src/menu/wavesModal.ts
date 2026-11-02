@@ -58,7 +58,7 @@ const TEST_START = 9;
 /** The start picker's dots shown at once (the open checkpoints around the chosen one). */
 const DOTS = 6;
 
-export const UPGRADE_ICON: Record<UpgradeID, IconName> = {
+const UPGRADE_ICON: Record<UpgradeID, IconName> = {
   life: 'heart',
   armor: 'shield',
   drops: 'medkit',
@@ -139,27 +139,7 @@ function upgradeValue(id: UpgradeID, level: number): string {
   }
 }
 
-/** The waves a run may start on: the first, the testers' extra one (DEBUG_USER_IDS), and every checkpoint reached. */
-export function startOptions(record: number, tester: boolean): number[] {
-  return [1, ...(tester ? [TEST_START] : []), ...checkpoints(record).slice(1)];
-}
-
-const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s) % 60).padStart(2, '0')}`;
-
-/**
- * What a run begun on `startWave` brings: the best time to reach it (a run begun there starts the ranking's clock from
- * it, WavesRecord.splits), the run's upgrades and its cards (the build saved when a run last beat that checkpoint, else
- * random upgrades: headStartPowers), and whether there is such a build.
- */
-export function startFacts(startWave: number, tester: boolean): { time: string; perms: string; cards: string; build: boolean } {
-  const splits = loadWavesRecord()?.splits ?? {};
-  const time = startWave === 1 ? '0:00' : tester && startWave === TEST_START ? t('workshop.testStart') : splits[startWave] !== undefined ? clock(splits[startWave]) : '—';
-  const build = startWave > 1 ? loadProgress().builds[startWave] : undefined;
-  const perms = startWave === 1 ? '—' : `+${build ? Object.values(build.perms).reduce((n, v) => n + (v ?? 0), 0) : headStartPowers(startWave)}`;
-  const cards = startWave === 1 || !build ? '—' : String(Object.keys(buildCards(build, startWave)).length);
-  return { time, perms, cards, build: !!build };
-}
-
+/** A milestone's prize in a couple of words (the track's "next" line). */
 
 /** A Core, the waves' currency. */
 export const coreIcon = (size = 18) => `<span class="core-ico">${icon('core', size)}</span>`;
@@ -192,7 +172,7 @@ export class WavesModal {
     private readonly onPlay: () => void,
     /** "Sign in": opens the account window. */
     private readonly onSignIn: () => void,
-    /** The Cores, the levels or the run's start changed (the start screen's cards). */
+    /** The Cores or the levels changed (the start screen's card). */
     private readonly onChange: () => void,
     /** The Vesuvius's play button (the start checks with the server again). */
     private readonly onVesuvius: () => void,
@@ -337,7 +317,6 @@ export class WavesModal {
     const p = { ...loadProgress(), ...change };
     saveProgress(p);
     this.render();
-    this.onChange();
   }
 
   /**
@@ -480,10 +459,17 @@ export class WavesModal {
    */
   private renderStarts(record: number, startWave: number, tester: boolean): void {
     const open = checkpoints(record);
-    const options = startOptions(record, tester);
+    const options = [1, ...(tester ? [TEST_START] : []), ...open.slice(1)];
     const at = Math.max(0, options.indexOf(startWave));
     const next = open.length * CHECKPOINT;
-    const { time, perms, cards, build } = startFacts(startWave, tester);
+    // A checkpoint's best time to reach it: a run begun there starts the ranking's clock from it (WavesRecord.splits)
+    const splits = loadWavesRecord()?.splits ?? {};
+    const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    const time = startWave === 1 ? '0:00' : tester && startWave === TEST_START ? t('workshop.testStart') : splits[startWave] !== undefined ? clock(splits[startWave]) : '—';
+    // What the run begins with: the build saved when a run last beat this checkpoint, else random upgrades
+    const build = startWave > 1 ? loadProgress().builds[startWave] : undefined;
+    const perms = startWave === 1 ? '—' : `+${build ? Object.values(build.perms).reduce((n, v) => n + (v ?? 0), 0) : headStartPowers(startWave)}`;
+    const cards = startWave === 1 || !build ? '—' : String(Object.keys(buildCards(build, startWave)).length);
     const arrow = (to: number | undefined, name: 'chevron_left' | 'chevron_right', label: Key) =>
       `<button type="button" class="wv-arrow"${to === undefined ? ' disabled' : ` data-start="${to}"`} aria-label="${t(label)}">${icon(name, 20)}</button>`;
     // The dots: a window of DOTS around the chosen wave when there are more

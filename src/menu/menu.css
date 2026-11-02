@@ -305,11 +305,10 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
-/* ------------------------------------------------------------------ the lobby (layout D, 02/11/2026)
-   A 1290 x 680 layout zoomed (--menu-k, menu.ts) into the window under the top bar, beside the banner's
-   gutter on the left (--ad-gutter): your Orb and the shortcuts, the Survival card with the run set up in it, the
-   Workshop, the Vesuvius and the Multiplayer under it, the ranking on the right. Narrow windows stack it in one
-   column. */
+/* ------------------------------------------------------------------ the lobby (mockup F)
+   A 1240 x 680 layout zoomed (--menu-k, menu.ts) into the window under the top bar, beside the banner's
+   gutter on the left (--ad-gutter): your Orb above three mode cards and the shortcuts, the ranking on the right.
+   Narrow windows stack it in one column. */
 
 .lobby {
   position: relative;
@@ -321,8 +320,7 @@ select:focus-visible {
   justify-content: center;
   min-height: 100%;
   box-sizing: border-box;
-  /* (under the top bar: menu.ts measures its logo) */
-  padding: var(--top-room, 74px) 16px 30px calc(16px + var(--ad-gutter, 0px));
+  padding: 74px 16px 30px calc(16px + var(--ad-gutter, 0px));
 }
 
 .lobby-grid {
@@ -331,9 +329,9 @@ select:focus-visible {
   height: 680px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 368px;
-  grid-template-rows: 150px minmax(0, 1fr) 206px;
-  grid-template-areas: 'hero side' 'survival side' 'row side';
-  gap: 16px 22px;
+  grid-template-rows: 176px minmax(0, 1fr) 72px;
+  grid-template-areas: 'hero side' 'cards side' 'tiles side';
+  gap: 18px 22px;
 }
 
 /* Your Orb on its pedestal in a soft blue light, the name, the ID, Customize and the record beside it */
@@ -342,37 +340,37 @@ select:focus-visible {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding-left: 8px;
+  justify-content: center;
+  gap: 26px;
 }
 
 .hero::before {
   content: '';
   position: absolute;
   z-index: -1;
-  left: 32%;
+  left: 50%;
   top: 50%;
-  width: 640px;
-  height: 300px;
+  width: 680px;
+  height: 320px;
   transform: translate(-50%, -50%);
   background: radial-gradient(closest-side, rgba(70, 95, 255, 0.26), rgba(70, 95, 255, 0));
   pointer-events: none;
 }
 
 .hero .orb-row {
-  gap: 12px;
+  gap: 16px;
   margin-top: 0;
 }
 
 .hero .orb-row .orb-stage {
-  zoom: 0.7;
+  zoom: 0.78;
 }
 
 .hero .orb-arrow {
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  margin-top: -24px;
+  margin-top: -26px;
 }
 
 .hero-id {
@@ -394,7 +392,7 @@ select:focus-visible {
   margin: 0;
   padding: 2px 0;
   text-align: left;
-  font: 400 36px/1.1 var(--font-display);
+  font: 400 38px/1.1 var(--font-display);
   letter-spacing: 0.5px;
   text-shadow: 0 3px 0 rgba(10, 8, 34, 0.7), 0 0 18px rgba(0, 0, 0, 0.5);
 }
@@ -447,20 +445,15 @@ select:focus-visible {
   color: var(--gold-1);
 }
 
-/* The shortcuts beside your Orb: the stats and the tutorial */
-.hero-tiles {
-  margin-left: auto;
-  width: 262px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* The two ways to play (the Campaign card left on 26/10/2026): a card each, its colour around it (--cc), its tag on the top left */
+.mode-cards {
+  grid-area: cards;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  min-height: 0;
 }
 
-.hero-tiles .tile {
-  height: 62px;
-}
-
-/* The cards: their colour around them (--cc), their tag on the top left */
 .mode-card {
   position: relative;
   isolation: isolate;
@@ -492,473 +485,8 @@ select:focus-visible {
   background:
     radial-gradient(circle at 50% 26%, rgba(255, 70, 70, 0.45) 0%, rgba(120, 10, 30, 0.3) 32%, rgba(8, 10, 26, 0) 62%),
     linear-gradient(180deg, #2a0b16 0%, #120818 55%, #08091a 100%);
-}
-
-/* Survival in front (layout D): the boss and its wave on the left, the run set up on the right */
-.mode-card.survival {
-  grid-area: survival;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 356px;
-  padding: 0;
-  background: linear-gradient(90deg, #1a0812 0%, #120818 60%, #0c0a1e 100%);
-}
-
-.sv-pic {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 20px 22px;
-}
-
-.survival .card-pic {
-  height: 100%;
-}
-
-.survival .card-pic::after {
-  background:
-    linear-gradient(90deg, rgba(18, 8, 24, 0) 60%, #120818 100%),
-    linear-gradient(180deg, rgba(42, 11, 22, 0) 38%, rgba(18, 8, 24, 0.94) 92%);
-}
-
-.sv-title h2 {
-  margin: 0;
-  font: 400 50px/1 var(--font-display);
-  letter-spacing: 0.5px;
-  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
-}
-
-.sv-title p {
-  max-width: 470px;
-  margin: 8px 0 0;
-  color: #f0d6da;
-  font: 700 14.5px/1.4 var(--font-ui);
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
-}
-
-.sv-setup {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px 20px 18px 6px;
-}
-
-.sv-label {
-  color: #c9a9b0;
-  font: 900 11px var(--font-ui);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.sv-starts,
-.sv-weapon {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.sv-arrow {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 46px;
-  padding: 0;
-  border-radius: 11px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
   cursor: pointer;
 }
-
-.sv-arrow:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.13);
-}
-
-.sv-arrow:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
-.sv-wave,
-.sv-gun {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  height: 46px;
-  border-radius: 12px;
-}
-
-.sv-wave {
-  border: 2px solid #ffc23a;
-  background: rgba(255, 194, 58, 0.12);
-}
-
-.sv-wave span {
-  color: #ffd98a;
-  font: 400 17px/1 var(--font-display);
-}
-
-.sv-wave b {
-  color: #ffc23a;
-  font: 400 32px/1 var(--font-display);
-}
-
-/* What the start brings (the best time to it, the run's upgrades and cards), or how to get a checkpoint */
-.sv-facts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  min-height: 38px;
-}
-
-.sv-facts > div {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 3px 9px;
-  border-radius: 9px;
-  background: rgba(0, 0, 0, 0.25);
-}
-
-.sv-facts small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #a99aa8;
-  font: 800 10.5px var(--font-ui);
-}
-
-.sv-facts b {
-  font: 900 14px var(--font-ui);
-  white-space: nowrap;
-}
-
-.sv-note {
-  grid-column: 1 / -1;
-  align-self: center;
-  margin: 0;
-  color: #d6c3c8;
-  font: 700 12.5px/1.35 var(--font-ui);
-}
-
-.sv-gun {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.sv-gun img {
-  flex: none;
-  width: 52px;
-  height: 34px;
-  object-fit: contain;
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
-}
-
-.sv-gun b {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font: 400 19px/1 var(--font-display);
-  letter-spacing: 0.3px;
-}
-
-.sv-setup .card-btn {
-  margin-top: auto;
-  height: 62px;
-  font-size: 28px;
-  text-transform: uppercase;
-}
-
-/* Under it: the Workshop, the Vesuvius and the Multiplayer, side by side */
-.lobby-row {
-  grid-area: row;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  min-height: 0;
-}
-
-.mini-card {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-  box-sizing: border-box;
-  border-radius: 20px;
-  border: 2px solid rgba(var(--cc), 0.5);
-  background: #0b0e24;
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.38), 0 0 22px rgba(var(--cc), 0.12);
-  color: var(--text);
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.mini-card:hover {
-  border-color: rgba(var(--cc), 0.85);
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.38), 0 0 28px rgba(var(--cc), 0.24);
-}
-
-.mini-card .card-pic {
-  height: 100%;
-}
-
-.mc-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.mc-ico {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  color: rgb(var(--cc));
-  background: rgba(var(--cc), 0.14);
-}
-
-.mc-ico .icon {
-  width: 20px;
-  height: 20px;
-}
-
-.mc-title {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.mc-title h2 {
-  margin: 0;
-  font: 400 25px/1 var(--font-display);
-  letter-spacing: 0.4px;
-  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
-}
-
-.mc-title small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: rgba(var(--cc), 0.95);
-  font: 900 11px var(--font-ui);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.mc-text {
-  margin: 0;
-  color: #c9d2f5;
-  font: 700 12.5px/1.35 var(--font-ui);
-}
-
-.mc-foot {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.mc-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 36px;
-  padding: 0 14px;
-  border-radius: 11px;
-  font: 900 13.5px var(--font-ui);
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-/* The Workshop: gold, the Cores beside the button, the upgrades every run feels with their levels */
-.mini-card.workshop {
-  --cc: 255, 194, 58;
-  cursor: pointer;
-  background:
-    radial-gradient(circle at 85% 0%, rgba(255, 194, 58, 0.16), rgba(255, 194, 58, 0) 55%),
-    linear-gradient(180deg, #1c160b 0%, #0f0e1c 100%);
-}
-
-.mini-card.workshop .dock-badge {
-  top: 12px;
-  right: 12px;
-}
-
-.mc-btn.workshop {
-  border: 1px solid rgba(255, 194, 58, 0.7);
-  background: linear-gradient(180deg, #ffd56a 0%, #f0b820 100%);
-  color: #2b1d00;
-  box-shadow: 0 3px 0 #a8820f;
-}
-
-.mini-card.workshop:hover .mc-btn.workshop {
-  filter: brightness(1.07);
-}
-
-.ws-levels {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.ws-lv {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  height: 30px;
-  border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  color: #c9d2f5;
-}
-
-.ws-lv .icon {
-  width: 15px;
-  height: 15px;
-}
-
-.ws-lv b {
-  color: var(--text);
-  font: 900 12px var(--font-ui);
-  white-space: nowrap;
-}
-
-/* The next level paid for already */
-.ws-lv.can {
-  border-color: rgba(255, 194, 58, 0.6);
-  background: rgba(255, 194, 58, 0.12);
-  color: #ffc23a;
-}
-
-/* The Vesuvius: its arena, dimmed and grey while locked */
-.mini-card.vesuvius {
-  --cc: 255, 120, 50;
-  justify-content: space-between;
-  cursor: pointer;
-}
-
-.vesuvius .card-pic {
-  background-color: #1a0c08;
-}
-
-.vesuvius .card-pic::after {
-  background: linear-gradient(180deg, rgba(20, 10, 14, 0.45) 0%, rgba(14, 8, 16, 0.92) 100%);
-}
-
-.vesuvius.locked {
-  --cc: 170, 175, 205;
-}
-
-.vesuvius.locked .card-pic {
-  filter: grayscale(0.75) brightness(0.6);
-}
-
-.ves-body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.ves-lock {
-  font: 800 13.5px var(--font-ui);
-}
-
-.ves-bar {
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  overflow: hidden;
-}
-
-.ves-bar i {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, #e8323e, #ff9a1f);
-}
-
-.ves-body small {
-  color: #a3acd0;
-  font: 800 12px var(--font-ui);
-}
-
-.mc-btn.vesuvius {
-  align-self: flex-start;
-  border: 1px solid #ff8a2a;
-  background: linear-gradient(180deg, #ff9a3a 0%, #e8420e 100%);
-  color: #fff;
-  text-shadow: 0 1px 0 rgba(110, 30, 0, 0.55);
-  box-shadow: 0 3px 0 #8a2a06;
-}
-
-/* The Multiplayer: green (the online's colour), a match of the chosen mode behind */
-.mini-card.online {
-  --cc: 75, 224, 122;
-}
-
-.online .card-pic::after {
-  background: linear-gradient(180deg, rgba(6, 24, 14, 0.5) 0%, rgba(6, 18, 14, 0.94) 70%);
-}
-
-.mini-card.online .mc-head .card-tag {
-  position: static;
-}
-
-.mini-card .mode-pick .mode {
-  height: 30px;
-}
-
-.mini-card .card-btn.play {
-  height: 50px;
-  gap: 2px;
-}
-
-.mini-card .play-main {
-  font-size: 23px;
-}
-
-.mini-card .play-sub {
-  font-size: 9px;
-  letter-spacing: 2px;
-}
-
-.mc-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: #a6f5b8;
-  font: 800 12.5px var(--font-ui);
-  cursor: pointer;
-}
-
-.mc-link .icon {
-  width: 15px;
-  height: 15px;
-}
-
-.mc-link:hover {
-  color: #fff;
-  text-decoration: underline;
-}
-
-
 
 .mode-card.campaign {
   --cc: 255, 200, 60;
@@ -1272,14 +800,21 @@ select:focus-visible {
 
 /* A message (couldn't join...) over the cards */
 .lobby-grid > .message {
-  grid-area: survival;
+  grid-area: cards;
   align-self: start;
   justify-self: center;
   z-index: 3;
   margin-top: -14px;
 }
 
-/* A shortcut: an icon, a name and a line */
+/* The shortcuts under the cards */
+.lobby-tiles {
+  grid-area: tiles;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
 .tile {
   display: flex;
   align-items: center;
@@ -1413,8 +948,8 @@ select:focus-visible {
 
 .lr-tabs {
   display: grid;
-  /* (Survival, the Vesuvius narrower: a short name, and Multiplayer) */
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 1.15fr);
+  /* (Multiplayer, Survival, and the Vesuvius narrower: a short name) */
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.2fr) minmax(0, 0.9fr);
   gap: 6px;
 }
 
@@ -3184,14 +2719,14 @@ input[type='range'] {
   padding: var(--top-room, 92px) 12px 16px;
 }
 
-/* One column: your Orb and the shortcuts, Survival, the small cards, the ranking */
+/* One column: your Orb, the cards, the shortcuts, the ranking */
 .screen.narrow .lobby-grid {
   width: 560px;
   max-width: 100%;
   height: auto;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: none;
-  grid-template-areas: 'hero' 'survival' 'row' 'side';
+  grid-template-areas: 'hero' 'cards' 'tiles' 'side';
 }
 
 .screen.narrow .hero {
@@ -3213,44 +2748,40 @@ input[type='range'] {
   justify-content: center;
 }
 
-.screen.narrow .hero::before {
-  left: 50%;
-}
-
-.screen.narrow .hero-tiles {
-  margin: 8px 0 0;
-  width: 100%;
-  flex-direction: row;
-}
-
-.screen.narrow .hero-tiles .tile {
-  flex: 1;
-  min-width: 0;
-}
-
-/* Survival: the picture above the run */
-.screen.narrow .mode-card.survival {
+.screen.narrow .mode-cards {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.screen.narrow .sv-pic {
-  min-height: 230px;
+.screen.narrow .mode-card {
+  min-height: 330px;
 }
 
-.screen.narrow .survival .card-pic::after {
-  background: linear-gradient(180deg, rgba(42, 11, 22, 0) 38%, #120818 100%);
+.screen.narrow .mode-card.waves,
+.screen.narrow .mode-card.campaign {
+  min-height: 290px;
 }
 
-.screen.narrow .sv-setup {
-  padding: 4px 18px 18px;
+/* A wide card: the boss and the weapon on its top right, above the text */
+.screen.narrow .card-weapon {
+  left: auto;
+  right: 22px;
+  top: 30px;
+  width: 190px;
+  height: 96px;
+  transform: rotate(-8deg);
 }
 
-.screen.narrow .lobby-row {
+.screen.narrow .mode-card:hover .card-weapon {
+  transform: none;
+}
+
+.screen.narrow .lobby-tiles {
   grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
 }
 
-.screen.narrow .mini-card {
-  min-height: 170px;
+.screen.narrow .tile {
+  height: 66px;
 }
 
 .screen.narrow .footer {

@@ -1,18 +1,16 @@
-// The start screen, a lobby (layout D, chosen by Erick on 02/11/2026: Survival in front, the ranking and the PvP kept;
-// before it, mockup F of 23/10/2026 with Multiplayer and Survival side by side): the logo and the page's buttons on top
+// The start screen, a lobby (mockup F, chosen by Erick on 23/10/2026): the logo and the page's buttons on top
 // (how many play now, sound, language, full screen, the account); the player's orb on its pedestal (arrows switch
-// the style, "Customize Orb" opens the full picker), the name and the record, the stats and the tutorial beside them;
-// the Survival card, the run set up in it (the wave, the weapon, PLAY); under it the Workshop (what it is for, the
-// Cores, the levels: Erick found it unclear), the Vesuvius and the Multiplayer (the mode, PLAY NOW, a room with
-// friends); the ranking on the right (src/menu/lobbyRanking.ts); a banner in a gutter on the left. The background is
-// a picture of a fight rendered by the game itself (tools/make-menu-bg.mjs), with drifting orbs and sparks on top.
+// the style, "Customize Orb" opens the full picker), the name and the online record; two mode cards, each with
+// its tag (online, solo): Multiplayer (the mode and PLAY NOW) and Survival (the waves: the record, the Cores, the
+// Workshop; the Campaign card left on 26/10/2026, Erick); the ranking on the right (src/menu/lobbyRanking.ts);
+// the stats, a room with friends and the tutorial below; a banner in a gutter on the left. The background is a
+// picture of a fight rendered by the game itself (tools/make-menu-bg.mjs), with drifting orbs and sparks on top.
 import * as THREE from 'three';
 import { modeName, modeShort, modeTagline } from '../client/modes';
 import { bestKills } from '../client/records';
 import { loadWavesRecord } from '../client/waves';
-import { weaponLook } from '../client/wavesPrize';
-import { MILESTONES, UPGRADES, affordable, balance, dailyState, loadProgress as loadWavesProgress, nextCost, saveProgress, startWeapons } from '../client/wavesProgress';
-import { LANG_KEY, bigNum, lang, num, t, type Key, type Lang } from '../i18n';
+import { affordable, balance, dailyState, loadProgress as loadWavesProgress } from '../client/wavesProgress';
+import { LANG_KEY, bigNum, lang, num, t, type Lang } from '../i18n';
 import { MAX_NAME_LENGTH, ROOM_MODES, cleanName, isReservedName, limitNameInput, type RoomMode, type RoomStatus } from '../net/protocol';
 import type { Account } from './account';
 import { AccountModal, debugUnlockOn } from './accountModal';
@@ -31,8 +29,7 @@ import { FREE_SKINS, availableSkins, liveSkin, saveSettings, setTestUnlock, skin
 import { TrainingModal } from './training';
 import { TutorialModal, tutorialSeen, type TutorialAnswer } from './tutorialModal';
 import type { TutorialKind } from '../client/tutorial';
-import { UPGRADE_ICON, WavesModal, coreIcon, startFacts, startOptions } from './wavesModal';
-import { VESUVIUS_WAVE, type VesuviusAccess } from '../sim/vesuvius';
+import { WavesModal, coreIcon } from './wavesModal';
 import { versioned } from '../sim/assetVersion';
 import { adBlocked, adsAllowed, mountAd, onAdBlockFound, onAdsAllowed, refreshAd, type AdSlot } from '../client/ads';
 import { track } from '../client/analytics';
@@ -53,12 +50,8 @@ const NARROW_WIDTH = 980;
 const MIN_LOBBY_W = 1000;
 /** A banner is centred on the window's height (.ad-slot): this much of it stays clear, above (the top bar) and below. */
 const AD_CLEAR = 132;
-/** The orb on the pedestal is drawn this big (design px: the stage's 190 px, zoomed 0.7 in menu.css). */
-const ORB_PX = 190 * 0.7;
-/** The Workshop card's upgrades: the ones every run feels, each with its level. */
-const CARD_UPGRADES = ['damage', 'fire', 'life', 'armor'] as const;
-
-const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s) % 60).padStart(2, '0')}`;
+/** The orb on the pedestal is drawn this big (design px: the stage's 190 px, zoomed 0.78 in menu.css). */
+const ORB_PX = 190 * 0.78;
 
 /** The banners of the left gutter: their element, ad unit and size (with the label above). */
 interface SideAd {
@@ -112,8 +105,6 @@ export class StartScreen {
   private adSlot: SideAd | null = null;
   /** The Orb drawn in the account button (its skin and colours), not to draw it again. */
   private avatarKey = '';
-  /** The server's word on the Vesuvius for its card (`key`: the account and the test switch), a minute's answer kept. */
-  private vesuvius: { key: string; at: number; access: VesuviusAccess | null } | null = null;
   private spin = 0;
   private lastTime = 0;
 
@@ -156,7 +147,7 @@ export class StartScreen {
     account.onChange(() => this.applyTestUnlock());
     $('btnAccount').addEventListener('click', () => this.accountModal.open());
     // Which windows of the start screen are opened (analytics)
-    const opens: [string, string][] = [['btnAccount', 'account'], ['btnStats', 'stats'], ['lrFull', 'ranking'], ['training', 'training'], ['btnControls', 'controls'], ['orbButton', 'orb'], ['orbCustomize', 'orb'], ['btnPrivate', 'private'], ['cardWorkshop', 'waves'], ['cardVesuvius', 'vesuvius']];
+    const opens: [string, string][] = [['btnAccount', 'account'], ['btnStats', 'stats'], ['lrFull', 'ranking'], ['training', 'training'], ['btnControls', 'controls'], ['orbButton', 'orb'], ['orbCustomize', 'orb'], ['btnPrivate', 'private']];
     for (const [id, name] of opens) $(id).addEventListener('click', () => track('menu_open', { window: name }));
     this.statsModal = new StatsModal(account, () => this.accountModal.open());
     $('btnStats').addEventListener('click', () => this.statsModal.open());
@@ -177,17 +168,9 @@ export class StartScreen {
       },
     );
     $('btnPrivate').addEventListener('click', () => this.room.open());
-    // The Workshop's and the Vesuvius's cards are buttons, all of them: the Survival window on that tab
-    $('cardWorkshop').addEventListener('click', () => this.openWaves());
-    $('cardVesuvius').addEventListener('click', () => this.openWaves('vesuvius'));
-    // The run set up on the Survival card: the wave and the weapon, the same choice as the Workshop's (saved in the progress)
-    $('svStarts').addEventListener('click', (e) => {
-      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-start]');
-      if (b && !b.disabled) this.chooseRun({ startWave: Number(b.dataset.start) });
-    });
-    $('svWeapon').addEventListener('click', (e) => {
-      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-weapon]');
-      if (b && !b.disabled) this.chooseRun({ startWeapon: Number(b.dataset.weapon) });
+    // The Survival card is a button, all of it
+    $('cardWaves').addEventListener('click', (e) => {
+      if (!(e.target as HTMLElement).closest('button')) $('btnWaves').click();
     });
     this.waves = new WavesModal(
       account,
@@ -211,15 +194,15 @@ export class StartScreen {
       this.play('offline', false);
       onTutorial(kind);
     };
-    // PLAY on the Survival card: the run as set up there (the first time, the tutorial is offered first)
-    $('wavesPlay').addEventListener('click', () => {
+    $('btnWaves').addEventListener('click', () => {
+      track('menu_open', { window: 'waves' });
       void this.firstTime('waves').then((a) => {
         if (a === 'tutorial') tutorial('waves');
-        else if (a === 'play' || a === 'none') {
+        else if (a === 'play') {
           this.play('offline', false);
           this.playedTab = 'waves';
           onWaves();
-        }
+        } else if (a === 'none') this.openWaves();
       });
     });
     account.onChange(() => this.renderAccount());
@@ -290,10 +273,8 @@ export class StartScreen {
     });
     // Found later by the banners themselves: their spots go (the request waits for a match, beforePlay)
     onAdBlockFound(() => this.fit());
-    // The Survival card: the waves' boss and its wave, a moment of the game (tools/make-menu-cards.mjs --waves); the
-    // Vesuvius's arena (--vesuvius)
+    // The Survival card: the waves' boss and its wave, a moment of the game (tools/make-menu-cards.mjs --waves)
     $('wavesPic').style.backgroundImage = `url('${versioned('/menu/card-waves.webp')}')`;
-    $('vesPic').style.backgroundImage = `url('${versioned('/menu/card-vesuvius.webp')}')`;
     this.embers = matchMedia('(prefers-reduced-motion: reduce)').matches ? null : new Embers($<HTMLCanvasElement>('bgSparks'));
     void this.makeBackground();
   }
@@ -455,115 +436,28 @@ export class StartScreen {
   }
 
   /**
-   * The lobby's numbers, from this browser and the account: the waves' record (else the online record of the chosen
-   * mode), the run set up on the Survival card, the Workshop's Cores and levels, the Vesuvius.
+   * The lobby's numbers, from this browser and the account: the online record of the chosen mode, the waves'
+   * record and Cores.
    */
   private renderProgress(): void {
-    const waves = loadWavesRecord();
     const mode = this.settings.mode;
-    const kills = Math.max(bestKills(mode), this.account.stats[mode]?.bestKills ?? 0);
-    $('heroChips').innerHTML = waves
-      ? `<span class="hero-chip">${t('menu.wavesChip', { n: `<b>${waves.wave}</b>` })}${waves.time !== null ? ` · ${clock(waves.time)}` : ''}</span>`
-      : kills > 0
-        ? `<span class="hero-chip">${t('menu.recordChip', { mode: modeShort(mode), n: `<b>${num(kills)}</b>` })}</span>`
-        : '';
-    this.renderRun();
-    this.renderWorkshop();
-    this.renderVesuvius();
-  }
+    const record = Math.max(bestKills(mode), this.account.stats[mode]?.bestKills ?? 0);
+    $('heroChips').innerHTML = record > 0 ? `<span class="hero-chip">${t('menu.recordChip', { mode: modeShort(mode), n: `<b>${num(record)}</b>` })}</span>` : '';
 
-  /**
-   * The run on the Survival card: the wave to start on (the first or a checkpoint reached, between two arrows, like the
-   * Workshop's picker), what that start brings, the starting weapon (the open ones), and PLAY with the wave.
-   */
-  private renderRun(): void {
-    const record = loadWavesRecord()?.wave ?? 0;
-    const tester = this.account.debugTools.zoom;
-    const { startWave, startWeapon } = WavesModal.startChoice(tester);
-    const options = startOptions(record, tester);
-    const at = Math.max(0, options.indexOf(startWave));
-    const arrow = (to: number | undefined, name: IconName, label: Key) =>
-      `<button type="button" class="sv-arrow"${to === undefined ? ' disabled' : ` data-start="${to}"`} aria-label="${t(label)}">${icon(name, 18)}</button>`;
-    $('svStarts').innerHTML =
-      arrow(options[at - 1], 'chevron_left', 'workshop.prevWave') +
-      `<div class="sv-wave"><span>${t('workshop.waveLabel')}</span><b>${startWave}</b></div>` +
-      arrow(options[at + 1], 'chevron_right', 'workshop.nextWave');
-    // No checkpoint yet: how to get one; else what this start brings (the Workshop says the same)
-    const f = startFacts(startWave, tester);
-    $('svFacts').innerHTML =
-      options.length < 2
-        ? `<p class="sv-note">${t('workshop.startLocked')}</p>`
-        : `<div><small>${t('workshop.timeShort')}</small><b>${f.time}</b></div><div><small>${t('workshop.permsShort')}</small><b>${f.perms}</b></div><div><small>${t('workshop.cardsShort')}</small><b>${f.cards}</b></div>`;
-    // The weapon: the open ones, one at a time (the locked ones and their waves are in the Workshop)
-    const open = startWeapons(record);
-    const i = Math.max(0, open.indexOf(startWeapon));
-    const look = weaponLook(open[i]);
-    // (one open: the wave that gives the next one, on hover)
-    const next = MILESTONES.find((m) => 'weapon' in m && m.wave > record);
-    const hint = next ? ` title="${t('workshop.reach', { n: next.wave })}"` : '';
-    const step = (d: number, name: IconName, label: Key) =>
-      `<button type="button" class="sv-arrow"${open.length < 2 ? ' disabled' : ` data-weapon="${open[(i + d + open.length) % open.length]}"`} aria-label="${t(label)}">${icon(name, 18)}</button>`;
-    $('svWeapon').innerHTML =
-      step(-1, 'chevron_left', 'workshop.prevWeapon') +
-      `<div class="sv-gun"${open.length < 2 ? hint : ''}>${look.picture ? `<img src="${look.picture}" alt="" />` : ''}<b>${look.name}</b></div>` +
-      step(1, 'chevron_right', 'workshop.nextWeapon');
-    $('wavesPlayText').textContent = t('workshop.play', { n: startWave });
-  }
-
-  /** A wave or a weapon chosen on the Survival card (the Workshop shows the same choice). */
-  private chooseRun(change: { startWave?: number; startWeapon?: number }): void {
-    saveProgress({ ...loadWavesProgress(), ...change });
-    this.renderRun();
-  }
-
-  /**
-   * The Workshop's card (Erick, 02/11/2026: what it is had to be clear): the Cores, the upgrades every run feels with
-   * their levels (lit when the Cores pay for the next one), and the badge: today's reward waiting, else how many
-   * upgrades the Cores pay for.
-   */
-  private renderWorkshop(): void {
+    const waves = loadWavesRecord();
+    $('wavesLine').textContent = waves ? t('menu.wavesRecord', { n: waves.wave }) : t('lobby.wavesFirst');
+    // The Cores of the waves, and how many upgrades they pay for now
     const wp = loadWavesProgress();
-    const cash = balance(wp);
-    $('wavesCores').innerHTML = `${coreIcon(16)}${t('menu.wavesCores', { n: bigNum(cash) })}`;
-    $('wsLevels').innerHTML = CARD_UPGRADES.map((id) => {
-      const u = UPGRADES.find((x) => x.id === id)!;
-      const level = wp.levels[id];
-      const cost = nextCost(u, wp.levels);
-      const can = cost !== null && cost <= cash;
-      return `<span class="ws-lv${can ? ' can' : ''}" title="${t(`up.${id}`)} · ${t('workshop.levelN', { n: level })}">${icon(UPGRADE_ICON[id], 16)}<b>${t('waves.permLevel', { n: level })}</b></span>`;
-    }).join('');
+    const cores = $('wavesCores');
+    cores.hidden = wp.earned === 0;
+    cores.innerHTML = `${coreIcon(16)}${t('menu.wavesCores', { n: bigNum(balance(wp)) })}`;
+    // The badge: today's reward waiting first, else how many upgrades the Cores pay for
     const canBuy = affordable(wp);
     const daily = dailyState(wp).ready;
     const badge = $('wavesBadge');
     badge.hidden = !daily && canBuy === 0;
     badge.classList.toggle('daily', daily);
-    badge.textContent = daily ? t('menu.dailyReady') : t('lobby.canBuy', { n: canBuy });
-  }
-
-  /**
-   * The Vesuvius's card: open when the server says so (a checked record past wave 100, or a tester's switch: asked
-   * here for signed-in players, a minute's answer kept), else locked with the record's way to wave 100.
-   */
-  private renderVesuvius(): void {
-    const test = debugUnlockOn(this.account.debugTools.zoom);
-    const key = `${this.account.session?.user.id ?? ''}|${test}`;
-    const v = this.vesuvius;
-    if (this.account.signedIn && (v?.key !== key || Date.now() - v.at > 60_000)) {
-      const asked = { key, at: Date.now(), access: v?.key === key ? v.access : null };
-      this.vesuvius = asked;
-      void this.account.vesuviusAccess(test).then((access) => {
-        if (this.vesuvius !== asked) return;
-        asked.access = access;
-        if (this.visible) this.renderVesuvius();
-      });
-    }
-    const open = this.account.signedIn && this.vesuvius?.key === key && !!this.vesuvius.access?.open;
-    $('cardVesuvius').classList.toggle('locked', !open);
-    $('vesIco').innerHTML = icon(open ? 'flame' : 'lock', 20);
-    const wave = Math.min(VESUVIUS_WAVE, loadWavesRecord()?.wave ?? 0);
-    $('vesBody').innerHTML = open
-      ? `<span class="mc-btn vesuvius">${t('lobby.vesuviusForge')}</span>`
-      : `<b class="ves-lock">${t('vesuvius.locked')}</b><span class="ves-bar"><i style="width:${(wave / VESUVIUS_WAVE) * 100}%"></i></span><small>${t('vesuvius.progress', { n: wave })}</small>`;
+    badge.textContent = daily ? t('menu.dailyReady') : t(canBuy === 1 ? 'menu.wavesCanBuyOne' : 'menu.wavesCanBuy', { n: canBuy });
   }
 
   /** The testers' "every style and crown open" (the account window), on an account the server allows. */
@@ -651,14 +545,10 @@ export class StartScreen {
     // (a tablet too, however wide: one column, the card on top)
     const narrow = w < NARROW_WIDTH || touchOnly();
     this.root.classList.toggle('narrow', narrow);
-    // The lobby starts under the top bar: a narrow window's may take two rows; a wide one's logo and tagline, on the
-    // left above your Orb, may be taller than TOP_ROOM
-    const top = narrow
-      ? Math.ceil(document.querySelector<HTMLElement>('.topbar')!.getBoundingClientRect().bottom) + 18
-      : Math.max(TOP_ROOM, Math.ceil(document.querySelector<HTMLElement>('.topbar .brand')!.getBoundingClientRect().bottom - this.root.getBoundingClientRect().top) + 6);
-    document.documentElement.style.setProperty('--top-room', `${top}px`);
+    // A narrow window's top bar may take two rows: the lobby starts under it
+    if (narrow) document.documentElement.style.setProperty('--top-room', `${Math.ceil(document.querySelector<HTMLElement>('.topbar')!.getBoundingClientRect().bottom) + 18}px`);
     // The skyscraper where the window is tall enough, else the rectangle, never squeezing the lobby too much
-    const room = h - (narrow ? TOP_ROOM : top) - BOTTOM_ROOM;
+    const room = h - TOP_ROOM - BOTTOM_ROOM;
     const fits = (ad: SideAd) => w - (ad.width + AD_MARGIN * 2) >= MIN_LOBBY_W && h >= ad.height + AD_LABEL + AD_CLEAR;
     this.adSlot = narrow || !adsAllowed() ? null : fits(SKY) ? SKY : fits(RECT) ? RECT : null;
     const gutter = this.adSlot ? this.adSlot.width + AD_MARGIN * 2 : 0;

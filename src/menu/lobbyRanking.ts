@@ -38,7 +38,7 @@ const GUEST_TOP = 6;
 const CACHE_MS = 60_000;
 
 export class LobbyRanking {
-  private tab: Tab = 'waves';
+  private tab: Tab = 'online';
   private readonly cache = new Map<string, { at: number; rows: RankingRow[]; total: number }>();
   /** Asked once the start screen has settled (not with the page's first bytes). */
   private started = false;
