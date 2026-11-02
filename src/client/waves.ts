@@ -40,6 +40,12 @@ export const WAVES = {
   /** Share of the damage the player takes: the bots hit a quarter as hard as elsewhere. */
   playerDamage: 0.25,
   /**
+   * The bots come in one each waveSpec.spawnGap (0.25 s at the least), or faster when many are left: all those left come
+   * within `spawnWithin` of the wave's time (Erick, 02/11/2026: on wave 114, 411 left and hardly any on the screen; at 4
+   * a second a wave of 267 bots in 60 s never came in whole, and those left over piled up), several in a tick if need be.
+   */
+  spawnWithin: 0.5,
+  /**
    * The share of the player's damage bonuses (the Workshop's and the crates' damage, fury, berserker) his grenades get
    * (Player.grenadeBonus; Erick, 19/10/2026: with all of them a grenade killed wave 20 bots at a blow up to a block
    * away). With the Workshop's damage at the top, one at the bot's feet kills up to wave 18, a step off up to 12 (were
@@ -254,10 +260,17 @@ export const ELITE = {
   tint: { redDecal: [0.55, 0.06, 0.05], greenDecal: [0.3, 0, 0.02], blueDecal: [0.06, 0, 0] } as Omit<SkinInfo, 'skin'>,
 };
 
+/**
+ * The tank's share of the damage grows at half the rate since 02/11/2026 (Erick: on wave 100 the guns took too long; a
+ * tank there took 12.9 ordinary enemies' damage, 8.2 now: 1 / (2 + 0.06k) until then).
+ */
 export function eliteStrength(n: number): { speed: number; hit: number; aim: number; tough: number } {
   const k = Math.max(0, n - ELITE_FROM);
-  return { speed: 1.3 + 0.02 * k, hit: 1.6 + 0.06 * k, aim: 0.3, tough: 1 / (2 + 0.06 * k) };
+  return { speed: 1.3 + 0.02 * k, hit: 1.6 + 0.06 * k, aim: 0.3, tough: 1 / (2 + TANK_GROWTH * k) };
 }
+
+/** How fast the tank's own defence grows a wave (eliteStrength). */
+const TANK_GROWTH = 0.03;
 
 /**
  * The boss grows each time it comes (wave 10, 20, 30...; Erick, 12/10/2026): bigger (hit and drawn at
@@ -292,6 +305,14 @@ export function bossGuard(n: number): number {
  * `start` on, in order, `bosses` of them fell: the first that didn't holds the record at the wave before it. The
  * server keeps the same rule with the run's boss count (src/server/wavesRuns.ts).
  */
+/**
+ * The least seconds all the bots of a wave take to come in (WavesRun.updateFight): one every spawnGap, or all by
+ * WAVES.spawnWithin of its clock when that is sooner. The server's check of a run goes by it (src/server/wavesCheck.ts).
+ */
+export function spawnSeconds(s: Pick<WaveSpec, 'total' | 'spawnGap' | 'seconds'>): number {
+  return Math.min(Math.max(0, s.total - 1) * s.spawnGap, s.seconds * WAVES.spawnWithin);
+}
+
 /** The nuke bots of wave n (WAVES.nuke): none before `from`, one, then one more every `every` waves (2 on 75, 3 on 100...). */
 export function nukeBots(n: number): number {
   const N = WAVES.nuke;

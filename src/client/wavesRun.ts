@@ -163,6 +163,9 @@ const FAR_WEAPONS = new Set([WEAPON_SNIPER, WEAPON_PHOTON_RIFLE, WEAPON_BAZOOKA]
 /** The nuke bot's fiery tint in place of the red team's (WAVES.nuke): it must read as a kamikaze at a glance. */
 const NUKE_TINT: Omit<SkinInfo, 'skin'> = { redDecal: [1, 0.82, 0.15], greenDecal: [1, 0.42, 0.05], blueDecal: [0.4, 0.08, 0.02] };
 
+/** The most bots that come in a tick (WAVES.spawnWithin): a long queue comes fast, not all at once. */
+const SPAWN_BURST = 4;
+
 export class WavesRun {
   private readonly renderer: WavesRenderer;
   private wave = 0;
@@ -514,12 +517,21 @@ export class WavesRun {
     // "pressing" to respawn (spawnRequested stays on, the game refuses): it must not count, else
     // the fallen ones filled the wave's limit and nobody came any more (the wave 3 that never began)
     const standing = reds.filter(inWave).length;
-    // Bots join a few each second, all of them (only the game's player slots can hold some back)
+    // Bots join a few each second, all of them (only the game's player slots can hold some back); faster when many are
+    // left: all of them in by WAVES.spawnWithin of the wave's time, up to SPAWN_BURST in a tick
     this.spawnWait -= TICK;
-    if (this.spawnWait <= 0 && this.pending > 0) {
-      this.spawnWait = this.spec.spawnGap;
-      if (this.spawnBot()) this.pending--;
+    const window = this.waveLeft - this.spec.seconds * (1 - WAVES.spawnWithin);
+    const gap = Math.min(this.spec.spawnGap, Math.max(TICK / SPAWN_BURST, window / Math.max(1, this.pending)));
+    for (let n = 0; this.spawnWait <= 0 && this.pending > 0 && n < SPAWN_BURST; n++) {
+      this.spawnWait += gap;
+      if (!this.spawnBot()) {
+        // (no player slot free: try again a moment later)
+        this.spawnWait = Math.max(this.spawnWait, gap);
+        break;
+      }
+      this.pending--;
     }
+    if (this.pending === 0) this.spawnWait = Math.max(this.spawnWait, 0);
     // The boss comes after the first bots
     if (this.bossPending && this.wave > 0 && this.spec.total - this.pending >= Math.min(2, this.spec.total)) {
       this.bossPending = false;
@@ -1135,8 +1147,10 @@ export class WavesRun {
     this.silverCharge += weaponDefs[weaponID].fireDelay / me.fireBoost;
     if (this.silverCharge < every) return;
     this.silverCharge = 0;
-    // An ordinary enemy of the wave drops (its toughness undone); the tanks and the boss lose a share
-    const { p1, p2 } = this.ctx.game.silverShot(me, origin, direction, SILVER_LIFE / this.spec.toughness);
+    // An ordinary enemy of the wave drops (its toughness undone); the tanks and the boss lose a share. Half of the
+    // damage bonuses and no critical hit, as the grenades (Erick, 02/11/2026: measured in the wave's lives it grows with
+    // the wave already, and with all the bonuses it took down anything)
+    const { p1, p2 } = this.ctx.game.silverShot(me, origin, direction, SILVER_LIFE / this.spec.toughness, WAVES.grenadeBonus, false);
     this.ctx.onSilver(p1, p2);
   }
 
@@ -1321,7 +1335,9 @@ export class WavesRun {
       const d = Math.hypot(p.currentCF.position.x - pos.x, p.currentCF.position.y - pos.y);
       const inSight = d < radius && !game.map.rayTest(pos.clone(), p.currentCF.position.clone(), new Vec3());
       if (!inSight && !this.ctx.onScreen(p.currentCF.position)) continue;
-      p.hitSV(WEAPON_NUCLEAR, me, lives / this.spec.toughness);
+      // (half of the damage bonuses and no critical hit, as the grenades and the Silver bullet; not the shock wave's Q:
+      // Erick, it may kill the tanks for now)
+      p.hitSV(WEAPON_NUCLEAR, me, lives / this.spec.toughness, WAVES.grenadeBonus, false);
     }
     for (const c of [...game.crates]) {
       if (Math.hypot(c.position.x - pos.x, c.position.y - pos.y) < radius) game.hitCrate(c, 10, me);

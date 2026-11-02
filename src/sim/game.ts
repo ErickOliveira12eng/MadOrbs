@@ -1276,7 +1276,7 @@ export class Game {
    * The waves' Silver bullet card: one bullet straight along the aim, through every enemy and crate up to
    * a wall, `damage` each (as a sniper shot). Where it went, for the drawing.
    */
-  silverShot(player: Player, origin: Vec3, direction: Vec3, damage: number): { p1: Vec3; p2: Vec3 } {
+  silverShot(player: Player, origin: Vec3, direction: Vec3, damage: number, bonus = 1, canCrit = true): { p1: Vec3; p2: Vec3 } {
     const dir = direction.clone().normalizeIn();
     const p1 = origin.clone();
     const p2 = p1.add(new Vec3(dir.x * 128, dir.y * 128, dir.z * 64));
@@ -1288,7 +1288,7 @@ export class Game {
       if (this.isTeamGame && other.teamID === player.teamID) continue;
       if (!segmentToSphere(p1, p2.clone(), other.currentCF.position, other.radius)) continue;
       other.currentCF.vel.addIn(dir.mul(1.5));
-      other.hitSV(WEAPON_SNIPER, player, damage);
+      other.hitSV(WEAPON_SNIPER, player, damage, bonus, canCrit);
     }
     for (const crate of [...this.crates]) {
       if (segmentToSphere(p1, p2.clone(), crate.position, CRATE_RADIUS)) this.hitCrate(crate, 10, player);
