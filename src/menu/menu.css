@@ -1057,6 +1057,21 @@ select:focus-visible {
   font: 800 14px var(--font-ui);
 }
 
+/* (the top rows that don't fit the column: lobbyRanking.ts fit) */
+.lr-row[hidden] {
+  display: none;
+}
+
+/* The rows give a little to fit the column, not past this (then the top's last ones hide: fit) */
+.lr-list > .lr-row:not(.head) {
+  min-height: 30px;
+}
+
+.lr-list > .lr-row.head,
+.lr-list > .lr-gap {
+  flex-shrink: 0;
+}
+
 .lr-row.m1,
 .lr-row.m2,
 .lr-row.m3 {

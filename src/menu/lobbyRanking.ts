@@ -32,9 +32,13 @@ const BY: Record<RankingMode, Key> = {
   campaign: 'lobby.rankBy.campaign',
   vesuvius: 'lobby.rankBy.vesuvius',
 };
-/** The top rows (a guest sees only the top: a longer one; so does an account not in the ranking or near its top). */
-const TOP = 3;
-const GUEST_TOP = 6;
+/**
+ * The top rows and the player's own under them, past a "⋯" when it isn't among them (Erick, 02/11/2026: the top 10 at
+ * most, as many as fit the column, then the player's place whatever it is; until then the top 3 and two rows each side
+ * of the player's). The top's last ones give way when the column is short (fit), never below MIN_TOP.
+ */
+const TOP = 10;
+const MIN_TOP = 3;
 /** A list read again after this long. */
 const CACHE_MS = 60_000;
 
@@ -65,6 +69,8 @@ export class LobbyRanking {
       });
     }
     $('lrFull').addEventListener('click', () => onFull(this.mode));
+    // The column's room changes with the window (one column or two): as many top rows as fit again
+    window.addEventListener('resize', () => requestAnimationFrame(() => this.fit()));
     $('lrPerf').addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('[data-signin]')) onSignIn();
     });
@@ -113,20 +119,47 @@ export class LobbyRanking {
     const key = `${mode}:${signed}`;
     const got = this.cache.get(key);
     if (got && performance.now() - got.at < CACHE_MS) return got;
-    let { rows, total } = await this.account.rankingNear(mode, signed ? TOP : GUEST_TOP);
-    // Signed in, but not in this ranking yet or among its first few: the guests' longer top (Erick, 02/11/2026: an account
-    // just made saw the top 3 alone, with no rows of its own around it; his, second, saw 5)
-    const me = rows.find((r) => r.is_me);
-    if (signed && rows.length >= TOP && (!me || me.rank <= GUEST_TOP)) ({ rows, total } = await this.account.rankingNear(mode, GUEST_TOP));
+    const { rows, total } = await this.account.rankingNear(mode, TOP, 0);
     const fresh = { at: performance.now(), rows, total };
     this.cache.set(key, fresh);
     return fresh;
   }
 
   private setList(html: string): void {
-    if (html === this.shown.list) return;
-    $('lrList').innerHTML = this.shown.list = html;
-    void drawOrbPics($('lrList'), this.studio);
+    if (html !== this.shown.list) {
+      $('lrList').innerHTML = this.shown.list = html;
+      void drawOrbPics($('lrList'), this.studio);
+    }
+    this.fit();
+  }
+
+  /**
+   * As many of the top rows as fit the column: the last ones (past MIN_TOP) hide until the list fits, the player's own
+   * row always stays, a "⋯" before it when rows above it are hidden. Nothing hides where the column isn't limited (one
+   * column) or not laid out yet.
+   */
+  private fit(): void {
+    const list = $('lrList');
+    list.querySelector('.lr-gap.fit')?.remove();
+    const rows = [...list.querySelectorAll<HTMLElement>('.lr-row[data-rank]')];
+    for (const r of rows) r.hidden = false;
+    if (list.clientHeight === 0) return;
+    const me = rows.find((r) => r.classList.contains('me'));
+    const hideable = rows.filter((r) => r !== me && Number(r.dataset.rank) > MIN_TOP);
+    const over = () => list.scrollHeight > list.clientHeight + 1;
+    while (hideable.length && over()) hideable.pop()!.hidden = true;
+    // The player's row among the top, rows hidden above it: the gap before it (and one more row hidden if it no longer fits)
+    if (!me) return;
+    const before = rows.slice(0, rows.indexOf(me)).filter((r) => !r.hidden).pop();
+    const prev = me.previousElementSibling;
+    if (before && Number(me.dataset.rank) > Number(before.dataset.rank) + 1 && !prev?.classList.contains('lr-gap')) {
+      const gap = document.createElement('li');
+      gap.className = 'lr-gap fit';
+      gap.setAttribute('aria-hidden', 'true');
+      gap.textContent = '⋯';
+      me.before(gap);
+      while (hideable.length && over()) hideable.pop()!.hidden = true;
+    }
   }
 
   private setPerf(html: string): void {
@@ -179,7 +212,7 @@ export class LobbyRanking {
       if (last > 0 && r.rank > last + 1) html += `<li class="lr-gap" aria-hidden="true">⋯</li>`;
       last = r.rank;
       html +=
-        `<li class="lr-row${timed ? ` timed${one}` : ''}${r.is_me ? ' me' : ''}${r.rank <= 3 ? ` m${r.rank}` : ''}">` +
+        `<li class="lr-row${timed ? ` timed${one}` : ''}${r.is_me ? ' me' : ''}${r.rank <= 3 ? ` m${r.rank}` : ''}" data-rank="${r.rank}">` +
         `<span class="pos">${bigNum(r.rank)}</span>` +
         orbImg(r, 24) +
         `<b class="who">${r.is_me ? t('ranking.you') : esc(r.name || 'Orb')}</b>` +
@@ -187,6 +220,8 @@ export class LobbyRanking {
     }
     this.setList(html || `<li class="lr-note">${t('ranking.empty')}</li>`);
     this.renderPerf(mode, rows.find((r) => r.is_me) ?? null, total);
+    // (again once "Your performance" under it changed: the column's room with it)
+    this.fit();
   }
 
   /** "Your performance": the place, the number, the top share; a guest is asked to sign in. */

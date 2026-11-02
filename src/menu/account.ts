@@ -475,7 +475,7 @@ export class Account {
    * leaderboard_near is in the database (supabase/migrations/20261024140000_leaderboard_near.sql), leaderboard's top
    * and the player's own row.
    */
-  async rankingNear(mode: RankingMode, top: number): Promise<{ rows: RankingRow[]; total: number }> {
+  async rankingNear(mode: RankingMode, top: number, span = 2): Promise<{ rows: RankingRow[]; total: number }> {
     const call = async (fn: string, args: Record<string, unknown>): Promise<(RankingRow & { total?: number })[]> => {
       if (this.client) {
         const { data, error } = await this.client.rpc(fn, args);
@@ -493,7 +493,7 @@ export class Account {
     };
     if (!this.noNearRanking) {
       try {
-        const rows = await call('leaderboard_near', { p_mode: mode, p_top: top, p_span: 2 });
+        const rows = await call('leaderboard_near', { p_mode: mode, p_top: top, p_span: span });
         return { rows, total: rows[0]?.total ?? 0 };
       } catch (e) {
         // Not there (HTTP 404, "Could not find the function"): leaderboard from now on; anything else fails as it is
