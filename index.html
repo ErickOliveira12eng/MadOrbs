@@ -83,12 +83,13 @@
         <canvas id="bgSparks" class="bg-sparks"></canvas>
       </div>
 
-      <!-- The lobby (mockup F, chosen by Erick on 23/10/2026): the logo and the buttons of the page on top; your Orb
-           above two mode cards (Multiplayer and Survival; the Campaign left on 26/10/2026); the ranking on the right; shortcuts below -->
+      <!-- The lobby (layout D, chosen by Erick on 02/11/2026: Survival in front): the logo and the buttons of the page on
+           top; your Orb with the shortcuts beside it; the Survival card with the run set up in it; the Workshop, the Vesuvius
+           and the Multiplayer under it; the ranking on the right -->
       <header class="topbar">
         <div class="brand">
           <h1 class="logo"><img src="/brand/logo-wide.webp?v=1" alt="Mad Orbs" width="469" height="180" /></h1>
-          <p class="tagline" data-i18n="menu.tagline">Orb deathmatch in your browser</p>
+          <p class="tagline" data-i18n="menu.tagline">Survive the waves or fight online</p>
         </div>
         <div class="topbar-right">
           <div id="serverStatus" class="online-pill"><span class="dot"></span><span data-icon="users"></span><span class="status-text" data-i18n="menu.searching">Looking for the server...</span></div>
@@ -133,43 +134,71 @@
               <button id="orbCustomize" class="pill-btn" type="button"><span data-icon="palette"></span><span data-i18n="menu.customize">Customize Orb</span></button>
               <div id="heroChips" class="hero-chips"></div>
             </div>
+            <!-- The shortcuts -->
+            <nav class="hero-tiles" data-i18n-attr="aria-label=menu.more" aria-label="More">
+              <button id="btnStats" class="tile" type="button"><span class="tile-ico stats" data-icon="trophy"></span><span class="tile-text"><b data-i18n="account.stats">Stats</b><small data-i18n="lobby.statsSub">Kills, wins and records</small></span></button>
+              <button id="training" class="tile" type="button"><span class="tile-ico train" data-icon="gamepad"></span><span class="tile-text"><b data-i18n="lobby.tutorial">Tutorial</b><small data-i18n="lobby.tutorialSub">Learn and train with bots</small></span></button>
+            </nav>
           </section>
 
-          <!-- The two ways to play, each with its tag (online or solo), a picture, a line and its button -->
-          <div class="mode-cards">
-            <article class="mode-card online">
-              <span id="onlinePic" class="card-pic" aria-hidden="true"></span>
-              <span class="card-tag online" data-i18n="lobby.tagOnline">ONLINE</span>
-              <div class="card-body">
-                <h2 data-i18n="lobby.multiplayer">Multiplayer</h2>
-                <p data-i18n="lobby.multiplayerText">Take on other players in Deathmatch, Teams or Capture the Flag.</p>
-                <div id="modes" class="mode-pick" role="radiogroup" data-i18n-attr="aria-label=menu.gameMode" aria-label="Game mode"></div>
-                <button id="play" class="card-btn play" type="submit">
-                  <span class="play-main"><span data-icon="play"></span><span data-i18n="menu.play">PLAY NOW</span></span>
-                  <span id="playSub" class="play-sub" data-i18n="menu.playOnline">Online · Multiplayer</span>
-                </button>
-              </div>
-            </article>
-            <article id="cardWaves" class="mode-card waves">
+          <!-- Survival in front: the waves' boss, and the run set up right here (the wave, the weapon, PLAY) -->
+          <article id="cardWaves" class="mode-card waves survival">
+            <div class="sv-pic">
               <span id="wavesPic" class="card-pic" aria-hidden="true"></span>
               <span class="card-tag solo" data-i18n="lobby.tagSolo">SOLO</span>
-              <span id="wavesBadge" class="dock-badge" hidden></span>
-              <div class="card-body">
+              <div class="sv-title">
                 <h2 data-i18n="lobby.survival">Survival</h2>
-                <p data-i18n="lobby.survivalText">Survive waves of enemies and grow stronger with every run in the Workshop.</p>
-                <div class="card-stats"><span id="wavesLine" data-i18n="lobby.wavesFirst">Endless waves, a boss every 10</span><span id="wavesCores" class="dock-cores" hidden></span></div>
-                <button id="btnWaves" class="card-btn waves" type="button"><span data-icon="play"></span><span data-i18n="lobby.play">PLAY</span></button>
+                <p data-i18n="lobby.survivalText">Endless waves, a boss every 10. Die, upgrade in the Workshop and come back stronger.</p>
               </div>
-            </article>
-          </div>
+            </div>
+            <div class="sv-setup">
+              <small class="sv-label" data-i18n="lobby.startWave">Start on wave</small>
+              <div id="svStarts" class="sv-starts"></div>
+              <div id="svFacts" class="sv-facts"></div>
+              <small class="sv-label" data-i18n="workshop.weapon">Starting weapon</small>
+              <div id="svWeapon" class="sv-weapon"></div>
+              <button id="wavesPlay" class="card-btn waves" type="button"><span data-icon="play"></span><span id="wavesPlayText" data-i18n="lobby.play">PLAY</span></button>
+            </div>
+          </article>
           <div id="message" class="message" role="alert" hidden></div>
 
-          <!-- The shortcuts -->
-          <nav class="lobby-tiles" data-i18n-attr="aria-label=menu.more" aria-label="More">
-            <button id="btnPrivate" class="tile" type="button"><span class="tile-ico private" data-icon="users"></span><span class="tile-text"><b data-i18n="lobby.friends">Room with friends</b><small data-i18n="lobby.friendsSub">A private match by link</small></span></button>
-            <button id="btnStats" class="tile" type="button"><span class="tile-ico stats" data-icon="trophy"></span><span class="tile-text"><b data-i18n="account.stats">Stats</b><small data-i18n="lobby.statsSub">Kills, wins and records</small></span></button>
-            <button id="training" class="tile" type="button"><span class="tile-ico train" data-icon="gamepad"></span><span class="tile-text"><b data-i18n="lobby.tutorial">Tutorial</b><small data-i18n="lobby.tutorialSub">Learn and train with bots</small></span></button>
-          </nav>
+          <!-- Under it: the Workshop (what it is, the Cores and the levels), the Vesuvius, the Multiplayer -->
+          <div class="lobby-row">
+            <article id="cardWorkshop" class="mini-card workshop">
+              <span id="wavesBadge" class="dock-badge" hidden></span>
+              <div class="mc-head">
+                <span class="mc-ico" data-icon="wrench"></span>
+                <div class="mc-title"><h2 data-i18n="workshop.title">Workshop</h2><small data-i18n="lobby.workshopTag">Permanent upgrades</small></div>
+              </div>
+              <p class="mc-text" data-i18n="lobby.workshopText">Every run earns Cores: trade them here for upgrades that stay for good.</p>
+              <div id="wsLevels" class="ws-levels"></div>
+              <div class="mc-foot">
+                <span id="wavesCores" class="dock-cores"></span>
+                <button id="btnWorkshop" class="mc-btn workshop" type="button" data-i18n="lobby.workshopOpen">Open the Workshop</button>
+              </div>
+            </article>
+            <article id="cardVesuvius" class="mini-card vesuvius locked">
+              <span id="vesPic" class="card-pic" aria-hidden="true"></span>
+              <div class="mc-head">
+                <span id="vesIco" class="mc-ico" data-icon="lock"></span>
+                <div class="mc-title"><h2 data-i18n="vesuvius.name">Vesuvius</h2><small data-i18n="lobby.vesuviusTag">The volcano's boss</small></div>
+              </div>
+              <div id="vesBody" class="ves-body"></div>
+            </article>
+            <article class="mini-card online">
+              <span id="onlinePic" class="card-pic" aria-hidden="true"></span>
+              <div class="mc-head">
+                <span class="card-tag online" data-i18n="lobby.tagOnline">ONLINE</span>
+                <div class="mc-title"><h2 data-i18n="lobby.multiplayer">Multiplayer</h2></div>
+              </div>
+              <div id="modes" class="mode-pick" role="radiogroup" data-i18n-attr="aria-label=menu.gameMode" aria-label="Game mode"></div>
+              <button id="play" class="card-btn play" type="submit">
+                <span class="play-main"><span data-icon="play"></span><span data-i18n="menu.play">PLAY NOW</span></span>
+                <span id="playSub" class="play-sub" data-i18n="menu.playOnline">Online · Multiplayer</span>
+              </button>
+              <button id="btnPrivate" class="mc-link" type="button"><span data-icon="users"></span><span data-i18n="lobby.friends">Room with friends</span></button>
+            </article>
+          </div>
 
           <!-- The ranking (src/menu/lobbyRanking.ts): the top 3 and the rows around your place; your numbers under it -->
           <aside class="lobby-side">
@@ -179,9 +208,9 @@
                 <button id="lrFull" class="lr-link" type="button"><span data-i18n="lobby.rankFull">See all</span><span data-icon="chevron_right"></span></button>
               </div>
               <div id="lrTabs" class="lr-tabs" role="tablist" data-i18n-attr="aria-label=lobby.rankTabs" aria-label="Ranking by mode">
-                <button type="button" role="tab" data-tab="online" aria-selected="true" data-i18n="lobby.multiplayer">Multiplayer</button>
-                <button type="button" role="tab" data-tab="waves" aria-selected="false" data-i18n="lobby.survival">Survival</button>
+                <button type="button" role="tab" data-tab="waves" aria-selected="true" data-i18n="lobby.survival">Survival</button>
                 <button type="button" role="tab" data-tab="vesuvius" aria-selected="false" data-i18n="vesuvius.name">Vesuvius</button>
+                <button type="button" role="tab" data-tab="online" aria-selected="false" data-i18n="lobby.multiplayer">Multiplayer</button>
               </div>
               <p id="lrSub" class="lr-sub"></p>
               <ol id="lrList" class="lr-list"></ol>
@@ -251,6 +280,7 @@
             <section class="info-block">
               <h2 data-i18n="home.newsTitle">What's new</h2>
               <ul class="info-news">
+                <li><time datetime="2026-11-02" data-i18n="home.news76Date">November 2, 2026</time><b data-i18n="home.news76Title">A new start screen, with Survival in front</b><span data-i18n="home.news76">The start screen now opens on Survival: choose the wave and the weapon and play right there. Under it, the Workshop says what it is for (spend the Cores of your runs on upgrades that stay for good), the Vesuvius shows how far you are from it, and the Multiplayer keeps its three modes and the room with friends. The ranking opens on Survival.</span></li>
                 <li><time datetime="2026-11-02" data-i18n="home.news75Date">November 2, 2026</time><b data-i18n="home.news75Title">Waves: your stats in the pause, and a nuke that hurts</b><span data-i18n="home.news75">The Waves' pause (Esc) now shows your stats, the run's upgrades and its cards, like the Tab. And the nuke bot's blast takes 60% of your whole health (the bar and the energy shield), whatever your defense: with the Workshop it barely did anything. Hear the siren, run.</span></li>
                 <li><time datetime="2026-11-02" data-i18n="home.news74Date">November 2, 2026</time><b data-i18n="home.news74Title">Lighter movement and recoil</b><span data-i18n="home.news74">Your Orb now stops and turns much sooner: let go of the keys and it slides less than half as far, and switching direction it no longer drifts off the old way, even with the speed power-ups. The weapons' recoil is half of what it was: you can walk towards where you shoot, even with the chain gun.</span></li>
                 <li><time datetime="2026-11-01" data-i18n="home.news73Date">November 1, 2026</time><b data-i18n="home.news73Title">Vesuvius: levels without end</b><span data-i18n="home.news73">Win the Vesuvius and the next level opens: each one's volcano has 25% more life and damage, stronger enemies and 25% more Obsidian. Pick the level in the Forge, where Damage, Attack speed, Life and Defense now go on past their top with the Mastery. The Vesuvius ranking goes by the highest level won, then the time on it.</span></li>
