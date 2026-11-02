@@ -2100,6 +2100,79 @@
   justify-content: center;
 }
 
+/* With the waves' stats under it (WeaponPicker.pauseStats, the Tab's: HudLayer.wavesStats): one wide card, the title
+   and the buttons on a row, the stats below */
+.h-pickin.pause.stats {
+  width: 1000px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+/* (everything at its top, every card and every crate's upgrade, it still fits the screen) */
+.h-pickin.pause.stats .h-pausecard {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 24px;
+  width: 920px;
+  max-height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding: 16px 24px 14px;
+  text-align: left;
+}
+
+.h-pickin.pause.stats .h-pausecard h2 {
+  margin: 4px 0 0;
+  font-size: 38px;
+}
+
+/* (the line under the title gives way to the stats) */
+.h-pickin.pause.stats .h-pausecard .sub {
+  display: none;
+}
+
+.h-pickin.pause.stats .h-pfoot {
+  margin: 0;
+}
+
+.h-pstats {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--h-line);
+}
+
+/* "Your stats" like the panel's other headings (.h-wscols h3), the wave and the kills beside it */
+.h-pshead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.h-pshead h3 {
+  margin: 0;
+  color: var(--h-muted);
+  font: 900 12px var(--h-ui);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.h-pshead p {
+  margin: 0;
+  color: var(--h-muted);
+  font: 700 13px var(--h-ui);
+}
+
+.h-pstats .h-wsgrid {
+  margin-top: 8px;
+}
+
+/* The testers' tools beside it as well: the two side by side */
+.h-pickin.pause.stats.tools {
+  width: 1440px;
+}
+
 /* The testers' tools beside the waves' pause screen (WeaponPicker.toolsPanel, DEBUG_USER_IDS accounts) */
 .h-pickin.pause.tools {
   display: flex;

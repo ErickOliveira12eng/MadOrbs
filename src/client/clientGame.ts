@@ -1397,6 +1397,8 @@ export class ClientGame {
     if (this.conn) this.applyServerMessages();
     if (!this.running) return;
     if (this.paused) {
+      // Esc closes the pause screen as its button says (the rest of the tick waited, and the key went unread)
+      if (this.hud.picker.visible && input.rawPressed(bindings.menuAccess) && !this.chat.active) this.hud.picker.hide();
       input.endTick();
       return;
     }

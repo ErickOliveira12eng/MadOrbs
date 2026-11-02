@@ -235,6 +235,8 @@ export class HudLayer {
   /** The banner on the right (death screen, Esc menu): showing now, and when it was loaded (HUD time, -1: not yet). */
   private sideAdOn = false;
   private sideAdAt = -1;
+  /** The last frame seen (the waves' pause screen draws its stats from it). */
+  private lastFrame: HudFrame | null = null;
 
   constructor(
     private readonly container: HTMLElement,
@@ -251,6 +253,13 @@ export class HudLayer {
     for (const el of this.stage.querySelectorAll<HTMLElement>('[data-r]')) this.r[el.dataset.r!] = el;
     this.picker = new WeaponPicker(this.stage, this.art);
     this.picker.canSpectate = !opts.online;
+    // The waves' pause screen: the Tab's stats under its buttons (Erick, 02/11/2026)
+    this.picker.pauseStats = () => {
+      const f = this.lastFrame;
+      if (!f?.waves || f.waves.over) return null;
+      const s = this.wavesStats(f);
+      return `<div class="h-pshead"><h3>${t('wstats.title')}</h3><p>${s.sub}</p></div>${s.body}`;
+    };
     this.ready = this.art.load().then(() => {
       for (const [key, name] of [['grenImg', 'grenade'], ['moloImg', 'molotov']] as const) {
         const url = this.art.icon(name);
@@ -954,12 +963,18 @@ export class HudLayer {
     this.r.feat.classList.toggle('low', !!w.bossLife);
   }
 
-  /**
-   * The waves' Tab (Erick, 01/11/2026: the bots' table told nothing): the player's stats as they are now (life, shield,
-   * damage, attack speed, speed, defence, critical, dodge), the run's upgrades by name and level, the cards with what
-   * each one does at its level.
-   */
+  /** The waves' Tab (Erick, 01/11/2026: the bots' table told nothing): the player's stats. */
   private updateWavesStats(f: HudFrame): void {
+    const s = this.wavesStats(f);
+    setHTML(this.r.wstats, `<div class="h-thead"><div><h2>${t('wstats.title')}</h2><p>${s.sub}</p></div></div>${s.body}`);
+  }
+
+  /**
+   * The player's stats in the waves (the Tab, and the pause screen since 02/11/2026) as they are now (life, shield,
+   * damage, attack speed, speed, defence, critical, dodge), the run's upgrades by name and level, the cards with what
+   * each one does at its level; `sub` is the line under the title (the wave, the kills, the record).
+   */
+  private wavesStats(f: HudFrame): { sub: string; body: string } {
     const w = f.waves!;
     const me = f.me;
     const x = (v: number) => `×${num(Math.round(v * 100) / 100)}`;
@@ -991,13 +1006,13 @@ export class HudLayer {
           })
           .join('')
       : `<div class="h-wsnone">${t('wstats.none')}</div>`;
-    setHTML(
-      this.r.wstats,
-      `<div class="h-thead"><div><h2>${t('wstats.title')}</h2><p>${t('waves.label')} ${w.wave} · ${t(w.kills === 1 ? 'end.oneKill' : 'end.kills', { n: w.kills })}${w.record ? ` · ${t('waves.record', { n: w.record })}` : ''}</p></div></div>` +
+    return {
+      sub: `${t('waves.label')} ${w.wave} · ${t(w.kills === 1 ? 'end.oneKill' : 'end.kills', { n: w.kills })}${w.record ? ` · ${t('waves.record', { n: w.record })}` : ''}`,
+      body:
         `<div class="h-wsgrid">${stats}</div>` +
         `<div class="h-wscols"><section><h3>${t('waves.upgrades')}</h3><div class="h-wsperms">${perms}</div></section>` +
         `<section><h3>${t('wstats.cards')}</h3><div class="h-wscards">${cards}</div></section></div>`,
-    );
+    };
   }
 
   /** The waves' corner panel: the enemies of the wave still to beat, the record. */
@@ -1101,6 +1116,7 @@ export class HudLayer {
   // ---------------------------------------------------------------- every frame
 
   update(dt: number, f: HudFrame): void {
+    this.lastFrame = f;
     this.time += dt;
     this.hit = Math.max(0, this.hit - dt);
     const me = f.me;
@@ -1187,6 +1203,7 @@ export class HudLayer {
     this.updateKiller(f, deadScreen);
     if (stats) this.updateWavesStats(f);
     else if (table) this.updateTable(f, playing);
+    if (menu) this.picker.updateStats();
     if (!menu && !playing) this.updateBanner(f);
     this.updateCursors(f, !menu && alive && !spectator, !menu && deadScreen);
     // A banner on the right, every mode but the campaign: on the death screen and in the Esc menu

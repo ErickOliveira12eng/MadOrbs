@@ -116,10 +116,13 @@ export const WAVES = {
    * fiery tint, as tough as the wave's boss times `life` (the same day: a strong player shot it down before it came
    * near; it is there to make him run). Within `arm` cells of the player, in sight, it arms: it slows to `slow`, the
    * siren sounds every `beep` seconds, the seconds left show over its head and its reach on the floor, and after `fuse`
-   * seconds it blows up there: `radius` cells (3.5 until the same day: Erick, a little more), `damage` of a life bar to everyone of the player's side in it (before his
-   * defence, shield and bigger bar). Killed before that, it doesn't. The blast takes the bot with it (no kill for anyone).
+   * seconds it blows up there: `radius` cells (3.5 until the same day: Erick, a little more). The player in it loses
+   * `share` of his whole health, the life bar and the energy shield both full (the shield first), whatever his defence
+   * (Player.blastSV; Erick, 02/11/2026: it was `damage` of a bar before his defence, shield and bigger bar, and a run at
+   * wave 51 lost nothing: the defence took 62% to 98% of it and the shield the rest); his Shadow and his risen lose
+   * `damage` of a bar before theirs. Killed before that, it doesn't. The blast takes the bot with it (no kill for anyone).
    */
-  nuke: { from: 51, every: 25, among: 12, speed: 1.8, slow: 0.35, life: 1, arm: 2.5, fuse: 3, beep: 1, radius: 4.5, damage: 0.6 },
+  nuke: { from: 51, every: 25, among: 12, speed: 1.8, slow: 0.35, life: 1, arm: 2.5, fuse: 3, beep: 1, radius: 4.5, share: 0.6, damage: 0.6 },
 };
 
 /**

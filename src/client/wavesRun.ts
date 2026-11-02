@@ -376,29 +376,10 @@ export class WavesRun {
       return true;
     });
 
-    // Power-ups: the permanent levels, times the timed ones while they last
+    // Power-ups: the timed ones run out; the player's boosts from them, the permanent levels, the Workshop and the cards
     for (const k of Object.keys(this.timers) as TimedPower[]) this.timers[k] = Math.max(0, this.timers[k] - TICK);
-    // and the Workshop's levels under them all
-    const perm = this.perms;
-    const lv = this.ctx.levels;
-    me.speedBoost = Math.min(2, (1 + UPGRADE_STEP.speed * lv.speed) * (1 + PERM_SPEED_STEP * perm.permSpeed) * (this.timers.speed > 0 ? BOOSTS.speed : 1));
-    // (the Workshop's with its mastery, workshopFactor; the stat cards without end, statFactor)
-    me.fireBoost = workshopFactor('fire', lv.fire) * (1 + PERM_STEP * perm.permFire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1) * statFactor('xfire', this.cards.xfire ?? 0);
-    me.armorBoost = (1 - PERM_STEP) ** perm.permArmor * (this.timers.shield > 0 ? BOOSTS.shield : 1) * workshopFactor('armor', lv.armor) * statFactor('xarmor', this.cards.xarmor ?? 0);
-    // The Workshop's Life: a bigger bar (100 to 150 points), not a smaller blow
-    me.lifeMax = workshopFactor('life', lv.life);
-    me.damageBoost = workshopFactor('damage', lv.damage) * (1 + PERM_STEP * perm.permDamage) * (this.timers.fury > 0 ? BOOSTS.fury : 1) * statFactor('xdamage', this.cards.xdamage ?? 0);
-    // The shot cards the weapon in hand makes little of, as damage of its own hits (CARD_GAP)
-    me.weaponBoost = 1 + (CARD_GAP[me.weapon?.weaponID ?? -1] ?? 0) * SHOT_CARDS.reduce((n, id) => n + (this.cards[id] ?? 0), 0);
-    // The cards (wavesCards.ts)
+    this.applyBoosts();
     const card = (id: CardID) => CARD_LEVELS[id][this.cards[id] ?? 0];
-    me.extraShotChance = card('double');
-    me.parallelShot = card('parallel');
-    me.fanShot = card('fan');
-    me.pierce = card('pierce');
-    me.critChance = card('crit');
-    me.dodgeChance = card('dodge');
-    me.ricochet = card('ricochet');
     // Reflector: the shield comes up by itself now and then (its clock waits while it's up)
     if (!me.isAlive) me.reflectTime = 0;
     if (this.cards.reflect && me.isAlive && this.phase === 'fight' && me.reflectTime <= 0) {
@@ -450,8 +431,6 @@ export class WavesRun {
         if (me.nbGrenadeLeft < me.maxGrenades) me.nbGrenadeLeft++;
       }
     }
-    me.poisonShot = POISON_DPS * perm.poison;
-    me.iceShot = Math.min(ICE_MAX, ICE_SLOW * perm.ice);
   }
 
   // ---------------------------------------------------------------- waves
@@ -698,12 +677,15 @@ export class WavesRun {
       p.countdown = Math.max(0.01, n.fuse);
       if (n.fuse > 0) continue;
       p.countdown = 0;
-      // Boom: `damage` of a life bar to the player's side in the radius (his defence, shield and bar still count)
+      // Boom: the player in the radius (in sight of it) loses `share` of his whole health, whatever his defence
       this.nukers.splice(k, 1);
       const at = pos.clone();
       game.explosion(at.clone(), new Vec3(0, 0, 1), N.radius, p.playerID);
+      const mine = me.currentCF.position;
+      if (me.isAlive && mine.sub(at).length() < N.radius && !game.map.rayTest(at.clone(), mine.clone(), new Vec3())) me.blastSV(WEAPON_NUCLEAR, p, N.share);
+      // and the rest of his side in it (the Shadow, the risen) `damage` of a life bar, before their defence; the crates break
       const share = N.damage / (weaponDefs[WEAPON_NUCLEAR].damage * WAVES.playerDamage * Math.max(0.01, p.damageBoost));
-      game.radiusHit(at, N.radius, p.playerID, WEAPON_NUCLEAR, true, p.playerID, share);
+      game.radiusHit(at, N.radius, p.playerID, WEAPON_NUCLEAR, true, [p.playerID, me.playerID], share);
       this.remove(p);
     }
   }
@@ -936,6 +918,36 @@ export class WavesRun {
     return true;
   }
 
+  /**
+   * The player's boosts: the permanent levels, times the timed ones while they last, the Workshop's levels under them
+   * all, and the cards. Every tick, and at once when a tester's tool changes the run (the paused screen shows it).
+   */
+  private applyBoosts(): void {
+    const me = this.ctx.me;
+    const perm = this.perms;
+    const lv = this.ctx.levels;
+    me.speedBoost = Math.min(2, (1 + UPGRADE_STEP.speed * lv.speed) * (1 + PERM_SPEED_STEP * perm.permSpeed) * (this.timers.speed > 0 ? BOOSTS.speed : 1));
+    // (the Workshop's with its mastery, workshopFactor; the stat cards without end, statFactor)
+    me.fireBoost = workshopFactor('fire', lv.fire) * (1 + PERM_STEP * perm.permFire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1) * statFactor('xfire', this.cards.xfire ?? 0);
+    me.armorBoost = (1 - PERM_STEP) ** perm.permArmor * (this.timers.shield > 0 ? BOOSTS.shield : 1) * workshopFactor('armor', lv.armor) * statFactor('xarmor', this.cards.xarmor ?? 0);
+    // The Workshop's Life: a bigger bar (100 to 150 points), not a smaller blow
+    me.lifeMax = workshopFactor('life', lv.life);
+    me.damageBoost = workshopFactor('damage', lv.damage) * (1 + PERM_STEP * perm.permDamage) * (this.timers.fury > 0 ? BOOSTS.fury : 1) * statFactor('xdamage', this.cards.xdamage ?? 0);
+    // The shot cards the weapon in hand makes little of, as damage of its own hits (CARD_GAP)
+    me.weaponBoost = 1 + (CARD_GAP[me.weapon?.weaponID ?? -1] ?? 0) * SHOT_CARDS.reduce((n, id) => n + (this.cards[id] ?? 0), 0);
+    // The cards (wavesCards.ts)
+    const card = (id: CardID) => CARD_LEVELS[id][this.cards[id] ?? 0];
+    me.extraShotChance = card('double');
+    me.parallelShot = card('parallel');
+    me.fanShot = card('fan');
+    me.pierce = card('pierce');
+    me.critChance = card('crit');
+    me.dodgeChance = card('dodge');
+    me.ricochet = card('ricochet');
+    me.poisonShot = POISON_DPS * perm.poison;
+    me.iceShot = Math.min(ICE_MAX, ICE_SLOW * perm.ice);
+  }
+
   // ---------------------------------------------------------------- the testers' tools
 
   /** Every card with its level now (the testers' tools). */
@@ -949,6 +961,7 @@ export class WavesRun {
     const lv = Math.max(0, Math.min(cardDef(id).max, Math.round(level)));
     if (lv) this.cards[id] = lv;
     else delete this.cards[id];
+    this.applyBoosts();
     if (id !== 'shadow') return;
     // No card: the ally goes; a level: it comes now (its share follows the level: allyStrength)
     for (const p of this.allies.splice(lv ? 1 : 0)) this.remove(p);
@@ -964,12 +977,14 @@ export class WavesRun {
   setPerm(kind: PermKind, level: number): void {
     this.tested = true;
     this.perms[kind] = Math.max(0, Math.min(this.permCap, Math.round(level)));
+    this.applyBoosts();
   }
 
   /** The testers' tools: a crate's power-up taken now (the timed ones for their seconds, a life, a bomb...). */
   testPower(kind: PowerKind): void {
     this.tested = true;
     this.take(kind);
+    this.applyBoosts();
   }
 
   /** The Workshop's levels in this run (the testers' tools). */
@@ -1012,6 +1027,7 @@ export class WavesRun {
         this.rerolls = lv;
         break;
     }
+    this.applyBoosts();
   }
 
   /**

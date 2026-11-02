@@ -1042,6 +1042,30 @@ export class Player {
     return false;
   }
 
+  /**
+   * A blast that takes `share` of this babo's whole health, its life bar and the waves' energy shield both full (the
+   * shield goes first), whatever its defence: the waves' nuke bot (WAVES.nuke; Erick, 02/11/2026: through the
+   * defence and the shield a run at wave 51 lost nothing of it). No dodge nor Reflector against it; the dash and the
+   * spawn's immunity still keep it off, and a second wind still saves. Returns true if the babo died.
+   */
+  blastSV(fromWeaponID: number, from: Player, share: number): boolean {
+    if (this.status !== PLAYER_STATUS_ALIVE || this.immuneTime > 0.3) return false;
+    if (from !== this && this.dashLeft > 0 && from.teamID !== this.teamID) return false;
+    let points = share * (this.lifeMax + this.barrierMax);
+    if (this.barrierMax > 0) {
+      const taken = Math.min(this.barrier, points);
+      this.barrier -= taken;
+      points -= taken;
+      this.barrierWait = BARRIER_WAIT;
+    }
+    this.applyDamage(points / this.lifeMax, from, fromWeaponID);
+    if (this.life <= Number.EPSILON && !this.secondChance()) {
+      this.dieSV(from, fromWeaponID, false);
+      return true;
+    }
+    return false;
+  }
+
   /** The waves' poison (life lost every tick, the poisoner gets the kill) and chill wearing off. */
   private updateAilments(delay: number): void {
     if (this.chillLeft > 0) {

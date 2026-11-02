@@ -159,7 +159,8 @@ applyClientWeaponTuning();
  * How the babo moves, in every mode. The original (Player::controlIt and the friction in Player::update): 12.5 of
  * acceleration on each axis held, 4 of friction, 3.25 of top speed, and each shot pushes back by the weapon's
  * reculVel. Lighter since 02/11/2026 (Erick, from players' feedback: hard to stop on an item, the orb drifting off
- * when a key changes, worse with the speed power-ups; and the recoil kept them from walking where they shot):
+ * when a key changes, worse with the speed power-ups; and the recoil kept them from walking where they shot; kept the
+ * same day, once he had played it):
  * - `brake`: an axis with no key held, or with the opposite key, slows this much more (released, the orb slid 1.3
  *   cells; turning, it kept going the old way);
  * - `grip`: the friction and the brake grow with the speed boosts like the acceleration does (at twice the speed

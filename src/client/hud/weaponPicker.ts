@@ -89,6 +89,9 @@ export class WeaponPicker {
   pauseOnly = false;
   /** The testers' tools beside the pause screen, or null. */
   tools: PauseTools | null = null;
+  /** The player's stats under the pause screen's buttons (the waves: the Tab's panel), or null for the plain card. */
+  pauseStats: (() => string | null) | null = null;
+  private statsHtml: string | null = null;
   /** The tools' wave to jump to (0: the next one), and the one asked for (it begins when the game goes on). */
   private toolWave = 0;
   private toolQueued = 0;
@@ -269,12 +272,14 @@ export class WeaponPicker {
       const where = [this.modeName, this.mapName].filter(Boolean).map(esc).join(' · ');
       // The tools' list stays where it was scrolled to (every click draws it again)
       const scrolled = this.el.querySelector('.h-tools')?.scrollTop ?? 0;
+      this.statsHtml = this.pauseStats?.() ?? null;
+      const stats = this.statsHtml !== null;
       this.el.innerHTML =
-        `<div class="h-pickin pause${this.tools ? ' tools' : ''}">${this.toolsPanel()}<div class="h-pausecard"><span class="h-label">${where}</span><h2>${t('pause.title')}</h2>` +
-        `<p class="sub">${t('pause.sub')}</p><div class="h-pfoot">` +
+        `<div class="h-pickin pause${this.tools ? ' tools' : ''}${stats ? ' stats' : ''}">${this.toolsPanel()}<div class="h-pausecard">` +
+        `<div class="h-ptitle"><span class="h-label">${where}</span><h2>${t('pause.title')}</h2><p class="sub">${t('pause.sub')}</p></div><div class="h-pfoot">` +
         `<button type="button" class="h-ghost danger" data-act="quit">${t('pick.quit')}</button>` +
         `<button type="button" class="h-play" data-act="back">${t('pick.back')} <span class="h-key">Esc</span></button>` +
-        `</div></div></div>`;
+        `</div>${stats ? `<div class="h-pstats">${this.statsHtml}</div>` : ''}</div></div>`;
       const panel = this.el.querySelector('.h-tools');
       if (panel) panel.scrollTop = scrolled;
       return;
@@ -332,6 +337,19 @@ export class WeaponPicker {
       (this.canSpectate ? `<button type="button" class="h-ghost" data-act="spectate">${t(this.spectating ? 'pick.playAgain' : 'pick.spectate')}</button>` : '') +
       `<button type="button" class="h-play" data-act="back">${t(this.joined ? 'pick.back' : 'pick.join')} <span class="h-key">Esc</span></button>` +
       `</div></div>`;
+  }
+
+  /** Every frame while the pause screen shows: its stats as they are now (a tester's tool changes them). */
+  updateStats(): void {
+    if (!this.visible || !this.pauseOnly || this.tab === 'room') return;
+    const html = this.pauseStats?.() ?? null;
+    if (html === this.statsHtml) return;
+    const slot = this.el.querySelector('.h-pstats');
+    if (html === null || !slot) this.render();
+    else {
+      this.statsHtml = html;
+      slot.innerHTML = html;
+    }
   }
 
   /** The tools' wave to jump to: the one picked, else the next. */
