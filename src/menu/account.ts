@@ -25,6 +25,41 @@ function wavesRow(data: unknown): WavesRecord | null {
 const GOOGLE_CLIENT_ID = '224448068826-3dfhsa8j80ab13s639g70kh0c1dafpmk.apps.googleusercontent.com';
 /** Where supabase-js keeps the session in localStorage. */
 const STORAGE_KEY = 'madorbs.auth';
+
+/**
+ * Whose this browser's progress is: the account it was last brought together with ('' or none: a guest's). Erick,
+ * 02/11/2026: signed out of one account and into another, the second got the first one's waves (its record, Cores,
+ * Workshop, builds), this browser's copy merged into it. A guest's progress still goes into the first account it meets.
+ */
+const OWNER_KEY = 'madorbs.progressOwner';
+/** This browser's progress kept for the account (the waves, their Workshop, the Vesuvius, the campaign, the records). */
+const PROGRESS_KEYS = ['madorbs.waves', 'madorbs.wavesProgress', 'madorbs.vesuvius', 'madorbs.campaign', 'madorbs.records'];
+
+function progressOwner(): string {
+  try {
+    return localStorage.getItem(OWNER_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function setProgressOwner(id: string): void {
+  try {
+    if (id) localStorage.setItem(OWNER_KEY, id);
+    else localStorage.removeItem(OWNER_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/** This browser's progress back to nothing (it was another account's: the account keeps its own). */
+function clearLocalProgress(): void {
+  try {
+    for (const key of PROGRESS_KEYS) localStorage.removeItem(key);
+  } catch {
+    /* storage unavailable */
+  }
+}
 const PROFILE_COLUMNS = 'tag, name, skin, red, green, blue';
 const STATS_COLUMNS = 'mode, kills, deaths, wins, matches, captures, best_kills';
 
@@ -164,6 +199,10 @@ export class Account {
     const client = this.client;
     const id = this.session?.user.id;
     if (!client || !id) return;
+    // This browser's progress is another account's (signed in over it, or a sign-out that didn't clear it): it doesn't go
+    // into this one, the account's own comes instead
+    const owner = progressOwner();
+    if (owner && owner !== id) clearLocalProgress();
     const [profile, stats, campaign, waves, wavesProgress, vesuvius] = await Promise.all([
       client.from('profiles').select(PROFILE_COLUMNS).eq('id', id).maybeSingle(),
       client.from('player_stats').select(STATS_COLUMNS).eq('user_id', id),
@@ -213,6 +252,8 @@ export class Account {
       const remote = Object.fromEntries((campaign.data as { level: string; best_seconds: number }[]).map((r) => [r.level, r.best_seconds]));
       for (const [level, seconds] of Object.entries(mergeProgress(remote))) void this.saveCampaign(level, seconds);
     }
+    // (this browser's progress is this account's from now on, once still signed in to it)
+    if (this.session?.user.id === id) setProgressOwner(id);
     if (profile.error) console.warn('[account] cannot read the profile', profile.error.message);
     else this.profile = profile.data as Profile | null;
     if (stats.error) console.warn('[account] cannot read the stats', stats.error.message);
@@ -260,10 +301,16 @@ export class Account {
   async signOut(): Promise<void> {
     window.google?.accounts.id.disableAutoSelect();
     const client = this.client;
+    // What this browser has the account may not have yet goes up first; then this browser keeps nothing of it (the next
+    // one to play here starts as a guest, and another account signing in doesn't get it)
+    if (this.session) await Promise.allSettled([this.saveWavesProgress(), this.saveVesuviusProgress()]);
     if (client) await client.auth.signOut({ scope: 'local' });
     this.session = null;
     this.profile = null;
     this.stats = {};
+    this.waves = null;
+    clearLocalProgress();
+    setProgressOwner('');
     this.emit();
   }
 
