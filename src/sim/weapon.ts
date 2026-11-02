@@ -160,8 +160,8 @@ export class Weapon {
       if (flashes.length > 0) {
         owner.currentCF.position.z = 0.25;
         const { origin, direction } = this.firingOriginAndDirection(owner);
-        // Recoil (none for the waves' boss: Player.recoilScale)
-        owner.currentCF.vel.subIn(direction.mul(this.reculVel * owner.recoilScale));
+        // Recoil (none for the waves' boss: Player.recoilScale; lighter than the original's: Player.recoilShare)
+        owner.currentCF.vel.subIn(direction.mul(this.reculVel * owner.recoilScale * owner.recoilShare));
         const playSound = owner.fireFrameDelay === 0;
         if (playSound) owner.fireFrameDelay = 2;
         owner.shootShakeDis = direction.mul(-this.reculVel * owner.recoilScale * 0.5);

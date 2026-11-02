@@ -938,7 +938,9 @@ export class Game {
       // The waves' card volleys don't add to the spread (else they spoilt the next shots)
       if (!player.cardShot) weapon.currentImp = Math.min(weapon.impressision, weapon.currentImp + 3);
       let imp = player.cardSteady ? 0 : weapon.currentImp * player.spreadScale;
-      if (sv.sv_serverType === SERVER_TYPE_PRO && player.currentCF.vel.length() < 1.15) imp /= 2.7;
+      // Steadier nearly still (Pro rules). Its own recoil just given counts: under the original's (2.0 against 1.15)
+      // that was never, so the limit goes down with the recoil (Player.recoilShare), or a lighter one made it every shot
+      if (sv.sv_serverType === SERVER_TYPE_PRO && player.currentCF.vel.length() < 1.15 * player.recoilShare) imp /= 2.7;
       for (let i = 0; i < weapon.nbShot; ++i) out.push(this.pellet(player, imp, p1.clone(), p2.clone()));
     } else {
       if (!player.cardShot) weapon.currentImp = Math.min(weapon.impressision, weapon.currentImp + 3);

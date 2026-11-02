@@ -22,7 +22,7 @@ import { WavesModal } from './menu/wavesModal';
 import { StartScreen, type PlayMode } from './menu/menu';
 import { touchOnly } from './menu/pcOnly';
 import { matchesPlayed } from './menu/adblockModal';
-import { debugUnlockOn, debugZoomOn } from './menu/accountModal';
+import { debugClassicMoveOn, debugUnlockOn, debugZoomOn } from './menu/accountModal';
 import type { PrivateRoomJoin } from './menu/roomModal';
 import { ROOM_LINK_RE } from './net/protocol';
 import { OrbStudio } from './menu/orbStudio';
@@ -102,6 +102,8 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
   const common = {
     // The debug zoom (mouse wheel, offline only): the accounts the server allows, with the box ticked
     debugZoom: account.debugTools.zoom && debugZoomOn(),
+    // The original movement and recoil, to compare (offline only, the same accounts)
+    classicHandling: account.debugTools.zoom && debugClassicMoveOn(),
     playerName: settings.name,
     skin: skinInfo(settings),
     // The Survival crown worn (online the server checks the account's record before the others see it)

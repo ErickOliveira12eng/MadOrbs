@@ -52,7 +52,7 @@ import { loadAnnouncer, playAnnouncer } from './featSounds';
 import { applyFeatCounts, isAnnouncedToAll } from '../sim/feats';
 import type { GameEvent } from '../sim/events';
 import { Game, type ClientNet } from '../sim/game';
-import { sv, weaponDefs } from '../sim/gameVar';
+import { CLASSIC_HANDLING, HANDLING, sv, weaponDefs } from '../sim/gameVar';
 import { BotController, BOT_NAMES, randomSkin } from '../sim/bot';
 import { GameMap, THEME_LAVA, WEATHER_RAIN, loadMap } from '../sim/map';
 import { MiniBot, type Player, type SkinInfo } from '../sim/player';
@@ -150,6 +150,8 @@ export interface ClientGameOptions {
   onCampaignAction?: (action: 'next' | 'retry' | 'menu', level: CampaignLevel) => void;
   /** Debug: the mouse wheel zooms the view in and out (offline modes only; the accounts allowed). */
   debugZoom?: boolean;
+  /** Debug: the original movement and recoil (CLASSIC_HANDLING), to compare with today's (offline modes only; the accounts allowed). */
+  classicHandling?: boolean;
   /**
    * The waves mode (offline, src/client/waves.ts) instead of a training match: the wave to begin on,
    * the weapon to spawn with, the Workshop's levels (src/client/wavesProgress.ts).
@@ -219,6 +221,8 @@ export class ClientGame {
   private spawnRequestTime = 0;
   private chat = { active: false, text: '' };
   private svBackup: typeof sv | null = null;
+  /** The handling before the debug's original one (opts.classicHandling), put back on leaving. */
+  private handlingBackup: typeof HANDLING | null = null;
   private pendingMap: string | null = null;
   /** The private room we play in (online), null in a public one. */
   private room: NetRoom | null = null;
@@ -333,6 +337,10 @@ export class ClientGame {
   // ---------------------------------------------------------------- setup
 
   private startOffline(map: GameMap): void {
+    if (this.opts.classicHandling) {
+      this.handlingBackup = { ...HANDLING };
+      Object.assign(HANDLING, CLASSIC_HANDLING);
+    }
     if (this.opts.campaign) {
       this.startCampaign(map, this.opts.campaign);
       return;
@@ -1150,6 +1158,7 @@ export class ClientGame {
       this.conn.close();
     }
     if (this.svBackup) Object.assign(sv, this.svBackup);
+    if (this.handlingBackup) Object.assign(HANDLING, this.handlingBackup);
     window.removeEventListener('keydown', this.onChatKey, true);
     audio.stopMusic();
     cancelAnimationFrame(this.rafId);

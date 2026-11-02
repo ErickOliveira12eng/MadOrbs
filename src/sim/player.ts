@@ -34,7 +34,7 @@ import {
   TICK,
 } from './constants';
 import { CoordFrame } from './coordFrame';
-import { sv, weaponDefs } from './gameVar';
+import { HANDLING, sv, weaponDefs } from './gameVar';
 import { angleFromDir } from './helpers';
 import { emptyInput, type PlayerInput } from './input';
 import { Vec3, randRange, rotateAboutAxis } from './vec';
@@ -493,11 +493,11 @@ export class Player {
       } else {
         // Move with the velocity
         this.currentCF.position.addScaledIn(this.currentCF.vel, delay);
-        // Slow down (friction)
+        // Slow down (friction; HANDLING.grip: as much more as the speed boosts)
         let size = this.currentCF.vel.length();
         if (size > 0) {
           if (game.map.themeName === 'snow' && sv.sv_slideOnIce && this.onSplatter()) size -= delay * 1;
-          else size -= delay * 4;
+          else size -= delay * 4 * (HANDLING.grip ? this.pace : 1);
           if (size < 0) size = 0;
           this.currentCF.vel.normalizeIn().mulIn(size);
         }
@@ -546,6 +546,16 @@ export class Player {
     if (dirVect.lengthSq() > 0) this.currentCF.angle = angleFromDir(dirVect);
   }
 
+  /** The speed power-ups and the ice shots' chill (the waves): the acceleration, the top speed and (HANDLING.grip) the friction. */
+  get pace(): number {
+    return this.speedBoost * (1 - this.chill);
+  }
+
+  /** The part of its weapon's original recoil each shot gives (HANDLING; the waves' rapid fire: less per shot, the same per second). */
+  get recoilShare(): number {
+    return HANDLING.recoil / (HANDLING.steadyRecoil ? this.fireBoost : 1);
+  }
+
   /** Player::controlIt — reads the tick input. */
   controlIt(delay: number): void {
     const input = this.input;
@@ -553,9 +563,20 @@ export class Player {
     this.currentCF.mousePosOnMap.copy(input.mousePosOnMap);
 
     // The waves: speed power-ups, and the ice shots' chill
-    const pace = this.speedBoost * (1 - this.chill);
+    const pace = this.pace;
     let accel = 12.5 * pace;
-    if (game.map.themeName === 'snow' && sv.sv_slideOnIce && this.onSplatter()) accel = 4.0;
+    const ice = game.map.themeName === 'snow' && sv.sv_slideOnIce && this.onSplatter();
+    if (ice) accel = 4.0;
+
+    // Not in the original: an axis with no key, or the opposite one, brakes (HANDLING; not on ice, nor in the dash)
+    if (HANDLING.brake > 0 && !ice && this.dashLeft <= 0) {
+      const brake = delay * HANDLING.brake * (HANDLING.grip ? pace : 1);
+      const vel = this.currentCF.vel;
+      const wantX = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+      const wantY = (input.up ? 1 : 0) - (input.down ? 1 : 0);
+      if (vel.x * wantX <= 0) vel.x = Math.sign(vel.x) * Math.max(0, Math.abs(vel.x) - brake);
+      if (vel.y * wantY <= 0) vel.y = Math.sign(vel.y) * Math.max(0, Math.abs(vel.y) - brake);
+    }
 
     // Absolute movement (scope mode was never enabled in the shipped game)
     if (input.up) this.currentCF.vel.y += delay * accel;

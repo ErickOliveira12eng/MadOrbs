@@ -9,6 +9,8 @@ import { skinInfo, wornCrown, type Settings } from './settings';
 const DEBUG_ZOOM_KEY = 'madorbs.debugZoom';
 /** The testers' switch: every Orb style and crown open (settings.setTestUnlock). */
 const DEBUG_UNLOCK_KEY = 'madorbs.debugUnlock';
+/** The testers' switch: the original movement and recoil in the offline modes (CLASSIC_HANDLING), to compare. */
+const DEBUG_CLASSIC_MOVE_KEY = 'madorbs.debugClassicMove';
 
 function flagOn(key: string): boolean {
   try {
@@ -29,6 +31,9 @@ function setFlag(key: string, on: boolean): void {
 
 /** The debug zoom was turned on in this browser (the game uses it only for the accounts allowed). */
 export const debugZoomOn = (): boolean => flagOn(DEBUG_ZOOM_KEY);
+
+/** The original movement and recoil were asked for in this browser (the game uses it only offline, for the accounts allowed). */
+export const debugClassicMoveOn = (): boolean => flagOn(DEBUG_CLASSIC_MOVE_KEY);
 
 /** Every style and crown open: the box ticked, on an account the server allows (the menu redraws on a change). */
 export const debugUnlockOn = (allowed: boolean): boolean => allowed && flagOn(DEBUG_UNLOCK_KEY);
@@ -92,7 +97,7 @@ export class AccountModal {
         location.reload();
       });
     });
-    for (const [id, key] of [['debugZoomInput', DEBUG_ZOOM_KEY], ['debugUnlockInput', DEBUG_UNLOCK_KEY]] as const) {
+    for (const [id, key] of [['debugZoomInput', DEBUG_ZOOM_KEY], ['debugUnlockInput', DEBUG_UNLOCK_KEY], ['debugMoveInput', DEBUG_CLASSIC_MOVE_KEY]] as const) {
       const box = $<HTMLInputElement>(id);
       box.checked = flagOn(key);
       box.addEventListener('change', () => {
@@ -153,6 +158,7 @@ export class AccountModal {
     $('accountEmail').textContent = this.account.email;
     $('accountDebugZoom').hidden = !this.account.debugTools.zoom;
     $('accountDebugUnlock').hidden = !this.account.debugTools.zoom;
+    $('accountDebugMove').hidden = !this.account.debugTools.zoom;
     $('accountDebugReset').hidden = !this.account.debugTools.zoom;
     if (document.activeElement !== this.nameInput) this.nameInput.value = p?.name ?? this.settings.name;
     void this.studio.picture(skinInfo(this.settings), 144, undefined, true, wornCrown(this.settings)).then((src) => ($<HTMLImageElement>('accountOrb').src = src));
