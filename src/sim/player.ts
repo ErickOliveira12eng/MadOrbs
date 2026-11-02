@@ -180,6 +180,11 @@ export class Player {
    */
   wallRadius = 0;
   /** The waves' dash (the Workshop): seconds the speed limit stays lifted after a dash. */
+  /**
+   * The share of its speed it keeps (1: all): the waves' player in an armed nuke bot's reach wades (WAVES.nuke.drag).
+   * Not while it dashes: the dash still gets it out.
+   */
+  drag = 1;
   dashLeft = 0;
   /**
    * The waves' recharging shield (the Workshop): what it still absorbs, at most `barrierMax` (in life),
@@ -548,7 +553,7 @@ export class Player {
 
   /** The speed power-ups and the ice shots' chill (the waves): the acceleration, the top speed and (HANDLING.grip) the friction. */
   get pace(): number {
-    return this.speedBoost * (1 - this.chill);
+    return this.speedBoost * (1 - this.chill) * (this.dashLeft > 0 ? 1 : this.drag);
   }
 
   /** The part of its weapon's original recoil each shot gives (HANDLING; the waves' rapid fire: less per shot, the same per second). */

@@ -127,9 +127,11 @@ export const WAVES = {
    * `share` of his whole health, the life bar and the energy shield both full (the shield first), whatever his defence
    * (Player.blastSV; Erick, 02/11/2026: it was `damage` of a bar before his defence, shield and bigger bar, and a run at
    * wave 51 lost nothing: the defence took 62% to 98% of it and the shield the rest; 0.6 until the same evening, Erick:
-   * a little more); his Shadow and his risen lose `damage` of a bar before theirs. Killed before that, it doesn't. The blast takes the bot with it (no kill for anyone).
+   * a little more); his Shadow and his risen lose `damage` of a bar before theirs. In the reach of an armed one (in its
+   * sight) the player moves at `drag` of his speed, the dash's burst left whole (Erick, 02/11/2026: once the Orbs no
+   * longer stuck together, it should still be hard to get away). Killed before that, it doesn't. The blast takes the bot with it (no kill for anyone).
    */
-  nuke: { from: 51, every: 25, spread: [0.03, 0.75], jitter: 0.08, speed: 1.8, slow: 0.35, life: 1, arm: 2.5, fuse: 3, beep: 1, radius: 4.5, share: 0.7, damage: 0.7 },
+  nuke: { from: 51, every: 25, spread: [0.03, 0.75], jitter: 0.08, speed: 1.8, slow: 0.35, life: 1, arm: 2.5, fuse: 3, beep: 1, radius: 4.5, share: 0.7, damage: 0.7, drag: 0.5 },
 };
 
 /**

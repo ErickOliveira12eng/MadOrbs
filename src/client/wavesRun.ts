@@ -663,6 +663,16 @@ export class WavesRun {
    * The nuke bots (WAVES.nuke): one close to the player and in sight arms (the siren), and blows up when its fuse runs
    * out, unless it was killed first (it then never does).
    */
+  /** The player is in the reach of an armed nuke bot, in its sight (its blast would take him). */
+  private inNukeReach(): boolean {
+    const { game, me } = this.ctx;
+    if (!me.isAlive) return false;
+    const mine = me.currentCF.position;
+    return this.nukers.some(
+      (n) => n.fuse >= 0 && n.p.isAlive && n.p.currentCF.position.sub(mine).length() < WAVES.nuke.radius && !game.map.rayTest(n.p.currentCF.position.clone(), mine.clone(), new Vec3()),
+    );
+  }
+
   private updateNukes(): void {
     const { game, me } = this.ctx;
     const N = WAVES.nuke;
@@ -945,6 +955,8 @@ export class WavesRun {
     const perm = this.perms;
     const lv = this.ctx.levels;
     me.speedBoost = Math.min(2, (1 + UPGRADE_STEP.speed * lv.speed) * (1 + PERM_SPEED_STEP * perm.permSpeed) * (this.timers.speed > 0 ? BOOSTS.speed : 1));
+    // In an armed nuke bot's reach (in its sight), he wades (WAVES.nuke.drag; the dash's burst left whole: Player.pace)
+    me.drag = this.inNukeReach() ? WAVES.nuke.drag : 1;
     // (the Workshop's with its mastery, workshopFactor; the stat cards without end, statFactor)
     me.fireBoost = workshopFactor('fire', lv.fire) * (1 + PERM_STEP * perm.permFire) * (this.timers.rapid > 0 ? BOOSTS.rapid : 1) * statFactor('xfire', this.cards.xfire ?? 0);
     me.armorBoost = (1 - PERM_STEP) ** perm.permArmor * (this.timers.shield > 0 ? BOOSTS.shield : 1) * workshopFactor('armor', lv.armor) * statFactor('xarmor', this.cards.xarmor ?? 0);

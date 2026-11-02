@@ -595,7 +595,11 @@ export class Game {
         if (disSq <= touch * touch) {
           const dis = other.currentCF.position.sub(p.currentCF.position).normalizeIn();
           p.currentCF.position = other.currentCF.position.sub(dis.mul(touch + 0.01));
-          p.currentCF.vel = p.currentCF.vel.mul(-BOUNCE_FACTOR);
+          // Only the part of its speed going into the other bounces back (BOUNCE_FACTOR), the rest is kept (Erick,
+          // 02/11/2026: the original reversed all of it, so a bot pressed on the back of someone running away threw him
+          // back into it, again every tick: glued to the waves' nuke bot)
+          const into = p.currentCF.vel.x * dis.x + p.currentCF.vel.y * dis.y + p.currentCF.vel.z * dis.z;
+          if (into > 0) p.currentCF.vel.subIn(dis.mul(into * (1 + BOUNCE_FACTOR)));
           map.performCollision(p.lastCF, p.currentCF, p.wallRadius || p.radius);
           map.collisionClip(p.currentCF, p.wallRadius || p.radius);
           p.lastCF.position.copy(p.currentCF.position);
