@@ -73,8 +73,9 @@ export const UPGRADE_STEP = { life: 0.2, armor: 0.12, damage: 0.3, fire: 0.2, sp
  * without end, each level times this (damage, attack speed, life up; the damage taken down), each one MASTERY_GROW
  * dearer than the one before (the first, the top level's price times it).
  */
-// (the damage's 1.04 until 04/11/2026, Erick: +10% a purchase)
-export const MASTERY: Partial<Record<UpgradeID, number>> = { damage: 1.1, fire: 1.04, life: 1.04, armor: 0.97 };
+// (04/11/2026, Erick: the damage +10% a purchase, the others 5%; 1.04 and the defence's 0.97 until then. Not 10% on
+// the defence: it compounds, 0.9^20 is 12% of the damage taken left, unhurt while the bots' hits grow 4% a wave)
+export const MASTERY: Partial<Record<UpgradeID, number>> = { damage: 1.1, fire: 1.05, life: 1.05, armor: 0.95 };
 export const MASTERY_GROW = 1.12;
 /** Levels past the top kept at most (the account's table takes up to 1,000 a level since 20261101160000_waves_mastery.sql). */
 const MASTERY_MAX = 900;

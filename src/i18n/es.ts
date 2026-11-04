@@ -73,7 +73,7 @@ export const es: Record<Key, string> = {
   'home.newsTitle': 'Novedades',
   'home.news85Date': '4 de noviembre de 2026',
   'home.news85Title': 'Oleadas: el Daño del Taller pega más fuerte',
-  'home.news85': 'El Daño del Taller ahora da un 30% por nivel (era un 25%): x2,5 en el máximo, antes x2,25. Y cada nivel de Maestría del Daño después de él suma un 10% (era un 4%).',
+  'home.news85': 'El Daño del Taller ahora da un 30% por nivel (era un 25%): x2,5 en el máximo, antes x2,25. Y cada nivel de Maestría del Daño después de él suma un 10% (era un 4%); el de la Velocidad de ataque y el de la Vida, un 5% (era un 4%), y el de la Defensa, un 5% menos de daño recibido (era un 3%).',
   'home.news84Date': '4 de noviembre de 2026',
   'home.news84Title': 'Oleadas: la barra del jefe se queda hasta que cae',
   'home.news84': 'En las oleadas altas el jefe puede vivir más que su oleada: su barra de vida ahora se queda arriba hasta que cae, con su oleada al lado del nombre. Si el siguiente jefe llega con él todavía en pie, aparecen las dos barras, primero la del más antiguo.',

@@ -73,7 +73,7 @@ export const pt: Record<Key, string> = {
   'home.newsTitle': 'Novidades',
   'home.news85Date': '4 de novembro de 2026',
   'home.news85Title': 'Ondas: o Dano da Oficina bate mais forte',
-  'home.news85': 'O Dano da Oficina agora dá 30% por nível (eram 25%): ×2,5 no máximo, antes ×2,25. E cada nível de Maestria do Dano depois dele soma 10% (eram 4%).',
+  'home.news85': 'O Dano da Oficina agora dá 30% por nível (eram 25%): ×2,5 no máximo, antes ×2,25. E cada nível de Maestria do Dano depois dele soma 10% (eram 4%); o da Velocidade de ataque e o da Vida, 5% (eram 4%), e o da Defesa, 5% menos dano recebido (eram 3%).',
   'home.news84Date': '4 de novembro de 2026',
   'home.news84Title': 'Ondas: a barra do chefão fica até ele cair',
   'home.news84': 'Nas ondas altas o chefão pode viver mais que a onda dele: a barra de vida agora fica no topo até ele cair, com a onda dele ao lado do nome. Se o próximo chefão chegar com ele ainda de pé, aparecem as duas barras, a do mais antigo primeiro.',

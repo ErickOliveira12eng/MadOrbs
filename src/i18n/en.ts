@@ -75,7 +75,7 @@ export const en = {
   'home.newsTitle': "What's new",
   'home.news85Date': 'November 4, 2026',
   'home.news85Title': 'Waves: the Workshop\'s Damage hits harder',
-  'home.news85': 'The Workshop\'s Damage now gives 30% a level (it was 25%): x2.5 at the top, x2.25 before. And each Mastery level of the Damage after it adds 10% (it was 4%).',
+  'home.news85': 'The Workshop\'s Damage now gives 30% a level (it was 25%): x2.5 at the top, x2.25 before. And each Mastery level of the Damage after it adds 10% (it was 4%); the Attack speed\'s and the Life\'s 5% (4%), and the Defense\'s 5% less damage taken (3%).',
   'home.news84Date': 'November 4, 2026',
   'home.news84Title': 'Waves: the boss\'s bar stays until it falls',
   'home.news84': 'On the high waves a boss can outlive its wave: its life bar now stays at the top until it falls, with its wave beside its name. If the next boss comes while it still stands, both bars show, the older one first.',
