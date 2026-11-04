@@ -595,7 +595,7 @@ export class WavesModal {
       const gain = wavesPower({ ...p.levels, [u.id]: level + 1 }, weapon).power - wavesPower(p.levels, weapon).power;
       body =
         `<div class="wv-compare"><div class="wv-now"><small>${t('workshop.now')}</small><b>${upgradeValue(u.id, level)}</b></div>` +
-        `<span class="wv-arrow">${icon('arrowRight', 28)}</span>` +
+        `<span class="wv-to" aria-hidden="true">${icon('chevronRight', 30)}</span>` +
         `<div class="wv-now on"><small>${name(level + 1)}</small><b>${upgradeValue(u.id, level + 1)}</b></div></div>` +
         (gain > 0 ? `<div class="wv-gain">${icon('zap', 15)}${t('workshop.powerGain', { n: bigNum(gain) })}</div>` : '') +
         (later.length ? `<ul class="wv-later">${later.join('')}</ul>` : '') +

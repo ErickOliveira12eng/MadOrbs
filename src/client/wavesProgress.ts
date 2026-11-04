@@ -66,13 +66,15 @@ export const UPGRADES: Upgrade[] = [
  * sooner, the second wind has two levels (one save each).
  */
 // (speed 0.1 until 01/11/2026: Erick, the moving speed effects at 60% of what they were)
-export const UPGRADE_STEP = { life: 0.2, armor: 0.12, damage: 0.25, fire: 0.2, speed: 0.06, luck: 0.1, drops: 0.1 };
+// (the damage 0.25 until 04/11/2026, Erick: the Workshop's damage should be felt more; x2.5 at its top, was x2.25)
+export const UPGRADE_STEP = { life: 0.2, armor: 0.12, damage: 0.3, fire: 0.2, speed: 0.06, luck: 0.1, drops: 0.1 };
 /**
  * The Workshop's mastery (Erick, 01/11/2026: no wave the player can never pass): past their top level these go on
  * without end, each level times this (damage, attack speed, life up; the damage taken down), each one MASTERY_GROW
  * dearer than the one before (the first, the top level's price times it).
  */
-export const MASTERY: Partial<Record<UpgradeID, number>> = { damage: 1.04, fire: 1.04, life: 1.04, armor: 0.97 };
+// (the damage's 1.04 until 04/11/2026, Erick: +10% a purchase)
+export const MASTERY: Partial<Record<UpgradeID, number>> = { damage: 1.1, fire: 1.04, life: 1.04, armor: 0.97 };
 export const MASTERY_GROW = 1.12;
 /** Levels past the top kept at most (the account's table takes up to 1,000 a level since 20261101160000_waves_mastery.sql). */
 const MASTERY_MAX = 900;

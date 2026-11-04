@@ -5281,10 +5281,12 @@ input[type='range'] {
   color: var(--tone-text);
 }
 
-.wv-arrow {
+/* Now -> the next level: a plain chevron between the two (the class wv-arrow is the start picker's boxed button) */
+.wv-to {
   display: grid;
   place-items: center;
   color: var(--tone-text);
+  opacity: 0.85;
 }
 
 .wv-later {
@@ -6237,23 +6239,24 @@ input[type='range'] {
 }
 
 /* The milestones, under the three columns */
+/* The text on a line above, the track under it the whole width (Erick, 04/11/2026: beside it the track was squeezed) */
 .wv-milestones {
   display: flex;
-  align-items: center;
-  gap: 22px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   margin-top: 14px;
-  padding: 10px 22px;
+  padding: 10px 22px 12px;
   border-radius: 16px;
   border: 1px solid var(--card-border);
   background: rgba(255, 255, 255, 0.035);
 }
 
 .wv-ms-text {
-  flex: none;
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  width: 180px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
 }
 
 .waves-modal .wv-ms-text h3 {
@@ -6419,15 +6422,6 @@ input[type='range'] {
     font-size: 12px;
   }
 
-  .wv-milestones {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .wv-ms-text {
-    width: auto;
-  }
 }
 
 /* Short windows (a 720 px laptop): tighter */
