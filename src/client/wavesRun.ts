@@ -47,7 +47,11 @@ export interface WavesHud {
   reflector: { on: boolean; left: number; ready: number } | null;
   /** The cards taken (after each boss), with their levels. */
   cards: { id: CardID; level: number }[];
-  bossLife: { name: string; life: number } | null;
+  /**
+   * Every boss still standing (or about to come in), the oldest first, each with its wave: on the high waves one outlives
+   * its wave, and its bar stays until it falls (Erick, 02/11/2026: it went away on the next wave).
+   */
+  bossLives: { name: string; life: number; wave: number }[];
   /** The best wave before this run. */
   record: number | null;
   /** The wave's bots against wave 1's: their life (as the damage they take shrinks) and their damage. */
@@ -176,7 +180,8 @@ export class WavesRun {
   /** Bots of the wave still to come, and the wait before the next one joins. */
   private pending = 0;
   private spawnWait = 0;
-  private boss: Player | null = null;
+  /** The bosses' Orbs, each with the wave it came on and whether it was standing last tick (one may outlive its wave). */
+  private readonly bossOrbs: { p: Player; wave: number; up: boolean }[] = [];
   private bossPending = false;
   private nextCrate = WAVES.crates.every;
   private powers: FloorPower[] = [];
@@ -187,7 +192,6 @@ export class WavesRun {
   private readonly record = loadWavesRecord();
   /** Bosses beaten, and whether the boss was standing last tick. */
   private bosses = 0;
-  private bossUp = false;
   /** Whether the player was alive last tick (a spawn: the Workshop's grenades), the second winds left. */
   private wasAlive = false;
   private windLeft: number;
@@ -327,21 +331,24 @@ export class WavesRun {
       this.windLeft = me.secondWind;
       this.ctx.onSecondWind();
     }
-    // A boss beaten
-    const bossUp = !!this.boss?.isAlive;
-    if (this.bossUp && !bossUp && this.boss && this.boss.lives <= 0) {
-      this.bosses++;
-      this.bossesUp.shift();
-      // A checkpoint wave already gone by with its boss alive: saved now that it fell
-      const b = this.waveBuild;
-      if (b && b.wave < this.wave && !this.tested && !this.bossesUp.some((w) => w <= b.wave)) {
-        this.saveCheckpoint(b.wave, b.build);
-        this.waveBuild = null;
+    // A boss beaten (each of them: one may outlive its wave and meet the next one's)
+    for (const boss of this.bossOrbs) {
+      const up = boss.p.isAlive;
+      if (boss.up && !up && boss.p.lives <= 0) {
+        this.bosses++;
+        const i = this.bossesUp.indexOf(boss.wave);
+        this.bossesUp.splice(i >= 0 ? i : 0, 1);
+        // A checkpoint wave already gone by with its boss alive: saved now that it fell
+        const b = this.waveBuild;
+        if (b && b.wave < this.wave && !this.tested && !this.bossesUp.some((w) => w <= b.wave)) {
+          this.saveCheckpoint(b.wave, b.build);
+          this.waveBuild = null;
+        }
+        // The boss fell: three cards of every rarity, the game waits for the choice
+        this.offerCards();
       }
-      // The boss fell: three cards of every rarity, the game waits for the choice
-      this.offerCards();
+      boss.up = up;
     }
-    this.bossUp = bossUp;
     // Out of lives: the end
     if (!me.isAlive && me.lives <= 0 && this.elapsed > 0) {
       this.end();
@@ -570,7 +577,7 @@ export class WavesRun {
     const nuke = !escort && this.nukeSlots.has(this.waveSpawns);
     const loadout = { primary: this.spec.weapons[Math.floor(Math.random() * this.spec.weapons.length)], secondary: nuke ? WEAPON_NUCLEAR : WEAPON_KNIVES };
     // A fallen enemy's Orb (never a Shadow ally's nor a risen one's: they kept their name and side and took a new skin)
-    let i = bots.findIndex((b) => b.player !== this.boss && !b.player.isAlive && b.player.lives <= 0 && !this.allies.includes(b.player) && !this.risen.some((r) => r.p === b.player));
+    let i = bots.findIndex((b) => !this.isBoss(b.player) && !b.player.isAlive && b.player.lives <= 0 && !this.allies.includes(b.player) && !this.risen.some((r) => r.p === b.player));
     let p: Player | null = i >= 0 ? bots[i].player : null;
     if (!p) {
       p = game.addPlayer(this.ctx.names[bots.length % this.ctx.names.length], true);
@@ -718,9 +725,16 @@ export class WavesRun {
     }
   }
 
+  /** One of the bosses' Orbs. */
+  private isBoss(p: Player): boolean {
+    return this.bossOrbs.some((b) => b.p === p);
+  }
+
   private spawnBoss(): void {
     const { game, bots } = this.ctx;
-    if (!this.boss) {
+    // A fallen boss's Orb comes back; with the last one still standing, another one (two bosses at once)
+    let slot = this.bossOrbs.find((b) => !b.p.isAlive && b.p.lives <= 0);
+    if (!slot) {
       const p = game.addPlayer(this.ctx.bossName, true);
       if (!p) return;
       p.teamID = PLAYER_TEAM_RED;
@@ -733,9 +747,12 @@ export class WavesRun {
       p.grenadeDropChance = 0;
       // The eye (skin14), in the red team's colours
       p.skin = { ...this.ctx.randomSkin(), skin: 'skin14' };
-      this.boss = p;
+      slot = { p, wave: this.wave, up: false };
+      this.bossOrbs.push(slot);
     }
-    const p = this.boss;
+    slot.wave = this.wave;
+    slot.up = false;
+    const p = slot.p;
     p.lives = 1;
     p.spawnRequested = false;
     p.timeToSpawn = 0;
@@ -1069,7 +1086,7 @@ export class WavesRun {
     if (clear) {
       for (const p of this.reds()) this.remove(p);
       // Gone, not beaten: no cards for it
-      this.bossUp = false;
+      for (const b of this.bossOrbs) b.up = false;
       this.pending = 0;
       this.bossPending = false;
     }
@@ -1092,7 +1109,7 @@ export class WavesRun {
     const victim = game.players[victimID];
     if (!victim || victim.teamID !== PLAYER_TEAM_RED) return;
     // Necromancer: it may rise there on the player's side (never the boss)
-    if (this.cards.necro && victim !== this.boss) this.raise(victim, position);
+    if (this.cards.necro && !this.isBoss(victim)) this.raise(victim, position);
     const level = this.cards.blast ?? 0;
     if (chained || !level) return;
     const radius = BLAST_RADIUS[level];
@@ -1420,7 +1437,6 @@ export class WavesRun {
     const me = this.ctx.me;
     const reds = this.reds();
     const standing = reds.filter(inWave).length;
-    const boss = this.boss;
     return {
       wave: Math.max(this.ctx.startWave, this.wave),
       boss: this.spec.boss && this.phase === 'fight',
@@ -1446,7 +1462,10 @@ export class WavesRun {
           ? { on: true, left: me.reflectTime, ready: 1 }
           : { on: false, left: REFLECT_EVERY - this.reflectClock, ready: this.reflectClock / REFLECT_EVERY },
       cards: this.cardList(),
-      bossLife: boss && this.spec.boss && this.phase === 'fight' && (boss.isAlive || boss.lives > 0) ? { name: boss.name, life: boss.isAlive ? boss.life : 1 } : null,
+      bossLives: this.bossOrbs
+        .filter((b) => b.p.isAlive || b.p.lives > 0)
+        .sort((a, b) => a.wave - b.wave)
+        .map((b) => ({ name: b.p.name, life: b.p.isAlive ? b.p.life : 1, wave: b.wave })),
       // (the tutorial's run counts for nothing: no record, scale or Cores to show)
       record: this.script ? null : (this.record?.wave ?? null),
       // How much tougher and harder hitting the wave's bots are than on wave 1

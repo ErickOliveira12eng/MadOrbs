@@ -960,10 +960,13 @@ export class HudLayer {
       `<div class="h-wave"><span>${t('waves.label')}</span><b>${w.wave}</b></div>` +
       `<div class="h-mode">${doing}</div>` +
       `<div class="h-camp"><span class="hearts" title="${t('waves.lives')}">${hearts || '—'}</span><span>${t(w.kills === 1 ? 'end.oneKill' : 'end.kills', { n: w.kills })}</span>${powers}</div>`;
-    if (w.bossLife) html += `<div class="h-boss"><b>${esc(w.bossLife.name)}</b><span><i style="width:${Math.round(Math.max(0, w.bossLife.life) * 100)}%"></i></span></div>`;
+    // Every boss standing, the oldest first (one may outlive its wave), its wave beside its name
+    for (const b of w.bossLives) {
+      html += `<div class="h-boss"><b>${esc(b.name)} <small>· ${t('workshop.waveN', { n: b.wave })}</small></b><span><i style="width:${Math.round(Math.max(0, b.life) * 100)}%"></i></span></div>`;
+    }
     setHTML(this.r.match, html);
     // The announcements go down under the boss's bar (they shared the spot)
-    this.r.feat.classList.toggle('low', !!w.bossLife);
+    this.r.feat.classList.toggle('low', w.bossLives.length > 0);
   }
 
   /** The waves' Tab (Erick, 01/11/2026: the bots' table told nothing): the player's stats. */
