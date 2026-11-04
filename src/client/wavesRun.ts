@@ -772,10 +772,11 @@ export class WavesRun {
     p.speedBoost = WAVES.botSpeed;
     // Its weapon, and the best shot of the wave (WAVES.boss); no recoil (Erick, 01/11/2026: the chain gun pushed it
     // back at every burst, it seemed to run away from the player)
-    p.spreadScale = WAVES.boss.spread;
+    p.spreadScale = this.wave <= WAVES.boss.early.until ? WAVES.boss.early.spread : WAVES.boss.spread;
     p.recoilScale = 0;
     const bot = new BotController(p, 1, { primary: WAVES.boss.weapon, secondary: WEAPON_KNIVES });
-    bot.aimScale = WAVES.boss.aim;
+    const early = this.wave <= WAVES.boss.early.until;
+    bot.aimScale = early ? WAVES.boss.early.aim : WAVES.boss.aim;
     bot.lead = 0;
     bot.hunt = this.ctx.me;
     // The player first, as the bots hitting from afar (Erick, 01/11/2026)

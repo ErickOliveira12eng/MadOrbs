@@ -97,7 +97,9 @@ export const WAVES = {
    * wave 60 the boss didn't make up for some 40 bots less: 61 against 99 on wave 59).
    */
   bossWave: { share: 0.6, fullFrom: 30 },
-  boss: { radius: 0.45, damageScale: 0.22, weapon: WEAPON_CHAIN_GUN, aim: 0.3, spread: 0.35, life: 1.6, defence: 0.5, guard: { at30: 1.5, at40: 2, at50: 4, grow: 1.25 } },
+  // (`early`: the bosses up to wave 20, 10 and 20, aim a little worse and spread more, Erick 04/11/2026: a new player got
+  // stuck on them)
+  boss: { radius: 0.45, damageScale: 0.22, weapon: WEAPON_CHAIN_GUN, aim: 0.3, spread: 0.35, life: 1.6, defence: 0.5, guard: { at30: 1.5, at40: 2, at50: 4, grow: 1.25 }, early: { until: 20, aim: 0.5, spread: 0.6 } },
   /** Bots that come with the boss and walk beside it. */
   escorts: 2,
   /**
