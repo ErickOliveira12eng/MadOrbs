@@ -288,6 +288,12 @@ export class WavesModal {
 
   /** Opens on the Waves' Workshop, or on the Vesuvius (back from a run there that asked for its Forge). */
   open(mode: 'waves' | 'vesuvius' = 'waves'): void {
+    // The run starts on the highest checkpoint open, whatever was chosen last time (Erick, 04/11/2026); changed here, it
+    // stays until the window opens again
+    const open = checkpoints(loadWavesRecord()?.wave ?? 0);
+    const last = open[open.length - 1] ?? 1;
+    const p = loadProgress();
+    if (p.startWave !== last) saveProgress({ ...p, startWave: last });
     this.root.hidden = false;
     this.selected = null;
     this.weaponView = null;
