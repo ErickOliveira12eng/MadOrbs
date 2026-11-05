@@ -1,6 +1,7 @@
 // Port of Weapon.cpp (weapon instances held by players).
 import {
   SOUND_OVERHEAT,
+  TICK,
   SOUND_PHOTON_START,
   PROJECTILE_DIRECT,
   PROJECTILE_ROCKET,
@@ -34,6 +35,12 @@ const SHOTGUN_RELOAD_MIN = 1.5;
 /** Weapon models are rendered with glScalef(0.005f): dummy positions are converted with this. */
 export const WEAPON_MODEL_SCALE = 0.005;
 
+/**
+ * The time between two chain gun shots at the original's pace (its 0.1 s delay goes by four 30 Hz ticks): each shot
+ * heats 0.052 at it, a share of that when firing faster.
+ */
+const OVERHEAT_GAP = 4 * TICK;
+
 export class Weapon {
   readonly def: WeaponDef;
   readonly weaponID: number;
@@ -61,6 +68,8 @@ export class Weapon {
   // chain gun overheat
   chainOverHeat = 1;
   overHeated = false;
+  /** Seconds since its last shot (the chain gun's heat goes by the time firing, OVERHEAT_GAP). */
+  private sinceShot = 1;
 
   firingNuzzle = 0;
   shotFrom = new Vec3();
@@ -131,7 +140,10 @@ export class Weapon {
       }
       this.charge = 0;
       this.modelAnim = 0;
-      this.chainOverHeat -= 0.052;
+      // Each shot's heat goes by the time since the last one, the original's 0.052 at its own pace (Erick, 04/11/2026: with
+      // the waves' attack speed x3 the chain gun overheated in 0.8 s, 6.8 s without it; it heats as fast a second now)
+      this.chainOverHeat -= 0.052 * Math.min(1, this.sinceShot / OVERHEAT_GAP);
+      this.sinceShot = 0;
       if (this.chainOverHeat < 0) {
         this.chainOverHeat = 0;
         if (this.weaponID === WEAPON_CHAIN_GUN) {
@@ -215,6 +227,7 @@ export class Weapon {
 
   /** Weapon::update */
   update(delay: number): void {
+    this.sinceShot += delay;
     if (this.justCharged > 0) this.justCharged -= delay;
     if (this.justCharged < 0) this.justCharged = 0;
     const owner = this.owner;
