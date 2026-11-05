@@ -90,10 +90,14 @@ const TEAM_DECALS: Record<number, Omit<SkinInfo, 'skin'>> = {
   [PLAYER_TEAM_RED]: { redDecal: [1, 0.5, 0.5], greenDecal: [1, 0, 0], blueDecal: [0.5, 0, 0] },
 };
 
-/** The waves' dash (Player.dash): its speed and how long the speed limit stays this many times higher. */
-export const DASH_SPEED = 9;
+/**
+ * The waves' dash (Player.dash): its speed (times the movement speed boost) and how long the speed limit stays this many
+ * times higher. 04/11/2026 (Erick: ~15% farther, and growing with the movement speed): 9 whatever the boost and a limit 3
+ * times up until then.
+ */
+export const DASH_SPEED = 10.65;
 const DASH_TIME = 0.22;
-const DASH_TOP = 3;
+const DASH_TOP = 3.5;
 /** The waves' recharging shield: seconds without a hit before it comes back, and seconds to fill up again. */
 const BARRIER_WAIT = 4;
 const BARRIER_REFILL = 2;
@@ -1212,8 +1216,10 @@ export class Player {
     const d = new Vec3(dir.x, dir.y, 0);
     if (d.lengthSq() < 1e-6) return;
     d.normalizeIn();
-    this.currentCF.vel.x = d.x * DASH_SPEED;
-    this.currentCF.vel.y = d.y * DASH_SPEED;
+    // (as fast as the movement speed boosts make it: the game's pace and the speed boost, not a nuke's drag)
+    const speed = DASH_SPEED * this.game.pace * this.speedBoost;
+    this.currentCF.vel.x = d.x * speed;
+    this.currentCF.vel.y = d.y * speed;
     this.dashLeft = DASH_TIME;
   }
 
