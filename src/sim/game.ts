@@ -1128,14 +1128,16 @@ export class Game {
     const hit = b.hits[0] ?? null;
     // Every babo the bullet touched (more than one: the waves' Pierce card)
     for (const victim of b.hits) {
-      // The waves' Reflector card: the bullet goes back to its shooter
+      // The waves' Reflector card: the bullet goes back to its shooter, and below its top level what the shield doesn't
+      // stop still lands (Player.reflectBlock, in hitSV)
       if (victim.reflectTime > 0 && victim.teamID !== player.teamID) {
         this.reflectShot(victim, player, weaponID);
+        if (victim.reflectBlock < 1) victim.hitSV(weaponID, player);
         continue;
       }
       // Knockback on the victim (ClientRecv NET_SVCL_PLAYER_SHOOT)
       const direction = b.p2.sub(b.p1).normalizeIn();
-      victim.currentCF.vel.addIn(direction.mul(weaponDefs[weaponID].damage * 2));
+      victim.currentCF.vel.addIn(direction.mul(weaponDefs[weaponID].damage * 2 * victim.knockScale));
       victim.hitSV(weaponID, player);
     }
     // The waves' Ricochet card: the hit jumps on from the last babo touched

@@ -214,6 +214,8 @@ export class Player {
    */
   reflectTime = 0;
   reflectSpan = 0;
+  /** The share of the enemies' damage the Reflector's shield stops while it stands (its level: 50%, 75%, all). */
+  reflectBlock = 1;
   critChance = 0;
   dodgeChance = 0;
   /** Damage share of the volley being fired now (the cards' extra volleys). */
@@ -226,6 +228,8 @@ export class Player {
   spreadScale = 1;
   /** Times its weapons' recoil (the waves' boss: none, its chain gun pushed it back and it seemed to run away). */
   recoilScale = 1;
+  /** Times the push of the bullets that hit it (the waves' armed nuke bot: none, too slow to keep coming against it). */
+  knockScale = 1;
   /** Seconds shown over its head, 0: none (the waves' nuke bot about to blow up). */
   countdown = 0;
   /** Times the damage of its gun's own hits (the waves: the shot cards its weapon makes little of, turned into damage). */
@@ -1000,8 +1004,12 @@ export class Player {
     }
     // The waves' dash (the Workshop): nothing of the enemies' lands while it lasts (DASH_TIME)
     if (from !== this && this.dashLeft > 0 && from.teamID !== this.teamID && this.status === PLAYER_STATUS_ALIVE) return false;
-    // The Reflector card's shield: nothing of the enemies' gets through (their bullets go back: Game.applyBullet)
-    if (from !== this && this.reflectTime > 0 && from.teamID !== this.teamID && this.status === PLAYER_STATUS_ALIVE) return false;
+    // The Reflector card's shield: its share of the enemies' damage stopped, all of it at its top level (their bullets go
+    // back too: Game.applyBullet)
+    if (from !== this && this.reflectTime > 0 && from.teamID !== this.teamID && this.status === PLAYER_STATUS_ALIVE) {
+      if (this.reflectBlock >= 1) return false;
+      cdamage *= 1 - this.reflectBlock;
+    }
     // Shield protection
     if (this.protection > 0.6) cdamage *= 0.5;
     // Spawn immunity

@@ -11,7 +11,7 @@ import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, ELITE, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
-import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, statFactor, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
+import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, REFLECT_TIME, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, statFactor, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, workshopFactor, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
@@ -396,7 +396,7 @@ export class WavesRun {
       this.reflectClock += TICK;
       if (this.reflectClock >= REFLECT_EVERY) {
         this.reflectClock = 0;
-        me.reflectTime = me.reflectSpan = card('reflect');
+        me.reflectTime = me.reflectSpan = REFLECT_TIME;
         this.ctx.onReflect();
       }
     }
@@ -612,6 +612,7 @@ export class WavesRun {
     p.lifeMax = 1;
     p.pointScale = 1;
     p.countdown = 0;
+    p.knockScale = 1;
     p.teamTint = null;
     // Every elite: twice the life, a little more damage and defense, a little bigger, darker red (ELITE)
     if (traits.length) {
@@ -698,8 +699,10 @@ export class WavesRun {
         if (game.map.rayTest(pos.clone(), me.currentCF.position.clone(), new Vec3())) continue;
         n.fuse = N.fuse;
         n.beep = 0;
-        // Armed: slow, so the player can run out of its reach
+        // Armed: slow, so the player can run out of its reach, and never pushed back by his shots (it always keeps
+        // coming at him)
         p.speedBoost = N.slow;
+        p.knockScale = 0;
       }
       // The siren (the Nuke Bot's own sound and its model's blinking), again every `beep` seconds
       n.beep -= TICK;
@@ -991,6 +994,7 @@ export class WavesRun {
     me.pierce = card('pierce');
     me.critChance = card('crit');
     me.dodgeChance = card('dodge');
+    me.reflectBlock = card('reflect');
     me.ricochet = card('ricochet');
     me.poisonShot = POISON_DPS * perm.poison;
     me.iceShot = Math.min(ICE_MAX, ICE_SLOW * perm.ice);

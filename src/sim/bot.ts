@@ -135,6 +135,8 @@ export class BotController {
    * waves' nuke bot: it strafed off and blew up 4 cells away or round a corner). It still shoots whoever it sees.
    */
   charge: Player | null = null;
+  /** Seconds a charging bot goes by the map's way though it sees him: a corner caught it on the straight line. */
+  private chargeRoute = 0;
 
   /** `loadout`: always these weapons (the campaign: the chapter's weapon), else picked at random. */
   constructor(
@@ -233,7 +235,9 @@ export class BotController {
     // An escort with some slack fights whoever is in sight while it stays near the one it guards
     const freeToFight = !!this.escort && this.escortSlack > 0 && !!target && duel && distance(pos, this.escort.currentCF.position) < this.escortSlack;
     const charge = this.charge?.isAlive ? this.charge.currentCF.position : null;
-    if (charge && !game.map.rayTest(pos.clone(), charge.clone(), new Vec3())) {
+    const chargeInSight = !!charge && !game.map.rayTest(pos.clone(), charge.clone(), new Vec3());
+    if (this.chargeRoute > 0) this.chargeRoute -= delay;
+    if (charge && chargeInSight && this.chargeRoute <= 0) {
       moveTo = new Vec3(charge.x, charge.y, 0);
       this.path = [];
     } else if (charge) {
@@ -320,7 +324,23 @@ export class BotController {
     }
     // Unstick: hardly moved for a second while trying to (a corner, a doorway): run for a moment
     // towards the most open side, then a new path
-    if (this.escapeTime > 0) {
+    // (never one charging the one it sees close by: pressed on him, or slow once the waves' nuke bot arms, it hardly
+    // moves, and it ran off the other way; Erick, 04/11/2026. Farther, a corner may still catch it)
+    if (chargeInSight && distance(pos, charge!) < 3) {
+      // Held on the straight line (a wall's corner between them): the map's way round it for a moment
+      this.escapeTime = 0;
+      this.anchorTime += delay;
+      if (distance(pos, this.anchor) > 0.15) {
+        this.anchor.copy(pos);
+        this.anchorTime = 0;
+      } else if (this.anchorTime > 0.4) {
+        this.chargeRoute = 1;
+        this.path = [];
+        this.repathTimer = 0;
+        this.anchor.copy(pos);
+        this.anchorTime = 0;
+      }
+    } else if (this.escapeTime > 0) {
       this.escapeTime -= delay;
       moveTo = pos.add(this.escape);
     } else if (moveTo) {

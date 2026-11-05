@@ -100,7 +100,8 @@ export const CARD_LEVELS: Record<CardID, number[]> = {
   // until then 1, 2 and 3 allies with half of them each)
   shadow: [0, 0.5, 0.75, 1],
   // (2, 3 and 4 s until 19/10/2026: Erick, too weak, a crowd's worth of shots got through the rest of the time)
-  reflect: [0, 4, 6, 8],
+  // (the share of the enemies' damage its shield stops; it stands REFLECT_TIME)
+  reflect: [0, 0.5, 0.75, 1],
   silver: [0, 5, 4, 3],
   necro: [0, 0.2, 0.3, 0.4],
   // (the stat cards have no top level: statFactor)
@@ -124,6 +125,11 @@ export const MISSILE_RANGE = 14;
 export const MISSILE_GAP = 1.3;
 /** Reflector: seconds between the end of a shield and the next one. */
 export const REFLECT_EVERY = 10;
+/**
+ * How long the Reflector's shield stands, at every level (Erick, 04/11/2026: the same time, its level raising how much
+ * of the enemies' damage it stops, CARD_LEVELS.reflect, up to all of it; it stood 4, 6 and 8 s and stopped all until then).
+ */
+export const REFLECT_TIME = 6;
 /**
  * Silver bullet: its damage, in the lives of an ordinary enemy of the wave (more than one: it drops them;
  * the tanks and the boss, tougher, only lose a share).
@@ -187,7 +193,6 @@ export function cardValue(id: CardID, level: number): string {
     case 'vampire':
       return String(Math.round(v * 100));
     case 'grenadier':
-    case 'reflect':
     case 'silver':
       return `${v} s`;
     default:
