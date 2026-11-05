@@ -26,7 +26,8 @@ export const CROSSHAIR_COLORS: Record<CrosshairColor, string> = {
 export const CROSSHAIR_SIZES: Record<CrosshairSize, number> = { s: 0.75, m: 1, l: 1.3 };
 
 /** The game's crosshair until 02/11/2026: the white ring with four ticks. */
-const DEFAULT: Crosshair = { shape: 'circle', color: 'white', size: 'm' };
+// (green by default since 05/11/2026, Erick; it was white)
+const DEFAULT: Crosshair = { shape: 'circle', color: 'green', size: 'm' };
 const KEY = 'madorbs.crosshair';
 
 function load(): Crosshair {
