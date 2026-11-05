@@ -481,7 +481,8 @@ export class ClientGame {
       },
       onReflect: () => audio.play3D(this.sounds.weapon[WEAPON_SHIELD], 5, this.me.currentCF.position, 255),
       onRise: (position, gone) => this.effects.spawnRisePuff(position, gone),
-      onDash: () => audio.play(this.sounds.equip, 160),
+      // (no sound: the equip one it used sounded like taking a weapon, and the game has no whoosh; Erick, 05/11/2026)
+      onDash: () => {},
       onShock: (position) => {
         this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 3);
         this.cam.viewShake = Math.max(this.cam.viewShake, 0.8);
@@ -585,7 +586,8 @@ export class ClientGame {
       },
       onLaunch: (position) => audio.play3D(this.sounds.weapon[WEAPON_BAZOOKA], 8, position, 200),
       onBeam: (position) => audio.play3D(this.sounds.weapon[WEAPON_PHOTON_RIFLE], 10, position, 255),
-      onDash: () => audio.play(this.sounds.equip, 160),
+      // (no sound: the equip one it used sounded like taking a weapon, and the game has no whoosh; Erick, 05/11/2026)
+      onDash: () => {},
       onPower: (kind) => {
         this.hud.announceText(t(`power.${kind}` as const), t(`power.${kind}.sub` as const), banner('#ffffff', POWERS[kind].color), 1.6);
         audio.play(kind === 'life' ? this.sounds.lifePack : this.sounds.equip, 255);
