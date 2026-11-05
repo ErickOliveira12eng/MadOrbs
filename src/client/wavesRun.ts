@@ -3,7 +3,7 @@
 // break and now and then), the power-ups they drop and their effects, the lives and the end.
 import * as THREE from 'three';
 import { BotController } from '../sim/bot';
-import { PLAYER_STATUS_DEAD, PLAYER_TEAM_BLUE, PLAYER_TEAM_RED, PROJECTILE_DROPED_WEAPON, PROJECTILE_ROCKET, TICK, WEAPON_BAZOOKA, WEAPON_GRENADE, WEAPON_KNIVES, WEAPON_NUCLEAR, WEAPON_PHOTON_RIFLE, WEAPON_SNIPER } from '../sim/constants';
+import { PLAYER_STATUS_DEAD, PLAYER_TEAM_BLUE, PLAYER_TEAM_RED, PROJECTILE_DROPED_WEAPON, PROJECTILE_ROCKET, TICK, WEAPON_BAZOOKA, WEAPON_COCKTAIL_MOLOTOV, WEAPON_GRENADE, WEAPON_KNIVES, WEAPON_NUCLEAR, WEAPON_PHOTON_RIFLE, WEAPON_SNIPER } from '../sim/constants';
 import type { Game } from '../sim/game';
 import { weaponDefs } from '../sim/gameVar';
 import type { Player, SkinInfo } from '../sim/player';
@@ -11,7 +11,7 @@ import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, ELITE, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
-import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, REFLECT_TIME, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, statFactor, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
+import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, REFLECT_TIME, ORBITAL, PHOENIX, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, statFactor, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, workshopFactor, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
@@ -130,6 +130,10 @@ export interface WavesContext {
   onScreen: (position: Vec3) => boolean;
   /** The Workshop's second wind saved the player. */
   onSecondWind: () => void;
+  /** The Phoenix card saved the player: its blast of fire there. */
+  onPhoenix?: (position: Vec3) => void;
+  /** The Orbital card's beams light up around the player. */
+  onOrbital?: (position: Vec3) => void;
   /**
    * Three cards to choose from (the game waits for WavesRun.pick): the boss fell, or wave `afterWave`
    * (5, 15, 25...) ended (the commons only).
@@ -220,6 +224,11 @@ export class WavesRun {
   /** The Silver bullet card's firing time loaded, the Reflector's clock, the Necromancer's risen (and their seconds left). */
   private silverCharge = 0;
   private reflectClock = 0;
+  /** The Phoenix card: the wave whose rebirth was given. The Orbital card: its clock, its beams on (their angle, the seconds left), when each enemy may be hit again. */
+  private phoenixWave = -1;
+  private orbitalClock = 0;
+  private orbital: { angle: number; left: number } | null = null;
+  private readonly orbitalHit = new Map<Player, number>();
   private readonly risen: { p: Player; left: number }[] = [];
   /** When the last one rose (the run's clock: one at most every NECRO_GAP seconds). */
   private risenAt = -Infinity;
@@ -402,6 +411,18 @@ export class WavesRun {
     }
     // The nuke bots: armed close to the player, a blast when the fuse runs out
     this.updateNukes();
+    // Phoenix: one rebirth a wave; it saved him, a blast of fire around
+    if (this.cards.phoenix && this.phoenixWave !== this.wave) {
+      this.phoenixWave = this.wave;
+      me.phoenix = 1;
+    }
+    if (!this.cards.phoenix) me.phoenix = 0;
+    if (me.phoenixRose) {
+      me.phoenixRose = false;
+      this.phoenixBlast();
+    }
+    // Orbital: the beams now and then (the clock waits while they turn)
+    this.updateOrbital(card('orbital'));
     // Necromancer: the risen go back to dust after a while
     for (const r of this.risen) {
       if (!r.p.isAlive) continue;
@@ -613,6 +634,7 @@ export class WavesRun {
     p.pointScale = 1;
     p.countdown = 0;
     p.knockScale = 1;
+    p.executable = true;
     p.teamTint = null;
     // Every elite: twice the life, a little more damage and defense, a little bigger, darker red (ELITE)
     if (traits.length) {
@@ -777,6 +799,8 @@ export class WavesRun {
     // back at every burst, it seemed to run away from the player)
     p.spreadScale = this.wave <= WAVES.boss.early.until ? WAVES.boss.early.spread : WAVES.boss.spread;
     p.recoilScale = 0;
+    // (the Reaper card doesn't take it down at once: more damage below its share)
+    p.executable = false;
     const bot = new BotController(p, 1, { primary: WAVES.boss.weapon, secondary: WEAPON_KNIVES });
     const early = this.wave <= WAVES.boss.early.until;
     bot.aimScale = early ? WAVES.boss.early.aim : WAVES.boss.aim;
@@ -995,6 +1019,8 @@ export class WavesRun {
     me.critChance = card('crit');
     me.dodgeChance = card('dodge');
     me.reflectBlock = card('reflect');
+    me.reaper = card('reaper');
+    me.phoenixLife = card('phoenix');
     me.ricochet = card('ricochet');
     me.poisonShot = POISON_DPS * perm.poison;
     me.iceShot = Math.min(ICE_MAX, ICE_SLOW * perm.ice);
@@ -1359,6 +1385,62 @@ export class WavesRun {
     this.ctx.onShock(pos);
   }
 
+  /** The Phoenix card: the player rose, a blast of fire around him (the enemies in sight, the crates). */
+  private phoenixBlast(): void {
+    const { game, me } = this.ctx;
+    const pos = me.currentCF.position.clone();
+    const { radius, lives } = PHOENIX;
+    for (const p of this.reds()) {
+      if (!p.isAlive) continue;
+      const d = Math.hypot(p.currentCF.position.x - pos.x, p.currentCF.position.y - pos.y);
+      if (d >= radius || game.map.rayTest(pos.clone(), p.currentCF.position.clone(), new Vec3())) continue;
+      p.hitSV(WEAPON_COCKTAIL_MOLOTOV, me, lives / this.spec.toughness, WAVES.grenadeBonus, false);
+    }
+    for (const c of [...game.crates]) {
+      if (Math.hypot(c.position.x - pos.x, c.position.y - pos.y) < radius) game.hitCrate(c, 10, me);
+    }
+    this.renderer.blastRing(pos.x, pos.y, radius);
+    this.ctx.onPhoenix?.(pos);
+  }
+
+  /** The Orbital card: `beams` beams turning around the player, through the walls, burning the enemies they touch. */
+  private updateOrbital(beams: number): void {
+    const { me } = this.ctx;
+    if (!beams || !me.isAlive) {
+      this.orbital = null;
+      return;
+    }
+    if (!this.orbital) {
+      if (this.phase !== 'fight') return;
+      this.orbitalClock += TICK;
+      if (this.orbitalClock < ORBITAL.every) return;
+      this.orbitalClock = 0;
+      this.orbital = { angle: Math.random() * Math.PI * 2, left: ORBITAL.time };
+      this.orbitalHit.clear();
+      this.ctx.onOrbital?.(me.currentCF.position.clone());
+    }
+    const o = this.orbital;
+    o.angle += (ORBITAL.turn * Math.PI) / 180 * TICK;
+    o.left -= TICK;
+    const at = me.currentCF.position;
+    const now = this.elapsed;
+    for (const p of this.reds()) {
+      if (!p.isAlive || (this.orbitalHit.get(p) ?? -Infinity) > now) continue;
+      const dx = p.currentCF.position.x - at.x;
+      const dy = p.currentCF.position.y - at.y;
+      for (let k = 0; k < beams; k++) {
+        const a = o.angle + (k * Math.PI * 2) / beams;
+        const along = dx * Math.cos(a) + dy * Math.sin(a);
+        const across = Math.abs(-dx * Math.sin(a) + dy * Math.cos(a));
+        if (along < ORBITAL.from - p.radius || along > ORBITAL.length + p.radius || across > ORBITAL.width / 2 + p.radius) continue;
+        this.orbitalHit.set(p, now + ORBITAL.gap);
+        p.hitSV(WEAPON_COCKTAIL_MOLOTOV, me, ORBITAL.lives / this.spec.toughness, WAVES.grenadeBonus, false);
+        break;
+      }
+    }
+    if (o.left <= 0) this.orbital = null;
+  }
+
   /** The bomb: a big blast around the player that hurts only the enemies, all of those on the screen (and breaks crates). */
   private bomb(): void {
     const { game, me } = this.ctx;
@@ -1490,6 +1572,14 @@ export class WavesRun {
   }
 
   render(dt: number, time: number): void {
+    // The Orbital card's beams turning around the player
+    const o = this.orbital;
+    const beams = o ? CARD_LEVELS.orbital[this.cards.orbital ?? 0] : 0;
+    const at = this.ctx.me.currentCF.position;
+    this.renderer.orbitalBeams(
+      Array.from({ length: beams }, (_, k) => ({ x: at.x, y: at.y, angle: o!.angle + (k * Math.PI * 2) / beams, from: ORBITAL.from, length: ORBITAL.length, fade: Math.min(1, o!.left / 0.3, (ORBITAL.time - o!.left) / 0.2) })),
+      time,
+    );
     // The nuke bots armed: their reach on the floor, pulsing faster as the fuse runs out
     this.renderer.nukeZones(
       this.nukers.filter((n) => n.fuse >= 0 && n.p.isAlive).map((n) => ({ x: n.p.currentCF.position.x, y: n.p.currentCF.position.y, radius: WAVES.nuke.radius, k: 1 - n.fuse / WAVES.nuke.fuse })),

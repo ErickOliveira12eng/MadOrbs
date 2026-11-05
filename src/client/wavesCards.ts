@@ -8,10 +8,10 @@
 import type { SkinInfo } from '../sim/player';
 import { WEAPON_BAZOOKA, WEAPON_PHOTON_RIFLE } from '../sim/constants';
 
-export type CardID = 'double' | 'parallel' | 'fan' | 'pierce' | 'crit' | 'vampire' | 'rage' | 'dodge' | 'grenadier' | 'blast' | 'ricochet' | 'missiles' | 'shadow' | 'reflect' | 'silver' | 'necro' | StatCardID;
+export type CardID = 'double' | 'parallel' | 'fan' | 'pierce' | 'crit' | 'vampire' | 'rage' | 'dodge' | 'grenadier' | 'blast' | 'ricochet' | 'missiles' | 'shadow' | 'reflect' | 'silver' | 'necro' | 'reaper' | 'phoenix' | 'orbital' | StatCardID;
 /** The stat cards (STAT_CARDS): damage, attack speed, defence, with no top level. */
 export type StatCardID = 'xdamage' | 'xfire' | 'xarmor';
-export type Rarity = 'common' | 'epic' | 'legendary';
+export type Rarity = 'common' | 'epic' | 'legendary' | 'mythic';
 
 export interface CardDef {
   id: CardID;
@@ -41,6 +41,9 @@ export const CARDS: CardDef[] = [
   { id: 'missiles', rarity: 'legendary', max: 3, from: 40 },
   { id: 'silver', rarity: 'legendary', max: 3, from: 40 },
   { id: 'necro', rarity: 'legendary', max: 3, from: 40 },
+  { id: 'reaper', rarity: 'mythic', max: 3, from: 100 },
+  { id: 'phoenix', rarity: 'mythic', max: 3, from: 100 },
+  { id: 'orbital', rarity: 'mythic', max: 3, from: 100 },
   { id: 'xdamage', rarity: 'common', max: Infinity, stat: true },
   { id: 'xfire', rarity: 'common', max: Infinity, stat: true },
   { id: 'xarmor', rarity: 'common', max: Infinity, stat: true },
@@ -67,7 +70,17 @@ export const isStatCard = (id: CardID): id is StatCardID => id in STAT_CARDS;
 export const COMMON_CARDS_EVERY = 5;
 
 /** How likely each rarity is in an offer (by weight). */
-const RARITY_WEIGHT: Record<Rarity, number> = { common: 70, epic: 25, legendary: 8 };
+const RARITY_WEIGHT: Record<Rarity, number> = { common: 70, epic: 25, legendary: 8, mythic: 0 };
+
+/**
+ * The mythic cards (Erick, 04/11/2026: three really strong options at wave 100), never by weight: the first boss
+ * offer from MYTHIC_FROM on with none of them taken is the three together; every boss offer after it has one of them
+ * (a new one, or a level of one taken) in place of its epic or legendary card. Reaper: enemies below its share of
+ * their life fall to any hit of the player (the bosses: REAPER_BOSS times the damage there, Player.reaper); Phoenix:
+ * once a wave, the blow that would kill him leaves him its share of his life, with a blast of fire around (PHOENIX);
+ * Orbital: beams from the sky turn around him now and then, through the walls (ORBITAL).
+ */
+export const MYTHIC_FROM = 100;
 
 /**
  * What a card does at a level (1..max): Double shot, chance of a second volley right after (more on one
@@ -104,6 +117,12 @@ export const CARD_LEVELS: Record<CardID, number[]> = {
   reflect: [0, 0.5, 0.75, 1],
   silver: [0, 5, 4, 3],
   necro: [0, 0.2, 0.3, 0.4],
+  // (the share of their life under which they fall to a hit)
+  reaper: [0, 0.15, 0.2, 0.25],
+  // (the share of his life he's back with)
+  phoenix: [0, 0.5, 0.75, 1],
+  // (how many beams)
+  orbital: [0, 1, 2, 3],
   // (the stat cards have no top level: statFactor)
   xdamage: [],
   xfire: [],
@@ -162,6 +181,14 @@ export const UNDEAD_TINT: Omit<SkinInfo, 'skin'> = { redDecal: [0.75, 1, 0.75], 
 export const NECRO_TIME = 10;
 export const NECRO_GAP = 4;
 export const NECRO_MAX = [0, 3, 4, 5];
+/** Phoenix: its blast's reach (cells, in sight), its damage (lives of an ordinary enemy of the wave), the seconds untouchable. */
+export const PHOENIX = { radius: 5, lives: 3, immune: 3 };
+/**
+ * Orbital: every `every` seconds, for `time`, the beams turn `turn` degrees a second around the player, from `from`
+ * out to `length` cells, `width` wide, through the walls; an enemy in one loses `lives` of an ordinary enemy of the
+ * wave, again every `gap` seconds while it stays.
+ */
+export const ORBITAL = { every: 20, time: 4, turn: 110, from: 0.45, length: 6, width: 0.55, lives: 1, gap: 0.4 };
 
 export type CardLevels = Partial<Record<CardID, number>>;
 
@@ -189,6 +216,7 @@ export function cardValue(id: CardID, level: number): string {
     case 'pierce':
     case 'ricochet':
     case 'missiles':
+    case 'orbital':
       return String(v);
     case 'vampire':
       return String(Math.round(v * 100));
@@ -206,7 +234,7 @@ export function cardValue(id: CardID, level: number): string {
  * Fewer when fewer are left.
  */
 export function rollCards(n: number, owned: CardLevels, count = 3, commonOnly = false): CardID[] {
-  const pool = CARDS.filter((c) => !c.stat && (owned[c.id] ?? 0) < c.max && n >= (c.from ?? 0) && (!commonOnly || c.rarity === 'common'));
+  const pool = CARDS.filter((c) => !c.stat && c.rarity !== 'mythic' && (owned[c.id] ?? 0) < c.max && n >= (c.from ?? 0) && (!commonOnly || c.rarity === 'common'));
   const out: CardID[] = [];
   while (out.length < count && pool.length) {
     let r = Math.random() * pool.reduce((s, c) => s + RARITY_WEIGHT[c.rarity], 0);
@@ -241,9 +269,18 @@ export const DOUBLE_CHANCE = 0.2;
  * or legendary card besides it (the legendaries from their wave).
  */
 export function offerCards(n: number, owned: CardLevels, commonOnly: boolean): CardOffer[] {
+  // The mythic cards (MYTHIC_FROM): the first boss offer with none of them taken is the three together
+  const mythics = !commonOnly && n >= MYTHIC_FROM ? CARDS.filter((c) => c.rarity === 'mythic' && (owned[c.id] ?? 0) < c.max) : [];
+  if (mythics.length && !CARDS.some((c) => c.rarity === 'mythic' && (owned[c.id] ?? 0) > 0)) return mythics.map((c) => ({ id: c.id, up: 1 }));
+  const mythic = (): CardID | null => (mythics.length ? mythics[Math.floor(Math.random() * mythics.length)].id : null);
   const ids = rollCards(n, owned, 3, commonOnly);
-  // Every other card at its top: the three stat cards (without end)
-  if (!ids.length) return (Object.keys(STAT_CARDS) as StatCardID[]).map((id) => ({ id, up: 1 }));
+  // Every other card at its top: the three stat cards (without end), one of them a mythic card if one is left
+  if (!ids.length) {
+    const stats: CardOffer[] = (Object.keys(STAT_CARDS) as StatCardID[]).map((id) => ({ id, up: 1 }));
+    const m = mythic();
+    if (m) stats[stats.length - 1] = { id: m, up: 1 };
+    return stats;
+  }
   const level = (id: CardID) => owned[id] ?? 0;
   const left = (id: CardID) => cardDef(id).max - level(id);
   const open = (c: CardDef) => left(c.id) > 0 && n >= (c.from ?? 0);
@@ -255,7 +292,8 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean): C
     for (let i = offer.length - 1; i >= 0; i--) if (i !== keep) return i;
     return -1;
   };
-  const mine = CARDS.filter((c) => !c.stat && level(c.id) > 0 && open(c) && (!commonOnly || c.rarity === 'common')).map((c) => c.id);
+  // (never a mythic card: those climb one level at a time, in their own place)
+  const mine = CARDS.filter((c) => !c.stat && c.rarity !== 'mythic' && level(c.id) > 0 && open(c) && (!commonOnly || c.rarity === 'common')).map((c) => c.id);
   const rareNew = offer.some((o) => cardDef(o.id).rarity !== 'common' && level(o.id) === 0);
   const double = !commonOnly || rareNew || Math.random() < DOUBLE_CHANCE;
   const fits = (id: CardID) => !double || left(id) >= 2;
@@ -272,7 +310,7 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean): C
   if (slot >= 0 && double && left(offer[slot].id) >= 2) offer[slot].up = 2;
   // The boss: always an epic or legendary card besides that one
   if (!commonOnly && !offer.some((o, i) => i !== slot && cardDef(o.id).rarity !== 'common')) {
-    const rares = CARDS.filter((c) => c.rarity !== 'common' && open(c) && !has(c.id));
+    const rares = CARDS.filter((c) => c.rarity !== 'common' && c.rarity !== 'mythic' && open(c) && !has(c.id));
     const at = placeFor(slot);
     if (rares.length && at >= 0) {
       let r = Math.random() * rares.reduce((sum, c) => sum + RARITY_WEIGHT[c.rarity], 0);
@@ -286,6 +324,13 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean): C
       }
       offer[at] = { id: pick.id, up: 1 };
     }
+  }
+  // The boss from MYTHIC_FROM on: a mythic card in its epic or legendary card's place
+  const m = mythic();
+  if (m) {
+    let at = offer.findIndex((o, i) => i !== slot && cardDef(o.id).rarity !== 'common');
+    if (at < 0) at = placeFor(slot);
+    if (at >= 0) offer[at] = { id: m, up: 1 };
   }
   // The stat cards (STAT_CARDS): a new common card's place at STAT_CHANCE; the offer filled up to three with them
   const stats = (Object.keys(STAT_CARDS) as StatCardID[]).sort(() => Math.random() - 0.5);

@@ -2381,6 +2381,10 @@
   color: #ffd34d;
 }
 
+.h-trow.mythic span {
+  color: #ff5f7e;
+}
+
 .h-trow b {
   color: var(--h-text);
   font-variant-numeric: tabular-nums;
@@ -4195,6 +4199,19 @@
   --rc: 255, 194, 58;
 }
 
+/* The mythic cards (wave 100 on): crimson, glowing */
+.h-campend .h-card.mythic {
+  --rc: 255, 64, 104;
+  box-shadow: 0 0 26px rgba(var(--rc), 0.4);
+  animation: card-in 0.35s cubic-bezier(0.2, 1.3, 0.4, 1) both, mythic-glow 1.6s ease-in-out 0.35s infinite alternate;
+}
+
+@keyframes mythic-glow {
+  to {
+    box-shadow: 0 0 42px rgba(var(--rc), 0.7);
+  }
+}
+
 .h-campend .h-card .rar {
   color: rgb(var(--rc));
   font: 900 11.5px var(--h-ui);
@@ -4338,6 +4355,10 @@
 
 .h-wcards span.legendary {
   border-color: rgba(255, 194, 58, 0.85);
+}
+
+.h-wcards span.mythic {
+  border-color: rgba(255, 64, 104, 0.9);
 }
 
 .h-cardmini {
@@ -4601,6 +4622,10 @@
 
 .h-wsc.legendary {
   border-color: rgba(255, 194, 58, 0.75);
+}
+
+.h-wsc.mythic {
+  border-color: rgba(255, 64, 104, 0.8);
 }
 
 .h-wsc .h-cardmini {

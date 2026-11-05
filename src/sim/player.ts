@@ -118,6 +118,11 @@ const CHILL_SECONDS = 1.5;
 /** The weapons whose hits carry the waves' poison and ice (the bullets: not fire, blasts or knives). */
 const AILING_WEAPONS = new Set([WEAPON_SMG, WEAPON_SHOTGUN, WEAPON_SNIPER, WEAPON_DUAL_MACHINE_GUN, WEAPON_CHAIN_GUN, WEAPON_PHOTON_RIFLE]);
 
+/** The waves' Reaper card on a boss below its share of the life: times the damage (it never falls to it at once). */
+export const REAPER_BOSS = 3;
+/** The waves' Phoenix card: the seconds untouchable once it saved the babo. */
+export const PHOENIX_IMMUNE = 3;
+
 export class Player {
   readonly game: Game;
   readonly playerID: number;
@@ -216,6 +221,19 @@ export class Player {
   reflectSpan = 0;
   /** The share of the enemies' damage the Reflector's shield stops while it stands (its level: 50%, 75%, all). */
   reflectBlock = 1;
+  /**
+   * The waves' Reaper card: an enemy hit below this share of its life falls (0: none); one that can't be (a boss,
+   * `executable` false) takes REAPER_BOSS times the damage there instead.
+   */
+  reaper = 0;
+  executable = true;
+  /**
+   * The waves' Phoenix card: a blow that would kill this one leaves it `phoenixLife` of its life instead (`phoenix`
+   * times, the run gives one a wave), untouchable PHOENIX_IMMUNE seconds; `phoenixRose` tells the run (its blast).
+   */
+  phoenix = 0;
+  phoenixLife = 1;
+  phoenixRose = false;
   critChance = 0;
   dodgeChance = 0;
   /** Damage share of the volley being fired now (the cards' extra volleys). */
@@ -998,6 +1016,8 @@ export class Player {
     // The waves' cards: a critical hit (double damage), a dodged one (both shown: the damage numbers)
     const crit = from !== this && canCrit && from.critChance > 0 && Math.random() < from.critChance;
     if (crit) cdamage *= 2;
+    // The Reaper card on a boss below its share: more damage (the others fall: below)
+    if (from !== this && from.reaper > 0 && !this.executable && this.life < from.reaper) cdamage *= REAPER_BOSS;
     if (from !== this && this.dodgeChance > 0 && this.status === PLAYER_STATUS_ALIVE && Math.random() < this.dodgeChance) {
       game.events.push({ type: 'dodge', playerID: this.playerID, fromID: from.playerID, position: this.currentCF.position.clone() });
       return false;
@@ -1038,6 +1058,8 @@ export class Player {
       }
     } else {
       this.applyDamage(cdamage, from, fromWeaponID, false, crit);
+      // The Reaper card: below its share of the life, the hit takes the rest
+      if (cdamage > 0 && from !== this && from.reaper > 0 && this.executable && this.life > Number.EPSILON && this.life < from.reaper) this.applyDamage(this.life, from, fromWeaponID, false, crit);
       if (this.life <= Number.EPSILON && !this.secondChance()) {
         this.dieSV(from, fromWeaponID, false);
         return true;
@@ -1102,6 +1124,14 @@ export class Player {
 
   /** A blow that would kill, with a second wind left: half the life back and a moment of immunity instead. */
   private secondChance(): boolean {
+    // The Phoenix card first (one a wave), then the Workshop's second wind (a few a run)
+    if (this.phoenix > 0) {
+      this.phoenix--;
+      this.life = Math.max(0.05, this.phoenixLife);
+      this.immuneTime = Math.max(this.immuneTime, PHOENIX_IMMUNE);
+      this.phoenixRose = true;
+      return true;
+    }
     if (this.secondWind <= 0) return false;
     this.secondWind--;
     this.life = 0.5;

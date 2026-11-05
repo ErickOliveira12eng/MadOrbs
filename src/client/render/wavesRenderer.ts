@@ -144,6 +144,9 @@ export class WavesRenderer {
   private blasts: BlastView[] = [];
   /** The armed nuke bots' reach (nukeZones). */
   private readonly nukeViews: BlastView[] = [];
+  /** The Orbital card's beams (orbitalBeams): a strip of length 1 from its origin, a bright core and a glow. */
+  private readonly beamStrip = new THREE.PlaneGeometry(1, 1).translate(0.5, 0, 0);
+  private readonly beamViews: { core: THREE.Mesh; glow: THREE.Mesh; coreMaterial: THREE.MeshBasicMaterial; glowMaterial: THREE.MeshBasicMaterial }[] = [];
   private spareBlasts: BlastView[] = [];
 
   constructor(scene: THREE.Scene) {
@@ -295,6 +298,40 @@ export class WavesRenderer {
     });
   }
 
+  /**
+   * The Orbital card's beams (WavesRun, ORBITAL): burning bands from the sky around the player, white gold with a
+   * golden glow (the player's cards are gold; the Vesuvius's beam is red); `fade` 0 to 1 as they light and go out.
+   */
+  orbitalBeams(beams: readonly { x: number; y: number; angle: number; from: number; length: number; fade: number }[], time: number): void {
+    while (this.beamViews.length < beams.length) {
+      const coreMaterial = new THREE.MeshBasicMaterial({ color: 0xfff4c8, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+      const glowMaterial = new THREE.MeshBasicMaterial({ color: 0xffb428, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+      const core = new THREE.Mesh(this.beamStrip, coreMaterial);
+      const glow = new THREE.Mesh(this.beamStrip, glowMaterial);
+      core.renderOrder = glow.renderOrder = ABOVE_FLOOR;
+      core.frustumCulled = glow.frustumCulled = false;
+      this.root.add(glow, core);
+      this.beamViews.push({ core, glow, coreMaterial, glowMaterial });
+    }
+    this.beamViews.forEach((v, i) => {
+      const b = beams[i];
+      v.core.visible = v.glow.visible = !!b;
+      if (!b) return;
+      const flicker = 0.85 + 0.15 * Math.sin(time * 47 + i);
+      const x = b.x + Math.cos(b.angle) * b.from;
+      const y = b.y + Math.sin(b.angle) * b.from;
+      const length = b.length - b.from;
+      v.core.position.set(x, y, 0.3);
+      v.glow.position.set(x, y, 0.29);
+      v.core.rotation.set(0, 0, b.angle);
+      v.glow.rotation.set(0, 0, b.angle);
+      v.core.scale.set(length, 0.22 * flicker, 1);
+      v.glow.scale.set(length, 0.7 * flicker, 1);
+      v.coreMaterial.opacity = 0.95 * b.fade;
+      v.glowMaterial.opacity = 0.5 * b.fade;
+    });
+  }
+
   /** The blast rings grow out fast and fade. */
   private renderBlasts(dt: number): void {
     this.blasts = this.blasts.filter((b) => {
@@ -443,6 +480,11 @@ export class WavesRenderer {
     for (const r of [...this.ripples, ...this.spareRipples]) r.material.dispose();
     this.blastRingGeometry.dispose();
     this.blastDiscGeometry.dispose();
+    this.beamStrip.dispose();
+    for (const v of this.beamViews) {
+      v.coreMaterial.dispose();
+      v.glowMaterial.dispose();
+    }
     for (const b of [...this.blasts, ...this.spareBlasts]) {
       b.ringMaterial.dispose();
       b.discMaterial.dispose();

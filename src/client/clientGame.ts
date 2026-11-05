@@ -490,6 +490,12 @@ export class ClientGame {
         this.hud.announceText(t('waves.secondWind'), t('waves.secondWindSub'), banner('#e2ffe9', '#2fd35c'), 2.2);
         audio.play(this.sounds.lifePack, 255);
       },
+      onPhoenix: (position) => {
+        this.hud.announceText(t('waves.phoenix'), t('waves.phoenixSub'), banner('#fff1d6', '#ff5a1f'), 2.2);
+        this.effects.spawnExplosion(position, new Vec3(0, 0, 1), 2.5);
+        audio.play(this.sounds.lifePack, 255);
+      },
+      onOrbital: (position) => audio.play3D(this.sounds.weapon[WEAPON_PHOTON_RIFLE], 8, position, 255),
       onEnd: (end) => this.endWaves(end),
       ...setup,
       tutorial: this.opts.tutorial === 'waves',
