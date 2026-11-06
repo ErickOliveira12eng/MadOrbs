@@ -118,8 +118,9 @@ export const CARD_LEVELS: Record<CardID, number[]> = {
   reflect: [0, 0.5, 0.75, 1],
   silver: [0, 5, 4, 3],
   necro: [0, 0.2, 0.3, 0.4],
-  // (the share of their life under which they fall to a hit)
-  reaper: [0, 0.15, 0.2, 0.25],
+  // (the share of their life under which they fall to a hit; 5% at the top since 05/11/2026, Erick: too strong at 15,
+  // 20 and 25%)
+  reaper: [0, 0.03, 0.04, 0.05],
   // (the share of his life he's back with)
   phoenix: [0, 0.5, 0.75, 1],
   // (how many beams)
