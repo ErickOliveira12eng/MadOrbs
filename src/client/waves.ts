@@ -133,7 +133,7 @@ export const WAVES = {
    * sight) the player moves at `drag` of his speed, the dash's burst left whole (Erick, 02/11/2026: once the Orbs no
    * longer stuck together, it should still be hard to get away). Killed before that, it doesn't. The blast takes the bot with it (no kill for anyone).
    */
-  nuke: { from: 51, every: 25, spread: [0.03, 0.75], jitter: 0.08, speed: 1.8, slow: 0.35, life: 1, arm: 2.5, fuse: 3, beep: 1, radius: 4.5, share: 0.7, damage: 0.7, drag: 0.35 },
+  nuke: { from: 51, every: 25, spread: [0.03, 0.75], jitter: 0.08, speed: 1.8, slow: 0.35, life: 1, arm: 2.5, fuse: 3, beep: 1, radius: 4.5, share: 0.7, damage: 0.7, drag: 0.425 },
 };
 
 /**

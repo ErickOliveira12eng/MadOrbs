@@ -75,7 +75,7 @@ export const en = {
   'home.newsTitle': "What's new",
   'home.news94Date': 'November 5, 2026',
   'home.news94Title': 'Waves: harder to get away from the nuke bot',
-  'home.news94': 'In an armed nuke bot\'s reach you now move at about a third of your speed (it was half). The dash keeps all of its own.',
+  'home.news94': 'In an armed nuke bot\'s reach you now move at 42.5% of your speed (it was half). The dash keeps all of its own.',
   'home.news93Date': 'November 5, 2026',
   'home.news93Title': 'A green crosshair by default',
   'home.news93': 'The game\'s crosshair is now green by default, easier to tell apart from the shots. If you picked one before, yours stays; you can change it in the Esc menu or in your account.',

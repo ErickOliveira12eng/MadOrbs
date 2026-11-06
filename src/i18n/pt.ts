@@ -73,7 +73,7 @@ export const pt: Record<Key, string> = {
   'home.newsTitle': 'Novidades',
   'home.news94Date': '5 de novembro de 2026',
   'home.news94Title': 'Ondas: mais difícil fugir do bot da nuke',
-  'home.news94': 'No alcance de um bot da nuke armado, você agora anda a uns 35% da velocidade (era a metade). A arrancada continua inteira.',
+  'home.news94': 'No alcance de um bot da nuke armado, você agora anda a 42,5% da velocidade (era a metade). A arrancada continua inteira.',
   'home.news93Date': '5 de novembro de 2026',
   'home.news93Title': 'Mira verde por padrão',
   'home.news93': 'A mira do jogo agora é verde por padrão, mais fácil de distinguir dos tiros. Se você já tinha escolhido uma, a sua continua; dá para trocar no menu do Esc ou na sua conta.',
