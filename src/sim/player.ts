@@ -91,11 +91,14 @@ const TEAM_DECALS: Record<number, Omit<SkinInfo, 'skin'>> = {
 };
 
 /**
- * The waves' dash (Player.dash): its speed (times the movement speed boost) and how long the speed limit stays this many
- * times higher. 04/11/2026 (Erick: ~15% farther, and growing with the movement speed): 9 whatever the boost and a limit 3
- * times up until then.
+ * The waves' dash (Player.dash): its speed (times the movement speed boost to DASH_GROWTH) and how long the speed limit
+ * stays this many times higher. 04/11/2026 (Erick: ~15% farther, and growing with the movement speed): 9 whatever the
+ * boost and a limit 3 times up until then; 10.65 times the whole boost for a day, then half of that gain (05/11/2026,
+ * Erick). Measured from standing: 2.78 cells without a boost (2.59 before 04/11, 2.97 on it), 3.82 with x1.6 (2.88,
+ * 4.76), 4.45 with x2 (3.08, 5.95).
  */
-export const DASH_SPEED = 10.65;
+export const DASH_SPEED = 9.8;
+export const DASH_GROWTH = 0.6;
 const DASH_TIME = 0.22;
 const DASH_TOP = 3.5;
 /** The waves' recharging shield: seconds without a hit before it comes back, and seconds to fill up again. */
@@ -1255,7 +1258,7 @@ export class Player {
     if (d.lengthSq() < 1e-6) return;
     d.normalizeIn();
     // (as fast as the movement speed boosts make it: the game's pace and the speed boost, not a nuke's drag)
-    const speed = DASH_SPEED * this.game.pace * this.speedBoost;
+    const speed = DASH_SPEED * this.game.pace * this.speedBoost ** DASH_GROWTH;
     this.currentCF.vel.x = d.x * speed;
     this.currentCF.vel.y = d.y * speed;
     this.dashLeft = DASH_TIME;
