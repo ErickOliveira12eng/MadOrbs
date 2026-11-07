@@ -3341,6 +3341,14 @@
   font: 700 13px var(--h-ui);
 }
 
+.h-campend .save.signin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
 .h-campend .thr,
 .h-campend .sub {
   margin-top: 10px;

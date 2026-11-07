@@ -98,8 +98,8 @@ export const WAVES = {
    */
   bossWave: { share: 0.6, fullFrom: 30 },
   // (`early`: the bosses up to wave 20, 10 and 20, aim a little worse and spread more, Erick 04/11/2026: a new player got
-  // stuck on them)
-  boss: { radius: 0.45, damageScale: 0.22, weapon: WEAPON_CHAIN_GUN, aim: 0.3, spread: 0.35, life: 1.6, defence: 0.5, guard: { at30: 1.5, at40: 2, at50: 4, grow: 1.25 }, early: { until: 20, aim: 0.5, spread: 0.6 } },
+  // stuck on them; the weapon of each one: BOSSES)
+  boss: { radius: 0.45, damageScale: 0.22, aim: 0.3, spread: 0.35, life: 1.6, defence: 0.5, guard: { at30: 1.5, at40: 2, at50: 4, grow: 1.25 }, early: { until: 20, aim: 0.5, spread: 0.6 } },
   /** Bots that come with the boss and walk beside it. */
   escorts: 2,
   /**
@@ -215,6 +215,86 @@ export function waveSpec(n: number): WaveSpec {
     weapons,
   };
 }
+
+// ------------------------------------------------------------------ the bosses
+
+/**
+ * A different boss as the waves go on (Erick, 07/11/2026: it was the same eye with a chain gun every ten waves). All of
+ * them as tough as the wave asks (bossStrength); what changes is the weapon, the way it fights and its signature attack
+ * (src/client/wavesBoss.ts), marked on the floor before it lands. They take turns, one a boss wave, and from the second
+ * time round each one also has the next ones' attacks (bossMoves).
+ */
+export type BossKind = 'eye' | 'gunner' | 'pyro' | 'bull' | 'summoner';
+export const BOSS_ORDER: BossKind[] = ['eye', 'gunner', 'pyro', 'bull', 'summoner'];
+export type BossMove = 'beam' | 'missiles' | 'fire' | 'charge' | 'summon';
+
+export interface BossDef {
+  /** Its signature attack (the Eye: only once it comes back; on wave 10 it is the plain boss everybody meets first). */
+  move: BossMove;
+  weapon: number;
+  skin: string;
+  /** Its colours in place of the red team's (null: the red team's). */
+  tint: Omit<SkinInfo, 'skin'> | null;
+  /** Comes right up to the player (BotController.rush), or keeps its weapon's distance. */
+  rush: boolean;
+}
+
+export const BOSSES: Record<BossKind, BossDef> = {
+  // The chain gun, its long bursts that run hot and stop, a window to hit back (19/10/2026)
+  eye: { move: 'beam', weapon: WEAPON_CHAIN_GUN, skin: 'skin14', tint: null, rush: false },
+  // A lighter gun from afar: what hurts comes from the sky
+  gunner: { move: 'missiles', weapon: WEAPON_DUAL_MACHINE_GUN, skin: 'skin15', tint: { redDecal: [1, 0.82, 0.12], greenDecal: [0.13, 0.13, 0.14], blueDecal: [0.34, 0.27, 0.05] }, rush: false },
+  // Comes close with its flames: keep away
+  pyro: { move: 'fire', weapon: WEAPON_FLAME_THROWER, skin: 'skin25', tint: { redDecal: [1, 0.5, 0.06], greenDecal: [0.32, 0.03, 0.01], blueDecal: [1, 0.86, 0.25] }, rush: true },
+  // Comes close with a shotgun, and runs people down
+  bull: { move: 'charge', weapon: WEAPON_SHOTGUN, skin: 'skin13', tint: { redDecal: [0.9, 0.42, 0.18], greenDecal: [0.34, 0.1, 0.05], blueDecal: [0.95, 0.85, 0.65] }, rush: true },
+  // A weak gun from afar: its danger is the crowd it keeps calling
+  summoner: { move: 'summon', weapon: WEAPON_PHOTON_RIFLE, skin: 'skin29', tint: { redDecal: [0.3, 0.08, 0.5], greenDecal: [0.95, 0.9, 0.8], blueDecal: [0.1, 0.02, 0.16] }, rush: false },
+};
+
+/** How many times this kind of boss came before this one (0 the first time round). */
+export const bossCycle = (n: number): number => Math.floor((Math.max(1, Math.floor(n / WAVES.bossEvery)) - 1) / BOSS_ORDER.length);
+
+/** Who comes on boss wave n: 10 the Eye, 20 the Gunner, 30 the Pyromancer, 40 the Bull, 50 the Summoner, 60 the Eye again... */
+export function bossKind(n: number): BossKind {
+  return BOSS_ORDER[(Math.max(1, Math.floor(n / WAVES.bossEvery)) - 1) % BOSS_ORDER.length];
+}
+
+/**
+ * Its attacks on boss wave n: its own, and each time round the next one's too (wave 60 the Eye's beam and the Gunner's
+ * missiles, wave 100 the Summoner's bots and the Eye's beam, wave 110 three of them). Wave 10's Eye has none.
+ */
+export function bossMoves(n: number): BossMove[] {
+  const first = BOSS_ORDER.indexOf(bossKind(n));
+  const cycle = bossCycle(n);
+  if (first === 0 && cycle === 0) return [];
+  const out: BossMove[] = [];
+  for (let i = 0; i <= Math.min(cycle, BOSS_ORDER.length - 1); i++) out.push(BOSSES[BOSS_ORDER[(first + i) % BOSS_ORDER.length]].move);
+  return out;
+}
+
+/**
+ * The attacks (src/client/wavesBoss.ts): one every `every` seconds (`faster` less each time round, at least `minEvery`),
+ * the first `first` seconds after it comes. Damage before the boss's strength (the chain gun's bullet does 0.19).
+ * Missiles: `count` (+1 each time round) onto circles, one right on the player, after `windup`; `share` of a bazooka's
+ * damage. Fire: with the player within `reach`, lava bombs (`mortars`, +1) in `flight` seconds onto circles, their fire `seconds` long at `burn` of a
+ * molotov's, every other time the ring (`count` small rockets, a gap of `gap` of them). Beam: starts `before` degrees
+ * from the player and sweeps through him, `dps` while in it; only a wall protects. Charge: `windup` on its red line, then
+ * `speed` cells a second up to `length` (not below `least`), `damage` and a push, `rest` seconds winded at the end.
+ * Summon: `count` (+1) bots of the wave without elite traits around it after `windup`, at most `max` (+1) standing.
+ */
+export const BOSS_MOVE = {
+  first: 3,
+  every: 7,
+  faster: 0.5,
+  minEvery: 4.5,
+  missiles: { count: 3, windup: 1.5, radius: 1.3, spread: 3.5, gap: 1.4, speed: 12, height: 9, share: 0.45, size: 0.65 },
+  fire: { reach: 9, mortars: 3, flight: 1.4, radius: 1.1, spread: 2.5, burn: 0.25, seconds: 4.5 },
+  ring: { windup: 1.2, count: 24, gap: 4, speed: 3.2, share: 0.25, size: 0.6 },
+  beam: { windup: 1.3, sweep: 3.4, turn: 55, before: 70, width: 0.42, length: 14, dps: 0.5, every: 0.15 },
+  charge: { windup: 0.9, speed: 11, length: 12, least: 2.5, damage: 0.6, push: 7, rest: 1.2 },
+  summon: { windup: 1, count: 3, max: 6, spread: 2.5, radius: 0.6 },
+};
 
 // ------------------------------------------------------------------ elites
 

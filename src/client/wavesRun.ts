@@ -10,7 +10,9 @@ import type { Player, SkinInfo } from '../sim/player';
 import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
-import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, ELITE, WAVES, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { BossMoves, type BossHost } from './wavesBoss';
+import { VesuviusRenderer } from './render/vesuviusRenderer';
+import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, BOSSES, ELITE, WAVES, bossCycle, bossKind, bossMoves, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type BossKind, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, REFLECT_TIME, ORBITAL, PHOENIX, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, statFactor, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, workshopFactor, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
@@ -112,7 +114,11 @@ export interface WavesContext {
   bots: BotController[];
   scene: THREE.Scene;
   names: string[];
-  bossName: string;
+  /** The name of each boss (BOSSES). */
+  bossName: (kind: BossKind) => string;
+  /** Sounds of the bosses' attacks (src/client/wavesBoss.ts): a rocket or a lava bomb leaves, a beam lights up. */
+  onBossLaunch?: (position: Vec3) => void;
+  onBossBeam?: (position: Vec3) => void;
   randomSkin: () => SkinInfo;
   /** A wave begins (the banner, the siren). */
   onWave: (spec: WaveSpec) => void;
@@ -185,7 +191,7 @@ export class WavesRun {
   private pending = 0;
   private spawnWait = 0;
   /** The bosses' Orbs, each with the wave it came on and whether it was standing last tick (one may outlive its wave). */
-  private readonly bossOrbs: { p: Player; wave: number; up: boolean }[] = [];
+  private readonly bossOrbs: { p: Player; wave: number; up: boolean; moves: BossMoves | null; marks: VesuviusRenderer | null }[] = [];
   private bossPending = false;
   private nextCrate = WAVES.crates.every;
   private powers: FloorPower[] = [];
@@ -411,6 +417,8 @@ export class WavesRun {
     }
     // The nuke bots: armed close to the player, a blast when the fuse runs out
     this.updateNukes();
+    // The bosses' own attacks
+    for (const b of this.bossOrbs) b.moves?.update();
     // Phoenix: one rebirth a wave; it saved him, a blast of fire around
     if (this.cards.phoenix && this.phoenixWave !== this.wave) {
       this.phoenixWave = this.wave;
@@ -590,19 +598,20 @@ export class WavesRun {
 
   /**
    * One more bot for the wave: a fallen one comes back with new weapons and skill, or a new one.
-   * `escort`: it walks beside that one (the boss), on that side.
+   * `escort`: it walks beside that one (the boss), on that side. `at`: a Summoner's call, up right there, plain and not
+   * one of the wave's count.
    */
-  private spawnBot(escort?: { of: Player; side: number }): boolean {
+  private spawnBot(escort?: { of: Player; side: number }, at?: Vec3): Player | null {
     const { game, bots } = this.ctx;
     // The wave's nuke bot (WAVES.nuke), never one of the boss's escorts
-    const nuke = !escort && this.nukeSlots.has(this.waveSpawns);
+    const nuke = !escort && !at && this.nukeSlots.has(this.waveSpawns);
     const loadout = { primary: this.spec.weapons[Math.floor(Math.random() * this.spec.weapons.length)], secondary: nuke ? WEAPON_NUCLEAR : WEAPON_KNIVES };
     // A fallen enemy's Orb (never a Shadow ally's nor a risen one's: they kept their name and side and took a new skin)
     let i = bots.findIndex((b) => !this.isBoss(b.player) && !b.player.isAlive && b.player.lives <= 0 && !this.allies.includes(b.player) && !this.risen.some((r) => r.p === b.player));
     let p: Player | null = i >= 0 ? bots[i].player : null;
     if (!p) {
       p = game.addPlayer(this.ctx.names[bots.length % this.ctx.names.length], true);
-      if (!p) return false;
+      if (!p) return null;
       p.teamID = PLAYER_TEAM_RED;
       i = bots.length;
     }
@@ -626,7 +635,7 @@ export class WavesRun {
     // They come in from the map's edges, never out of its middle
     p.edgeSpawn = true;
     // An elite, maybe (waves.ts): its traits on top of the wave's numbers (the nuke bot: none, its own mark)
-    const traits = nuke ? [] : rollElite(this.wave);
+    const traits = nuke || at ? [] : rollElite(this.wave);
     const strength = eliteStrength(this.wave);
     p.badges = nuke ? ['nuke'] : traits;
     p.radius = 0.25;
@@ -681,12 +690,18 @@ export class WavesRun {
       bots[i].huntBias = Infinity;
       this.nukers.push({ p, fuse: -1, beep: 0 });
     }
-    if (!escort) this.waveSpawns++;
+    if (!escort && !at) this.waveSpawns++;
     game.requestSpawn(p);
+    if (at && p.isAlive) {
+      p.currentCF.position.set(at.x, at.y, 0.25);
+      p.lastCF.position.copy(p.currentCF.position);
+      p.currentCF.vel.set(0, 0, 0);
+      this.ctx.onRise(p.currentCF.position.clone(), false);
+    }
     // The nuke bot: no gun at all, only the nuke on its Orb (Erick, 01/11/2026: its chain gun's recoil pushed it back;
     // its one aim is to follow the player and blow up)
     if (nuke) p.weapon = null;
-    return true;
+    return p;
   }
 
   /**
@@ -757,10 +772,12 @@ export class WavesRun {
 
   private spawnBoss(): void {
     const { game, bots } = this.ctx;
+    const kind = bossKind(this.wave);
+    const def = BOSSES[kind];
     // A fallen boss's Orb comes back; with the last one still standing, another one (two bosses at once)
     let slot = this.bossOrbs.find((b) => !b.p.isAlive && b.p.lives <= 0);
     if (!slot) {
-      const p = game.addPlayer(this.ctx.bossName, true);
+      const p = game.addPlayer(this.ctx.bossName(kind), true);
       if (!p) return;
       p.teamID = PLAYER_TEAM_RED;
       p.spawnImmune = false;
@@ -770,14 +787,16 @@ export class WavesRun {
       p.takesLifePacks = false;
       // It always leaves a life pack, never its grenades (only the crates give them)
       p.grenadeDropChance = 0;
-      // The eye (skin14), in the red team's colours
-      p.skin = { ...this.ctx.randomSkin(), skin: 'skin14' };
-      slot = { p, wave: this.wave, up: false };
+      slot = { p, wave: this.wave, up: false, moves: null, marks: null };
       this.bossOrbs.push(slot);
     }
     slot.wave = this.wave;
     slot.up = false;
     const p = slot.p;
+    // Who it is this time: its name, its Orb and its colours (BOSSES)
+    p.name = this.ctx.bossName(kind);
+    p.skin = { ...this.ctx.randomSkin(), skin: def.skin };
+    p.teamTint = def.tint;
     p.lives = 1;
     p.spawnRequested = false;
     p.timeToSpawn = 0;
@@ -801,7 +820,8 @@ export class WavesRun {
     p.recoilScale = 0;
     // (the Reaper card doesn't take it down at once: more damage below its share)
     p.executable = false;
-    const bot = new BotController(p, 1, { primary: WAVES.boss.weapon, secondary: WEAPON_KNIVES });
+    const bot = new BotController(p, 1, { primary: def.weapon, secondary: WEAPON_KNIVES });
+    bot.rush = def.rush;
     const early = this.wave <= WAVES.boss.early.until;
     bot.aimScale = early ? WAVES.boss.early.aim : WAVES.boss.aim;
     bot.lead = 0;
@@ -814,6 +834,22 @@ export class WavesRun {
     game.requestSpawn(p);
     // Its escorts, one on each side
     for (let k = 0; k < WAVES.escorts; k++) this.spawnBot({ of: p, side: k % 2 === 0 ? 1 : -1 });
+    // Its own attacks (the Eye of wave 10: none)
+    const moves = bossMoves(this.wave);
+    slot.moves?.calm();
+    slot.moves = null;
+    if (moves.length) {
+      slot.marks ??= new VesuviusRenderer(this.ctx.scene);
+      const host: BossHost = {
+        game,
+        me: this.ctx.me,
+        scene: this.ctx.scene,
+        summon: (at) => this.spawnBot(undefined, at),
+        onLaunch: (at) => this.ctx.onBossLaunch?.(at),
+        onBeam: (at) => this.ctx.onBossBeam?.(at),
+      };
+      slot.moves = new BossMoves(host, p, bot, moves, bossCycle(this.wave), slot.marks);
+    }
   }
 
   // ---------------------------------------------------------------- crates and power-ups
@@ -1524,6 +1560,7 @@ export class WavesRun {
     const me = this.ctx.me;
     const reds = this.reds();
     const standing = reds.filter(inWave).length;
+    const left = this.phase === 'fight' ? this.pending + standing + (this.bossPending ? 1 : 0) : 0;
     return {
       wave: Math.max(this.ctx.startWave, this.wave),
       boss: this.spec.boss && this.phase === 'fight',
@@ -1531,8 +1568,9 @@ export class WavesRun {
       breakLeft: Math.max(0, this.breakLeft),
       waveLeft: Math.max(0, this.waveLeft),
       timer: !this.script,
-      left: this.phase === 'fight' ? this.pending + standing + (this.bossPending ? 1 : 0) : 0,
-      total: this.script ? this.scriptTotal : this.spec.total + (this.spec.boss ? 1 + WAVES.escorts : 0),
+      left,
+      // (a Summoner's bots, the ones left over from the last wave: never fewer in all than are left)
+      total: this.script ? this.scriptTotal : Math.max(left, this.spec.total + (this.spec.boss ? 1 + WAVES.escorts : 0)),
       lives: me.lives + (me.isAlive ? 1 : 0),
       livesFull: this.livesFull,
       kills: me.kills,
@@ -1585,6 +1623,8 @@ export class WavesRun {
       this.nukers.filter((n) => n.fuse >= 0 && n.p.isAlive).map((n) => ({ x: n.p.currentCF.position.x, y: n.p.currentCF.position.y, radius: WAVES.nuke.radius, k: 1 - n.fuse / WAVES.nuke.fuse })),
       time,
     );
+    // The bosses' attacks: their warnings on the floor
+    for (const b of this.bossOrbs) b.moves?.render(time);
     // Enemies hit by the poison or ice shots: a ring under them
     const marks = this.reds()
       .filter((p) => p.isAlive && (p.poisonLeft > 0 || p.chillLeft > 0))
@@ -1595,6 +1635,7 @@ export class WavesRun {
   dispose(): void {
     window.removeEventListener('pagehide', this.onPageHide);
     this.renderer.dispose();
+    for (const b of this.bossOrbs) b.marks?.dispose();
   }
 }
 

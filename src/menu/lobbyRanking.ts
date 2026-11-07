@@ -43,7 +43,9 @@ const MIN_TOP = 3;
 const CACHE_MS = 60_000;
 
 export class LobbyRanking {
-  private tab: Tab = 'online';
+  // Survival first (Erick, 07/11/2026): the Multiplayer list has very few rows yet, and a first visit read it as an
+  // empty game; picking a mode on the Multiplayer card brings its list (StartScreen)
+  private tab: Tab = 'waves';
   private readonly cache = new Map<string, { at: number; rows: RankingRow[]; total: number }>();
   /** Asked once the start screen has settled (not with the page's first bytes). */
   private started = false;

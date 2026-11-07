@@ -123,6 +123,8 @@ export class BotController {
    * that distance and in and out of sight round the corners).
    */
   rush = false;
+  /** Stands where it is, aiming and shooting as usual (the waves' bosses, while an attack of theirs winds up). */
+  still = false;
   /** Keeps its secondary in hand and never uses it (the waves' nuke bot: the run sets its nuke off itself). */
   holdMelee = false;
   /**
@@ -358,7 +360,7 @@ export class BotController {
         this.anchorTime = 0;
       }
     }
-    if (moveTo) {
+    if (moveTo && !this.still) {
       const d = moveTo.sub(pos);
       // Flags are touched within a quarter of a cell: aim finely at the end of the path. A big babo
       // (the campaign's boss) keeps close to the middle of the cells, or it catches on the corners

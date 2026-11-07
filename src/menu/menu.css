@@ -1262,6 +1262,14 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
+/* A lobby this small brings your Orb under the slogan: two lines, under the logo */
+@media (max-width: 1400px) {
+  .screen:not(.narrow) .tagline {
+    max-width: 200px;
+    line-height: 1.35;
+  }
+}
+
 /* ------------------------------------------------------------------ orb on its pedestal */
 
 .orb-row {

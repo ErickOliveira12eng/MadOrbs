@@ -466,6 +466,11 @@ export class StartScreen {
     setTestUnlock(debugUnlockOn(this.account.debugTools.zoom));
   }
 
+  /** The account window (a guest's invitation at the end of a waves run). */
+  openAccount(): void {
+    this.accountModal.open();
+  }
+
   /** The waves' Workshop (its card, or back from a run that asked for it): the ranking beside it on the Survival tab. */
   openWaves(mode: 'waves' | 'vesuvius' = 'waves'): void {
     this.lobbyRanking.showTab(mode);
@@ -599,6 +604,8 @@ export class StartScreen {
         if (this.settings.mode !== mode) track('select_mode', { mode });
         this.settings.mode = mode;
         saveSettings(this.settings);
+        // (the ranking follows the mode chosen: it opens on Survival)
+        this.lobbyRanking?.showTab('online');
         this.markMode();
       });
       box.appendChild(b);

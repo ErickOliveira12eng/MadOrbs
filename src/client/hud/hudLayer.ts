@@ -617,7 +617,7 @@ export class HudLayer {
    * The end of a waves run: the wave reached, the kills, the record; the Cores it earned (and what
    * they buy now), the milestones reached, the next one; the Workshop, play again or the menu.
    */
-  showWavesEnd(e: WavesEnd & { skin: SkinInfo; onAction: (action: 'retry' | 'shop' | 'menu') => void }): void {
+  showWavesEnd(e: WavesEnd & { skin: SkinInfo; guest: boolean; onAction: (action: 'retry' | 'shop' | 'menu' | 'signin') => void }): void {
     const kills = t(e.kills === 1 ? 'end.oneKill' : 'end.kills', { n: e.kills });
     const head =
       `<div class="wave-reached"><span>${t('waves.label')}</span><b>${e.wave}</b></div>` +
@@ -632,6 +632,8 @@ export class HudLayer {
           : e.best
             ? `<div class="best">${e.best.time !== null ? t('waves.recordTime', { n: e.best.wave, time: clock(e.best.time) }) : t('waves.record', { n: e.best.wave })}</div>`
             : '') +
+      // A guest, at the moment the run makes him want to keep it (only the campaign's end asked, and it left the game)
+      (e.guest && !e.test ? `<div class="save signin"><span>${t('wend.saveHint')}</span><button type="button" data-a="signin">${t('account.signIn')}</button></div>` : '') +
       (e.cards.length
         ? `<div class="h-wcards end">${e.cards.map((c) => `<span class="${cardDef(c.id).rarity}" title="${t(`card.${c.id}`)}">${cardIcon(c.id, 'h-cardmini')}<b>${c.level}</b></span>`).join('')}</div>`
         : '');
@@ -711,7 +713,7 @@ export class HudLayer {
       `<div class="t lost">${t('waves.over')}</div><div class="lvl">${t('waves.reached', { n: e.wave })}</div>${head}` +
         `<div class="wend-split"><div class="wu-side">${cores}${checkpoint}</div><div class="wu-side">${side}</div></div><div class="btns">${buttons}</div>`,
       'retry',
-      (a) => e.onAction(a === 'menu' ? 'menu' : a === 'shop' ? 'shop' : 'retry'),
+      (a) => e.onAction(a === 'menu' ? 'menu' : a === 'shop' ? 'shop' : a === 'signin' ? 'signin' : 'retry'),
       { KeyW: 'shop' },
     );
     this.r.campcard.classList.add('waves');
@@ -894,7 +896,7 @@ export class HudLayer {
     this.cursorFree = true;
     this.root.classList.add('free-cursor');
     const act = (a: string) => {
-      if (a !== 'menu' && a !== 'shop' && performance.now() < waitUntil) return;
+      if (a !== 'menu' && a !== 'shop' && a !== 'signin' && performance.now() < waitUntil) return;
       if (this.campEndKeys) window.removeEventListener('keydown', this.campEndKeys, true);
       this.campEndKeys = null;
       onAction(a);

@@ -9,14 +9,14 @@ const ON_FLOOR = FX_RENDER_ORDER.floorMarks + 1;
 
 /** What the run wants on the floor now; `k`: how far a warning has gone (0 to 1, the attack lands at 1). */
 export interface VesuviusMarks {
-  lines: { x: number; y: number; angle: number; length: number; k: number }[];
+  lines: { x: number; y: number; angle: number; length: number; k: number; width?: number }[];
   circles: { x: number; y: number; radius: number; k: number }[];
   /** The ring of fire about to go: around the boss, with its gap (radians). */
   ring: { x: number; y: number; radius: number; k: number; gap: number; gapWidth: number } | null;
   /** The beam: a thin warning (`on` false) or burning, from the boss out to the wall. */
   beam: { x: number; y: number; angle: number; length: number; on: boolean; k: number } | null;
-  /** The lava that burns around the boss. */
-  lava: { x: number; y: number; radius: number };
+  /** The lava that burns around the boss (the waves' bosses, src/client/wavesBoss.ts: none). */
+  lava: { x: number; y: number; radius: number } | null;
 }
 
 const glow = (color: number) => new THREE.MeshBasicMaterial({ color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
@@ -92,12 +92,12 @@ export class VesuviusRenderer {
       const base = this.lineBase.next();
       base.position.set(l.x, l.y, 0.05);
       base.rotation.set(0, 0, l.angle);
-      base.scale.set(l.length, 0.34, 1);
+      base.scale.set(l.length, l.width ?? 0.34, 1);
       base.material.opacity = 0.22 + 0.12 * Math.sin(time * 30);
       const fill = this.lineFill.next();
       fill.position.set(l.x, l.y, 0.055);
       fill.rotation.set(0, 0, l.angle);
-      fill.scale.set(Math.max(0.01, l.length * l.k), 0.16, 1);
+      fill.scale.set(Math.max(0.01, l.length * l.k), (l.width ?? 0.34) * 0.47, 1);
       fill.material.opacity = 0.75;
     }
     this.lineBase.end();
@@ -162,6 +162,8 @@ export class VesuviusRenderer {
     this.beamGlow.end();
 
     // The lava's edge: where it starts to burn
+    this.lavaEdge.visible = !!m.lava;
+    if (!m.lava) return;
     this.lavaEdge.position.set(m.lava.x, m.lava.y, 0.04);
     this.lavaEdge.scale.setScalar(m.lava.radius);
     this.lavaEdge.material.opacity = 0.3 + 0.15 * Math.sin(time * 3);

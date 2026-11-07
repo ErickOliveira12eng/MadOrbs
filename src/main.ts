@@ -179,6 +179,7 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
           testTools: account.debugTools.zoom,
           // The run's report says whose it is (src/client/wavesReport.ts)
           authToken: await account.accessToken(),
+          signedIn: account.signedIn,
           onWavesBuild: (wave, build) => void account.saveWavesBuild(wave, build),
           onWavesEnd: () => {
             // The record: the server checks the run and writes it (src/server/wavesRuns.ts); read it once it is in
@@ -193,6 +194,7 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
                     screen.show();
                     void audio.playMusic(MENU_MUSIC, 255);
                     if (action === 'shop') screen.openWaves();
+                    else if (action === 'signin') screen.openAccount();
                   };
             game.quit();
           },

@@ -95,7 +95,7 @@ import { weaponInfo } from './hud/weaponInfo';
 import type { RoomView } from './hud/weaponPicker';
 import { WavesRun, type WavesEnd } from './wavesRun';
 import { cardDef, type CardID } from './wavesCards';
-import { POWERS, WAVES, type PermKind, type PowerKind } from './waves';
+import { POWERS, WAVES, bossKind, type PermKind, type PowerKind } from './waves';
 import type { CheckpointBuild, Levels, UpgradeID } from './wavesProgress';
 import { wavesPower } from './wavesPower';
 import { VES, VesuviusRun, type VesuviusEnd } from './vesuviusRun';
@@ -143,7 +143,7 @@ export interface ClientGameOptions {
   // --- campaign (offline)
   /** A campaign level: Team Deathmatch alone against the bots, nobody respawns (src/client/campaign.ts). */
   campaign?: CampaignLevel;
-  /** A campaign level won (the account keeps it too); `signedIn`: else the end says how to keep the progress. */
+  /** A campaign level won (the account keeps it too); `signedIn`: else the end (a campaign level, a waves run) says how to keep the progress. */
   onCampaignWin?: (level: CampaignLevel, seconds: number) => void;
   signedIn?: boolean;
   /** The end of a campaign level: what the player chose (next level, again, back to the menu). */
@@ -158,7 +158,7 @@ export interface ClientGameOptions {
    */
   waves?: { startWave: number; startWeapon: number; levels: Levels };
   /** The end of a waves run: what the player chose (again, the Workshop, or back to the menu). */
-  onWavesAction?: (action: 'retry' | 'shop' | 'menu') => void;
+  onWavesAction?: (action: 'retry' | 'shop' | 'menu' | 'signin') => void;
   /** A waves run ended (or was left): the account keeps the best one and the Cores. */
   onWavesEnd?: (end: WavesEnd) => void;
   /** The waves: a checkpoint beaten, its build saved (the account's copy). */
@@ -413,12 +413,14 @@ export class ClientGame {
       bots: this.bots,
       scene: this.scene,
       names: [...BOT_NAMES].sort(() => Math.random() - 0.5),
-      bossName: t('waves.bossName'),
+      bossName: (kind) => t(`boss.${kind}` as const),
+      onBossLaunch: (position) => audio.play3D(this.sounds.weapon[WEAPON_BAZOOKA], 8, position, 200),
+      onBossBeam: (position) => audio.play3D(this.sounds.weapon[WEAPON_PHOTON_RIFLE], 10, position, 255),
       randomSkin,
       onWave: (spec) => {
         // The server notes when each wave starts (its check of the run's end)
         if (this.wavesRunId) reportWavesRun({ phase: 'wave', id: this.wavesRunId, wave: spec.n });
-        this.hud.announceText(t('waves.wave', { n: spec.n }), spec.boss ? t('waves.bossWave') : t('waves.start'), spec.boss ? banner('#ffd0d0', '#d81f3f') : banner('#ffe2b8', '#ff8a1c'), 2.4);
+        this.hud.announceText(t('waves.wave', { n: spec.n }), spec.boss ? t(`boss.${bossKind(spec.n)}.hint` as const) : t('waves.start'), spec.boss ? banner('#ffd0d0', '#d81f3f') : banner('#ffe2b8', '#ff8a1c'), 2.4);
         audio.play(this.sounds.siren, 200);
       },
       onCleared: (n) => {
@@ -744,7 +746,7 @@ export class ClientGame {
     // The mouse comes back for the buttons, with the system's cursor
     this.input.exitPointerLock();
     this.renderer.domElement.style.cursor = 'auto';
-    this.hud.showWavesEnd({ ...end, skin: this.me.skin, onAction: (action) => this.opts.onWavesAction?.(action) });
+    this.hud.showWavesEnd({ ...end, skin: this.me.skin, guest: !this.opts.signedIn, onAction: (action) => this.opts.onWavesAction?.(action) });
   }
 
   /** When our own Mission Failed feat was announced (the campaign's loss doesn't say it twice). */
