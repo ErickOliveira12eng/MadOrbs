@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import { modeName, modeShort, modeTagline } from '../client/modes';
 import { bestKills } from '../client/records';
-import { loadWavesRecord } from '../client/waves';
+import { WAVES, bossKind, loadWavesRecord } from '../client/waves';
 import { affordable, balance, dailyState, loadProgress as loadWavesProgress } from '../client/wavesProgress';
 import { LANG_KEY, bigNum, lang, num, t, type Lang } from '../i18n';
 import { MAX_NAME_LENGTH, ROOM_MODES, cleanName, isReservedName, limitNameInput, type RoomMode, type RoomStatus } from '../net/protocol';
@@ -31,6 +31,7 @@ import { TutorialModal, tutorialSeen, type TutorialAnswer } from './tutorialModa
 import type { TutorialKind } from '../client/tutorial';
 import { WavesModal, coreIcon } from './wavesModal';
 import { versioned } from '../sim/assetVersion';
+import { vesuviusOpen } from '../sim/vesuvius';
 import { adBlocked, adsAllowed, mountAd, onAdBlockFound, onAdsAllowed, refreshAd, type AdSlot } from '../client/ads';
 import { track } from '../client/analytics';
 
@@ -274,8 +275,6 @@ export class StartScreen {
     });
     // Found later by the banners themselves: their spots go (the request waits for a match, beforePlay)
     onAdBlockFound(() => this.fit());
-    // The Survival card: the waves' boss and its wave, a moment of the game (tools/make-menu-cards.mjs --waves)
-    $('wavesPic').style.backgroundImage = `url('${versioned('/menu/card-waves.webp')}')`;
     this.embers = matchMedia('(prefers-reduced-motion: reduce)').matches ? null : new Embers($<HTMLCanvasElement>('bgSparks'));
     void this.makeBackground();
   }
@@ -443,10 +442,21 @@ export class StartScreen {
   private renderProgress(): void {
     const mode = this.settings.mode;
     const record = Math.max(bestKills(mode), this.account.stats[mode]?.bestKills ?? 0);
-    $('heroChips').innerHTML = record > 0 ? `<span class="hero-chip">${t('menu.recordChip', { mode: modeShort(mode), n: `<b>${num(record)}</b>` })}</span>` : '';
-
     const waves = loadWavesRecord();
-    $('wavesLine').textContent = waves ? t('menu.wavesRecord', { n: waves.wave }) : t('lobby.wavesFirst');
+    // Beside the name, the player's records: the waves' (the bigger brag, 07/11/2026) and the chosen mode's online one
+    const chips: string[] = [];
+    if (waves) chips.push(t('menu.wavesRecordChip', { n: `<b>${num(waves.wave)}</b>` }));
+    if (record > 0) chips.push(t('menu.recordChip', { mode: modeShort(mode), n: `<b>${num(record)}</b>` }));
+    $('heroChips').innerHTML = chips.map((c) => `<span class="hero-chip">${c}</span>`).join('');
+
+    // The Survival card: the next boss the player meets (its picture, tools/make-menu-cards.mjs) and the Vesuvius once
+    // the record is past wave 100 (the server still decides, in the Workshop: this is the browser's record)
+    const next = (Math.floor((waves?.wave ?? 0) / WAVES.bossEvery) + 1) * WAVES.bossEvery;
+    const kind = bossKind(next);
+    $('wavesPic').style.backgroundImage = `url('${versioned(`/menu/card-waves-${kind}.webp`)}')`;
+    $('wavesLine').textContent = t('lobby.nextBoss', { name: t(`boss.${kind}`), n: num(next) });
+    $('wavesLine').title = $('wavesLine').textContent;
+    $('vesuviusTag').hidden = !vesuviusOpen(waves?.wave ?? 0);
     // The Cores of the waves, and how many upgrades they pay for now
     const wp = loadWavesProgress();
     const cores = $('wavesCores');
@@ -658,6 +668,9 @@ export class StartScreen {
     }
     sub.textContent = t('menu.playMode', { mode: modeName(this.settings.mode) });
     if (this.serverUp === null) return;
+    // The chosen mode: how many play it, or its room ready with bots (they fill the public rooms, BOT_FILL)
+    const here = this.rooms?.[this.settings.mode];
+    if (here) sub.textContent = here.players > 0 ? `${t('menu.playMode', { mode: modeName(this.settings.mode) })} · ${t('menu.playing', { n: here.players })}` : t('menu.playModeBots', { mode: modeName(this.settings.mode) });
     if (!this.serverUp) {
       text.textContent = t('menu.serverDown');
       pill.className = 'online-pill down';

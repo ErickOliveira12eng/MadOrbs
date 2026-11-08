@@ -512,7 +512,7 @@ select:focus-visible {
   background: linear-gradient(180deg, rgba(11, 14, 36, 0.1) 30%, #0b0e24 100%);
 }
 
-/* Survival: the boss and its wave (public/menu/card-waves.webp) fading into the card's dark red */
+/* Survival: the next boss the player meets (public/menu/card-waves-<boss>.webp) fading into the card's dark red */
 .waves .card-pic::after {
   background: linear-gradient(180deg, rgba(42, 11, 22, 0.05) 30%, #160818 100%);
 }
@@ -553,6 +553,28 @@ select:focus-visible {
 .waves .card-tag {
   background: #ff5a5a;
   color: #2a0006;
+}
+
+/* Past wave 100: the Vesuvius open, under the SOLO tag */
+.card-tag.vesuvius {
+  top: 44px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px 4px 8px;
+  background: linear-gradient(180deg, #ffd36a, #ff8a2a);
+  color: #3a1200;
+  box-shadow: 0 0 14px rgba(255, 140, 40, 0.45);
+  letter-spacing: 0.4px;
+}
+
+.card-tag.vesuvius[hidden] {
+  display: none;
+}
+
+.card-tag.vesuvius svg {
+  width: 14px;
+  height: 14px;
 }
 
 .campaign .card-tag {
@@ -602,6 +624,12 @@ select:focus-visible {
   color: #ffe1e5;
   font: 800 13.5px var(--font-ui);
   white-space: nowrap;
+}
+
+.card-stats > :first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-stats.bar {
