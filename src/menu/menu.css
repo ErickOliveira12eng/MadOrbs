@@ -2135,6 +2135,10 @@ kbd.mouse .icon {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.training-tuts[hidden] {
+  display: none;
+}
+
 .training-tuts-label {
   color: var(--muted);
   font-size: 12px;

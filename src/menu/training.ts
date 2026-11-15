@@ -28,7 +28,14 @@ export class TrainingModal {
     private readonly onStart: () => void,
     private readonly onModeChange: () => void,
     onTutorial: (kind: TutorialKind) => void,
+    /** The modes in test show (the testers' accounts: DEBUG_USER_IDS), and the Horde's button (src/client/horde.ts). */
+    private readonly testing: () => boolean,
+    onHorde: () => void,
   ) {
+    $('hordeTest').addEventListener('click', () => {
+      this.close();
+      onHorde();
+    });
     for (const [id, kind] of [['tutorialPvp', 'pvp'], ['tutorialWaves', 'waves']] as const)
       $(id).addEventListener('click', () => {
         this.close();
@@ -86,6 +93,7 @@ export class TrainingModal {
     $('botsValue').textContent = String(s.bots);
     this.markMode();
     this.markSkill();
+    $('trainingTesting').hidden = !this.testing();
     this.modal.hidden = false;
     void this.drawPreview();
   }

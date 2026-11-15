@@ -785,7 +785,7 @@ export class HudLayer {
    * middle of the screen, the game stopped, the banner under them and the system's cursor. A click or the
    * keys 1, 2, 3 take one (after a moment: the shot that killed the boss must not pick a card by itself).
    */
-  showCards(offer: { id: CardID; level: number; up: number }[], onPick: (i: number) => void, wave?: number, reroll?: { left: number; onReroll: () => void }): void {
+  showCards(offer: { id: CardID; level: number; up: number }[], onPick: (i: number) => void, wave?: number, reroll?: { left: number; onReroll: () => void }, levelUp?: number): void {
     const cards = offer
       .map(({ id, level, up }, i) => {
         const def = cardDef(id);
@@ -803,12 +803,14 @@ export class HudLayer {
         );
       })
       .join('');
-    const sub = wave === undefined ? t('cards.sub') : t('cards.subWave', { n: wave });
+    // (the Horde: a level up's cards)
+    const sub = levelUp ? t('horde.levelSub') : wave === undefined ? t('cards.sub') : t('cards.subWave', { n: wave });
+    const title = levelUp ? t('horde.levelUp', { n: levelUp }) : t('cards.title');
     // The Workshop's Reroll cards: three others (R)
     const swapButton = reroll
       ? `<button type="button" class="h-reroll" data-reroll${reroll.left > 0 ? '' : ' disabled'}><span>${t('cards.reroll', { n: reroll.left })}</span><span class="h-key">R</span></button>`
       : '';
-    setHTML(this.r.campcard, `<div class="t">${t('cards.title')}</div><div class="lvl">${sub}</div><div class="h-cards">${cards}</div>${swapButton}`);
+    setHTML(this.r.campcard, `<div class="t">${title}</div><div class="lvl">${sub}</div><div class="h-cards">${cards}</div>${swapButton}`);
     this.r.campcard.classList.remove('waves');
     this.r.campcard.classList.add('cards');
     this.r.campend.classList.remove('preload');
@@ -962,6 +964,11 @@ export class HudLayer {
       `<div class="h-wave"><span>${t('waves.label')}</span><b>${w.wave}</b></div>` +
       `<div class="h-mode">${doing}</div>` +
       `<div class="h-camp"><span class="hearts" title="${t('waves.lives')}">${hearts || '—'}</span><span>${t(w.kills === 1 ? 'end.oneKill' : 'end.kills', { n: w.kills })}</span>${powers}</div>`;
+    // The Horde: the level, and the energy toward the next one
+    if (w.horde) {
+      const h = w.horde;
+      html += `<div class="h-xp" title="${t('horde.energy', { n: h.energy, need: h.need })}"><b>${t('horde.level', { n: h.level })}</b><span><i style="width:${Math.round(Math.min(1, h.energy / h.need) * 100)}%"></i></span></div>`;
+    }
     // Every boss standing, the oldest first (one may outlive its wave), its wave beside its name
     for (const b of w.bossLives) {
       html += `<div class="h-boss"><b>${esc(b.name)} <small>· ${t('workshop.waveN', { n: b.wave })}</small></b><span><i style="width:${Math.round(Math.max(0, b.life) * 100)}%"></i></span></div>`;

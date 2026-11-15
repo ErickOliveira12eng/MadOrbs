@@ -268,11 +268,13 @@ export const DOUBLE_CHANCE = 0.2;
  * (never of a rarer card); that one sometimes climbs two levels at once (DOUBLE_CHANCE), and always when a new
  * epic or legendary is offered beside it: a level 1 of the rare card, or two levels of yours. The boss's offer
  * (`commonOnly` false; Erick, 15/10/2026) always has a card of yours two levels up (an epic one too) and an epic
- * or legendary card besides it (the legendaries from their wave).
+ * or legendary card besides it (the legendaries from their wave). A Horde level up (`levelUp`, src/client/horde.ts:
+ * many more of them) is every rarity by the weights, a card of yours two levels up only by chance, no rare card
+ * sure to come and no mythic one (those stay the boss's).
  */
-export function offerCards(n: number, owned: CardLevels, commonOnly: boolean): CardOffer[] {
+export function offerCards(n: number, owned: CardLevels, commonOnly: boolean, levelUp = false): CardOffer[] {
   // The mythic cards (MYTHIC_FROM): the first boss offer with none of them taken is the three together
-  const mythics = !commonOnly && n >= MYTHIC_FROM ? CARDS.filter((c) => c.rarity === 'mythic' && (owned[c.id] ?? 0) < c.max) : [];
+  const mythics = !commonOnly && !levelUp && n >= MYTHIC_FROM ? CARDS.filter((c) => c.rarity === 'mythic' && (owned[c.id] ?? 0) < c.max) : [];
   if (mythics.length && !CARDS.some((c) => c.rarity === 'mythic' && (owned[c.id] ?? 0) > 0)) return mythics.map((c) => ({ id: c.id, up: 1 }));
   const mythic = (): CardID | null => (mythics.length ? mythics[Math.floor(Math.random() * mythics.length)].id : null);
   const ids = rollCards(n, owned, 3, commonOnly);
@@ -297,7 +299,7 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean): C
   // (never a mythic card: those climb one level at a time, in their own place)
   const mine = CARDS.filter((c) => !c.stat && c.rarity !== 'mythic' && level(c.id) > 0 && open(c) && (!commonOnly || c.rarity === 'common')).map((c) => c.id);
   const rareNew = offer.some((o) => cardDef(o.id).rarity !== 'common' && level(o.id) === 0);
-  const double = !commonOnly || rareNew || Math.random() < DOUBLE_CHANCE;
+  const double = (!commonOnly && !levelUp) || rareNew || Math.random() < DOUBLE_CHANCE;
   const fits = (id: CardID) => !double || left(id) >= 2;
   // The one of yours: already offered, else in place of a new common card
   let slot = offer.findIndex((o) => mine.includes(o.id) && fits(o.id));
@@ -311,7 +313,7 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean): C
   }
   if (slot >= 0 && double && left(offer[slot].id) >= 2) offer[slot].up = 2;
   // The boss: always an epic or legendary card besides that one
-  if (!commonOnly && !offer.some((o, i) => i !== slot && cardDef(o.id).rarity !== 'common')) {
+  if (!commonOnly && !levelUp && !offer.some((o, i) => i !== slot && cardDef(o.id).rarity !== 'common')) {
     const rares = CARDS.filter((c) => c.rarity !== 'common' && c.rarity !== 'mythic' && open(c) && !has(c.id));
     const at = placeFor(slot);
     if (rares.length && at >= 0) {
@@ -328,7 +330,7 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean): C
     }
   }
   // The boss from MYTHIC_FROM on: a mythic card in its epic or legendary card's place
-  const m = mythic();
+  const m = levelUp ? null : mythic();
   if (m) {
     let at = offer.findIndex((o, i) => i !== slot && cardDef(o.id).rarity !== 'common');
     if (at < 0) at = placeFor(slot);

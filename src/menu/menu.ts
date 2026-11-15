@@ -121,6 +121,8 @@ export class StartScreen {
     onTutorial: (kind: TutorialKind) => void,
     /** The Vesuvius (src/sim/vesuvius.ts), from the Survival window's tab once the server opened it. */
     onVesuvius: () => void,
+    /** The Horde (src/client/horde.ts, in test): Training's button, for the testers' accounts only. */
+    onHorde: () => void,
   ) {
     for (const el of document.querySelectorAll<HTMLElement>('[data-icon]')) el.innerHTML = icon(el.dataset.icon as IconName, 20);
 
@@ -219,6 +221,8 @@ export class StartScreen {
       },
       () => this.markMode(),
       tutorial,
+      () => account.debugTools.zoom,
+      onHorde,
     );
     this.buildModes();
     for (const id of ['orbButton', 'orbCustomize']) $(id).addEventListener('click', () => this.picker.open());

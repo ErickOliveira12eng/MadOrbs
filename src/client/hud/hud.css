@@ -2991,6 +2991,35 @@
   transition: width 0.2s;
 }
 
+/* The Horde's level bar (src/client/horde.ts): under the waves' header, the energy toward the next level */
+.h-xp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font: 900 15px var(--h-ui);
+  text-shadow: var(--h-shadow);
+  color: #9ff3ff;
+}
+
+.h-xp span {
+  display: block;
+  width: 320px;
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(90, 230, 255, 0.55);
+  overflow: hidden;
+}
+
+.h-xp i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #2fb8ff, #6ff7ff);
+  box-shadow: 0 0 8px rgba(110, 240, 255, 0.7);
+  transition: width 0.2s;
+}
+
 /* The side banner (hudLayer updateSideAd; not in the campaign): on the right of the death screen and of the Esc menu
    (above it; the menu's cards move left), in stage pixels like the rest of the HUD */
 .h-sidead {

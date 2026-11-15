@@ -11,6 +11,8 @@ import { Vec3 } from '../sim/vec';
 import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BossMoves, type BossHost } from './wavesBoss';
+import { HORDE, energyToNext } from './horde';
+import { EnergyRenderer, type FloorEnergy } from './render/energyRenderer';
 import { VesuviusRenderer } from './render/vesuviusRenderer';
 import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, BOSSES, ELITE, WAVES, bossCycle, bossKind, bossMoves, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type BossKind, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, REFLECT_TIME, ORBITAL, PHOENIX, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, statFactor, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
@@ -60,6 +62,8 @@ export interface WavesHud {
   scale: { life: number; hit: number };
   /** Cores earned so far (the waves survived, the kills, the bosses; a new record adds more at the end). */
   cores: number;
+  /** The Horde (src/client/horde.ts): the level, the energy toward the next one and what it takes; null elsewhere. */
+  horde: { level: number; energy: number; need: number } | null;
   over: boolean;
 }
 
@@ -142,9 +146,9 @@ export interface WavesContext {
   onOrbital?: (position: Vec3) => void;
   /**
    * Three cards to choose from (the game waits for WavesRun.pick): the boss fell, or wave `afterWave`
-   * (5, 15, 25...) ended (the commons only).
+   * (5, 15, 25...) ended (the commons only), or the Horde's level `levelUp` came (every rarity, no boss's extras).
    */
-  onCards: (offer: CardOffer[], afterWave?: number) => void;
+  onCards: (offer: CardOffer[], afterWave?: number, levelUp?: number) => void;
   /** The Blast card: a kill's blast went off there, this far (drawn light, a few a second at most). */
   onKillBlast: (position: Vec3, radius: number) => void;
   /** The Shadow card's allies' name, the Necromancer's risen enemies' one. */
@@ -169,6 +173,10 @@ export interface WavesContext {
    * (scriptWave, scriptCrate), and nothing counts (like a tester's run).
    */
   tutorial?: boolean;
+  /** The Horde (src/client/horde.ts): smaller Orbs, the energy on the floor and the levels; in test, it counts for nothing. */
+  horde?: boolean;
+  /** The Horde: a level up (the banner, the sound; its cards come with onCards). */
+  onLevelUp?: (level: number) => void;
 }
 
 /** The weapons that hit from afar: their bots go for the player nearly always (WAVES.huntBiasFar). */
@@ -267,11 +275,30 @@ export class WavesRun {
   private readonly script: boolean;
   private readonly scriptDrops = new Map<number, PowerKind>();
   private scriptTotal = 0;
+  /**
+   * The Horde (src/client/horde.ts): every Orb's size (1 elsewhere), the energy on the floor (`pull`: flying to the
+   * player) and its drawing, the level, the energy toward the next one, the level ups waiting for their cards, the level
+   * of the offer on screen (0: not a level up's).
+   */
+  private readonly size: number;
+  private energyFloor: (FloorEnergy & { pull: boolean })[] = [];
+  private readonly energyRenderer: EnergyRenderer | null = null;
+  private level = 1;
+  private energy = 0;
+  private levelsOwed = 0;
+  private offerLevel = 0;
 
   constructor(private readonly ctx: WavesContext) {
     this.renderer = new WavesRenderer(ctx.scene);
     this.script = !!ctx.tutorial;
     this.tested = this.script;
+    // The Horde: in test, it counts for nothing (no record, Cores nor report); every Orb smaller
+    this.size = ctx.horde ? HORDE.orbScale : 1;
+    if (ctx.horde) {
+      this.tested = true;
+      this.energyRenderer = new EnergyRenderer(ctx.scene);
+      ctx.me.radius = 0.25 * this.size;
+    }
     ctx.game.lifePackHeal = WAVES.lifePackHeal;
     // A run from a checkpoint: the wave before it counts as done, and a head start of power-ups
     this.wave = ctx.startWave - 1;
@@ -401,6 +428,8 @@ export class WavesRun {
       return true;
     });
 
+    if (this.ctx.horde) this.updateEnergy();
+
     // Power-ups: the timed ones run out; the player's boosts from them, the permanent levels, the Workshop and the cards
     for (const k of Object.keys(this.timers) as TimedPower[]) this.timers[k] = Math.max(0, this.timers[k] - TICK);
     this.applyBoosts();
@@ -479,13 +508,14 @@ export class WavesRun {
    * levels at once): of every rarity when the boss falls, the commons only after wave `afterWave` (5, 15, 25...:
    * a choice every 5 waves, Erick, 13/10/2026).
    */
-  private offerCards(afterWave?: number): void {
-    const offer = dealCards(this.wave, this.cards, afterWave !== undefined);
+  private offerCards(afterWave?: number, levelUp = 0): void {
+    const offer = dealCards(this.wave, this.cards, afterWave !== undefined, levelUp > 0);
     if (!offer.length) return;
     this.offer = offer;
     this.offerAfter = afterWave;
-    track('waves_cards', { wave: this.wave, offer: offer.map((o) => (o.up > 1 ? `${o.id}+${o.up}` : o.id)).join(','), boss: afterWave === undefined });
-    this.ctx.onCards(offer, afterWave);
+    this.offerLevel = levelUp;
+    track('waves_cards', { wave: this.wave, offer: offer.map((o) => (o.up > 1 ? `${o.id}+${o.up}` : o.id)).join(','), boss: afterWave === undefined && !levelUp, ...(levelUp ? { level: levelUp } : {}) });
+    this.ctx.onCards(offer, afterWave, levelUp || undefined);
   }
 
   /**
@@ -493,7 +523,8 @@ export class WavesRun {
    * time up), once; after the boss's if both come at the same moment (a late boss falling as the last enemy).
    */
   private commonCardsAfter(n: number): void {
-    if (n % COMMON_CARDS_EVERY !== 0 || n % 10 === 0 || this.commonCardsAt >= n) return;
+    // (the Horde: its cards come with the levels)
+    if (this.ctx.horde || n % COMMON_CARDS_EVERY !== 0 || n % 10 === 0 || this.commonCardsAt >= n) return;
     this.commonCardsAt = n;
     if (this.offer) this.owedCards = n;
     else this.offerCards(n);
@@ -589,6 +620,8 @@ export class WavesRun {
       if (me.isAlive) me.life = Math.min(1, me.life + BREATHER[this.ctx.levels.breather]);
       this.ctx.onCleared(this.wave);
       this.commonCardsAfter(this.wave);
+      // The Horde: all the energy on the floor flies to the player (clearing wave 1 always brings level 2)
+      for (const e of this.energyFloor) e.pull = true;
     }
   }
 
@@ -659,6 +692,8 @@ export class WavesRun {
       p.radius = 0.33;
     }
     if (traits.includes('tank')) p.damageScale *= strength.tough;
+    // (the Horde's Orbs are smaller)
+    p.radius *= this.size;
     bots[i] = new BotController(p, traits.includes('sniper') ? 1 : this.spec.skill, loadout);
     if (traits.includes('sniper')) bots[i].aimScale = strength.aim;
     // Some come right at the player, the snipers keep their distance (WAVES.rushShare)
@@ -692,6 +727,7 @@ export class WavesRun {
     }
     if (!escort && !at) this.waveSpawns++;
     game.requestSpawn(p);
+    if (!at) this.hordeSpawn(p);
     if (at && p.isAlive) {
       p.currentCF.position.set(at.x, at.y, 0.25);
       p.lastCF.position.copy(p.currentCF.position);
@@ -702,6 +738,28 @@ export class WavesRun {
     // its one aim is to follow the player and blow up)
     if (nuke) p.weapon = null;
     return p;
+  }
+
+  /** The Horde (HORDE.ring): an enemy just spawned comes in off the player's screen, around him (else where it spawned). */
+  private hordeSpawn(p: Player): void {
+    if (!this.ctx.horde || !p.isAlive) return;
+    const { game, me } = this.ctx;
+    const c = me.currentCF.position;
+    const [near, far] = HORDE.ring;
+    for (let k = 0; k < 40; k++) {
+      const a = Math.random() * Math.PI * 2;
+      const d = near + Math.random() * (far - near);
+      const x = Math.floor(c.x + Math.cos(a) * d);
+      const y = Math.floor(c.y + Math.sin(a) * d);
+      // (roomy floor: the cell and the eight around it; outside the map is no floor)
+      let roomy = true;
+      for (let dx = -1; dx <= 1 && roomy; dx++) for (let dy = -1; dy <= 1 && roomy; dy++) roomy = !!game.map.cellAt(x + dx, y + dy)?.passable;
+      if (!roomy) continue;
+      p.currentCF.position.set(x + 0.5, y + 0.5, 0.25);
+      p.lastCF.position.copy(p.currentCF.position);
+      p.currentCF.vel.set(0, 0, 0);
+      return;
+    }
   }
 
   /**
@@ -802,8 +860,8 @@ export class WavesRun {
     p.timeToSpawn = 0;
     // Bigger and much harder hitting each time it comes (bossStrength); its size against the walls stays
     const strength = bossStrength(this.wave);
-    p.radius = strength.radius;
-    p.wallRadius = WAVES.boss.radius;
+    p.radius = strength.radius * this.size;
+    p.wallRadius = WAVES.boss.radius * this.size;
     // As tough as before (WAVES.boss.damageScale, its growth, bossGuard), but most of it as life (Erick, 01/11/2026: a
     // hit reading 0.1 was frustrating, "it should take damage but have a lot of life"): a hit takes WAVES.boss.defence
     // of what it takes from an ordinary enemy of the wave, the bar is that much bigger (the same time to bring it
@@ -832,6 +890,7 @@ export class WavesRun {
     if (i >= 0) bots[i] = bot;
     else bots.push(bot);
     game.requestSpawn(p);
+    this.hordeSpawn(p);
     // Its escorts, one on each side
     for (let k = 0; k < WAVES.escorts; k++) this.spawnBot({ of: p, side: k % 2 === 0 ? 1 : -1 });
     // Its own attacks (the Eye of wave 10: none)
@@ -1004,6 +1063,8 @@ export class WavesRun {
       this.owedCards = 0;
       this.offerCards(n);
     }
+    // The Horde: the next level up's cards (a big energy may bring a few levels at once)
+    this.levelCards();
   }
 
   /** Rerolls left in this run, and a run's (the Workshop's Reroll cards level; 0: no button). */
@@ -1018,12 +1079,12 @@ export class WavesRun {
   /** The offer on screen is swapped for three other cards of the same kind (a reroll spent). */
   reroll(): boolean {
     if (!this.offer || this.rerolls <= 0) return false;
-    const offer = dealCards(this.wave, this.cards, this.offerAfter !== undefined);
+    const offer = dealCards(this.wave, this.cards, this.offerAfter !== undefined, this.offerLevel > 0);
     if (!offer.length) return false;
     this.rerolls--;
     this.offer = offer;
-    track('waves_reroll', { wave: this.wave, left: this.rerolls, boss: this.offerAfter === undefined });
-    this.ctx.onCards(offer, this.offerAfter);
+    track('waves_reroll', { wave: this.wave, left: this.rerolls, boss: this.offerAfter === undefined && !this.offerLevel });
+    this.ctx.onCards(offer, this.offerAfter, this.offerLevel || undefined);
     return true;
   }
 
@@ -1172,6 +1233,9 @@ export class WavesRun {
   onEnemyDown(victimID: number, fromID: number, position: Vec3): void {
     const chained = this.blastKills.delete(victimID);
     const { game, me } = this.ctx;
+    // The Horde: whoever brought it down, an enemy leaves its energy there
+    const fallen = game.players[victimID];
+    if (this.ctx.horde && !this.over && fallen?.teamID === PLAYER_TEAM_RED) this.dropEnergy(fallen, position);
     if (this.over || fromID !== me.playerID) return;
     const victim = game.players[victimID];
     if (!victim || victim.teamID !== PLAYER_TEAM_RED) return;
@@ -1191,6 +1255,73 @@ export class WavesRun {
     // A ring of fire out to the blast's reach (a few at once at most), and the fire and the sound
     this.renderer.blastRing(position.x, position.y, radius);
     this.ctx.onKillBlast(position, radius);
+  }
+
+  // ---------------------------------------------------------------- the Horde's energy and levels
+
+  /** A fallen enemy's energy (HORDE.energy) on the floor; with too much there already, into the nearest one. */
+  private dropEnergy(victim: Player, at: Vec3): void {
+    const E = HORDE.energy;
+    const value = this.isBoss(victim) ? E.boss : victim.badges.some((b) => b !== 'nuke') ? E.elite : E.plain;
+    if (this.energyFloor.length >= HORDE.floor.most) {
+      let near = this.energyFloor[0];
+      let best = Infinity;
+      for (const e of this.energyFloor) {
+        const d = (e.x - at.x) ** 2 + (e.y - at.y) ** 2;
+        if (d < best) {
+          best = d;
+          near = e;
+        }
+      }
+      near.value += value;
+      return;
+    }
+    this.energyFloor.push({ x: at.x, y: at.y, value, age: 0, pull: false });
+  }
+
+  /** Every tick: the energy near the player (or all of it once a wave is cleared) flies to him, and is taken. */
+  private updateEnergy(): void {
+    const me = this.ctx.me;
+    const F = HORDE.floor;
+    const at = me.currentCF.position;
+    this.energyFloor = this.energyFloor.filter((e) => {
+      e.age += TICK;
+      if (!me.isAlive) return true;
+      const dx = at.x - e.x;
+      const dy = at.y - e.y;
+      const d = Math.hypot(dx, dy);
+      if (d < F.take + me.radius) {
+        this.gainEnergy(e.value);
+        return false;
+      }
+      if (d < F.magnet) e.pull = true;
+      if (e.pull) {
+        // (faster from afar: a wave's leftovers come in a few seconds from across the map)
+        const step = Math.min(d, Math.max(F.speed, d * 1.5) * TICK);
+        e.x += (dx / d) * step;
+        e.y += (dy / d) * step;
+      }
+      return true;
+    });
+  }
+
+  /** Energy taken: the levels it fills, each one's cards after the one on screen. */
+  private gainEnergy(n: number): void {
+    this.energy += n;
+    while (this.energy >= energyToNext(this.level)) {
+      this.energy -= energyToNext(this.level);
+      this.level++;
+      this.levelsOwed++;
+      this.ctx.onLevelUp?.(this.level);
+    }
+    this.levelCards();
+  }
+
+  /** The next level up's three cards, unless an offer is on screen (its pick brings them). */
+  private levelCards(): void {
+    if (this.offer || this.levelsOwed <= 0 || this.over) return;
+    this.levelsOwed--;
+    this.offerCards(undefined, this.level - this.levelsOwed);
   }
 
   /**
@@ -1274,6 +1405,7 @@ export class WavesRun {
     }
     const p = r.p;
     p.skin = victim.skin;
+    p.radius = 0.25 * this.size;
     p.lives = 1;
     p.spawnRequested = false;
     p.timeToSpawn = 0;
@@ -1363,6 +1495,7 @@ export class WavesRun {
     this.allies.forEach((p, k) => {
       if (p.isAlive) return;
       p.lives = 1;
+      p.radius = 0.25 * this.size;
       p.spawnRequested = false;
       p.timeToSpawn = 0;
       // As strong as the player, a little less (kept so every tick: allyStrength)
@@ -1592,10 +1725,11 @@ export class WavesRun {
         .sort((a, b) => a.wave - b.wave)
         .map((b) => ({ name: b.p.name, life: b.p.isAlive ? b.p.life : 1, wave: b.wave })),
       // (the tutorial's run counts for nothing: no record, scale or Cores to show)
-      record: this.script ? null : (this.record?.wave ?? null),
+      record: this.script || this.ctx.horde ? null : (this.record?.wave ?? null),
       // How much tougher and harder hitting the wave's bots are than on wave 1
       scale: this.script ? { life: 1, hit: 1 } : { life: 1 / this.spec.toughness, hit: this.spec.hitBoost },
-      cores: this.script ? 0 : runCores(this.ctx.startWave, Math.max(this.ctx.startWave, this.wave), me.kills, this.bosses, false).total,
+      horde: this.ctx.horde ? { level: this.level, energy: this.energy, need: energyToNext(this.level) } : null,
+      cores: this.script || this.ctx.horde ? 0 : runCores(this.ctx.startWave, Math.max(this.ctx.startWave, this.wave), me.kills, this.bosses, false).total,
       over: this.over,
     };
   }
@@ -1630,11 +1764,13 @@ export class WavesRun {
       .filter((p) => p.isAlive && (p.poisonLeft > 0 || p.chillLeft > 0))
       .map((p) => ({ id: p.playerID, x: p.currentCF.position.x, y: p.currentCF.position.y, poison: p.poisonLeft > 0, ice: p.chillLeft > 0 }));
     this.renderer.render(this.ctx.game.crates, this.powers, marks, dt, time);
+    this.energyRenderer?.render(this.energyFloor, time);
   }
 
   dispose(): void {
     window.removeEventListener('pagehide', this.onPageHide);
     this.renderer.dispose();
+    this.energyRenderer?.dispose();
     for (const b of this.bossOrbs) b.marks?.dispose();
   }
 }

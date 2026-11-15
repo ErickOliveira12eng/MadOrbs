@@ -156,7 +156,8 @@ export interface ClientGameOptions {
    * The waves mode (offline, src/client/waves.ts) instead of a training match: the wave to begin on,
    * the weapon to spawn with, the Workshop's levels (src/client/wavesProgress.ts).
    */
-  waves?: { startWave: number; startWeapon: number; levels: Levels };
+  /** `horde`: the Horde (src/client/horde.ts), the waves with smaller Orbs, energy and levels (in test). */
+  waves?: { startWave: number; startWeapon: number; levels: Levels; horde?: boolean };
   /** The end of a waves run: what the player chose (again, the Workshop, or back to the menu). */
   onWavesAction?: (action: 'retry' | 'shop' | 'menu' | 'signin') => void;
   /** A waves run ended (or was left): the account keeps the best one and the Cores. */
@@ -447,7 +448,7 @@ export class ClientGame {
         const v = this.cam.project(position, 1, 1);
         return v.visible && v.x >= 0 && v.x <= 1 && v.y >= 0 && v.y <= 1;
       },
-      onCards: (offer, afterWave) => {
+      onCards: (offer, afterWave, levelUp) => {
         // The cards in the middle of the screen, with the system's cursor (and a banner under them)
         this.input.exitPointerLock();
         this.renderer.domElement.style.cursor = 'auto';
@@ -465,6 +466,7 @@ export class ClientGame {
           afterWave,
           // The Workshop's Reroll cards (none bought: no button)
           this.waves && this.waves.rerollsBought > 0 ? { left: this.waves.rerollsLeft, onReroll: () => void this.waves?.reroll() } : undefined,
+          levelUp,
         );
       },
       onKillBlast: (position, radius) => {
@@ -1286,6 +1288,7 @@ export class ClientGame {
     this.matchBots = this.online && this.game.players.some((p) => p?.isBot);
     if (this.camp) track('campaign_level_start', this.levelInfo());
     else if (this.opts.tutorial) track('tutorial_start', { kind: this.opts.tutorial });
+    else if (this.waves && this.opts.waves?.horde) track('horde_start', { map: this.game.map.name });
     else if (this.waves && this.opts.waves) {
       const w = this.opts.waves;
       track('waves_start', { map: this.game.map.name, start_wave: w.startWave, weapon: w.startWeapon });
