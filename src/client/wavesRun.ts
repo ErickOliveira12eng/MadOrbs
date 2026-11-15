@@ -276,12 +276,11 @@ export class WavesRun {
   private readonly scriptDrops = new Map<number, PowerKind>();
   private scriptTotal = 0;
   /**
-   * The Horde (src/client/horde.ts): every Orb's size (1 elsewhere), the energy on the floor (`pull`: flying to the
-   * player) and its drawing, the level, the energy toward the next one, the level ups waiting for their cards, the level
+   * The Horde (src/client/horde.ts): the enemies' size (1 elsewhere), the energy on the floor and its drawing, the level, the energy toward the next one, the level ups waiting for their cards, the level
    * of the offer on screen (0: not a level up's).
    */
   private readonly size: number;
-  private energyFloor: (FloorEnergy & { pull: boolean })[] = [];
+  private energyFloor: FloorEnergy[] = [];
   private readonly energyRenderer: EnergyRenderer | null = null;
   private level = 1;
   private energy = 0;
@@ -292,12 +291,11 @@ export class WavesRun {
     this.renderer = new WavesRenderer(ctx.scene);
     this.script = !!ctx.tutorial;
     this.tested = this.script;
-    // The Horde: in test, it counts for nothing (no record, Cores nor report); every Orb smaller
-    this.size = ctx.horde ? HORDE.orbScale : 1;
+    // The Horde: in test, it counts for nothing (no record, Cores nor report); the enemies smaller
+    this.size = ctx.horde ? HORDE.enemyScale : 1;
     if (ctx.horde) {
       this.tested = true;
       this.energyRenderer = new EnergyRenderer(ctx.scene);
-      ctx.me.radius = 0.25 * this.size;
     }
     ctx.game.lifePackHeal = WAVES.lifePackHeal;
     // A run from a checkpoint: the wave before it counts as done, and a head start of power-ups
@@ -620,8 +618,6 @@ export class WavesRun {
       if (me.isAlive) me.life = Math.min(1, me.life + BREATHER[this.ctx.levels.breather]);
       this.ctx.onCleared(this.wave);
       this.commonCardsAfter(this.wave);
-      // The Horde: all the energy on the floor flies to the player (clearing wave 1 always brings level 2)
-      for (const e of this.energyFloor) e.pull = true;
     }
   }
 
@@ -1276,10 +1272,10 @@ export class WavesRun {
       near.value += value;
       return;
     }
-    this.energyFloor.push({ x: at.x, y: at.y, value, age: 0, pull: false });
+    this.energyFloor.push({ x: at.x, y: at.y, value, age: 0 });
   }
 
-  /** Every tick: the energy near the player (or all of it once a wave is cleared) flies to him, and is taken. */
+  /** Every tick: the energy the player walks over is taken. */
   private updateEnergy(): void {
     const me = this.ctx.me;
     const F = HORDE.floor;
@@ -1287,21 +1283,9 @@ export class WavesRun {
     this.energyFloor = this.energyFloor.filter((e) => {
       e.age += TICK;
       if (!me.isAlive) return true;
-      const dx = at.x - e.x;
-      const dy = at.y - e.y;
-      const d = Math.hypot(dx, dy);
-      if (d < F.take + me.radius) {
-        this.gainEnergy(e.value);
-        return false;
-      }
-      if (d < F.magnet) e.pull = true;
-      if (e.pull) {
-        // (faster from afar: a wave's leftovers come in a few seconds from across the map)
-        const step = Math.min(d, Math.max(F.speed, d * 1.5) * TICK);
-        e.x += (dx / d) * step;
-        e.y += (dy / d) * step;
-      }
-      return true;
+      if (Math.hypot(at.x - e.x, at.y - e.y) >= F.take + me.radius) return true;
+      this.gainEnergy(e.value);
+      return false;
     });
   }
 
@@ -1405,7 +1389,7 @@ export class WavesRun {
     }
     const p = r.p;
     p.skin = victim.skin;
-    p.radius = 0.25 * this.size;
+    p.radius = 0.25;
     p.lives = 1;
     p.spawnRequested = false;
     p.timeToSpawn = 0;
@@ -1495,7 +1479,7 @@ export class WavesRun {
     this.allies.forEach((p, k) => {
       if (p.isAlive) return;
       p.lives = 1;
-      p.radius = 0.25 * this.size;
+      p.radius = 0.25;
       p.spawnRequested = false;
       p.timeToSpawn = 0;
       // As strong as the player, a little less (kept so every tick: allyStrength)

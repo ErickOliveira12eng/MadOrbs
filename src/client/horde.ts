@@ -1,5 +1,5 @@
 // The Horde (15/11/2026, Erick: a new mode, more like a classic roguelike; in test, the testers' accounts only): the
-// waves (src/client/wavesRun.ts) on a map twice as big, with every Orb smaller, and levels inside the run: each enemy
+// waves (src/client/wavesRun.ts) on a map twice as big, with the enemies smaller, and levels inside the run: each enemy
 // that falls leaves energy on the floor, the energy taken fills the level bar, and each level up offers three cards.
 // Nothing of it counts yet (a tester's run: no record, Cores nor report).
 import { waveSpec } from './waves';
@@ -8,17 +8,20 @@ import { waveSpec } from './waves';
 export const HORDE_MAP = 'HORDE-Invaders';
 
 export const HORDE = {
-  /** Every Orb's size against the other modes' (hits, walls and drawing: Player.radius), the bosses' too. */
-  orbScale: 0.7,
+  /**
+   * The enemies' size against the other modes' (hits, walls and drawing: Player.radius), the bosses' too; the player and
+   * his allies (the Shadow, the undead) keep theirs, and the camera is the waves' (Erick, 15/11/2026: 25% smaller; it was
+   * every Orb at 70% that morning).
+   */
+  enemyScale: 0.75,
   /** The energy a fallen enemy leaves: a plain one, an elite (Player.badges), a boss (it also gives the boss's cards). */
   energy: { plain: 1, elite: 3, boss: 20 },
   /**
-   * The energy on the floor: pulled to the player from `magnet` cells (flying at `speed` cells a second), taken at
-   * `take`. It never goes away (after Vampire Survivors: none lost), and with more than `most` on the floor a new drop
-   * goes into the nearest one, which grows (the game keeps its pace with a crowd of them). When a wave is cleared,
-   * all of it flies to the player (after Brotato's end-of-wave collect): clearing wave 1 always brings level 2.
+   * The energy on the floor: taken by walking over it (Erick, 15/11/2026: no magnet, nothing flies to the player), when
+   * it is within the player's radius + `take`. It never goes away (after Vampire Survivors: none lost), and with more
+   * than `most` on the floor a new drop goes into the nearest one, which grows (the game keeps its pace with a crowd).
    */
-  floor: { magnet: 1.6, speed: 9, take: 0.3, most: 250 },
+  floor: { take: 0.1, most: 250 },
   /**
    * Where the enemies come in (cells from the player): just off his screen all around him, after the classic
    * roguelikes, not at the map's far edge (on a map this big they walked past the wave's time and nothing was cleared).
