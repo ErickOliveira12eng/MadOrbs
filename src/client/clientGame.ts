@@ -456,7 +456,7 @@ export class ClientGame {
         const v = this.cam.project(position, 1, 1);
         return v.visible && v.x >= 0 && v.x <= 1 && v.y >= 0 && v.y <= 1;
       },
-      onCards: (offer, afterWave, levelUp) => {
+      onCards: (offer, afterWave, levelUp, crate) => {
         // The cards in the middle of the screen, with the system's cursor (and a banner under them)
         this.input.exitPointerLock();
         this.renderer.domElement.style.cursor = 'auto';
@@ -475,6 +475,7 @@ export class ClientGame {
           // The Workshop's Reroll cards (none bought: no button)
           this.waves && this.waves.rerollsBought > 0 ? { left: this.waves.rerollsLeft, onReroll: () => void this.waves?.reroll() } : undefined,
           levelUp,
+          crate,
         );
       },
       onKillBlast: (position, radius) => {
@@ -509,6 +510,20 @@ export class ClientGame {
         audio.play(this.sounds.lifePack, 255);
       },
       onOrbital: (position) => audio.play3D(this.sounds.weapon[WEAPON_PHOTON_RIFLE], 8, position, 255),
+      // The Horde's own cards (src/client/hordeArms.ts): their shots in the cards' gold, a quiet sound at most a few a second
+      onArmsShot: (p1, p2) => {
+        const dir = p2.sub(p1);
+        const normal = dir.lengthSq() > 1e-6 ? dir.normalizeIn().mul(-1) : new Vec3(0, 0, 1);
+        this.effects.spawnImpact(p1, p2, normal, WEAPON_SMG, 0.6, 'me', true);
+        if (audio.ready('armsShot', 1 / 12)) audio.play3D(this.sounds.weapon[WEAPON_SMG], 4, p1, 90, false, 'sfx', 0.08);
+      },
+      onArmsRockets: (position) => audio.play3D(this.sounds.weapon[WEAPON_BAZOOKA], 6, position, 150),
+      onCrateReward: (tier, what) => {
+        const look = tier === 2 ? banner('#f4e3ff', '#b05cff') : banner('#e3f2ff', '#3f9bff');
+        // (an epic card offer says it itself)
+        if (what !== 'cards') this.hud.announceText(t(tier === 2 ? 'horde.crateEpic' : 'horde.crateRare'), t(what === 'perms' ? 'horde.cratePerms' : 'horde.crateEnergy'), look, 2);
+        audio.play(this.sounds.lifePack, 200);
+      },
       onEnd: (end) => this.endWaves(end),
       ...setup,
       tutorial: this.opts.tutorial === 'waves',

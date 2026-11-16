@@ -27,6 +27,16 @@ export const HORDE = {
    * off it, never from across the map (Erick, 15/11/2026: they shot at him from off his screen).
    */
   fireRange: { near: 6, far: 10 },
+  /**
+   * The better crates (Erick, 15/11/2026): each crate dropped is a rare one (blue) at `rare.chance` or an epic one
+   * (purple) at `epic.chance` from wave `epic.from`; their life in an SMG bullet's (0.1 each) times the player's damage
+   * boost when they come (a few seconds of fire whatever his build). A rare one leaves a big energy (`rare.energy` of a
+   * level) or two of the crates' permanent upgrades; an epic one an epic card to choose (`epic.cards`) or a bigger energy.
+   */
+  crates: {
+    rare: { chance: 0.18, life: 2, energy: 0.6 },
+    epic: { chance: 0.06, from: 3, life: 4, energy: 1.5, cards: 0.6 },
+  },
   /** The energy a fallen enemy leaves: a plain one, an elite (Player.badges), a boss (it also gives the boss's cards). */
   energy: { plain: 1, elite: 3, boss: 20 },
   /**

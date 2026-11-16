@@ -8,7 +8,9 @@
 import type { SkinInfo } from '../sim/player';
 import { WEAPON_BAZOOKA, WEAPON_PHOTON_RIFLE } from '../sim/constants';
 
-export type CardID = 'double' | 'parallel' | 'fan' | 'pierce' | 'crit' | 'vampire' | 'rage' | 'dodge' | 'grenadier' | 'blast' | 'ricochet' | 'missiles' | 'shadow' | 'reflect' | 'silver' | 'necro' | 'reaper' | 'phoenix' | 'orbital' | StatCardID;
+export type CardID = 'double' | 'parallel' | 'fan' | 'pierce' | 'crit' | 'vampire' | 'rage' | 'dodge' | 'grenadier' | 'blast' | 'ricochet' | 'missiles' | 'shadow' | 'reflect' | 'silver' | 'necro' | 'reaper' | 'phoenix' | 'orbital' | HordeCardID | StatCardID;
+/** The Horde's own cards (src/client/hordeArms.ts): things that fire by themselves, turn around the player, burn around him. */
+export type HordeCardID = 'drone' | 'blades' | 'nova' | 'homing' | 'aura';
 /** The stat cards (STAT_CARDS): damage, attack speed, defence, with no top level. */
 export type StatCardID = 'xdamage' | 'xfire' | 'xarmor';
 export type Rarity = 'common' | 'epic' | 'legendary' | 'mythic';
@@ -22,6 +24,8 @@ export interface CardDef {
   from?: number;
   /** A stat card (STAT_CARDS): no top level, offered by chance in any offer and always once the others are all taken. */
   stat?: boolean;
+  /** Only in the Horde (src/client/hordeArms.ts): the Waves never offer it. */
+  horde?: boolean;
 }
 
 export const CARDS: CardDef[] = [
@@ -44,6 +48,12 @@ export const CARDS: CardDef[] = [
   { id: 'reaper', rarity: 'mythic', max: 3, from: 100 },
   { id: 'phoenix', rarity: 'mythic', max: 3, from: 100 },
   { id: 'orbital', rarity: 'mythic', max: 3, from: 100 },
+  // The Horde's own (Erick, 15/11/2026: things that fire by themselves, things turning around him)
+  { id: 'blades', rarity: 'common', max: 5, horde: true },
+  { id: 'nova', rarity: 'common', max: 5, horde: true },
+  { id: 'aura', rarity: 'common', max: 5, horde: true },
+  { id: 'drone', rarity: 'epic', max: 3, horde: true },
+  { id: 'homing', rarity: 'epic', max: 3, horde: true },
   { id: 'xdamage', rarity: 'common', max: Infinity, stat: true },
   { id: 'xfire', rarity: 'common', max: Infinity, stat: true },
   { id: 'xarmor', rarity: 'common', max: Infinity, stat: true },
@@ -125,6 +135,13 @@ export const CARD_LEVELS: Record<CardID, number[]> = {
   phoenix: [0, 0.5, 0.75, 1],
   // (how many beams)
   orbital: [0, 1, 2, 3],
+  // The Horde's (HORDE_ARMS): blades turning around him, bullets in a ring now and then, the field's reach (cells),
+  // drones shooting by themselves, homing rockets a volley
+  blades: [0, 1, 2, 3, 4, 5],
+  nova: [0, 8, 10, 12, 14, 16],
+  aura: [0, 1.2, 1.4, 1.6, 1.8, 2],
+  drone: [0, 1, 2, 3],
+  homing: [0, 1, 2, 3],
   // (the stat cards have no top level: statFactor)
   xdamage: [],
   xfire: [],
@@ -194,6 +211,24 @@ export const ORBITAL = { every: 20, time: 4, turn: 110, from: 0.45, length: 6, w
 
 export type CardLevels = Partial<Record<CardID, number>>;
 
+/**
+ * The Horde's cards (src/client/hordeArms.ts), their damage in lives of an ordinary enemy of the wave with half the damage
+ * bonuses and no critical hit (as the Orbital and the grenades: they grow with the wave):
+ * - blades: turning `turn` degrees a second at `radius` cells (by level), each enemy cut again every `gap` s;
+ * - nova: a ring of bullets every `every` s, out to `range` cells (the first enemy each, walls stop them);
+ * - aura: every `gap` s, the enemies within its reach;
+ * - drone: each one, every `gap` s, a shot at the nearest enemy in sight within `range`, turning at `orbit` cells;
+ * - homing: every `every` s, small rockets at the nearest enemies in sight within `range`, turning toward them
+ *   (`steer` of the way a tick), `share` of a bazooka rocket's blast.
+ */
+export const HORDE_ARMS = {
+  blades: { lives: 0.5, gap: 0.45, turn: 230, radius: [0, 1.1, 1.2, 1.3, 1.4, 1.5], size: 0.28 },
+  nova: { lives: 0.45, every: 3, range: 6 },
+  aura: { lives: 0.18, gap: 0.5 },
+  drone: { lives: 0.45, gap: 0.7, range: 7, orbit: 0.9 },
+  homing: { every: 2.2, range: 9, share: 0.6, steer: 0.18 },
+};
+
 /** The shot cards: more bullets, through and from one enemy to the next (CARD_GAP counts their levels). */
 export const SHOT_CARDS: readonly CardID[] = ['double', 'parallel', 'fan', 'pierce', 'ricochet'];
 /**
@@ -219,7 +254,14 @@ export function cardValue(id: CardID, level: number): string {
     case 'ricochet':
     case 'missiles':
     case 'orbital':
+    case 'blades':
+    case 'nova':
+    case 'drone':
+    case 'homing':
       return String(v);
+    case 'aura':
+      // (in the page's language: a comma in pt and es)
+      return v.toLocaleString(typeof document !== 'undefined' ? document.documentElement.lang || 'en' : 'en', { maximumFractionDigits: 1 });
     case 'vampire':
       return String(Math.round(v * 100));
     case 'grenadier':
@@ -235,8 +277,8 @@ export function cardValue(id: CardID, level: number): string {
  * before its wave; `commonOnly`: the commons only (after waves 5, 15, 25...: the boss's offer has them all).
  * Fewer when fewer are left.
  */
-export function rollCards(n: number, owned: CardLevels, count = 3, commonOnly = false): CardID[] {
-  const pool = CARDS.filter((c) => !c.stat && c.rarity !== 'mythic' && (owned[c.id] ?? 0) < c.max && n >= (c.from ?? 0) && (!commonOnly || c.rarity === 'common'));
+export function rollCards(n: number, owned: CardLevels, count = 3, commonOnly = false, horde = false): CardID[] {
+  const pool = CARDS.filter((c) => !c.stat && c.rarity !== 'mythic' && (!c.horde || horde) && (owned[c.id] ?? 0) < c.max && n >= (c.from ?? 0) && (!commonOnly || c.rarity === 'common'));
   const out: CardID[] = [];
   while (out.length < count && pool.length) {
     let r = Math.random() * pool.reduce((s, c) => s + RARITY_WEIGHT[c.rarity], 0);
@@ -272,12 +314,23 @@ export const DOUBLE_CHANCE = 0.2;
  * many more of them) is every rarity by the weights, a card of yours two levels up only by chance, no rare card
  * sure to come and no mythic one (those stay the boss's).
  */
-export function offerCards(n: number, owned: CardLevels, commonOnly: boolean, levelUp = false): CardOffer[] {
+export function offerCards(n: number, owned: CardLevels, commonOnly: boolean, levelUp = false, opts: { horde?: boolean; crate?: boolean } = {}): CardOffer[] {
+  const horde = !!opts.horde;
+  // The Horde's epic crate (src/client/wavesRun.ts): three epic cards at once, new ones or a level of one of yours; the
+  // stat cards fill in when fewer are left
+  if (opts.crate) {
+    const epics = CARDS.filter((c) => c.rarity === 'epic' && (!c.horde || horde) && (owned[c.id] ?? 0) < c.max)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .map((c): CardOffer => ({ id: c.id, up: 1 }));
+    for (const id of (Object.keys(STAT_CARDS) as StatCardID[]).sort(() => Math.random() - 0.5)) if (epics.length < 3) epics.push({ id, up: 1 });
+    return epics;
+  }
   // The mythic cards (MYTHIC_FROM): the first boss offer with none of them taken is the three together
   const mythics = !commonOnly && !levelUp && n >= MYTHIC_FROM ? CARDS.filter((c) => c.rarity === 'mythic' && (owned[c.id] ?? 0) < c.max) : [];
   if (mythics.length && !CARDS.some((c) => c.rarity === 'mythic' && (owned[c.id] ?? 0) > 0)) return mythics.map((c) => ({ id: c.id, up: 1 }));
   const mythic = (): CardID | null => (mythics.length ? mythics[Math.floor(Math.random() * mythics.length)].id : null);
-  const ids = rollCards(n, owned, 3, commonOnly);
+  const ids = rollCards(n, owned, 3, commonOnly, horde);
   // Every other card at its top: the three stat cards (without end), one of them a mythic card if one is left
   if (!ids.length) {
     const stats: CardOffer[] = (Object.keys(STAT_CARDS) as StatCardID[]).map((id) => ({ id, up: 1 }));
@@ -287,7 +340,7 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean, le
   }
   const level = (id: CardID) => owned[id] ?? 0;
   const left = (id: CardID) => cardDef(id).max - level(id);
-  const open = (c: CardDef) => left(c.id) > 0 && n >= (c.from ?? 0);
+  const open = (c: CardDef) => left(c.id) > 0 && n >= (c.from ?? 0) && (!c.horde || horde);
   const offer: CardOffer[] = ids.map((id) => ({ id, up: 1 }));
   const has = (id: CardID) => offer.some((o) => o.id === id);
   // Where a card goes in: a new common one's place (the last), else the last card; never `keep`'s

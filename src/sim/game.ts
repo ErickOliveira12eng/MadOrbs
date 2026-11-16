@@ -48,7 +48,7 @@ import {
 import { EventQueue } from './events';
 import { bazookaDamage, sv, weaponDefs } from './gameVar';
 import { distanceToSegment, segmentToSphere } from './helpers';
-import { CRATE_RADIUS, Crate } from './crate';
+import { CRATE_RADIUS, Crate, type CrateTier } from './crate';
 import type { GameMap } from './map';
 import { Player } from './player';
 import { MIN_THROW, Projectile } from './projectile';
@@ -1159,8 +1159,8 @@ export class Game {
   // ---------------------------------------------------------------- crates (waves mode)
 
   /** A crate on the floor at (x, y). */
-  addCrate(x: number, y: number): Crate {
-    const crate = new Crate(this.nextCrateID++, new Vec3(x, y, 0.25));
+  addCrate(x: number, y: number, tier: CrateTier = 0, life?: number): Crate {
+    const crate = new Crate(this.nextCrateID++, new Vec3(x, y, 0.25), tier, life);
     this.crates.push(crate);
     return crate;
   }

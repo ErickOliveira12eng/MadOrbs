@@ -833,7 +833,7 @@ export class HudLayer {
    * middle of the screen, the game stopped, the banner under them and the system's cursor. A click or the
    * keys 1, 2, 3 take one (after a moment: the shot that killed the boss must not pick a card by itself).
    */
-  showCards(offer: { id: CardID; level: number; up: number }[], onPick: (i: number) => void, wave?: number, reroll?: { left: number; onReroll: () => void }, levelUp?: number): void {
+  showCards(offer: { id: CardID; level: number; up: number }[], onPick: (i: number) => void, wave?: number, reroll?: { left: number; onReroll: () => void }, levelUp?: number, crate?: boolean): void {
     const cards = offer
       .map(({ id, level, up }, i) => {
         const def = cardDef(id);
@@ -852,8 +852,9 @@ export class HudLayer {
       })
       .join('');
     // (the Horde: a level up's cards)
-    const sub = levelUp ? t('horde.levelSub') : wave === undefined ? t('cards.sub') : t('cards.subWave', { n: wave });
-    const title = levelUp ? t('horde.levelUp', { n: levelUp }) : t('cards.title');
+    // (the Horde: a level up's cards; an epic crate's)
+    const sub = crate ? t('horde.crateCards') : levelUp ? t('horde.levelSub') : wave === undefined ? t('cards.sub') : t('cards.subWave', { n: wave });
+    const title = crate ? t('horde.crateEpic') : levelUp ? t('horde.levelUp', { n: levelUp }) : t('cards.title');
     // The Workshop's Reroll cards: three others (R)
     const swapButton = reroll
       ? `<button type="button" class="h-reroll" data-reroll${reroll.left > 0 ? '' : ' disabled'}><span>${t('cards.reroll', { n: reroll.left })}</span><span class="h-key">R</span></button>`
@@ -2236,6 +2237,11 @@ const CARD_PATHS: Record<CardID, string> = {
   reaper: '<path d="M5 22 16.5 3.5"/><path d="M16.5 3.5C12.5.8 6.5 1.6 3 6c3.6-1.6 8-1.4 11.9 1"/><path d="m9 13 3 2"/>',
   phoenix: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
   orbital: '<circle cx="12" cy="12" r="3"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8"/>',
+  blades: '<circle cx="12" cy="12" r="2"/><path d="M12 3a9 9 0 0 1 9 9l-3-1M12 21a9 9 0 0 1-9-9l3 1"/>',
+  nova: '<circle cx="12" cy="12" r="2"/><circle cx="12" cy="3.5" r="1.2"/><circle cx="12" cy="20.5" r="1.2"/><circle cx="3.5" cy="12" r="1.2"/><circle cx="20.5" cy="12" r="1.2"/><circle cx="6" cy="6" r="1.2"/><circle cx="18" cy="18" r="1.2"/><circle cx="6" cy="18" r="1.2"/><circle cx="18" cy="6" r="1.2"/>',
+  aura: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" stroke-dasharray="2 2.5"/><circle cx="12" cy="12" r="10.5" opacity=".5"/>',
+  drone: '<rect x="9" y="9" width="6" height="6" rx="1.5"/><path d="M9 9 6 6M15 9l3-3M9 15l-3 3M15 15l3 3"/><circle cx="4.5" cy="4.5" r="2"/><circle cx="19.5" cy="4.5" r="2"/><circle cx="4.5" cy="19.5" r="2"/><circle cx="19.5" cy="19.5" r="2"/>',
+  homing: '<path d="M4 20c2-4 5-6 9-6"/><path d="M13.5 4.5H20V11l-5.5 5.5-6-6z"/><circle cx="16.5" cy="8" r="1"/>',
   xdamage: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/>',
   xfire: '<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
   xarmor: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 9v6M9 12h6"/>',

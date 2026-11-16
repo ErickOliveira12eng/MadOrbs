@@ -14,6 +14,9 @@ import { BossMoves, type BossHost } from './wavesBoss';
 import { HORDE, energyToNext } from './horde';
 import { hordeIsBest, loadHorde, runEssence, saveHordeRun, type HordeProgress, type RunEssence } from './hordeProgress';
 import { EnergyRenderer, type FloorEnergy } from './render/energyRenderer';
+import { HordeArms } from './hordeArms';
+import { HordeArmsRenderer } from './render/hordeArmsRenderer';
+import type { CrateTier } from '../sim/crate';
 import { VesuviusRenderer } from './render/vesuviusRenderer';
 import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, BOSSES, ELITE, WAVES, bossCycle, bossKind, bossMoves, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type BossKind, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, REFLECT_TIME, ORBITAL, PHOENIX, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, statFactor, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
@@ -154,7 +157,12 @@ export interface WavesContext {
    * Three cards to choose from (the game waits for WavesRun.pick): the boss fell, or wave `afterWave`
    * (5, 15, 25...) ended (the commons only), or the Horde's level `levelUp` came (every rarity, no boss's extras).
    */
-  onCards: (offer: CardOffer[], afterWave?: number, levelUp?: number) => void;
+  onCards: (offer: CardOffer[], afterWave?: number, levelUp?: number, crate?: boolean) => void;
+  /** The Horde's own cards (src/client/hordeArms.ts): a shot of theirs (its tracer, its sound), rockets leaving. */
+  onArmsShot?: (p1: Vec3, p2: Vec3) => void;
+  onArmsRockets?: (position: Vec3) => void;
+  /** The Horde: a better crate broke (its banner): what it gave. */
+  onCrateReward?: (tier: CrateTier, what: 'energy' | 'perms' | 'cards') => void;
   /** The Blast card: a kill's blast went off there, this far (drawn light, a few a second at most). */
   onKillBlast: (position: Vec3, radius: number) => void;
   /** The Shadow card's allies' name, the Necromancer's risen enemies' one. */
@@ -292,6 +300,12 @@ export class WavesRun {
   private readonly enemyHit: number;
   private energyFloor: FloorEnergy[] = [];
   private readonly energyRenderer: EnergyRenderer | null = null;
+  /** The Horde's own cards and their drawing; the better crates' kinds (by id). */
+  private readonly arms: HordeArms | null = null;
+  private readonly armsRenderer: HordeArmsRenderer | null = null;
+  private readonly crateTiers = new Map<number, CrateTier>();
+  /** The offer on screen is an epic crate's. */
+  private offerCrate = false;
   private level = 1;
   private energy = 0;
   private levelsOwed = 0;
@@ -306,6 +320,15 @@ export class WavesRun {
     this.enemyHit = ctx.horde ? HORDE.enemyHit : 1;
     if (ctx.horde) {
       this.energyRenderer = new EnergyRenderer(ctx.scene);
+      this.armsRenderer = new HordeArmsRenderer(ctx.scene);
+      this.arms = new HordeArms({
+        game: ctx.game,
+        me: ctx.me,
+        reds: () => this.reds(),
+        toughness: () => this.spec.toughness,
+        onShot: (p1, p2) => ctx.onArmsShot?.(p1, p2),
+        onRockets: (position) => ctx.onArmsRockets?.(position),
+      });
       ctx.me.spreadScale = HORDE.spread;
     }
     ctx.game.lifePackHeal = WAVES.lifePackHeal;
@@ -469,6 +492,8 @@ export class WavesRun {
     }
     // Orbital: the beams now and then (the clock waits while they turn)
     this.updateOrbital(card('orbital'));
+    // The Horde's own cards: blades, the ring of bullets, the field, drones, homing rockets
+    this.arms?.update(this.cards, true);
     // Necromancer: the risen go back to dust after a while
     for (const r of this.risen) {
       if (!r.p.isAlive) continue;
@@ -517,14 +542,15 @@ export class WavesRun {
    * levels at once): of every rarity when the boss falls, the commons only after wave `afterWave` (5, 15, 25...:
    * a choice every 5 waves, Erick, 13/10/2026).
    */
-  private offerCards(afterWave?: number, levelUp = 0): void {
-    const offer = dealCards(this.wave, this.cards, afterWave !== undefined, levelUp > 0);
+  private offerCards(afterWave?: number, levelUp = 0, crate = false): void {
+    const offer = dealCards(this.wave, this.cards, afterWave !== undefined, levelUp > 0, { horde: this.ctx.horde, crate });
     if (!offer.length) return;
     this.offer = offer;
     this.offerAfter = afterWave;
     this.offerLevel = levelUp;
+    this.offerCrate = crate;
     track('waves_cards', { wave: this.wave, offer: offer.map((o) => (o.up > 1 ? `${o.id}+${o.up}` : o.id)).join(','), boss: afterWave === undefined && !levelUp, ...(levelUp ? { level: levelUp } : {}) });
-    this.ctx.onCards(offer, afterWave, levelUp || undefined);
+    this.ctx.onCards(offer, afterWave, levelUp || undefined, crate || undefined);
   }
 
   /**
@@ -944,16 +970,57 @@ export class WavesRun {
         if (!map.dmSpawns.every((s) => far(s.x, s.y, 1.5))) continue;
         if (!game.crates.every((c) => far(c.position.x, c.position.y, 2.5))) continue;
         if (!game.players.every((p) => !p || !p.isAlive || far(p.currentCF.position.x, p.currentCF.position.y, 1))) continue;
-        game.addCrate(cx, cy);
+        const tier = this.crateTier();
+        const crate = game.addCrate(cx, cy, tier, tier ? (tier === 2 ? HORDE.crates.epic.life : HORDE.crates.rare.life) * Math.max(1, me.damageBoost) : undefined);
+        if (tier) this.crateTiers.set(crate.id, tier);
         break;
       }
     }
+  }
+
+  /** The Horde: a crate's kind as it comes (HORDE.crates); 0 elsewhere. */
+  private crateTier(): CrateTier {
+    if (!this.ctx.horde) return 0;
+    const { rare, epic } = HORDE.crates;
+    const r = Math.random();
+    if (this.wave >= epic.from && r < epic.chance) return 2;
+    return r < epic.chance + rare.chance ? 1 : 0;
+  }
+
+  /**
+   * The Horde's better crates broke: a rare one, a big energy or two of the crates' permanent upgrades on the floor; an
+   * epic one, an epic card to choose (or a bigger energy).
+   */
+  private crateReward(tier: CrateTier, position: Vec3): void {
+    const big = (share: number) => this.energyFloor.push({ x: position.x, y: position.y, value: Math.max(10, Math.round(energyToNext(this.level) * share)), age: 0 });
+    let what: 'energy' | 'perms' | 'cards' = 'energy';
+    if (tier === 2) {
+      if (Math.random() < HORDE.crates.epic.cards && !this.offer) {
+        what = 'cards';
+        this.offerCards(undefined, 0, true);
+      } else big(HORDE.crates.epic.energy);
+    } else if (Math.random() < 0.5) {
+      const kinds = [rollPerm(this.full), rollPerm(this.full)].filter((k): k is PermKind => !!k);
+      if (kinds.length) {
+        what = 'perms';
+        kinds.forEach((kind, i) => this.powers.push({ id: this.nextPowerID++, kind, x: position.x + (i ? 0.35 : -0.35), y: position.y, age: 0, life: WAVES.powerOnFloor }));
+      } else big(HORDE.crates.rare.energy);
+    } else big(HORDE.crates.rare.energy);
+    track('horde_crate', { wave: this.wave, tier, drop: what });
+    this.ctx.onCrateReward?.(tier, what);
   }
 
   /** A crate was hit (the game's 'crate' event): it shakes; broken, it drops a power-up. */
   onCrate(crateID: number, position: Vec3, broken: boolean): void {
     this.renderer.crateHit(crateID, position.x, position.y, broken);
     if (!broken || this.over) return;
+    // The Horde's better crates (HORDE.crates)
+    const tier = this.crateTiers.get(crateID) ?? 0;
+    if (tier) {
+      this.crateTiers.delete(crateID);
+      this.crateReward(tier, position);
+      return;
+    }
     // Hurt (below WAVES.lowLife.below of the life), more of the crates give life
     const me = this.ctx.me;
     const { below, most } = WAVES.lowLife;
@@ -1089,12 +1156,12 @@ export class WavesRun {
   /** The offer on screen is swapped for three other cards of the same kind (a reroll spent). */
   reroll(): boolean {
     if (!this.offer || this.rerolls <= 0) return false;
-    const offer = dealCards(this.wave, this.cards, this.offerAfter !== undefined, this.offerLevel > 0);
+    const offer = dealCards(this.wave, this.cards, this.offerAfter !== undefined, this.offerLevel > 0, { horde: this.ctx.horde, crate: this.offerCrate });
     if (!offer.length) return false;
     this.rerolls--;
     this.offer = offer;
     track('waves_reroll', { wave: this.wave, left: this.rerolls, boss: this.offerAfter === undefined && !this.offerLevel });
-    this.ctx.onCards(offer, this.offerAfter, this.offerLevel || undefined);
+    this.ctx.onCards(offer, this.offerAfter, this.offerLevel || undefined, this.offerCrate || undefined);
     return true;
   }
 
@@ -1813,12 +1880,14 @@ export class WavesRun {
       .map((p) => ({ id: p.playerID, x: p.currentCF.position.x, y: p.currentCF.position.y, poison: p.poisonLeft > 0, ice: p.chillLeft > 0 }));
     this.renderer.render(this.ctx.game.crates, this.powers, marks, dt, time);
     this.energyRenderer?.render(this.energyFloor, time);
+    if (this.arms) this.armsRenderer?.render(this.arms.look, time);
   }
 
   dispose(): void {
     window.removeEventListener('pagehide', this.onPageHide);
     this.renderer.dispose();
     this.energyRenderer?.dispose();
+    this.armsRenderer?.dispose();
     for (const b of this.bossOrbs) b.marks?.dispose();
   }
 }

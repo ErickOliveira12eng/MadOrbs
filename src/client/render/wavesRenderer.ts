@@ -2,7 +2,7 @@
 // model), their splinters when they break, and the power-ups waiting on the floor (a bobbing icon
 // over a glowing ring). Plain materials, like the rest of the game's look.
 import * as THREE from 'three';
-import { CRATE_LIFE, type Crate } from '../../sim/crate';
+import { type Crate, type CrateTier } from '../../sim/crate';
 import { FX_RENDER_ORDER } from '../fx/effects';
 import { powerIcon } from '../powerIcons';
 import { POWERS, type PowerKind } from '../waves';
@@ -48,24 +48,36 @@ const MAX_RIPPLES = 160;
 const RIPPLE_LIFE = 0.7;
 const CRATE_HEIGHT = 0.5;
 
+/**
+ * The crates' colours by kind (src/sim/crate.ts CrateTier): the plain wooden one; the Horde's rare one, blue planks with
+ * bright corners; its epic one, purple planks with gold corners. Planks, seams, frame, corners, their rivets; the glow
+ * on the floor under the better ones, and their life bar.
+ */
+const CRATE_LOOK = [
+  { planks: ['#93622f', '#a8763f'], base: '#9a6a3a', frame: '#5c3a1a', corner: '#b9c0cc', rivet: '#6f7685', glow: 0, bar: 0 },
+  { planks: ['#2f5f9e', '#3b74bd'], base: '#2d5a94', frame: '#173055', corner: '#bfe4ff', rivet: '#4f86c4', glow: 0x3f9bff, bar: 0x5fb4ff },
+  { planks: ['#6a2fa0', '#7f3fbf'], base: '#64309a', frame: '#2f1250', corner: '#ffd56a', rivet: '#b98a2a', glow: 0xb05cff, bar: 0xd08bff },
+];
+
 /** The crate's sides: planks with dark seams, a darker frame and metal corners. */
-function crateTexture(): THREE.CanvasTexture {
+function crateTexture(tier: CrateTier = 0): THREE.CanvasTexture {
+  const look = CRATE_LOOK[tier];
   const c = document.createElement('canvas');
   c.width = c.height = 128;
   // A canvas in memory: a GPU canvas is wiped when the browser resets the GPU (a long pause), and three.js then
   // uploads the texture again from it (black crates)
   const g = c.getContext('2d', { willReadFrequently: true })!;
-  g.fillStyle = '#9a6a3a';
+  g.fillStyle = look.base;
   g.fillRect(0, 0, 128, 128);
   for (let i = 0; i < 4; i++) {
     const y = i * 32;
-    g.fillStyle = i % 2 ? '#a8763f' : '#93622f';
+    g.fillStyle = look.planks[i % 2];
     g.fillRect(0, y + 2, 128, 28);
     g.fillStyle = 'rgba(60,32,10,0.35)';
     for (let k = 0; k < 6; k++) g.fillRect(Math.random() * 128, y + 4 + Math.random() * 24, 20 + Math.random() * 30, 1.5);
   }
   // Frame and the cross brace
-  g.strokeStyle = '#5c3a1a';
+  g.strokeStyle = look.frame;
   g.lineWidth = 12;
   g.strokeRect(6, 6, 116, 116);
   g.lineWidth = 9;
@@ -74,9 +86,9 @@ function crateTexture(): THREE.CanvasTexture {
   g.lineTo(116, 116);
   g.stroke();
   // Metal corners
-  g.fillStyle = '#b9c0cc';
+  g.fillStyle = look.corner;
   for (const [x, y] of [[0, 0], [104, 0], [0, 104], [104, 104]]) g.fillRect(x, y, 24, 24);
-  g.fillStyle = '#6f7685';
+  g.fillStyle = look.rivet;
   for (const [x, y] of [[8, 8], [112, 8], [8, 112], [112, 112]]) g.fillRect(x, y, 6, 6);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.NoColorSpace;
@@ -88,7 +100,13 @@ interface CrateView {
   mesh: THREE.Mesh;
   material: THREE.MeshBasicMaterial;
   shake: number;
+  /** The better ones' glow on the floor; the life bar over the crate (its back and its fill). */
+  glow: THREE.Mesh | null;
+  bar: { back: THREE.Mesh; fill: THREE.Mesh } | null;
 }
+
+/** The life bar over a crate: its width and height (cells), how far above the crate's centre on screen. */
+const BAR = { width: 0.62, height: 0.075, above: 0.48 };
 
 interface Splinter {
   mesh: THREE.Mesh;
@@ -119,7 +137,11 @@ const MAX_BLASTS = 12;
 export class WavesRenderer {
   private readonly root = new THREE.Group();
   private readonly crateGeometry = new THREE.BoxGeometry(CRATE_SIZE, CRATE_SIZE, CRATE_HEIGHT);
-  private readonly crateTexture = crateTexture();
+  private readonly crateTextures = [crateTexture(0), crateTexture(1), crateTexture(2)];
+  private readonly crateGlowGeometry = new THREE.CircleGeometry(0.62, 32);
+  private readonly barGeometry = new THREE.PlaneGeometry(1, 1).translate(0.5, 0, 0);
+  private readonly barBack = new THREE.MeshBasicMaterial({ color: 0x0a0a12, transparent: true, opacity: 0.75, depthWrite: false });
+  private readonly barMaterials = new Map<number, THREE.MeshBasicMaterial>();
   private readonly splinterGeometry = new THREE.BoxGeometry(0.12, 0.04, 0.03);
   private readonly splinterMaterial = new THREE.MeshBasicMaterial({ color: 0x8a5a2b });
   private readonly ringGeometry = new THREE.RingGeometry(0.22, 0.3, 32);
@@ -382,23 +404,62 @@ export class WavesRenderer {
       seen.add(crate.id);
       let view = this.crates.get(crate.id);
       if (!view) {
-        const material = new THREE.MeshBasicMaterial({ map: this.crateTexture });
+        const material = new THREE.MeshBasicMaterial({ map: this.crateTextures[crate.tier] });
         const mesh = new THREE.Mesh(this.crateGeometry, material);
         mesh.rotation.z = (crate.id * 0.7) % (Math.PI / 2);
         this.root.add(mesh);
-        view = { mesh, material, shake: 0 };
+        // The better ones: a glow on the floor in their colour
+        const look = CRATE_LOOK[crate.tier];
+        let glow: THREE.Mesh | null = null;
+        if (look.glow) {
+          // (blended, not added: added on the light sand it went white)
+          glow = new THREE.Mesh(this.crateGlowGeometry, new THREE.MeshBasicMaterial({ color: look.glow, transparent: true, opacity: 0.4, depthWrite: false }));
+          glow.renderOrder = ABOVE_FLOOR;
+          this.root.add(glow);
+        }
+        view = { mesh, material, shake: 0, glow, bar: null };
         this.crates.set(crate.id, view);
       }
       view.shake = Math.max(0, view.shake - dt);
       const jolt = view.shake > 0 ? Math.sin(time * 70) * 0.04 * (view.shake / 0.18) : 0;
       view.mesh.position.set(crate.position.x + jolt, crate.position.y, CRATE_HEIGHT / 2);
-      const shade = 0.55 + 0.45 * Math.max(0, crate.life / CRATE_LIFE);
+      const left = Math.max(0, crate.life / crate.maxLife);
+      const shade = 0.55 + 0.45 * left;
       view.material.color.setRGB(shade, shade, shade);
+      if (view.glow) {
+        view.glow.position.set(crate.position.x, crate.position.y, 0.02);
+        (view.glow.material as THREE.MeshBasicMaterial).opacity = 0.32 + 0.1 * Math.sin(time * 4 + crate.id);
+      }
+      // Its life over it: the better ones (the plain one breaks in a few shots)
+      if (!view.bar && crate.tier > 0) {
+        let fillMaterial = this.barMaterials.get(crate.tier);
+        if (!fillMaterial) this.barMaterials.set(crate.tier, (fillMaterial = new THREE.MeshBasicMaterial({ color: CRATE_LOOK[crate.tier].bar || 0xffd36b, transparent: true, depthWrite: false })));
+        const back = new THREE.Mesh(this.barGeometry, this.barBack);
+        const fill = new THREE.Mesh(this.barGeometry, fillMaterial);
+        // (the fill after its back)
+        back.renderOrder = ABOVE_FLOOR + 1;
+        fill.renderOrder = ABOVE_FLOOR + 2;
+        this.root.add(back, fill);
+        view.bar = { back, fill };
+      }
+      if (view.bar) {
+        const x = crate.position.x - BAR.width / 2;
+        const y = crate.position.y + BAR.above;
+        view.bar.back.position.set(x - 0.02, y, CRATE_HEIGHT + 0.05);
+        view.bar.back.scale.set(BAR.width + 0.04, BAR.height + 0.04, 1);
+        view.bar.fill.position.set(x, y, CRATE_HEIGHT + 0.06);
+        view.bar.fill.scale.set(Math.max(0.001, BAR.width * left), BAR.height, 1);
+      }
     }
     for (const [id, view] of this.crates) {
       if (seen.has(id)) continue;
       this.root.remove(view.mesh);
       view.material.dispose();
+      if (view.glow) {
+        this.root.remove(view.glow);
+        (view.glow.material as THREE.MeshBasicMaterial).dispose();
+      }
+      if (view.bar) this.root.remove(view.bar.back, view.bar.fill);
       this.crates.delete(id);
     }
 
@@ -463,14 +524,21 @@ export class WavesRenderer {
 
   dispose(): void {
     this.root.removeFromParent();
-    for (const v of this.crates.values()) v.material.dispose();
+    for (const v of this.crates.values()) {
+      v.material.dispose();
+      (v.glow?.material as THREE.MeshBasicMaterial | undefined)?.dispose();
+    }
+    for (const m of this.barMaterials.values()) m.dispose();
+    this.barBack.dispose();
+    this.barGeometry.dispose();
+    this.crateGlowGeometry.dispose();
     for (const v of this.powers.values()) {
       (v.icon.material as THREE.SpriteMaterial).map?.dispose();
       v.icon.material.dispose();
       (v.ring.material as THREE.Material).dispose();
     }
     this.crateGeometry.dispose();
-    this.crateTexture.dispose();
+    for (const tex of this.crateTextures) tex.dispose();
     this.splinterGeometry.dispose();
     this.splinterMaterial.dispose();
     this.ringGeometry.dispose();
