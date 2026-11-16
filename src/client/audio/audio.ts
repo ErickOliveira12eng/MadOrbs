@@ -100,6 +100,8 @@ class AudioSystem {
   /** The map's own sounds (rain, wind, lava), with their own volume. */
   private ambientBus!: GainNode;
   private cache = new Map<string, SoundHandle>();
+  /** Sounds made in code (synth): how to make each one's samples once the context exists. */
+  private made = new Map<SoundHandle, { seconds: number; make: (t: number) => number }>();
   private pending = new Map<string, Promise<SoundHandle>>();
   private tracks = new Map<string, MusicTrack>();
   private music: MusicTrack | null = null;
@@ -195,6 +197,26 @@ class AudioSystem {
     this.cache.set(url, handle);
     if (this.ctx) void this.decodeInto(url, handle);
     return handle;
+  }
+
+  /**
+   * A short sound made in code, no file (the Horde's energy taken): `make` gives the sample, -1 to 1, at each time `t` in
+   * seconds; rendered once, the first time it plays.
+   */
+  synth(name: string, seconds: number, make: (t: number) => number): SoundHandle {
+    const handle: SoundHandle = { buffer: null, url: `synth:${name}` };
+    this.made.set(handle, { seconds, make });
+    return handle;
+  }
+
+  private render(sound: SoundHandle): void {
+    const m = this.made.get(sound);
+    if (!m || !this.ctx) return;
+    const rate = this.ctx.sampleRate;
+    const buffer = this.ctx.createBuffer(1, Math.ceil(m.seconds * rate), rate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = m.make(i / rate);
+    sound.buffer = buffer;
   }
 
   /** Loads a sound and resolves once decoded (or failed). */
@@ -320,6 +342,7 @@ class AudioSystem {
 
   /** 2D sound (dksPlaySound). Returns the source so loops can be stopped (null: not played). */
   play(sound: SoundHandle | null | undefined, volume = 255, loop = false, bus: SoundBus = 'sfx'): AudioBufferSourceNode | null {
+    if (this.ctx && sound && !sound.buffer) this.render(sound);
     if (!this.ctx || !sound?.buffer) return null;
     const src = this.ctx.createBufferSource();
     src.buffer = sound.buffer;

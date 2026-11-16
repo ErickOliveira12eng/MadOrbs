@@ -110,6 +110,8 @@ import { track } from './analytics';
 import { t } from '../i18n';
 
 const Z_AXIS = new Vec3(0, 0, 1);
+/** The Horde energy sound's run: a semitone up each pickup, up to `top`; back down after `reset` s; at most `most` a second. */
+const ENERGY_RUN = { top: 12, reset: 0.6, most: 25 };
 
 export interface ClientGameOptions {
   playerName: string;
@@ -199,6 +201,8 @@ export class ClientGame {
   private readonly flagRenderer: FlagRenderer;
   private readonly opts: ClientGameOptions;
   private readonly sounds = gameSounds();
+  /** The Horde's energy sound: how far its pitch climbed in this run of pickups (ENERGY_RUN), and when it last played. */
+  private energyRun = { step: 0, at: -1e9 };
   private game!: Game;
   private mapRenderer: MapRenderer | null = null;
   private me!: Player;
@@ -417,6 +421,7 @@ export class ClientGame {
       bossName: (kind) => t(`boss.${kind}` as const),
       onBossLaunch: (position) => audio.play3D(this.sounds.weapon[WEAPON_BAZOOKA], 8, position, 200),
       onBossBeam: (position) => audio.play3D(this.sounds.weapon[WEAPON_PHOTON_RIFLE], 10, position, 255),
+      onEnergy: (value) => this.energySound(value),
       randomSkin,
       onWave: (spec) => {
         // The server notes when each wave starts (its check of the run's end)
@@ -738,6 +743,21 @@ export class ClientGame {
       time: end?.time ?? null,
       splits: end?.splits ?? {},
     });
+  }
+
+  /**
+   * The Horde's energy taken: a short "pling" (src/client/sounds.ts), a semitone higher for each one taken in a row, back
+   * down after a pause; a big one (a boss's, merged ones) lower. At most ENERGY_RUN.most a second.
+   */
+  private energySound(value: number): void {
+    const now = performance.now();
+    if (now - this.energyRun.at > ENERGY_RUN.reset * 1000) this.energyRun.step = 0;
+    if (!audio.ready('energy', 1 / ENERGY_RUN.most)) return;
+    this.energyRun.at = now;
+    const rate = value >= 10 ? 0.7 : Math.pow(2, Math.min(ENERGY_RUN.top, this.energyRun.step) / 12);
+    this.energyRun.step++;
+    const src = audio.play(this.sounds.energy, 150);
+    if (src) src.playbackRate.value = rate;
   }
 
   private endWaves(end: WavesEnd): void {

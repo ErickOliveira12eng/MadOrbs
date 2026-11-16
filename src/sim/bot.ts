@@ -9,6 +9,7 @@ import {
   WEAPON_FLAME_THROWER,
   WEAPON_KNIVES,
   WEAPON_NUCLEAR,
+  WEAPON_PHOTON_RIFLE,
   WEAPON_SHIELD,
   WEAPON_SHOTGUN,
   WEAPON_SNIPER,
@@ -127,6 +128,12 @@ export class BotController {
   still = false;
   /** Keeps its secondary in hand and never uses it (the waves' nuke bot: the run sets its nuke off itself). */
   holdMelee = false;
+  /**
+   * Shoots only within this many cells of its target: `near` with the common weapons, `far` with the ones that hit from
+   * afar (photon rifle, sniper, bazooka); null: no limit of its own (the Horde, src/client/horde.ts: on its open map the
+   * bots shot at the player from off his screen).
+   */
+  fireRange: { near: number; far: number } | null = null;
   /**
    * Picking whom to shoot, the others than `hunt` count this many times farther than they are (the waves, Erick
    * 01/11/2026: the bots should go for the player a little more than for his Shadow and risen ones, not ignore them).
@@ -384,7 +391,8 @@ export class BotController {
       input.mousePosOnMap = target.currentCF.position.add(lead).add(this.aimError);
       input.mousePosOnMap.z = 0;
       const weapon = p.weapon?.weaponID ?? 0;
-      const inRange = weapon === WEAPON_SHOTGUN ? best < 5 : weapon === WEAPON_FLAME_THROWER ? best < 4.5 : true;
+      const reach = !this.fireRange ? Infinity : weapon === WEAPON_PHOTON_RIFLE || weapon === WEAPON_SNIPER || weapon === WEAPON_BAZOOKA ? this.fireRange.far : this.fireRange.near;
+      const inRange = best < reach && (weapon === WEAPON_SHOTGUN ? best < 5 : weapon === WEAPON_FLAME_THROWER ? best < 4.5 : true);
       if (this.reaction <= 0 && inRange) {
         this.shootHold = 0.3;
       }

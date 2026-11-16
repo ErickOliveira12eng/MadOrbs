@@ -17,7 +17,7 @@ import { EnergyRenderer, type FloorEnergy } from './render/energyRenderer';
 import { VesuviusRenderer } from './render/vesuviusRenderer';
 import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, BOSSES, ELITE, WAVES, bossCycle, bossKind, bossMoves, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type BossKind, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, REFLECT_TIME, ORBITAL, PHOENIX, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, statFactor, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
-import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, workshopFactor, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
+import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, MAGNET, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, workshopFactor, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
 export interface WavesHud {
@@ -183,6 +183,8 @@ export interface WavesContext {
   horde?: boolean;
   /** The Horde: a level up (the banner, the sound; its cards come with onCards). */
   onLevelUp?: (level: number) => void;
+  /** The Horde: energy taken (its sound), and how much. */
+  onEnergy?: (value: number) => void;
 }
 
 /** The weapons that hit from afar: their bots go for the player nearly always (WAVES.huntBiasFar). */
@@ -701,6 +703,8 @@ export class WavesRun {
     p.radius *= this.size;
     bots[i] = new BotController(p, traits.includes('sniper') ? 1 : this.spec.skill, loadout);
     if (traits.includes('sniper')) bots[i].aimScale = strength.aim;
+    // The Horde: they shoot only once near the player (HORDE.fireRange)
+    if (this.ctx.horde) bots[i].fireRange = HORDE.fireRange;
     // Some come right at the player, the snipers keep their distance (WAVES.rushShare)
     const keeps = traits.includes('sniper') || loadout.primary === WEAPON_SNIPER;
     bots[i].rush = !keeps && (traits.includes('brute') || traits.includes('fast') || Math.random() < WAVES.rushShare);
@@ -888,6 +892,7 @@ export class WavesRun {
     const early = this.wave <= WAVES.boss.early.until;
     bot.aimScale = early ? WAVES.boss.early.aim : WAVES.boss.aim;
     bot.lead = 0;
+    if (this.ctx.horde) bot.fireRange = HORDE.fireRange;
     bot.hunt = this.ctx.me;
     // The player first, as the bots hitting from afar (Erick, 01/11/2026)
     bot.huntBias = WAVES.huntBiasFar;
@@ -1169,7 +1174,7 @@ export class WavesRun {
 
   /** The Workshop's levels in this run (the testers' tools). */
   workshopLevels(): { id: UpgradeID; level: number; max: number }[] {
-    return UPGRADES.map((u) => ({ id: u.id, level: this.ctx.levels[u.id], max: u.costs.length }));
+    return UPGRADES.filter((u) => !u.horde || this.ctx.horde).map((u) => ({ id: u.id, level: this.ctx.levels[u.id], max: u.costs.length }));
   }
 
   /**
@@ -1284,17 +1289,33 @@ export class WavesRun {
     this.energyFloor.push({ x: at.x, y: at.y, value, age: 0 });
   }
 
-  /** Every tick: the energy the player walks over is taken. */
+  /**
+   * Every tick: the energy the player walks over is taken; with the Horde Workshop's Magnetism (MAGNET), the energy within
+   * its reach flies to him first.
+   */
   private updateEnergy(): void {
     const me = this.ctx.me;
     const F = HORDE.floor;
+    const reach = MAGNET[Math.min(MAGNET.length - 1, this.ctx.levels.magnet ?? 0)];
     const at = me.currentCF.position;
     this.energyFloor = this.energyFloor.filter((e) => {
       e.age += TICK;
       if (!me.isAlive) return true;
-      if (Math.hypot(at.x - e.x, at.y - e.y) >= F.take + me.radius) return true;
-      this.gainEnergy(e.value);
-      return false;
+      const dx = at.x - e.x;
+      const dy = at.y - e.y;
+      const d = Math.hypot(dx, dy);
+      if (d < F.take + me.radius) {
+        this.ctx.onEnergy?.(e.value);
+        this.gainEnergy(e.value);
+        return false;
+      }
+      if (d < reach) {
+        // (faster the farther it starts: it never lags behind a running player)
+        const step = Math.min(d, Math.max(F.pull, d * 3) * TICK);
+        e.x += (dx / d) * step;
+        e.y += (dy / d) * step;
+      }
+      return true;
     });
   }
 

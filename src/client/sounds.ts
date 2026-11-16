@@ -20,6 +20,8 @@ export interface GameSounds {
   siren: SoundHandle;
   chat: SoundHandle;
   button: SoundHandle;
+  /** The Horde's energy taken (src/client/horde.ts): a short bright "pling" made in code, no file. */
+  energy: SoundHandle;
   /** CTF (Game.cpp sfx_fcapture / sfx_ecapture / sfx_return): our team / the enemy took a flag, a flag went home. */
   flagTookFriend: SoundHandle;
   flagTookEnemy: SoundHandle;
@@ -37,6 +39,16 @@ export interface GameSounds {
 export const MENU_MUSIC = '/assets/sounds/Menu.ogg';
 
 let sounds: GameSounds | null = null;
+
+/** The energy's "pling": a sine gliding up from 900 to 1500 Hz in 40 ms with its octave, a fast fade. */
+function pling(t: number): number {
+  const f0 = 900;
+  const f1 = 1500;
+  const glide = 0.04;
+  const phase = 2 * Math.PI * (t < glide ? f0 * t + ((f1 - f0) * t * t) / (2 * glide) : f0 * glide + ((f1 - f0) * glide) / 2 + f1 * (t - glide));
+  const env = Math.min(1, t / 0.004) * Math.exp(-t * 36);
+  return env * (0.55 * Math.sin(phase) + 0.18 * Math.sin(2 * phase));
+}
 
 export function gameSounds(): GameSounds {
   if (sounds) return sounds;
@@ -57,6 +69,7 @@ export function gameSounds(): GameSounds {
     siren: S('Siren.WAV'),
     chat: S('Chat.wav'),
     button: S('Button.wav'),
+    energy: audio.synth('energy', 0.13, pling),
     flagTookFriend: S('ftook.wav'),
     flagTookEnemy: S('etook.wav'),
     flagReturn: S('return.wav'),

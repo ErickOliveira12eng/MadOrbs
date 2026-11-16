@@ -11,8 +11,10 @@ import { wavesPower } from '../client/wavesPower';
 import {
   BREATHER,
   CHECKPOINT,
+  MAGNET,
   MILESTONES,
   UPGRADES,
+  WAVES_UPGRADES,
   UPGRADE_STEP,
   BARRIER_SIZE,
   DASH_COOLDOWN,
@@ -79,6 +81,7 @@ const UPGRADE_ICON: Record<UpgradeID, IconName> = {
   barrier: 'shieldHalf',
   shock: 'radio',
   reroll: 'shuffle',
+  magnet: 'magnet',
 };
 
 /** The list's kinds, in order, each in its tab. */
@@ -140,6 +143,8 @@ function upgradeValue(id: UpgradeID, level: number): string {
       return `${Math.round(BARRIER_SIZE[level] * 100)}%`;
     case 'reroll':
       return String(level);
+    case 'magnet':
+      return level ? num(MAGNET[level]) : '—';
   }
 }
 
@@ -368,6 +373,11 @@ export class WavesModal {
     return { levels: p.levels, cash: balance(p) };
   }
 
+  /** The upgrades of the Workshop shown: the Horde's has its own too (Upgrade.horde). */
+  private upgrades(): typeof UPGRADES {
+    return this.mode === 'horde' ? UPGRADES : WAVES_UPGRADES;
+  }
+
   /** The run's starting weapon for the Power: the Horde always starts with the SMG. */
   private powerWeapon(): number {
     return this.mode === 'horde' ? WEAPON_SMG : WavesModal.startChoice(this.account.debugTools.zoom).startWeapon;
@@ -579,7 +589,7 @@ export class WavesModal {
 
   /** The list: the tab's upgrades by kind, each with its level and the price of the next one. */
   private renderList(levels: Levels, cash: number): void {
-    const affordable = (tab: Tab) => UPGRADES.filter((u) => tabOf(u) === tab && (nextCost(u, levels) ?? Infinity) <= cash).length;
+    const affordable = (tab: Tab) => this.upgrades().filter((u) => tabOf(u) === tab && (nextCost(u, levels) ?? Infinity) <= cash).length;
     for (const b of $('wvTabs').querySelectorAll<HTMLElement>('[data-tab]')) {
       const tab = b.dataset.tab as Tab;
       b.classList.toggle('on', tab === this.tab);
@@ -587,7 +597,7 @@ export class WavesModal {
       const n = affordable(tab);
       b.querySelector('.n')!.textContent = n ? String(n) : '';
     }
-    const shown = UPGRADES.filter((u) => tabOf(u) === this.tab);
+    const shown = this.upgrades().filter((u) => tabOf(u) === this.tab);
     // Nothing chosen yet (or another tab's): the first one the Cores pay for, else the first
     if (!this.selected || !shown.some((u) => u.id === this.selected)) {
       this.selected = (shown.find((u) => (nextCost(u, levels) ?? Infinity) <= cash) ?? shown[0]).id;
@@ -633,7 +643,7 @@ export class WavesModal {
 
   /** The chosen upgrade: what it does now and at the next level, the levels after, the button. */
   private renderDetail(levels: Levels, cash: number): void {
-    const u = UPGRADES.find((x) => x.id === this.selected)!;
+    const u = this.upgrades().find((x) => x.id === this.selected) ?? this.upgrades()[0];
     const level = levels[u.id];
     const top = u.costs.length;
     const max = topLevel(u);

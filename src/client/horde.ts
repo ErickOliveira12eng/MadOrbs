@@ -21,14 +21,20 @@ export const HORDE = {
   enemyHit: 0.5,
   /** The player's spread (Player.spreadScale): steadier, the enemies being smaller (Erick, 15/11/2026). */
   spread: 0.5,
+  /**
+   * How close the enemies shoot from, in cells (BotController.fireRange): the common weapons only once on the player's
+   * screen (it shows ~8 cells to each side, ~4.5 up and down), the photon rifle, the sniper and the bazooka from a little
+   * off it, never from across the map (Erick, 15/11/2026: they shot at him from off his screen).
+   */
+  fireRange: { near: 6, far: 10 },
   /** The energy a fallen enemy leaves: a plain one, an elite (Player.badges), a boss (it also gives the boss's cards). */
   energy: { plain: 1, elite: 3, boss: 20 },
   /**
-   * The energy on the floor: taken by walking over it (Erick, 15/11/2026: no magnet, nothing flies to the player), when
-   * it is within the player's radius + `take`. It never goes away (after Vampire Survivors: none lost), and with more
+   * The energy on the floor: taken by walking over it (Erick, 15/11/2026), when it is within the player's radius + `take`;
+   * with the Workshop's Magnetism (wavesProgress.ts MAGNET), from its reach it flies to him at `pull` cells a second or more. It never goes away (after Vampire Survivors: none lost), and with more
    * than `most` on the floor a new drop goes into the nearest one, which grows (the game keeps its pace with a crowd).
    */
-  floor: { take: 0.1, most: 250 },
+  floor: { take: 0.1, most: 250, pull: 9 },
   /**
    * Where the enemies come in (cells from the player): just off his screen all around him, after the classic
    * roguelikes, not at the map's far edge (on a map this big they walked past the wave's time and nothing was cleared).

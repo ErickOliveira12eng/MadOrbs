@@ -7,7 +7,7 @@ import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_DUAL_MACHINE_GUN, WEAPON_FLAME
 import { PERM_KINDS, waveSpec, type PermKind } from './waves';
 import { CARDS, COMMON_CARDS_EVERY, type CardID, type CardLevels } from './wavesCards';
 
-export type UpgradeID = 'life' | 'armor' | 'damage' | 'fire' | 'speed' | 'lives' | 'grenades' | 'luck' | 'drops' | 'breather' | 'secondWind' | 'cap' | 'dash' | 'barrier' | 'shock' | 'reroll';
+export type UpgradeID = 'life' | 'armor' | 'damage' | 'fire' | 'speed' | 'lives' | 'grenades' | 'luck' | 'drops' | 'breather' | 'secondWind' | 'cap' | 'dash' | 'barrier' | 'shock' | 'reroll' | 'magnet';
 
 /** The Workshop's kinds of upgrade (its list, src/menu/wavesModal.ts): the last three are in the other tab. */
 export type UpgradeGroup = 'attack' | 'defense' | 'survival' | 'abilities' | 'cards' | 'limits';
@@ -18,6 +18,8 @@ export interface Upgrade {
   costs: number[];
   /** Its kind, in the Workshop's list. */
   group: UpgradeGroup;
+  /** Only in the Horde's Workshop (src/client/hordeProgress.ts): the Waves' doesn't list it. */
+  horde?: boolean;
 }
 
 /** The Workshop's upgrades, in the order of its list. */
@@ -39,10 +41,21 @@ export const UPGRADES: Upgrade[] = [
   { id: 'dash', costs: [120, 220, 350, 520, 750], group: 'abilities' },
   { id: 'barrier', costs: [250, 400, 600, 850, 1200], group: 'abilities' },
   { id: 'shock', costs: [200, 350, 550, 800, 1100], group: 'abilities' },
+  // The Horde's energy pulled from farther (Erick, 15/11/2026): MAGNET
+  { id: 'magnet', costs: [100, 180, 300, 450, 650], group: 'abilities', horde: true },
   // The cards' reroll (Erick, 15/10/2026, after Vampire Survivors): 1 to 3 a run
   { id: 'reroll', costs: [250, 500, 900], group: 'cards' },
   { id: 'cap', costs: [150, 300, 500, 800, 1200, 1800, 2600, 3600], group: 'limits' },
 ];
+
+/** The Waves' Workshop's upgrades (the Horde's lists them all). */
+export const WAVES_UPGRADES = UPGRADES.filter((u) => !u.horde);
+
+/**
+ * The Horde's Magnetism (the `magnet` upgrade): from how far, in cells from the player's centre, the energy on the floor
+ * flies to him, by level (0: walked over).
+ */
+export const MAGNET = [0, 1.2, 1.8, 2.4, 3, 3.6];
 
 /**
  * What a level does: life +20 points (a bigger bar, 100 to 200: Player.lifeMax; until 15/10/2026 it only
@@ -102,7 +115,7 @@ export const SECOND_WIND_LIFE = 0.5;
 
 export type Levels = Record<UpgradeID, number>;
 
-export const NO_LEVELS: Levels = { life: 0, armor: 0, damage: 0, fire: 0, speed: 0, lives: 0, grenades: 0, luck: 0, drops: 0, breather: 0, secondWind: 0, cap: 0, dash: 0, barrier: 0, shock: 0, reroll: 0 };
+export const NO_LEVELS: Levels = { life: 0, armor: 0, damage: 0, fire: 0, speed: 0, lives: 0, grenades: 0, luck: 0, drops: 0, breather: 0, secondWind: 0, cap: 0, dash: 0, barrier: 0, shock: 0, reroll: 0, magnet: 0 };
 
 /**
  * What only the Workshop gives. The run's limits: each permanent power-up of a run stops at
@@ -485,7 +498,7 @@ export function buy(id: UpgradeID): WavesProgress | null {
 /** How many upgrades the balance pays for right now (one level each): the menu's badge. */
 export function affordable(p: WavesProgress): number {
   const b = balance(p);
-  return UPGRADES.filter((u) => {
+  return WAVES_UPGRADES.filter((u) => {
     const c = nextCost(u, p.levels);
     return c !== null && c <= b;
   }).length;
