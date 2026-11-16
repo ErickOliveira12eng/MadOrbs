@@ -3,7 +3,8 @@
 // survival; abilities and limits in the other tab), the chosen one in detail (what the next level does,
 // the levels after it, the button that buys it), and what the run starts with: the wave (the first, or a
 // checkpoint reached), the weapon (the SMG, or one a milestone gave), the daily reward, PLAY. Under them,
-// the milestones' track.
+// the milestones' track. Since 15/11/2026 also the Horde's tab (src/client/hordeProgress.ts): the same upgrades bought
+// with its own Essence, its best and PLAY on the right.
 import { prizeArt, prizeName, prizeText, weaponLook } from '../client/wavesPrize';
 import { loadWavesRecord, WAVES } from '../client/waves';
 import { wavesPower } from '../client/wavesPower';
@@ -31,6 +32,7 @@ import {
   nextMilestone,
   saveProgress,
   startWeapons,
+  type Levels,
   type Milestone,
   type Upgrade,
   type UpgradeGroup,
@@ -50,6 +52,8 @@ import { debugUnlockOn } from './accountModal';
 import { versioned } from '../sim/assetVersion';
 import { VESUVIUS_WAVE, vesuviusOpen, type VesuviusAccess } from '../sim/vesuvius';
 import { VesuviusForge } from './vesuviusForge';
+import { buyHorde, essenceBalance, loadHorde } from '../client/hordeProgress';
+import { WEAPON_SMG } from '../sim/constants';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -143,6 +147,10 @@ function upgradeValue(id: UpgradeID, level: number): string {
 
 /** A Core, the waves' currency. */
 export const coreIcon = (size = 18) => `<span class="core-ico">${icon('core', size)}</span>`;
+/** Essence, the Horde's currency: a violet crystal. */
+export const essenceIcon = (size = 18) => `<span class="essence-ico">${icon('essence', size)}</span>`;
+
+type Mode = 'waves' | 'vesuvius' | 'horde';
 
 export class WavesModal {
   private readonly root = $('wavesModal');
@@ -154,8 +162,8 @@ export class WavesModal {
   private weaponView: number | null = null;
   /** The exclusive Orbs' pictures in the player's colours, drawn once each. */
   private readonly orbPics = new Map<string, string>();
-  /** The Survival's mode shown: the Waves (the Workshop), or the Vesuvius (src/sim/vesuvius.ts). */
-  private mode: 'waves' | 'vesuvius' = 'waves';
+  /** The Survival's mode shown: the Waves (the Workshop), the Vesuvius (src/sim/vesuvius.ts) or the Horde (its Workshop). */
+  private mode: Mode = 'waves';
   /**
    * The server's word on the Vesuvius (GET /api/vesuvius) for this account and test switch (`key`), asked when the
    * window opens; null while it is asked; `failed`: the server couldn't be asked.
@@ -176,6 +184,8 @@ export class WavesModal {
     private readonly onChange: () => void,
     /** The Vesuvius's play button (the start checks with the server again). */
     private readonly onVesuvius: () => void,
+    /** The Horde's play button. */
+    private readonly onHorde: () => void,
   ) {
     account.onChange(() => {
       if (!this.isOpen) return;
@@ -203,10 +213,17 @@ export class WavesModal {
       if (!b || b.disabled) return;
       const id = b.dataset.buy as UpgradeID;
       const before = this.power();
-      const p = buy(id);
-      if (!p) return;
-      track('waves_upgrade', { upgrade: id, level: p.levels[id] });
-      void this.account.saveWavesProgress();
+      if (this.mode === 'horde') {
+        const p = buyHorde(id);
+        if (!p) return;
+        track('horde_upgrade', { upgrade: id, level: p.levels[id] });
+        void this.account.saveHordeProgress();
+      } else {
+        const p = buy(id);
+        if (!p) return;
+        track('waves_upgrade', { upgrade: id, level: p.levels[id] });
+        void this.account.saveWavesProgress();
+      }
       this.render();
       this.onChange();
       // What was bought flashes, and the Cores with it
@@ -249,13 +266,15 @@ export class WavesModal {
     });
     $('wvPlay').addEventListener('click', () => {
       this.close();
-      this.onPlay();
+      if (this.mode === 'horde') this.onHorde();
+      else this.onPlay();
     });
     $('wvModes').addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLElement>('[data-mode]');
       if (!b) return;
-      this.mode = b.dataset.mode === 'vesuvius' ? 'vesuvius' : 'waves';
+      this.mode = b.dataset.mode === 'vesuvius' ? 'vesuvius' : b.dataset.mode === 'horde' ? 'horde' : 'waves';
       if (this.mode === 'vesuvius') this.checkVesuvius();
+      this.selected = null;
       this.render();
     });
     this.forge = new VesuviusForge(
@@ -286,8 +305,8 @@ export class WavesModal {
     return !this.root.hidden;
   }
 
-  /** Opens on the Waves' Workshop, or on the Vesuvius (back from a run there that asked for its Forge). */
-  open(mode: 'waves' | 'vesuvius' = 'waves'): void {
+  /** Opens on the Waves' Workshop, or on the Vesuvius or the Horde (back from a run there that asked for its Workshop). */
+  open(mode: Mode = 'waves'): void {
     // The run starts on the highest checkpoint open, whatever was chosen last time (Erick, 04/11/2026); changed here, it
     // stays until the window opens again
     const open = checkpoints(loadWavesRecord()?.wave ?? 0);
@@ -339,38 +358,69 @@ export class WavesModal {
     };
   }
 
+  /** The levels and the balance of the Workshop shown: the Waves' (Cores) or the Horde's (Essence). */
+  private wallet(): { levels: Levels; cash: number } {
+    if (this.mode === 'horde') {
+      const h = loadHorde();
+      return { levels: h.levels, cash: essenceBalance(h) };
+    }
+    const p = loadProgress();
+    return { levels: p.levels, cash: balance(p) };
+  }
+
+  /** The run's starting weapon for the Power: the Horde always starts with the SMG. */
+  private powerWeapon(): number {
+    return this.mode === 'horde' ? WEAPON_SMG : WavesModal.startChoice(this.account.debugTools.zoom).startWeapon;
+  }
+
+  /** The currency's icon in the Workshop shown. */
+  private cur(size: number): string {
+    return this.mode === 'horde' ? essenceIcon(size) : coreIcon(size);
+  }
+
   private render(): void {
     const p = loadProgress();
     const record = loadWavesRecord()?.wave ?? 0;
-    const cash = balance(p);
+    const { levels, cash } = this.wallet();
     const tester = this.account.debugTools.zoom;
     const { startWave, startWeapon } = WavesModal.startChoice(tester);
+    const horde = this.mode === 'horde';
 
     for (const id of ['wvDetail', 'wvCores', 'wvDaily']) $(id).classList.remove('bought', 'claimed-now');
-    $('wvCores').innerHTML = `${coreIcon(26)}<b>${bigNum(cash)}</b><span>${t('workshop.cores')}</span>`;
-    $('wvRecord').innerHTML = record ? `${icon('trophy', 16)}${t('waves.record', { n: record })}` : '';
-    $('wvRecord').hidden = !record;
+    $('wvCores').classList.toggle('hd-essence', horde);
+    $('wvCores').innerHTML = `${this.cur(26)}<b>${bigNum(cash)}</b><span>${t(horde ? 'horde.essence' : 'workshop.cores')}</span>`;
+    const h = horde ? loadHorde() : null;
+    const shown = h ? h.bestWave : record;
+    $('wvRecord').innerHTML = shown ? `${icon('trophy', 16)}${t('waves.record', { n: shown })}` : '';
+    $('wvRecord').hidden = !shown;
     // The Power (src/client/wavesPower.ts): the starting weapon and the Workshop, 100 for a new player
-    const pow = wavesPower(p.levels, startWeapon);
+    const pow = wavesPower(levels, this.powerWeapon());
     $('wvPower').classList.remove('bought');
     $('wvPower').title = t('workshop.powerTip', { a: num(pow.attack, 1), d: num(pow.toughness, 1) });
     $('wvPower').innerHTML = `${icon('zap', 18)}<b>${bigNum(pow.power)}</b><span>${t('workshop.power')}</span><i class="wv-pop" hidden></i>`;
 
     this.renderModes(record);
-    this.renderList(p, cash);
-    this.renderDetail(p, cash);
+    this.renderList(levels, cash);
+    this.renderDetail(levels, cash);
 
     this.renderStarts(record, startWave, tester);
 
     this.renderWeapon(record, startWeapon);
     this.renderTrack();
     this.renderDaily(p);
-    $('wvPlay').innerHTML = `${icon('play', 22)}${t('workshop.play', { n: startWave })}`;
+    $('wvPlay').innerHTML = `${icon('play', 22)}${horde ? t('horde.play') : t('workshop.play', { n: startWave })}`;
+    // The Horde's side: its best wave and level, its runs
+    if (h) {
+      $('hdRecord').innerHTML =
+        `<div><small>${t('horde.bestWave')}</small><b>${h.bestWave ? bigNum(h.bestWave) : '—'}</b></div>` +
+        `<div><small>${t('horde.bestLevel')}</small><b>${h.bestWave ? bigNum(h.bestLevel) : '—'}</b></div>` +
+        `<div><small>${t('horde.runs')}</small><b>${bigNum(h.runs)}</b></div>`;
+    }
 
     // Where the progress is kept
     $('wvSave').innerHTML = this.account.signedIn
-      ? `<span class="ok">${icon('check', 14)}${t('workshop.savedAccount')}</span>`
-      : `<span title="${t('workshop.savedLocal')}">${t('workshop.savedLocalShort')}</span><button type="button" class="wv-signin">${icon('user', 14)}${t('account.signIn')}</button>`;
+      ? `<span class="ok">${icon('check', 14)}${t(horde ? 'horde.savedAccount' : 'workshop.savedAccount')}</span>`
+      : `<span title="${t(horde ? 'horde.savedLocal' : 'workshop.savedLocal')}">${t('workshop.savedLocalShort')}</span><button type="button" class="wv-signin">${icon('user', 14)}${t('account.signIn')}</button>`;
     this.fit();
   }
 
@@ -394,6 +444,7 @@ export class WavesModal {
   /** The mode tabs (the Vesuvius's with a lock until the server opens it), and the Waves' parts or the Vesuvius's. */
   private renderModes(record: number): void {
     const ves = this.mode === 'vesuvius';
+    const horde = this.mode === 'horde';
     for (const b of $('wvModes').querySelectorAll<HTMLElement>('[data-mode]')) {
       const on = b.dataset.mode === this.mode;
       b.classList.toggle('on', on);
@@ -403,15 +454,20 @@ export class WavesModal {
     const tab = $('wvModes').querySelector<HTMLElement>('[data-mode="vesuvius"]')!;
     tab.classList.toggle('locked', !open);
     tab.querySelector('.vs-tab-ico')!.innerHTML = icon(open ? 'flame' : 'lock', 16);
-    for (const sel of ['.wv-body', '.wv-milestones']) this.root.querySelector<HTMLElement>(sel)!.hidden = ves;
+    this.root.querySelector<HTMLElement>('.wv-body')!.hidden = ves;
+    this.root.querySelector<HTMLElement>('.wv-milestones')!.hidden = ves || horde;
+    // The Horde: no checkpoint, weapon nor daily reward; its own box
+    for (const box of this.root.querySelectorAll<HTMLElement>('.wv-side > .wv-box:not(.hd-side)')) box.hidden = horde;
+    $('wvDaily').hidden = horde;
+    $('hdSide').hidden = !horde;
     // (the guide's link keeps its place: the tabs don't move)
-    this.root.querySelector<HTMLElement>('.wv-guide')!.style.visibility = ves ? 'hidden' : '';
+    this.root.querySelector<HTMLElement>('.wv-guide')!.style.visibility = ves || horde ? 'hidden' : '';
     $('wvPower').hidden = ves;
     $('wvCores').hidden = ves;
     // (the Obsidian: the Vesuvius's currency, once it is open)
     $('vsObsidian').hidden = !ves || !open;
     $('wvVesuvius').hidden = !ves;
-    $('wvKicker').textContent = t(ves ? 'vesuvius.kicker' : 'menu.waves');
+    $('wvKicker').textContent = t(ves ? 'vesuvius.kicker' : horde ? 'horde.name' : 'menu.waves');
     $('wvHeading').textContent = t(ves ? 'vesuvius.name' : 'workshop.title');
     if (ves) this.renderVesuvius(record);
   }
@@ -522,8 +578,8 @@ export class WavesModal {
   }
 
   /** The list: the tab's upgrades by kind, each with its level and the price of the next one. */
-  private renderList(p: WavesProgress, cash: number): void {
-    const affordable = (tab: Tab) => UPGRADES.filter((u) => tabOf(u) === tab && (nextCost(u, p.levels) ?? Infinity) <= cash).length;
+  private renderList(levels: Levels, cash: number): void {
+    const affordable = (tab: Tab) => UPGRADES.filter((u) => tabOf(u) === tab && (nextCost(u, levels) ?? Infinity) <= cash).length;
     for (const b of $('wvTabs').querySelectorAll<HTMLElement>('[data-tab]')) {
       const tab = b.dataset.tab as Tab;
       b.classList.toggle('on', tab === this.tab);
@@ -534,25 +590,25 @@ export class WavesModal {
     const shown = UPGRADES.filter((u) => tabOf(u) === this.tab);
     // Nothing chosen yet (or another tab's): the first one the Cores pay for, else the first
     if (!this.selected || !shown.some((u) => u.id === this.selected)) {
-      this.selected = (shown.find((u) => (nextCost(u, p.levels) ?? Infinity) <= cash) ?? shown[0]).id;
+      this.selected = (shown.find((u) => (nextCost(u, levels) ?? Infinity) <= cash) ?? shown[0]).id;
     }
     $('wvUpgrades').innerHTML = GROUPS.filter((g) => g.tab === this.tab)
       .map((g) => {
-        const rows = shown.filter((u) => u.group === g.id).map((u) => this.row(u, p, cash));
+        const rows = shown.filter((u) => u.group === g.id).map((u) => this.row(u, levels, cash));
         return `<div class="wv-group ${g.id}"><h3>${t(`workshop.group.${g.id}`)}</h3>${rows.join('')}</div>`;
       })
       .join('');
   }
 
-  private row(u: Upgrade, p: WavesProgress, cash: number): string {
-    const level = p.levels[u.id];
-    const cost = nextCost(u, p.levels);
+  private row(u: Upgrade, levels: Levels, cash: number): string {
+    const level = levels[u.id];
+    const cost = nextCost(u, levels);
     // Past the top, the mastery's levels (MASTERY)
     const mastery = level > u.costs.length ? `<span class="wv-lvtext wv-mastery">+${level - u.costs.length}</span>` : '';
     const pips =
       (u.costs.length > 5 ? `<span class="wv-lvtext">${Math.min(level, u.costs.length)}/${u.costs.length}</span>` : u.costs.map((_, i) => `<i class="${i < level ? 'on' : ''}"></i>`).join('')) + mastery;
     const price =
-      cost === null ? `<span class="wv-price max">${t('workshop.max')}</span>` : `<span class="wv-price${cost > cash ? ' off' : ''}">${coreIcon(12)}${bigNum(cost)}</span>`;
+      cost === null ? `<span class="wv-price max">${t('workshop.max')}</span>` : `<span class="wv-price${cost > cash ? ' off' : ''}">${this.cur(12)}${bigNum(cost)}</span>`;
     return (
       `<button type="button" class="wv-row ${u.group}${u.id === this.selected ? ' on' : ''}" data-pick="${u.id}" title="${t(`up.${u.id}.desc`)}">` +
       `<span class="wv-ico">${icon(UPGRADE_ICON[u.id], 16)}</span><span class="wv-name">${t(`up.${u.id}`)}</span>` +
@@ -562,7 +618,7 @@ export class WavesModal {
 
   /** The Power now, with the starting weapon chosen. */
   private power(): number {
-    return wavesPower(loadProgress().levels, WavesModal.startChoice(this.account.debugTools.zoom).startWeapon).power;
+    return wavesPower(this.wallet().levels, this.powerWeapon()).power;
   }
 
   /** A purchase: the Power chip flashes and shows what it gained. */
@@ -576,12 +632,13 @@ export class WavesModal {
   }
 
   /** The chosen upgrade: what it does now and at the next level, the levels after, the button. */
-  private renderDetail(p: WavesProgress, cash: number): void {
+  private renderDetail(levels: Levels, cash: number): void {
     const u = UPGRADES.find((x) => x.id === this.selected)!;
-    const level = p.levels[u.id];
+    const level = levels[u.id];
     const top = u.costs.length;
     const max = topLevel(u);
-    const cost = nextCost(u, p.levels);
+    const cost = nextCost(u, levels);
+    const horde = this.mode === 'horde';
     const bars = u.costs.map((_, i) => `<i class="${i < level ? 'on' : i === level ? 'next' : ''}"></i>`).join('');
     // A level's name: its number, or past the top its mastery's
     const name = (l: number) => (l > top ? t('workshop.mastery', { n: l - top }) : t('workshop.levelN', { n: l }));
@@ -593,12 +650,12 @@ export class WavesModal {
     } else {
       const later = [];
       for (let l = level + 2; l <= Math.min(max, level + 1 + LATER_LEVELS); l++) {
-        later.push(`<li><span>${name(l)}</span><b>${upgradeValue(u.id, l)}</b><span>${coreIcon(12)}${bigNum(levelCost(u, l - 1))}</span></li>`);
+        later.push(`<li><span>${name(l)}</span><b>${upgradeValue(u.id, l)}</b><span>${this.cur(12)}${bigNum(levelCost(u, l - 1))}</span></li>`);
       }
       const short = cost > cash;
       // What its next level adds to the Power
-      const weapon = WavesModal.startChoice(this.account.debugTools.zoom).startWeapon;
-      const gain = wavesPower({ ...p.levels, [u.id]: level + 1 }, weapon).power - wavesPower(p.levels, weapon).power;
+      const weapon = this.powerWeapon();
+      const gain = wavesPower({ ...levels, [u.id]: level + 1 }, weapon).power - wavesPower(levels, weapon).power;
       body =
         `<div class="wv-compare"><div class="wv-now"><small>${t('workshop.now')}</small><b>${upgradeValue(u.id, level)}</b></div>` +
         `<span class="wv-to" aria-hidden="true">${icon('chevronRight', 30)}</span>` +
@@ -606,8 +663,8 @@ export class WavesModal {
         (gain > 0 ? `<div class="wv-gain">${icon('zap', 15)}${t('workshop.powerGain', { n: bigNum(gain) })}</div>` : '') +
         (later.length ? `<ul class="wv-later">${later.join('')}</ul>` : '') +
         `<div class="wv-buyzone"><button type="button" class="wv-buy" data-buy="${u.id}"${short ? ' disabled' : ''}>` +
-        `${level + 1 > top ? t('workshop.masteryTo', { n: level + 1 - top }) : t('workshop.upgradeTo', { n: level + 1 })}<span class="wv-cost">${coreIcon(15)}${bigNum(cost)}</span></button>` +
-        `<small class="${short ? 'short' : ''}">${short ? t('workshop.need', { n: bigNum(cost - cash) }) : t('workshop.left', { n: bigNum(cash - cost) })}</small></div>`;
+        `${level + 1 > top ? t('workshop.masteryTo', { n: level + 1 - top }) : t('workshop.upgradeTo', { n: level + 1 })}<span class="wv-cost">${this.cur(15)}${bigNum(cost)}</span></button>` +
+        `<small class="${short ? 'short' : ''}">${short ? t(horde ? 'horde.need' : 'workshop.need', { n: bigNum(cost - cash) }) : t(horde ? 'horde.left' : 'workshop.left', { n: bigNum(cash - cost) })}</small></div>`;
     }
     $('wvDetail').className = `wv-detail ${u.group}`;
     $('wvDetail').innerHTML =

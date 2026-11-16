@@ -4712,3 +4712,35 @@
     transform: translateX(-50%) scale(1.18);
   }
 }
+
+/* The Horde's Essence (src/client/hordeProgress.ts): violet, beside the Waves' cyan Cores and the Vesuvius's Obsidian */
+.h-wcores.essence {
+  color: #dcbcff;
+}
+
+.h-wcores.essence .h-core {
+  color: #b77cff;
+}
+
+.wend-split.one {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.wc-box.essence {
+  border-color: rgba(183, 124, 255, 0.5);
+  background: linear-gradient(180deg, rgba(40, 20, 64, 0.92), rgba(20, 12, 34, 0.92));
+}
+
+.wc-box.essence .wc-head {
+  color: #dcbcff;
+}
+
+.wc-box.essence .wc-total b {
+  color: #c99bff;
+}
+
+.wc-box.essence .h-essence {
+  width: 24px;
+  height: 24px;
+  color: #b77cff;
+}

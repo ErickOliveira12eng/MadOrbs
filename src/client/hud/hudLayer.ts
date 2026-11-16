@@ -13,6 +13,7 @@ import { adBlockFound, adsAllowed, mountAd, refreshAd } from '../ads';
 import type { WavesEnd, WavesHud } from '../wavesRun';
 import { VES, type VesuviusEnd, type VesuviusHud } from '../vesuviusRun';
 import { forgeAffordable, obsidianBalance } from '../vesuviusProgress';
+import { essenceBalance, hordeAffordable } from '../hordeProgress';
 import type { TutorialAction, TutorialCard, TutorialHud } from '../tutorial';
 import { WAVES } from '../waves';
 import { MILESTONES, affordable, balance, checkpoints, nextMilestone } from '../wavesProgress';
@@ -618,6 +619,7 @@ export class HudLayer {
    * they buy now), the milestones reached, the next one; the Workshop, play again or the menu.
    */
   showWavesEnd(e: WavesEnd & { skin: SkinInfo; guest: boolean; onAction: (action: 'retry' | 'shop' | 'menu' | 'signin') => void }): void {
+    if (e.horde) return this.showHordeEnd(e, e.horde);
     const kills = t(e.kills === 1 ? 'end.oneKill' : 'end.kills', { n: e.kills });
     const head =
       `<div class="wave-reached"><span>${t('waves.label')}</span><b>${e.wave}</b></div>` +
@@ -730,6 +732,52 @@ export class HudLayer {
       if (missing) setTimeout(fill, 250);
     };
     fill();
+  }
+
+  /**
+   * The end of a Horde run (src/client/hordeProgress.ts): the wave and the level reached, a new best, the cards; the
+   * Essence it earned and the balance; the Horde's Workshop, play again or the menu.
+   */
+  private showHordeEnd(e: WavesEnd & { guest: boolean; onAction: (action: 'retry' | 'shop' | 'menu' | 'signin') => void }, h: NonNullable<WavesEnd['horde']>): void {
+    const kills = t(e.kills === 1 ? 'end.oneKill' : 'end.kills', { n: e.kills });
+    const head =
+      `<div class="wave-reached"><span>${t('waves.label')}</span><b>${e.wave}</b></div>` +
+      `<div class="time">${t('horde.level', { n: h.level })} · ${kills}</div>` +
+      (e.test
+        ? `<div class="best">${t('test.run')}</div>`
+        : h.isBest
+          ? `<div class="best new">${t('horde.newBest')}</div>`
+          : h.bestWave
+            ? `<div class="best">${t('horde.best', { n: h.bestWave, l: h.bestLevel })}</div>`
+            : '') +
+      (e.guest && !e.test ? `<div class="save signin"><span>${t('wend.saveHint')}</span><button type="button" data-a="signin">${t('account.signIn')}</button></div>` : '') +
+      (e.cards.length
+        ? `<div class="h-wcards end">${e.cards.map((c) => `<span class="${cardDef(c.id).rarity}" title="${t(`card.${c.id}`)}">${cardIcon(c.id, 'h-cardmini')}<b>${c.level}</b></span>`).join('')}</div>`
+        : '');
+    const o = h.essence;
+    const row = (label: string, n: number) => `<div class="wc-row"><span>${label}</span><b>+${bigNum(n)}</b></div>`;
+    const canBuy = hordeAffordable(h.progress);
+    const box =
+      `<div class="wc-box essence"><div class="wc-head"><span class="wc-ico">${ESSENCE_SVG}</span>${t('horde.essence')}</div>` +
+      row(t('wend.waves', { n: o.waves }), o.waveEssence) +
+      row(t('wend.kills', { n: o.kills }), o.killEssence) +
+      (o.bosses ? row(t(o.bosses === 1 ? 'wend.boss' : 'wend.bosses', { n: o.bosses }), o.bossEssence) : '') +
+      (o.levelEssence ? row(t('horde.levelsRow', { n: o.level }), o.levelEssence) : '') +
+      (o.recordEssence ? row(t('wend.record'), o.recordEssence) : '') +
+      `<div class="wc-total"><span>${t('wend.total')}</span><b>+${bigNum(o.total)}</b></div>` +
+      `<div class="wc-bal">${t('horde.balance', { n: bigNum(essenceBalance(h.progress)) })}${canBuy ? ` · <b>${t(canBuy === 1 ? 'wend.canBuyOne' : 'wend.canBuy', { n: canBuy })}</b>` : ''}</div></div>`;
+    const wait = `<span class="wait">${CAMPAIGN_NEXT_WAIT}</span>`;
+    const buttons =
+      `<button type="button" data-a="menu"><span class="h-key">Esc</span>${t('waves.menu')}</button>` +
+      `<button type="button" class="shop" data-a="shop"><span class="h-key">W</span>${t('waves.shop')}</button>` +
+      `<button type="button" class="primary" data-a="retry" disabled><span class="h-key">Enter</span>${t('waves.retry')}${wait}</button>`;
+    this.openEndPanel(
+      `<div class="t lost">${t('waves.over')}</div><div class="lvl">${t('horde.name')}</div>${head}<div class="wend-split one"><div class="wu-side">${box}</div></div><div class="btns">${buttons}</div>`,
+      'retry',
+      (a) => e.onAction(a === 'menu' ? 'menu' : a === 'shop' ? 'shop' : a === 'signin' ? 'signin' : 'retry'),
+      { KeyW: 'shop' },
+    );
+    this.r.campcard.classList.add('waves');
   }
 
   /**
@@ -974,8 +1022,9 @@ export class HudLayer {
       html += `<div class="h-boss"><b>${esc(b.name)} <small>· ${t('workshop.waveN', { n: b.wave })}</small></b><span><i style="width:${Math.round(Math.max(0, b.life) * 100)}%"></i></span></div>`;
     }
     setHTML(this.r.match, html);
-    // The announcements go down under the boss's bar (they shared the spot)
-    this.r.feat.classList.toggle('low', w.bossLives.length > 0);
+    // The announcements go under the header, however tall (the Horde's level bar, each boss's bar: they shared the spot)
+    const below = this.r.match.offsetTop + this.r.match.offsetHeight + 14;
+    this.r.feat.style.top = below > 104 ? `${below}px` : '';
   }
 
   /** The waves' Tab (Erick, 01/11/2026: the bots' table told nothing): the player's stats. */
@@ -1049,6 +1098,7 @@ export class HudLayer {
         `</div></div>`;
     if (w.record) html += `<div class="h-wrec">${t('waves.record', { n: w.record })}</div>`;
     if (w.cores) html += `<div class="h-wcores">${CORE_SVG}${t('waves.coresRun', { n: bigNum(w.cores) })}</div>`;
+    if (w.horde?.essence) html += `<div class="h-wcores essence">${ESSENCE_SVG}${t('horde.essenceRun', { n: bigNum(w.horde.essence) })}</div>`;
     // The cards taken, with their levels
     if (w.cards.length)
       html += `<div class="h-wcards">${w.cards.map((c) => `<span class="${cardDef(c.id).rarity}" title="${t(`card.${c.id}`)}">${cardIcon(c.id, 'h-cardmini')}<b>${c.level}</b></span>`).join('')}</div>`;
@@ -2237,6 +2287,9 @@ const CORE_SVG =
 /** Obsidian, the Vesuvius's currency (as src/menu/icons.ts draws it). */
 const OBSIDIAN_SVG =
   '<svg class="h-core h-obsidian" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2 4.5 8.5 12 22l7.5-13.5z"/><path fill="#fff" opacity=".55" d="M12 2 9 8.5h6z"/><path fill="none" stroke="#000" stroke-opacity=".35" stroke-width="1" d="M4.5 8.5h15M9 8.5 12 22l3-13.5"/></svg>';
+/** Essence, the Horde's currency (as src/menu/icons.ts draws it): a violet crystal. */
+const ESSENCE_SVG =
+  '<svg class="h-core h-essence" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2 5 12l7 10 7-10z"/><path fill="#fff" opacity=".5" d="M12 2 9 12h6z"/><path fill="none" stroke="#000" stroke-opacity=".3" stroke-width="1" d="M5 12h14"/></svg>';
 const CAMPAIGN_NEXT_WAIT = 3;
 
 /** Seconds before the side banner loads a new ad when it shows again. */

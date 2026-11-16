@@ -14,6 +14,13 @@ export const HORDE = {
    * every Orb at 70% that morning).
    */
   enemyScale: 0.75,
+  /**
+   * The enemies' damage against the waves' (bots, elites, the boss and his attacks; the nuke bot's blast is a share of the
+   * player's life and stays): the map is more open, more of them shoot at once (Erick, 15/11/2026: half).
+   */
+  enemyHit: 0.5,
+  /** The player's spread (Player.spreadScale): steadier, the enemies being smaller (Erick, 15/11/2026). */
+  spread: 0.5,
   /** The energy a fallen enemy leaves: a plain one, an elite (Player.badges), a boss (it also gives the boss's cards). */
   energy: { plain: 1, elite: 3, boss: 20 },
   /**

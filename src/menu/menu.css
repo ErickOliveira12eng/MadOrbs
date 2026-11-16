@@ -2135,10 +2135,6 @@ kbd.mouse .icon {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.training-tuts[hidden] {
-  display: none;
-}
-
 .training-tuts-label {
   color: var(--muted);
   font-size: 12px;
@@ -6522,4 +6518,29 @@ input[type='range'] {
   margin: 4px 0 0;
   color: #ffd36b;
   font: 700 12px/1.35 var(--ui, inherit);
+}
+
+/* The Horde's Workshop (src/client/hordeProgress.ts): the Waves' upgrades bought with Essence, a violet crystal */
+.essence-ico {
+  display: inline-flex;
+  color: #b77cff;
+  filter: drop-shadow(0 0 5px rgba(183, 124, 255, 0.6));
+}
+
+.wv-price.off .essence-ico {
+  color: #5a4a78;
+  filter: none;
+}
+
+.wv-cores.hd-essence {
+  border-color: rgba(183, 124, 255, 0.6);
+  background: linear-gradient(180deg, rgba(46, 24, 72, 0.92), rgba(22, 12, 38, 0.92));
+}
+
+.wv-cores.hd-essence span:last-child {
+  color: #dcbcff;
+}
+
+.hd-side .wv-note {
+  margin-top: 10px;
 }

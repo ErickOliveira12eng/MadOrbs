@@ -12,6 +12,7 @@ import { track } from './analytics';
 import { WavesRenderer, type FloorPower } from './render/wavesRenderer';
 import { BossMoves, type BossHost } from './wavesBoss';
 import { HORDE, energyToNext } from './horde';
+import { hordeIsBest, loadHorde, runEssence, saveHordeRun, type HordeProgress, type RunEssence } from './hordeProgress';
 import { EnergyRenderer, type FloorEnergy } from './render/energyRenderer';
 import { VesuviusRenderer } from './render/vesuviusRenderer';
 import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, BOSSES, ELITE, WAVES, bossCycle, bossKind, bossMoves, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type BossKind, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
@@ -63,7 +64,7 @@ export interface WavesHud {
   /** Cores earned so far (the waves survived, the kills, the bosses; a new record adds more at the end). */
   cores: number;
   /** The Horde (src/client/horde.ts): the level, the energy toward the next one and what it takes; null elsewhere. */
-  horde: { level: number; energy: number; need: number } | null;
+  horde: { level: number; energy: number; need: number; essence: number } | null;
   over: boolean;
 }
 
@@ -104,6 +105,11 @@ export interface WavesEnd {
   startTime: number;
   playTime: number;
   splitsBefore: Record<number, number>;
+  /**
+   * The Horde's run (src/client/hordeProgress.ts; the Waves' record, Cores and checkpoints untouched): the level reached,
+   * the Essence earned and the progress with it, a new best (the wave, then the level) and the best before it.
+   */
+  horde?: { level: number; essence: RunEssence; progress: HordeProgress; isBest: boolean; bestWave: number; bestLevel: number };
 }
 
 type TimedPower = 'speed' | 'rapid' | 'shield' | 'fury';
@@ -280,6 +286,8 @@ export class WavesRun {
    * of the offer on screen (0: not a level up's).
    */
   private readonly size: number;
+  /** The Horde: the enemies' damage (HORDE.enemyHit; 1 elsewhere). */
+  private readonly enemyHit: number;
   private energyFloor: FloorEnergy[] = [];
   private readonly energyRenderer: EnergyRenderer | null = null;
   private level = 1;
@@ -291,11 +299,12 @@ export class WavesRun {
     this.renderer = new WavesRenderer(ctx.scene);
     this.script = !!ctx.tutorial;
     this.tested = this.script;
-    // The Horde: in test, it counts for nothing (no record, Cores nor report); the enemies smaller
+    // The Horde: its own Essence and best (not the Waves' record, Cores, checkpoints nor report); the enemies smaller
     this.size = ctx.horde ? HORDE.enemyScale : 1;
+    this.enemyHit = ctx.horde ? HORDE.enemyHit : 1;
     if (ctx.horde) {
-      this.tested = true;
       this.energyRenderer = new EnergyRenderer(ctx.scene);
+      ctx.me.spreadScale = HORDE.spread;
     }
     ctx.game.lifePackHeal = WAVES.lifePackHeal;
     // A run from a checkpoint: the wave before it counts as done, and a head start of power-ups
@@ -380,7 +389,7 @@ export class WavesRun {
         this.bossesUp.splice(i >= 0 ? i : 0, 1);
         // A checkpoint wave already gone by with its boss alive: saved now that it fell
         const b = this.waveBuild;
-        if (b && b.wave < this.wave && !this.tested && !this.bossesUp.some((w) => w <= b.wave)) {
+        if (b && b.wave < this.wave && !this.tested && !this.ctx.horde && !this.bossesUp.some((w) => w <= b.wave)) {
           this.saveCheckpoint(b.wave, b.build);
           this.waveBuild = null;
         }
@@ -537,7 +546,7 @@ export class WavesRun {
     // A checkpoint wave beaten (the next one begins): the build the run had as that wave began is saved for it (not
     // what its boss gave: a run begun there plays that wave and its boss again)
     // (and only once its boss fell: Erick, 01/11/2026; else when it does, a later wave)
-    if (this.wave >= CHECKPOINT && this.wave % CHECKPOINT === 0 && !this.tested && this.waveBuild?.wave === this.wave && !this.bossesUp.some((w) => w <= this.wave)) {
+    if (this.wave >= CHECKPOINT && this.wave % CHECKPOINT === 0 && !this.tested && !this.ctx.horde && this.waveBuild?.wave === this.wave && !this.bossesUp.some((w) => w <= this.wave)) {
       this.saveCheckpoint(this.wave, this.waveBuild.build);
       this.waveBuild = null;
     }
@@ -652,7 +661,7 @@ export class WavesRun {
     p.timeToSpawn = 0;
     // Tougher and harder hitting each wave (waveSpec), a little slower than the player
     p.damageScale = this.spec.toughness;
-    p.damageBoost = this.spec.hitBoost;
+    p.damageBoost = this.spec.hitBoost * this.enemyHit;
     p.speedBoost = WAVES.botSpeed;
     // What lies on the floor (life packs, grenades) is the player's; a fallen bot doesn't always leave one
     p.takesLifePacks = false;
@@ -866,7 +875,7 @@ export class WavesRun {
     p.damageScale = WAVES.boss.defence * this.spec.toughness;
     p.lifeMax = (WAVES.boss.life * WAVES.boss.defence) / tough;
     p.pointScale = p.lifeMax;
-    p.damageBoost = this.spec.hitBoost * strength.hit;
+    p.damageBoost = this.spec.hitBoost * strength.hit * this.enemyHit;
     p.speedBoost = WAVES.botSpeed;
     // Its weapon, and the best shot of the wave (WAVES.boss); no recoil (Erick, 01/11/2026: the chain gun pushed it
     // back at every burst, it seemed to run away from the player)
@@ -1636,6 +1645,7 @@ export class WavesRun {
     this.over = true;
     const kills = this.ctx.me.kills;
     const reached = Math.max(this.ctx.startWave, this.wave);
+    if (this.ctx.horde) return this.finishHorde(reached, kills);
     // The record never past a boss that didn't fall (its time and checkpoints with it)
     const wave = recordWave(this.ctx.startWave, reached, this.bosses);
     const test = this.tested;
@@ -1670,6 +1680,37 @@ export class WavesRun {
       startTime,
       playTime,
       splitsBefore,
+    };
+  }
+
+  /** The Horde's run is over: its Essence and best saved (a tester's run: nothing), the Waves' untouched. */
+  private finishHorde(reached: number, kills: number): WavesEnd {
+    const test = this.tested;
+    const before = loadHorde();
+    const isBest = !test && hordeIsBest(reached, this.level, before);
+    const essence = runEssence(test ? 1 : reached, test ? 0 : kills, test ? 0 : this.bosses, test ? 1 : this.level, isBest);
+    const progress = test ? before : saveHordeRun(essence.total, reached, this.level);
+    return {
+      wave: reached,
+      recordWave: reached,
+      kills,
+      seconds: this.elapsed,
+      isBest,
+      best: null,
+      startWave: 1,
+      recordBefore: 0,
+      cores: { waves: 0, waveCores: 0, kills, killCores: 0, bosses: this.bosses, bossCores: 0, recordCores: 0, total: 0 },
+      progress: loadProgress(),
+      unlocked: [],
+      cards: this.cardList(),
+      test,
+      time: null,
+      deaths: this.deathsBefore,
+      splits: {},
+      startTime: 0,
+      playTime: 0,
+      splitsBefore: {},
+      horde: { level: this.level, essence, progress, isBest, bestWave: before.bestWave, bestLevel: before.bestLevel },
     };
   }
 
@@ -1712,7 +1753,9 @@ export class WavesRun {
       record: this.script || this.ctx.horde ? null : (this.record?.wave ?? null),
       // How much tougher and harder hitting the wave's bots are than on wave 1
       scale: this.script ? { life: 1, hit: 1 } : { life: 1 / this.spec.toughness, hit: this.spec.hitBoost },
-      horde: this.ctx.horde ? { level: this.level, energy: this.energy, need: energyToNext(this.level) } : null,
+      horde: this.ctx.horde
+        ? { level: this.level, energy: this.energy, need: energyToNext(this.level), essence: this.tested ? 0 : runEssence(Math.max(1, this.wave), me.kills, this.bosses, this.level, false).total }
+        : null,
       cores: this.script || this.ctx.horde ? 0 : runCores(this.ctx.startWave, Math.max(this.ctx.startWave, this.wave), me.kills, this.bosses, false).total,
       over: this.over,
     };

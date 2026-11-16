@@ -74,6 +74,7 @@ const ICONS = {
   orbs: '<circle cx="9" cy="12" r="6" /> <path d="M15 6.5a6 6 0 1 1 0 11" />',
   // Obsidian, the Vesuvius's currency: a cut gem of dark glass
   obsidian: '<path fill="currentColor" stroke="none" d="M12 2 4.5 8.5 12 22l7.5-13.5z" /> <path fill="#fff" stroke="none" opacity=".55" d="M12 2 9 8.5h6z" /> <path stroke="#000" stroke-opacity=".35" stroke-width="1" d="M4.5 8.5h15M9 8.5 12 22l3-13.5" />',
+  essence: '<path fill="currentColor" stroke="none" d="M12 2 5 12l7 10 7-10z" /> <path fill="#fff" stroke="none" opacity=".5" d="M12 2 9 12h6z" /> <path stroke="#000" stroke-opacity=".3" stroke-width="1" d="M5 12h14" />',
   core: '<circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".45" /> <circle cx="12" cy="12" r="7" fill="currentColor" stroke="none" /> <circle cx="9.8" cy="9.6" r="2.4" fill="#fff" stroke="none" opacity=".75" />',
 } as const;
 

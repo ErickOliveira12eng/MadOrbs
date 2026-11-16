@@ -156,7 +156,7 @@ export interface ClientGameOptions {
    * The waves mode (offline, src/client/waves.ts) instead of a training match: the wave to begin on,
    * the weapon to spawn with, the Workshop's levels (src/client/wavesProgress.ts).
    */
-  /** `horde`: the Horde (src/client/horde.ts), the waves with smaller Orbs, energy and levels (in test). */
+  /** `horde`: the Horde (src/client/horde.ts), the waves with smaller enemies, energy and levels, its own Workshop's `levels`. */
   waves?: { startWave: number; startWeapon: number; levels: Levels; horde?: boolean };
   /** The end of a waves run: what the player chose (again, the Workshop, or back to the menu). */
   onWavesAction?: (action: 'retry' | 'shop' | 'menu' | 'signin') => void;
@@ -742,7 +742,8 @@ export class ClientGame {
 
   private endWaves(end: WavesEnd): void {
     this.reportWavesEnd('died', end);
-    track('waves_end', { wave: end.wave, kills: end.kills, seconds: Math.round(end.seconds), new_best: end.isBest, start_wave: end.startWave, cores: end.cores.total, fps: this.fps() });
+    if (end.horde) track('horde_end', { wave: end.wave, level: end.horde.level, kills: end.kills, seconds: Math.round(end.seconds), new_best: end.horde.isBest, essence: end.horde.essence.total, fps: this.fps() });
+    else track('waves_end', { wave: end.wave, kills: end.kills, seconds: Math.round(end.seconds), new_best: end.isBest, start_wave: end.startWave, cores: end.cores.total, fps: this.fps() });
     // A tester's run counts for nothing: the account keeps what it had
     if (!end.test) this.opts.onWavesEnd?.(end);
     // The mouse comes back for the buttons, with the system's cursor
@@ -1152,7 +1153,7 @@ export class ClientGame {
       this.waves?.leave();
     } else if (this.camp && !this.camp.over) track('campaign_level_quit', { ...this.levelInfo(), seconds });
     else if (this.waves && !this.waves.over) {
-      track('waves_quit', { wave: this.waves.waveNumber, kills: this.me.kills, seconds });
+      track(this.opts.waves?.horde ? 'horde_quit' : 'waves_quit', { wave: this.waves.waveNumber, kills: this.me.kills, seconds });
       // Leaving counts: the wave reached goes to the record and to the account
       const left = this.waves.leave();
       this.reportWavesEnd('quit', left);

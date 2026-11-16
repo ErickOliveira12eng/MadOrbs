@@ -252,6 +252,7 @@
             <section class="info-block">
               <h2 data-i18n="home.newsTitle">What's new</h2>
               <ul class="info-news">
+                <li><time datetime="2026-11-15" data-i18n="home.news99Date">November 15, 2026</time><b data-i18n="home.news99Title">A new mode: the Horde</b><span data-i18n="home.news99">The Survival window has a third tab, the Horde: the Waves on a map twice as big, with smaller enemies coming from all around you. Each enemy that falls leaves energy on the floor; walk over it to fill the level bar, and each level brings three cards to choose from. The Horde has its own Workshop and its own currency, Essence, earned in every run.</span></li>
                 <li><time datetime="2026-11-07" data-i18n="home.news98Date">November 7, 2026</time><b data-i18n="home.news98Title">Waves: a different boss every ten waves</b><span data-i18n="home.news98">The boss now changes. After the Big Eye of wave 10 come the Gunner (wave 20: missiles from the sky onto circles on the floor), the Pyromancer (30: lava bombs and a ring of fire with a gap), the Bull (40: a red line shows where it will run) and the Summoner (50: it calls bots around it). From wave 60 they come back, each one with the next one's attack too. Every attack is marked on the floor before it lands. The start screen opens the ranking on Survival, and at the end of a Waves run a player without an account can sign in to keep the progress. The start screen also has new pictures of each mode, and the Survival card shows the next boss you will face and tells you when the Vesuvius is unlocked.</span></li>
                 <li><time datetime="2026-11-05" data-i18n="home.news97Date">November 5, 2026</time><b data-i18n="home.news97Title">Waves: the Reaper takes less</b><span data-i18n="home.news97">The mythic Reaper card was too strong: an enemy now falls to any hit of yours below 3%, 4% or 5% of its life by its level (it was 15%, 20% and 25%). The boss still takes triple damage there.</span></li>
                 <li><time datetime="2026-11-05" data-i18n="home.news96Date">November 5, 2026</time><b data-i18n="home.news96Title">Waves: the Vampire card at half</b><span data-i18n="home.news96">The Vampire card now gives back half the life a kill: 1 to 5 points by its level (it was 2 to 10). With the crowds of the high waves it healed too much.</span></li>
@@ -537,6 +538,7 @@
           <div id="wvModes" class="wv-modes" role="tablist">
             <button type="button" class="on" data-mode="waves" role="tab" aria-selected="true"><span data-icon="waves"></span><span data-i18n="menu.waves">Waves</span></button>
             <button type="button" data-mode="vesuvius" role="tab" aria-selected="false"><span class="vs-tab-ico"></span><span data-i18n="vesuvius.name">Vesuvius</span></button>
+            <button type="button" data-mode="horde" role="tab" aria-selected="false"><span data-icon="orbs"></span><span data-i18n="horde.name">Horde</span></button>
           </div>
           <a class="camp-guide wv-guide" data-i18n-attr="href=link.waves" href="/waves" target="_blank" rel="noopener" data-i18n="campaign.howItWorks">How it works</a>
           <span class="wv-chips"><span id="wvRecord" class="wv-record" hidden></span><span id="wvPower" class="wv-power"></span><span id="wvCores" class="wv-cores"></span><span id="vsObsidian" class="wv-cores vs-obsidian" hidden></span></span>
@@ -563,6 +565,12 @@
               <div id="wvWeapons" class="wv-weapon-pick"></div>
             </div>
             <div id="wvDaily" class="wv-daily"></div>
+            <!-- The Horde's tab (src/client/hordeProgress.ts): its best, its runs, what it is -->
+            <div id="hdSide" class="wv-box hd-side" hidden>
+              <h3 data-i18n="horde.yours">Your Horde</h3>
+              <div id="hdRecord" class="wv-facts"></div>
+              <p class="wv-note" data-i18n="horde.about"></p>
+            </div>
             <button id="wvPlay" class="wv-play" type="button"></button>
           </aside>
         </div>
@@ -710,10 +718,6 @@
           <span class="training-tuts-label" data-i18n="training.tutorials">Tutorials</span>
           <button id="tutorialPvp" class="btn-ghost" type="button"><span data-icon="crosshair"></span><span data-i18n="training.tutPvp">PvP: shooting range</span></button>
           <button id="tutorialWaves" class="btn-ghost" type="button"><span data-icon="waves"></span><span data-i18n="training.tutWaves">Waves</span></button>
-        </div>
-        <div id="trainingTesting" class="training-tuts" hidden>
-          <span class="training-tuts-label" data-i18n="training.testing">In test</span>
-          <button id="hordeTest" class="btn-ghost" type="button"><span data-icon="sparkles"></span><span data-i18n="training.horde">Horde</span></button>
         </div>
         <footer class="modal-foot">
           <button class="btn-play small" type="submit"><span data-icon="swords"></span><span data-i18n="training.start">Start training</span></button>

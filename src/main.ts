@@ -13,6 +13,7 @@ import { AudioPanel } from './menu/audioPanel';
 import { setUserProperty, track } from './client/analytics';
 import { WAVES_MAP } from './client/waves';
 import { HORDE_MAP } from './client/horde';
+import { loadHorde } from './client/hordeProgress';
 import { NO_LEVELS, loadProgress as loadWavesProgress } from './client/wavesProgress';
 import { RANGE_MAP, type TutorialKind } from './client/tutorial';
 import { markTutorial } from './menu/tutorialModal';
@@ -72,8 +73,8 @@ const langRoot = () => (lang() === 'en' ? '' : `/${lang()}`);
 /**
  * `level`: a campaign level (offline, src/client/campaign.ts; out of the game since 26/10/2026, Erick: nothing starts
  * one now, the code stays for now); `room`: a private room (online); `tutorial`: one of the
- * tutorials (offline, src/client/tutorial.ts); `vesuvius`: the Vesuvius (src/sim/vesuvius.ts); `horde`: the Horde (in test,
- * src/client/horde.ts), the waves on a bigger map with smaller Orbs and levels, from scratch.
+ * tutorials (offline, src/client/tutorial.ts); `vesuvius`: the Vesuvius (src/sim/vesuvius.ts); `horde`: the Horde
+ * (src/client/horde.ts), the waves on a bigger map with smaller enemies and levels, with its own Workshop.
  */
 async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, room?: PrivateRoomJoin, tutorial?: TutorialKind, vesuvius = false, horde = false): Promise<void> {
   // Phones and tablets play nothing (a keyboard and a mouse): a window says where to (src/menu/pcOnly.ts)
@@ -169,15 +170,18 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
         onProgress,
       );
     } else if (horde) {
-      // The Horde (src/client/horde.ts, in test): the waves on its bigger map, from scratch (no Workshop, the SMG)
+      // The Horde (src/client/horde.ts): the waves on its bigger map, from wave 1 with the SMG and its own Workshop's levels
       game = await ClientGame.create(
         $('game'),
         {
           ...common,
           mode: 'tdm',
           mapName: HORDE_MAP,
-          waves: { startWave: 1, startWeapon: WEAPON_SMG, levels: { ...NO_LEVELS }, horde: true },
+          waves: { startWave: 1, startWeapon: WEAPON_SMG, levels: loadHorde().levels, horde: true },
           testTools: account.debugTools.zoom,
+          signedIn: account.signedIn,
+          // Its Essence and best (src/client/hordeProgress.ts): kept in the account too
+          onWavesEnd: () => void account.saveHordeProgress(),
           onWavesAction: (action) => {
             afterQuit =
               action === 'retry'
@@ -185,7 +189,7 @@ async function startGame(mode: PlayMode, level?: CampaignLevel, waves = false, r
                 : () => {
                     screen.show();
                     void audio.playMusic(MENU_MUSIC, 255);
-                    if (action === 'shop') screen.openWaves();
+                    if (action === 'shop') screen.openWaves('horde');
                     else if (action === 'signin') screen.openAccount();
                   };
             game.quit();

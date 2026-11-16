@@ -12,6 +12,7 @@ import { cleanSplits, mergeWavesRecord, type WavesRecord } from '../client/waves
 import { visitor } from '../client/wavesReport';
 import { cleanBuilds, cleanLevels, loadProgress as loadWavesProgress, mergeBuilds, mergeProgress as mergeWavesProgress, type CheckpointBuild } from '../client/wavesProgress';
 import { cleanBest, cleanForge, loadVesuvius, mergeVesuvius } from '../client/vesuviusProgress';
+import { loadHorde, mergeHorde } from '../client/hordeProgress';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../net/supabase';
 import type { VesuviusAccess } from '../sim/vesuvius';
 
@@ -34,6 +35,12 @@ const STORAGE_KEY = 'madorbs.auth';
 const OWNER_KEY = 'madorbs.progressOwner';
 /** This browser's progress kept for the account (the waves, their Workshop, the Vesuvius, the campaign, the records). */
 const PROGRESS_KEYS = ['madorbs.waves', 'madorbs.wavesProgress', 'madorbs.vesuvius', 'madorbs.campaign', 'madorbs.records'];
+/**
+ * The Horde's progress (madorbs.horde) goes with them once the account can keep it (horde_progress read: the SQL
+ * 20261115120000_horde_progress.sql ran); until then it stays in this browser, or signing out would lose it.
+ */
+const HORDE_KEY = 'madorbs.horde';
+let hordeInAccount = false;
 
 function progressOwner(): string {
   try {
@@ -56,6 +63,7 @@ function setProgressOwner(id: string): void {
 function clearLocalProgress(): void {
   try {
     for (const key of PROGRESS_KEYS) localStorage.removeItem(key);
+    if (hordeInAccount) localStorage.removeItem(HORDE_KEY);
   } catch {
     /* storage unavailable */
   }
@@ -203,7 +211,7 @@ export class Account {
     // into this one, the account's own comes instead
     const owner = progressOwner();
     if (owner && owner !== id) clearLocalProgress();
-    const [profile, stats, campaign, waves, wavesProgress, vesuvius] = await Promise.all([
+    const [profile, stats, campaign, waves, wavesProgress, vesuvius, horde] = await Promise.all([
       client.from('profiles').select(PROFILE_COLUMNS).eq('id', id).maybeSingle(),
       client.from('player_stats').select(STATS_COLUMNS).eq('user_id', id),
       client.from('campaign_progress').select('level, best_seconds').eq('user_id', id),
@@ -213,7 +221,17 @@ export class Account {
       client.from('waves_progress').select('*').eq('user_id', id).maybeSingle(),
       // (only once 20261031140000_vesuvius_progress.sql ran: until then a warning, and the browser keeps it)
       client.from('vesuvius_progress').select('*').eq('user_id', id).maybeSingle(),
+      // (only once 20261115120000_horde_progress.sql ran: until then a warning, and the browser keeps it)
+      client.from('horde_progress').select('*').eq('user_id', id).maybeSingle(),
     ]);
+    // The Horde's Essence, Workshop, best and runs: the account's and this browser's, the most of each in both
+    if (horde.error) console.warn('[account] cannot read the Horde progress', horde.error.message);
+    else {
+      hordeInAccount = true;
+      const row = horde.data as { earned: number; levels: unknown; best_wave: number; best_level: number; runs: number } | null;
+      const { upload } = mergeHorde(row ? { earned: row.earned, levels: cleanLevels(row.levels), bestWave: row.best_wave, bestLevel: row.best_level, runs: row.runs } : null);
+      if (upload) void this.saveHordeProgress();
+    }
     // The Vesuvius's Obsidian, Forge, best time and wins: the account's and this browser's, the most of each in both
     if (vesuvius.error) console.warn('[account] cannot read the Vesuvius progress', vesuvius.error.message);
     else {
@@ -303,7 +321,7 @@ export class Account {
     const client = this.client;
     // What this browser has the account may not have yet goes up first; then this browser keeps nothing of it (the next
     // one to play here starts as a guest, and another account signing in doesn't get it)
-    if (this.session) await Promise.allSettled([this.saveWavesProgress(), this.saveVesuviusProgress()]);
+    if (this.session) await Promise.allSettled([this.saveWavesProgress(), this.saveVesuviusProgress(), this.saveHordeProgress()]);
     if (client) await client.auth.signOut({ scope: 'local' });
     this.session = null;
     this.profile = null;
@@ -459,6 +477,14 @@ export class Account {
     const p = loadVesuvius();
     const { error } = await this.client.rpc('record_vesuvius_progress', { p_earned: p.earned, p_levels: p.levels, p_best_time: p.best, p_wins: p.wins, p_runs: p.runs });
     if (error) console.warn('[account] cannot save the Vesuvius progress', error.message);
+  }
+
+  /** The Horde's Essence, Workshop, best or runs changed: the account keeps the most of each (horde_progress). */
+  async saveHordeProgress(): Promise<void> {
+    if (!this.client || !this.session) return;
+    const p = loadHorde();
+    const { error } = await this.client.rpc('record_horde_progress', { p_earned: p.earned, p_levels: p.levels, p_best_wave: p.bestWave, p_best_level: p.bestLevel, p_runs: p.runs });
+    if (error) console.warn('[account] cannot save the Horde progress', error.message);
   }
 
   /** A game mode's ranking (for guests too: Supabase's client loads for it). */

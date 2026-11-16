@@ -121,7 +121,7 @@ export class StartScreen {
     onTutorial: (kind: TutorialKind) => void,
     /** The Vesuvius (src/sim/vesuvius.ts), from the Survival window's tab once the server opened it. */
     onVesuvius: () => void,
-    /** The Horde (src/client/horde.ts, in test): Training's button, for the testers' accounts only. */
+    /** The Horde (src/client/horde.ts), from the Survival window's Horde tab. */
     onHorde: () => void,
   ) {
     for (const el of document.querySelectorAll<HTMLElement>('[data-icon]')) el.innerHTML = icon(el.dataset.icon as IconName, 20);
@@ -192,6 +192,11 @@ export class StartScreen {
         this.playedTab = 'vesuvius';
         onVesuvius();
       },
+      () => {
+        this.play('offline', false);
+        this.playedTab = 'waves';
+        onHorde();
+      },
     );
     // The first time: the tutorial, or a run at once (no Workshop yet: nothing to buy)
     const tutorial = (kind: TutorialKind) => {
@@ -221,8 +226,6 @@ export class StartScreen {
       },
       () => this.markMode(),
       tutorial,
-      () => account.debugTools.zoom,
-      onHorde,
     );
     this.buildModes();
     for (const id of ['orbButton', 'orbCustomize']) $(id).addEventListener('click', () => this.picker.open());
@@ -486,8 +489,8 @@ export class StartScreen {
   }
 
   /** The waves' Workshop (its card, or back from a run that asked for it): the ranking beside it on the Survival tab. */
-  openWaves(mode: 'waves' | 'vesuvius' = 'waves'): void {
-    this.lobbyRanking.showTab(mode);
+  openWaves(mode: 'waves' | 'vesuvius' | 'horde' = 'waves'): void {
+    this.lobbyRanking.showTab(mode === 'horde' ? 'waves' : mode);
     this.waves.open(mode);
   }
 
