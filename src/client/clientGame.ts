@@ -110,8 +110,11 @@ import { track } from './analytics';
 import { t } from '../i18n';
 
 const Z_AXIS = new Vec3(0, 0, 1);
-/** The Horde energy sound's run: a semitone up each pickup, up to `top`; back down after `reset` s; at most `most` a second. */
-const ENERGY_RUN = { top: 12, reset: 0.6, most: 25 };
+/**
+ * The Horde energy sound (the life pack's, sped up: Erick, 15/11/2026): `rate` its speed, a semitone up each pickup in a row,
+ * up to `top`; back down after `reset` s; `big` the speed for a big one (a boss's, merged ones); at most `most` a second.
+ */
+const ENERGY_RUN = { rate: 1.8, big: 1.3, top: 7, reset: 0.6, most: 25 };
 
 export interface ClientGameOptions {
   playerName: string;
@@ -746,17 +749,17 @@ export class ClientGame {
   }
 
   /**
-   * The Horde's energy taken: a short "pling" (src/client/sounds.ts), a semitone higher for each one taken in a row, back
-   * down after a pause; a big one (a boss's, merged ones) lower. At most ENERGY_RUN.most a second.
+   * The Horde's energy taken: the life pack's sound sped up (ENERGY_RUN), a semitone higher for each one taken in a row,
+   * back down after a pause; a big one (a boss's, merged ones) slower. At most ENERGY_RUN.most a second.
    */
   private energySound(value: number): void {
     const now = performance.now();
     if (now - this.energyRun.at > ENERGY_RUN.reset * 1000) this.energyRun.step = 0;
     if (!audio.ready('energy', 1 / ENERGY_RUN.most)) return;
     this.energyRun.at = now;
-    const rate = value >= 10 ? 0.7 : Math.pow(2, Math.min(ENERGY_RUN.top, this.energyRun.step) / 12);
+    const rate = value >= 10 ? ENERGY_RUN.big : ENERGY_RUN.rate * Math.pow(2, Math.min(ENERGY_RUN.top, this.energyRun.step) / 12);
     this.energyRun.step++;
-    const src = audio.play(this.sounds.energy, 150);
+    const src = audio.play(this.sounds.lifePack, 170);
     if (src) src.playbackRate.value = rate;
   }
 
