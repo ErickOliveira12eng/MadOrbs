@@ -4,10 +4,18 @@
 // Nothing of it counts yet (a tester's run: no record, Cores nor report).
 import { waveSpec } from './waves';
 
-/** The waves' CTF-Invaders made twice as big (tools/make-horde-map.mjs). */
-export const HORDE_MAP = 'HORDE-Invaders';
+/** A big field of ruins (tools/make-horde-map.mjs). */
+export const HORDE_MAP = 'HORDE-Ruins';
 
 export const HORDE = {
+  /**
+   * A swarm (Erick, 16/11/2026: "the damage smaller, the volume bigger"): each wave brings `count` times the waves'
+   * enemies, each with `life` of the life and `hit` of the damage (on top of `enemyHit`; the plain ones, the elites and
+   * the boss's escorts: the boss and the nuke bot keep theirs), and `rush` of them come right at the player
+   * (BotController.rush; the waves' WAVES.rushShare). The energy a level asks grows with `count` (energyToNext), the
+   * Essence of the kills and the Vampire card's life a kill shrink with it.
+   */
+  swarm: { count: 3, life: 0.4, hit: 0.35, rush: 0.75 },
   /**
    * The enemies' size against the other modes' (hits, walls and drawing: Player.radius), the bosses' too; the player and
    * his allies (the Shadow, the undead) keep theirs, and the camera is the waves' (Erick, 15/11/2026: 25% smaller; it was
@@ -38,7 +46,7 @@ export const HORDE = {
     epic: { chance: 0.06, from: 3, life: 4, energy: 1.5, cards: 0.6 },
   },
   /** The energy a fallen enemy leaves: a plain one, an elite (Player.badges), a boss (it also gives the boss's cards). */
-  energy: { plain: 1, elite: 3, boss: 20 },
+  energy: { plain: 1, elite: 3, boss: 60 },
   /**
    * The energy on the floor: taken by walking over it (Erick, 15/11/2026), when it is within the player's radius + `take`;
    * with the Workshop's Magnetism (wavesProgress.ts MAGNET), from its reach it flies to him at `pull` cells a second or more. It never goes away (after Vampire Survivors: none lost), and with more
@@ -53,12 +61,12 @@ export const HORDE = {
 } as const;
 
 /** The energy the first wave's enemies leave: the first level up comes with the first wave cleared (Erick). */
-const FIRST = waveSpec(1).total * HORDE.energy.plain;
+const FIRST = Math.round(waveSpec(1).total * HORDE.swarm.count) * HORDE.energy.plain;
 
 /**
  * The energy from level `level` to the next: the first wave's for the first, then 2 more each level (about a level a
  * wave at first, every second wave by wave 20: the waves bring more enemies, and elites worth more, as they go).
  */
 export function energyToNext(level: number): number {
-  return FIRST + 2 * (level - 1);
+  return FIRST + 2 * HORDE.swarm.count * (level - 1);
 }

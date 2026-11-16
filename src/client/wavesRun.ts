@@ -228,6 +228,8 @@ export class WavesRun {
   private bosses = 0;
   /** Whether the player was alive last tick (a spawn: the Workshop's grenades), the second winds left. */
   private wasAlive = false;
+  /** The player has spawned once (the Horde's start in the middle). */
+  private started = false;
   private windLeft: number;
   /** The run's limit on each permanent power-up (the Workshop), the abilities' cooldowns left. */
   private permCap: number;
@@ -334,7 +336,7 @@ export class WavesRun {
     ctx.game.lifePackHeal = WAVES.lifePackHeal;
     // A run from a checkpoint: the wave before it counts as done, and a head start of power-ups
     this.wave = ctx.startWave - 1;
-    this.spec = waveSpec(ctx.startWave);
+    this.spec = this.specOf(ctx.startWave);
     this.permCap = PERM_CAP_BASE + PERM_CAP_STEP * ctx.levels.cap;
     this.rerolls = ctx.levels.reroll;
     // The build saved when a run last beat this checkpoint: its crates' upgrades and its cards (Erick, 27/10/2026);
@@ -399,6 +401,15 @@ export class WavesRun {
     if (!me.isAlive) {
       for (const p of this.allies) if (p.isAlive) this.vanish(p);
     } else if (!this.wasAlive) this.reviveAllies();
+    // The Horde: the run begins in the middle of the map (its first spawn point, tools/make-horde-map.mjs)
+    if (this.ctx.horde && me.isAlive && !this.wasAlive && !this.started) {
+      const at = this.ctx.game.map.dmSpawns[0];
+      if (at) {
+        me.currentCF.position.set(at.x, at.y, me.currentCF.position.z);
+        me.lastCF.position.copy(me.currentCF.position);
+      }
+    }
+    if (me.isAlive) this.started = true;
     this.wasAlive = me.isAlive;
     // The second wind saved the player
     if (me.secondWind < this.windLeft) {
@@ -522,7 +533,7 @@ export class WavesRun {
     // Vampire: life back for each kill
     if (me.kills > this.killsSeen) {
       // (points of life: a bigger bar fills less of it)
-      if (this.cards.vampire && me.isAlive) me.life = Math.min(1, me.life + (card('vampire') * (me.kills - this.killsSeen)) / me.lifeMax);
+      if (this.cards.vampire && me.isAlive) me.life = Math.min(1, me.life + (card('vampire') * (me.kills - this.killsSeen)) / me.lifeMax / (this.ctx.horde ? HORDE.swarm.count : 1));
       this.killsSeen = me.kills;
     }
     // Grenadier: a grenade comes back by itself now and then
@@ -580,7 +591,7 @@ export class WavesRun {
     }
     this.wave++;
     if (this.wave % CHECKPOINT === 0) this.waveBuild = { wave: this.wave, build: this.build() };
-    this.spec = waveSpec(this.wave);
+    this.spec = this.specOf(this.wave);
     this.phase = 'fight';
     this.deathsBefore = this.ctx.me.deaths;
     this.firstWaveAt ??= this.elapsed;
@@ -690,6 +701,11 @@ export class WavesRun {
     // Tougher and harder hitting each wave (waveSpec), a little slower than the player
     p.damageScale = this.spec.toughness;
     p.damageBoost = this.spec.hitBoost * this.enemyHit;
+    // The Horde's swarm: weaker, many more of them (HORDE.swarm)
+    if (this.ctx.horde) {
+      p.damageScale /= HORDE.swarm.life;
+      p.damageBoost *= HORDE.swarm.hit;
+    }
     p.speedBoost = WAVES.botSpeed;
     // What lies on the floor (life packs, grenades) is the player's; a fallen bot doesn't always leave one
     p.takesLifePacks = false;
@@ -733,7 +749,7 @@ export class WavesRun {
     if (this.ctx.horde) bots[i].fireRange = HORDE.fireRange;
     // Some come right at the player, the snipers keep their distance (WAVES.rushShare)
     const keeps = traits.includes('sniper') || loadout.primary === WEAPON_SNIPER;
-    bots[i].rush = !keeps && (traits.includes('brute') || traits.includes('fast') || Math.random() < WAVES.rushShare);
+    bots[i].rush = !keeps && (traits.includes('brute') || traits.includes('fast') || Math.random() < (this.ctx.horde ? HORDE.swarm.rush : WAVES.rushShare));
     if (escort) {
       bots[i].escort = escort.of;
       bots[i].escortSide = escort.side;
@@ -976,6 +992,12 @@ export class WavesRun {
         break;
       }
     }
+  }
+
+  /** Wave `n`'s numbers (waves.ts waveSpec); the Horde's: a swarm, HORDE.swarm.count times the enemies. */
+  private specOf(n: number): WaveSpec {
+    const spec = waveSpec(n);
+    return this.ctx.horde ? { ...spec, total: Math.round(spec.total * HORDE.swarm.count) } : spec;
   }
 
   /** The Horde: a crate's kind as it comes (HORDE.crates); 0 elsewhere. */

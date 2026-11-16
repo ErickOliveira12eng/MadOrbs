@@ -4,6 +4,7 @@
 // bought apart: the Waves' Workshop doesn't count in the Horde, nor the Horde's in the Waves. The best wave and level
 // reached. Kept in this browser (madorbs.horde) and, signed in, in the account (horde_progress).
 import { NO_LEVELS, UPGRADES, cleanLevels, levelCost, spent, topLevel, waveCores, type Levels, type Upgrade, type UpgradeID } from './wavesProgress';
+import { HORDE } from './horde';
 
 const KEY = 'madorbs.horde';
 const MAX_ESSENCE = 100_000_000;
@@ -33,7 +34,8 @@ export interface RunEssence {
 export function runEssence(wave: number, kills: number, bosses: number, level: number, isBest: boolean): RunEssence {
   let we = 0;
   for (let n = 1; n < wave; n++) we += waveCores(n);
-  const killEssence = Math.floor(Math.max(0, kills) / ESSENCE.kills);
+  // (the swarm: HORDE.swarm.count times the waves' enemies, each worth that much less)
+  const killEssence = Math.floor(Math.max(0, kills) / (ESSENCE.kills * HORDE.swarm.count));
   const bossEssence = bosses * ESSENCE.boss;
   const levelEssence = Math.max(0, level - 1) * ESSENCE.level;
   const recordEssence = isBest ? ESSENCE.record : 0;

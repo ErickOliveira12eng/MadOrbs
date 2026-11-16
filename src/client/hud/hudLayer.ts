@@ -1763,6 +1763,10 @@ export class HudLayer {
       if (f.vesuvius && p.pointScale > 1) continue;
       const pt = f.project(p);
       if (!pt) continue;
+      // The Horde's swarm (Erick, 16/11/2026): no names over the crowd, only an elite's mark, the nuke's fuse and the
+      // bar of one hurt (the bosses keep theirs)
+      const swarm = !!f.waves?.horde && p.teamID === PLAYER_TEAM_RED && p.radius <= 0.3;
+      if (swarm && !p.badges.length && p.countdown <= 0 && p.life >= 0.995 && !this.hpTrail.has(p.playerID)) continue;
       let el = this.tagEls[n];
       if (!el) {
         el = document.createElement('span');
@@ -1787,7 +1791,7 @@ export class HudLayer {
       const mark = f.online && p.isBot ? `<span class="bot">${t('table.bot')}</span>` : p.pingFrames > 12 ? '<span class="lag">LAG</span>' : '';
       // The waves' nuke bot armed: the seconds left over its head
       const fuse = p.countdown > 0 ? `<b class="h-fuse">${Math.ceil(p.countdown)}</b>` : '';
-      setHTML(el.firstElementChild as HTMLElement, fuse + p.badges.map((b) => BADGE_ICON[b] ?? '').join('') + esc(p.name) + mark);
+      setHTML(el.firstElementChild as HTMLElement, fuse + p.badges.map((b) => BADGE_ICON[b] ?? '').join('') + (swarm ? '' : esc(p.name) + mark));
       if (hurt) {
         const bar = el.lastElementChild as HTMLElement;
         const fill = bar.lastElementChild as HTMLElement;
