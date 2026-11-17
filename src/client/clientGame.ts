@@ -107,7 +107,7 @@ import { ViewOverlay, scopeAlpha } from './ui/viewOverlay';
 import { VIEW_ASPECT, fitView, type ViewRect } from './view';
 import { modeName, modeOfGameType, teamName } from './modes';
 import { track } from './analytics';
-import { t } from '../i18n';
+import { t, type Key } from '../i18n';
 
 const Z_AXIS = new Vec3(0, 0, 1);
 /**
@@ -518,6 +518,12 @@ export class ClientGame {
         if (audio.ready('armsShot', 1 / 12)) audio.play3D(this.sounds.weapon[WEAPON_SMG], 4, p1, 90, false, 'sfx', 0.08);
       },
       onArmsRockets: (position) => audio.play3D(this.sounds.weapon[WEAPON_BAZOOKA], 6, position, 150),
+      // The waves between the bosses (src/client/wavesEvents.ts): a modifier, a mini-boss, a challenge begins, is done or lost
+      onWaveEvent: (key, params) => {
+        const look = key === 'goal.done' ? banner('#fff4c8', '#ffc21a') : key === 'goal.fail' ? banner('#e8e8ee', '#8890a8') : key.startsWith('goal.') ? banner('#fff4c8', '#ffb000') : banner('#ffd8c8', '#ff5a2e');
+        this.hud.announceText(t(`wev.${key}` as Key), t(`wev.${key}.sub` as Key, params), look, key === 'mini' || key.startsWith('mod.') ? 2.6 : 2.2);
+        if (key === 'goal.done') audio.play(this.sounds.lifePack, 220);
+      },
       onCrateReward: (tier, what) => {
         const look = tier === 2 ? banner('#f4e3ff', '#b05cff') : banner('#e3f2ff', '#3f9bff');
         // (an epic card offer says it itself)

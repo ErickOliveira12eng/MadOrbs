@@ -15,7 +15,7 @@ import { VES, type VesuviusEnd, type VesuviusHud } from '../vesuviusRun';
 import { forgeAffordable, obsidianBalance } from '../vesuviusProgress';
 import { essenceBalance, hordeAffordable } from '../hordeProgress';
 import type { TutorialAction, TutorialCard, TutorialHud } from '../tutorial';
-import { WAVES } from '../waves';
+import { WAVES, WAVE_MODS, type WaveMod } from '../waves';
 import { MILESTONES, affordable, balance, checkpoints, nextMilestone } from '../wavesProgress';
 import { orbName, prizeArt, prizeName, prizeText } from '../wavesPrize';
 import { cardDef, cardValue, type CardID } from '../wavesCards';
@@ -286,6 +286,7 @@ export class HudLayer {
 
   private template(online: boolean): string {
     return `
+<div class="h-dark" data-r="dark" hidden></div>
 <div class="h-tags" data-r="tags"></div>
 <div class="h-meters" data-r="meters"></div>
 <div class="h-dmgs" data-r="dmgs"></div>
@@ -650,6 +651,7 @@ export class HudLayer {
       row(t('wend.kills', { n: c.kills }), c.killCores) +
       (c.bosses ? row(t(c.bosses === 1 ? 'wend.boss' : 'wend.bosses', { n: c.bosses }), c.bossCores) : '') +
       (c.recordCores ? row(t('wend.record'), c.recordCores) : '') +
+      (c.challengeCores ? row(t('wend.challenges'), c.challengeCores) : '') +
       `<div class="wc-total"><span>${t('wend.total')}</span><b>+${bigNum(c.total)}</b></div>` +
       `<div class="wc-bal">${t('wend.balance', { n: bigNum(balance(e.progress)) })}${canBuy ? ` · <b>${t(canBuy === 1 ? 'wend.canBuyOne' : 'wend.canBuy', { n: canBuy })}</b>` : ''}</div></div>`;
 
@@ -1017,6 +1019,14 @@ export class HudLayer {
     if (w.horde) {
       const h = w.horde;
       html += `<div class="h-xp" title="${t('horde.energy', { n: h.energy, need: h.need })}"><b>${t('horde.level', { n: h.level })}</b><span><i style="width:${Math.round(Math.min(1, h.energy / h.need) * 100)}%"></i></span></div>`;
+    }
+    // The waves between the bosses (src/client/wavesEvents.ts): the wave's modifier, or its challenge and how far it is
+    const ev = w.events;
+    if (ev?.mod && w.phase === 'fight') html += `<div class="h-wev mod">${MOD_ICON[ev.mod]}<b>${t(`wev.mod.${ev.mod}` as Key)}</b><span>${t(`wev.mod.${ev.mod}.sub` as Key)}</span></div>`;
+    if (ev?.goal) {
+      const g = ev.goal;
+      const done = g.kind === 'frenzy' ? `${g.have} / ${g.need}` : g.kind === 'zone' ? `${num(Math.floor(g.have * 10) / 10)} / ${g.need} s` : '';
+      html += `<div class="h-wev goal">${GOAL_ICON}<b>${t(`wev.goal.${g.kind}` as Key)}</b><span>${done ? `${done} · ` : ''}${t('wev.goal.left', { s: Math.ceil(g.left) })}</span></div>`;
     }
     // Every boss standing, the oldest first (one may outlive its wave), its wave beside its name
     for (const b of w.bossLives) {
@@ -1757,6 +1767,18 @@ export class HudLayer {
     const dt = Math.min(0.1, Math.max(0, now - this.hpTime));
     this.hpTime = now;
     let n = 0;
+    // The Darkness modifier (WAVE_MODS.dark): light only around the player; no tags out in the dark
+    const dark = !!f.waves?.events?.dark;
+    show(this.r.dark, dark);
+    let light: [number, number] | null = null;
+    if (dark) {
+      const me = f.project(f.me);
+      if (me) {
+        light = this.toStage(me.x, me.y);
+        const D = WAVE_MODS.dark;
+        this.r.dark.style.background = `radial-gradient(circle at ${light[0].toFixed(0)}px ${light[1].toFixed(0)}px, transparent ${D.clear}px, rgba(2, 3, 8, 0.93) ${D.dark}px)`;
+      }
+    }
     for (const p of f.players) {
       if (!p || p === f.me || !p.isAlive) continue;
       // The volcano: its name and bar are the header's (its tag sat on the header when it was at the top of the view)
@@ -1766,6 +1788,10 @@ export class HudLayer {
       // The Horde's swarm (Erick, 16/11/2026): no names over the crowd, only an elite's mark, the nuke's fuse and the
       // bar of one hurt (the bosses keep theirs)
       const swarm = !!f.waves?.horde && p.teamID === PLAYER_TEAM_RED && p.radius <= 0.3;
+      if (light) {
+        const [sx, sy] = this.toStage(pt.x, pt.y);
+        if (Math.hypot(sx - light[0], sy - light[1]) > WAVE_MODS.dark.dark) continue;
+      }
       if (swarm && !p.badges.length && p.countdown <= 0 && p.life >= 0.995 && !this.hpTrail.has(p.playerID)) continue;
       let el = this.tagEls[n];
       if (!el) {
@@ -2282,14 +2308,27 @@ const ABILITY_ICON = {
   shock: '<svg class="h-abico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>',
 };
 
-/** The waves' elites' traits before their name (waves.ts): fast, brute, sharpshooter, tank; and the nuke bot's bomb. */
+/** The waves' elites' traits before their name (waves.ts): fast, brute, sharpshooter, tank; the nuke bot's bomb; a mini-boss's skull, a kamikaze's flame. */
 const BADGE_ICON: Record<string, string> = {
+  mini: '<svg class="h-trait mini" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C7 2 3.5 5.6 3.5 10.2c0 2.6 1.1 4.6 3 5.9V19a1 1 0 0 0 1 1h1.5v-2h2v2h2v-2h2v2H16.5a1 1 0 0 0 1-1v-2.9c1.9-1.3 3-3.3 3-5.9C20.5 5.6 17 2 12 2m-3.5 7.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4m7 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4"/></svg>',
+  kami: '<svg class="h-trait kami" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2s5.5 4.6 5.5 10.2A5.6 5.6 0 0 1 12 18a5.6 5.6 0 0 1-5.5-5.8c0-2.4 1.2-4.4 2.3-5.6.2 1.7 1 3 2.2 3.4C11 7.6 12 2 12 2m0 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4"/></svg>',
   nuke: '<svg class="h-trait nuke" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="13" r="8" fill="currentColor"/><path d="M15.5 6.5 18 4M20 2l-1 1M21 5h-1M19 7l1 1"/></svg>',
   fast: '<svg class="h-trait fast" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>',
   brute: '<svg class="h-trait brute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m13 19 6-6M14.5 17.5 3.6 6.6A2 2 0 0 1 3 5.2V3h2.2a2 2 0 0 1 1.4.6l10.9 10.9M16 16l4 4M19 21l2-2M14.8 6.2l2.6-2.6A2 2 0 0 1 18.8 3H21v2.2a2 2 0 0 1-.6 1.4l-2.6 2.6M5 14l4 4M7.5 16.5 4 20M5 21l-2-2"/></svg>',
   sniper: '<svg class="h-trait sniper" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M22 12h-4M6 12H2M12 6V2M12 22v-4"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>',
   tank: '<svg class="h-trait tank" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
 };
+
+/** The waves' modifiers in the header (WAVE_MODS), and a challenge's flag. */
+const MOD_ICON: Record<WaveMod, string> = {
+  fast: '<svg class="h-wevico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>',
+  elite: '<svg class="h-wevico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12 2 2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9l-6.1 3.5 1.5-6.8L2.2 9l6.9-.7z"/></svg>',
+  snipers: '<svg class="h-wevico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M22 12h-4M6 12H2M12 6V2M12 22v-4"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>',
+  kamikaze: '<svg class="h-wevico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2s5.5 4.6 5.5 10.2A5.6 5.6 0 0 1 12 18a5.6 5.6 0 0 1-5.5-5.8c0-2.4 1.2-4.4 2.3-5.6.2 1.7 1 3 2.2 3.4C11 7.6 12 2 12 2m0 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4"/></svg>',
+  bombard: '<svg class="h-wevico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 3l4 8M12 2l3 8M18 4l2 7"/><circle cx="12" cy="17" r="4.5" fill="currentColor"/></svg>',
+  dark: '<svg class="h-wevico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.3 14.6A8.5 8.5 0 0 1 9.4 3.7a8.5 8.5 0 1 0 10.9 10.9"/></svg>',
+};
+const GOAL_ICON = '<svg class="h-wevico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 21V3h1.6l.4 1h11.3l-2.6 4.5 2.6 4.5H7.4v8z"/></svg>';
 
 /** A Core, the waves' currency (as src/menu/icons.ts draws it). */
 const CORE_SVG =

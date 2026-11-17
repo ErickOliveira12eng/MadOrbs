@@ -57,6 +57,8 @@ const CRATE_LOOK = [
   { planks: ['#93622f', '#a8763f'], base: '#9a6a3a', frame: '#5c3a1a', corner: '#b9c0cc', rivet: '#6f7685', glow: 0, bar: 0 },
   { planks: ['#2f5f9e', '#3b74bd'], base: '#2d5a94', frame: '#173055', corner: '#bfe4ff', rivet: '#4f86c4', glow: 0x3f9bff, bar: 0x5fb4ff },
   { planks: ['#6a2fa0', '#7f3fbf'], base: '#64309a', frame: '#2f1250', corner: '#ffd56a', rivet: '#b98a2a', glow: 0xb05cff, bar: 0xd08bff },
+  // (the waves' golden challenge crate, src/client/wavesEvents.ts)
+  { planks: ['#c8961e', '#e0b02c'], base: '#c99a22', frame: '#6e4a08', corner: '#fff3c4', rivet: '#9a6c10', glow: 0xffc21a, bar: 0xffd34d },
 ];
 
 /** The crate's sides: planks with dark seams, a darker frame and metal corners. */
@@ -137,7 +139,7 @@ const MAX_BLASTS = 12;
 export class WavesRenderer {
   private readonly root = new THREE.Group();
   private readonly crateGeometry = new THREE.BoxGeometry(CRATE_SIZE, CRATE_SIZE, CRATE_HEIGHT);
-  private readonly crateTextures = [crateTexture(0), crateTexture(1), crateTexture(2)];
+  private readonly crateTextures = [crateTexture(0), crateTexture(1), crateTexture(2), crateTexture(3)];
   private readonly crateGlowGeometry = new THREE.CircleGeometry(0.62, 32);
   private readonly barGeometry = new THREE.PlaneGeometry(1, 1).translate(0.5, 0, 0);
   private readonly barBack = new THREE.MeshBasicMaterial({ color: 0x0a0a12, transparent: true, opacity: 0.75, depthWrite: false });
@@ -170,6 +172,8 @@ export class WavesRenderer {
   private readonly beamStrip = new THREE.PlaneGeometry(1, 1).translate(0.5, 0, 0);
   private readonly beamViews: { core: THREE.Mesh; glow: THREE.Mesh; coreMaterial: THREE.MeshBasicMaterial; glowMaterial: THREE.MeshBasicMaterial }[] = [];
   private spareBlasts: BlastView[] = [];
+  /** The waves' challenge zone (goalZone): its edge, its floor, how much of it is held. */
+  private zoneView: { ring: THREE.Mesh; disc: THREE.Mesh; held: THREE.Mesh; ringMaterial: THREE.MeshBasicMaterial; discMaterial: THREE.MeshBasicMaterial } | null = null;
 
   constructor(scene: THREE.Scene) {
     scene.add(this.root);
@@ -318,6 +322,38 @@ export class WavesRenderer {
       v.ringMaterial.opacity = 0.55 + 0.45 * pulse;
       v.discMaterial.opacity = 0.1 + 0.18 * z.k + 0.08 * pulse;
     });
+  }
+
+  /**
+   * The waves' challenge zone to hold (src/client/wavesEvents.ts, GOALS.zone): a golden ring on the floor, a soft disc,
+   * and a brighter one growing from the middle as the time inside it adds up (`k`: 0 to 1).
+   */
+  goalZone(zone: { x: number; y: number; radius: number; k: number } | null, time: number): void {
+    if (!zone && !this.zoneView) return;
+    if (!this.zoneView) {
+      const ringMaterial = new THREE.MeshBasicMaterial({ color: 0xffc21a, transparent: true, depthWrite: false });
+      const discMaterial = new THREE.MeshBasicMaterial({ color: 0xffc21a, transparent: true, opacity: 0.14, depthWrite: false });
+      const heldMaterial = new THREE.MeshBasicMaterial({ color: 0xffe27a, transparent: true, opacity: 0.32, depthWrite: false });
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1, 64), ringMaterial);
+      const disc = new THREE.Mesh(this.blastDiscGeometry, discMaterial);
+      const held = new THREE.Mesh(this.blastDiscGeometry, heldMaterial);
+      ring.renderOrder = disc.renderOrder = ON_FLOOR;
+      held.renderOrder = ON_FLOOR + 1;
+      this.root.add(disc, held, ring);
+      this.zoneView = { ring, disc, held, ringMaterial, discMaterial };
+    }
+    const v = this.zoneView;
+    v.ring.visible = v.disc.visible = v.held.visible = !!zone;
+    if (!zone) return;
+    const pulse = 0.5 + 0.5 * Math.sin(time * 4);
+    v.ring.position.set(zone.x, zone.y, 0.046);
+    v.disc.position.set(zone.x, zone.y, 0.041);
+    v.held.position.set(zone.x, zone.y, 0.043);
+    v.ring.scale.setScalar(zone.radius);
+    v.disc.scale.setScalar(zone.radius);
+    v.held.scale.setScalar(Math.max(0.001, zone.radius * Math.sqrt(zone.k)));
+    v.ringMaterial.opacity = 0.65 + 0.35 * pulse;
+    v.discMaterial.opacity = 0.1 + 0.08 * pulse;
   }
 
   /**
@@ -539,6 +575,12 @@ export class WavesRenderer {
     }
     this.crateGeometry.dispose();
     for (const tex of this.crateTextures) tex.dispose();
+    if (this.zoneView) {
+      this.zoneView.ring.geometry.dispose();
+      this.zoneView.ringMaterial.dispose();
+      this.zoneView.discMaterial.dispose();
+      (this.zoneView.held.material as THREE.MeshBasicMaterial).dispose();
+    }
     this.splinterGeometry.dispose();
     this.splinterMaterial.dispose();
     this.ringGeometry.dispose();

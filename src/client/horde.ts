@@ -64,9 +64,12 @@ export const HORDE = {
 const FIRST = Math.round(waveSpec(1).total * HORDE.swarm.count) * HORDE.energy.plain;
 
 /**
- * The energy from level `level` to the next: the first wave's for the first, then 2 more each level (about a level a
- * wave at first, every second wave by wave 20: the waves bring more enemies, and elites worth more, as they go).
+ * The energy from level `level` to the next: the first wave's for the first, then more and more (Erick, 16/11/2026:
+ * "after a certain level one shouldn't level up so easily"; it grew 6 a level, and the waves' energy grows faster than
+ * that: level 144 by wave 100, a card offer a wave or more). Taking all of it: level 8 by wave 10, 15 by 20, 29 by 50,
+ * 47 by 100, 62 by 150 (a level every three waves or so by then).
  */
 export function energyToNext(level: number): number {
-  return FIRST + 2 * HORDE.swarm.count * (level - 1);
+  const k = level - 1;
+  return Math.round(FIRST + 2 * HORDE.swarm.count * k + 0.05 * k ** 3);
 }

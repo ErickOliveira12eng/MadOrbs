@@ -336,11 +336,6 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean, le
   if (mythics.length && !CARDS.some((c) => c.rarity === 'mythic' && (owned[c.id] ?? 0) > 0)) return mythics.map((c) => ({ id: c.id, up: 1 }));
   const mythic = (): CardID | null => (mythics.length ? mythics[Math.floor(Math.random() * mythics.length)].id : null);
   const ids = rollCards(n, owned, 3, commonOnly, horde);
-  // The Horde's level ups never bring the stat cards (16/11/2026: a level a wave or more, each one x1.12 on top of the
-  // last, and a full Workshop went past wave 270 with 595 cards; the waves give them twice every ten waves, the boss's
-  // growth): its bosses still do. Every other card at its top, a level up brings nothing.
-  const noStats = horde && levelUp;
-  if (!ids.length && noStats) return [];
   // Every other card at its top: the three stat cards (without end), one of them a mythic card if one is left
   if (!ids.length) {
     const stats: CardOffer[] = (Object.keys(STAT_CARDS) as StatCardID[]).map((id) => ({ id, up: 1 }));
@@ -402,7 +397,6 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean, le
   // The stat cards (STAT_CARDS): a new common card's place at STAT_CHANCE; the offer filled up to three with them
   const stats = (Object.keys(STAT_CARDS) as StatCardID[]).sort(() => Math.random() - 0.5);
   const nextStat = () => stats.find((id) => !offer.some((o) => o.id === id));
-  if (noStats) return offer;
   offer.forEach((o, i) => {
     if (i === slot || cardDef(o.id).rarity !== 'common' || level(o.id) > 0 || Math.random() >= STAT_CHANCE) return;
     const id = nextStat();

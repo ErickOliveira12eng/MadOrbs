@@ -757,7 +757,7 @@ export class VesuviusRun {
   /** An enemy from the edges, as strong as wave `wave`'s bots (an elite maybe): a fallen one again, or a new one. */
   private spawnAdd(wave: number): void {
     const { game, bots } = this.ctx;
-    const spec: WaveSpec = waveSpec(wave);
+    const spec: WaveSpec = waveSpec(wave, false);
     const loadout = { primary: spec.weapons[Math.floor(Math.random() * spec.weapons.length)], secondary: WEAPON_KNIVES };
     let i = bots.findIndex((b) => b.player !== this.boss && !b.player.isAlive && b.player.lives <= 0);
     let p: Player | null = i >= 0 ? bots[i].player : null;

@@ -242,11 +242,15 @@ export interface RunCores {
   bossCores: number;
   /** The run beat the record. */
   recordCores: number;
+  /** The challenges done and the modifiers' waves gone by (src/client/wavesEvents.ts). */
+  challengeCores: number;
   total: number;
 }
 
-/** What a run earns: it began on `startWave`, ended on `wave` (the one being fought). */
-export function runCores(startWave: number, wave: number, kills: number, bosses: number, isBest: boolean): RunCores {
+/**
+ * What a run earns: it began on `startWave`, ended on `wave` (the one being fought). `challenge`: the Cores of the challenges done and the modifiers' waves gone by (src/client/wavesEvents.ts).
+ */
+export function runCores(startWave: number, wave: number, kills: number, bosses: number, isBest: boolean, challenge = 0): RunCores {
   let wc = 0;
   for (let n = startWave; n < wave; n++) wc += waveCores(n);
   const killCores = Math.floor(Math.max(0, kills) / KILLS_PER_CORE);
@@ -260,7 +264,8 @@ export function runCores(startWave: number, wave: number, kills: number, bosses:
     bosses,
     bossCores,
     recordCores,
-    total: wc + killCores + bossCores + recordCores,
+    challengeCores: challenge,
+    total: wc + killCores + bossCores + recordCores + challenge,
   };
 }
 

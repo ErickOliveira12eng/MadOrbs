@@ -18,9 +18,10 @@ import { HordeArms } from './hordeArms';
 import { HordeArmsRenderer } from './render/hordeArmsRenderer';
 import type { CrateTier } from '../sim/crate';
 import { VesuviusRenderer } from './render/vesuviusRenderer';
-import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, BOSSES, ELITE, WAVES, bossCycle, bossKind, bossMoves, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type BossKind, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { WaveEvents, type EventKey, type EventsHud } from './wavesEvents';
+import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, MINI, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, BOSSES, ELITE, WAVES, WAVE_MODS, breakAfter, isMiniWave, miniMove, bossCycle, bossKind, bossMoves, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type BossKind, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, REFLECT_TIME, ORBITAL, PHOENIX, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, statFactor, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
-import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, MAGNET, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, workshopFactor, loadProgress, runCores, saveBuild, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
+import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, MAGNET, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, workshopFactor, loadProgress, runCores, saveBuild, waveCores, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
 /** What the HUD shows of a run (HudLayer). */
 export interface WavesHud {
@@ -68,6 +69,8 @@ export interface WavesHud {
   cores: number;
   /** The Horde (src/client/horde.ts): the level, the energy toward the next one and what it takes; null elsewhere. */
   horde: { level: number; energy: number; need: number; essence: number } | null;
+  /** The waves between the bosses (src/client/wavesEvents.ts): the wave's modifier, its challenge; null elsewhere. */
+  events: EventsHud | null;
   over: boolean;
 }
 
@@ -163,6 +166,8 @@ export interface WavesContext {
   onArmsRockets?: (position: Vec3) => void;
   /** The Horde: a better crate broke (its banner): what it gave. */
   onCrateReward?: (tier: CrateTier, what: 'energy' | 'perms' | 'cards') => void;
+  /** The waves between the bosses: a modifier, a mini-boss, a challenge begins, is done or lost (their banners). */
+  onWaveEvent?: (key: EventKey, params?: Record<string, number>) => void;
   /** The Blast card: a kill's blast went off there, this far (drawn light, a few a second at most). */
   onKillBlast: (position: Vec3, radius: number) => void;
   /** The Shadow card's allies' name, the Necromancer's risen enemies' one. */
@@ -265,7 +270,12 @@ export class WavesRun {
   /** When the last one rose (the run's clock: one at most every NECRO_GAP seconds). */
   private risenAt = -Infinity;
   /** The nuke bots standing (WAVES.nuke): the seconds left to the blast once armed (-1: not yet), to the next siren. */
-  private readonly nukers: { p: Player; fuse: number; beep: number }[] = [];
+  private readonly nukers: { p: Player; fuse: number; beep: number; kami?: boolean }[] = [];
+  /** The waves between the bosses (not the Horde nor a tutorial): modifiers and challenges. */
+  private readonly events: WaveEvents | null = null;
+  /** The mini-bosses standing (MINI), each with its wave and its one attack; the slot of the wave's bots that is one. */
+  private minis: { p: Player; wave: number; moves: BossMoves; marks: VesuviusRenderer }[] = [];
+  private miniSlot = -1;
   /** Which of this wave's bots (by the order they come in) are nuke bots, and how many came in so far. */
   private nukeSlots = new Set<number>();
   private waveSpawns = 0;
@@ -316,6 +326,24 @@ export class WavesRun {
   constructor(private readonly ctx: WavesContext) {
     this.renderer = new WavesRenderer(ctx.scene);
     this.script = !!ctx.tutorial;
+    if (!ctx.horde && !ctx.tutorial) {
+      this.events = new WaveEvents({
+        game: ctx.game,
+        me: ctx.me,
+        scene: ctx.scene,
+        reds: () => this.reds(),
+        addCrate: (x, y, life) => ctx.game.addCrate(x, y, 3, life).id,
+        removeCrate: (id) => {
+          ctx.game.crates = ctx.game.crates.filter((c) => c.id !== id);
+        },
+        dropPerm: (x, y) => this.dropPerm(x, y),
+        announce: (key, params) => {
+          if (key === 'goal.done' || key === 'goal.fail') track('wave_goal', { wave: this.wave, done: key === 'goal.done' });
+          ctx.onWaveEvent?.(key, params);
+        },
+        onLaunch: (at) => ctx.onBossLaunch?.(at),
+      });
+    }
     this.tested = this.script;
     // The Horde: its own Essence and best (not the Waves' record, Cores, checkpoints nor report); the enemies smaller
     this.size = ctx.horde ? HORDE.enemyScale : 1;
@@ -490,6 +518,21 @@ export class WavesRun {
     this.updateNukes();
     // The bosses' own attacks
     for (const b of this.bossOrbs) b.moves?.update();
+    // The mini-bosses: their attack; brought down, the wave's common cards at once and a power-up
+    for (const m of [...this.minis]) {
+      if (m.p.isAlive) {
+        m.moves.update();
+        continue;
+      }
+      m.moves.calm();
+      m.marks.dispose();
+      this.minis.splice(this.minis.indexOf(m), 1);
+      track('wave_mini_down', { wave: m.wave });
+      this.dropPerm(m.p.currentCF.position.x, m.p.currentCF.position.y);
+      this.commonCardsAfter(m.wave);
+    }
+    // The modifiers' and challenges'
+    this.events?.update(this.phase === 'fight' && !this.over);
     // Phoenix: one rebirth a wave; it saved him, a blast of fire around
     if (this.cards.phoenix && this.phoenixWave !== this.wave) {
       this.phoenixWave = this.wave;
@@ -588,8 +631,12 @@ export class WavesRun {
       this.saveCheckpoint(this.wave, this.waveBuild.build);
       this.waveBuild = null;
     }
+    if (this.wave > 0) this.events?.waveOver(waveCores(this.wave));
     this.wave++;
     if (this.wave % CHECKPOINT === 0) this.waveBuild = { wave: this.wave, build: this.build() };
+    // Its modifier (before its numbers: the Elite one brings fewer, the Snipers' their weapons)
+    const mod = this.events?.rollMod(this.wave) ?? null;
+    if (mod) track('wave_mod', { wave: this.wave, mod });
     this.spec = this.specOf(this.wave);
     this.phase = 'fight';
     this.deathsBefore = this.ctx.me.deaths;
@@ -613,12 +660,20 @@ export class WavesRun {
       while (this.nukeSlots.has(slot)) slot = (slot + 1) % this.pending;
       this.nukeSlots.add(slot);
     }
+    // Its mini-boss (MINI: waves 5, 15, 25...), one of its bots
+    this.miniSlot = -1;
+    if (this.events && isMiniWave(this.wave)) {
+      let slot = Math.min(this.spec.total - 1, Math.round(this.spec.total * MINI.slot));
+      while (this.nukeSlots.has(slot)) slot++;
+      this.miniSlot = slot;
+    }
     this.spawnWait = 0.5;
     this.bossPending = this.spec.boss || bossLate;
     if (this.spec.boss) this.bossesUp.push(this.wave);
     this.nextCrate = WAVES.crates.every;
     track('wave_start', { wave: this.wave, boss: this.spec.boss });
     this.ctx.onWave(this.spec);
+    this.events?.begin(this.spec);
     // The Shadow card's allies fallen in the last wave come back
     this.reviveAllies();
   }
@@ -658,7 +713,7 @@ export class WavesRun {
     }
     if (this.pending === 0 && !this.bossPending && standing === 0) {
       this.phase = 'break';
-      this.breakLeft = WAVES.breakSeconds;
+      this.breakLeft = breakAfter(this.wave);
       this.dropCrates(WAVES.crates.perBreak);
       // The Workshop's breather: some life back
       const me = this.ctx.me;
@@ -681,6 +736,9 @@ export class WavesRun {
     const { game, bots } = this.ctx;
     // The wave's nuke bot (WAVES.nuke), never one of the boss's escorts
     const nuke = !escort && !at && this.nukeSlots.has(this.waveSpawns);
+    // The wave's mini-boss (MINI), a kamikaze (the Kamikazes modifier)
+    const mini = !escort && !at && !nuke && this.waveSpawns === this.miniSlot;
+    const kami = !escort && !at && !nuke && !mini && this.events?.mod === 'kamikaze' && Math.random() < WAVE_MODS.kamikaze.share;
     const loadout = { primary: this.spec.weapons[Math.floor(Math.random() * this.spec.weapons.length)], secondary: nuke ? WEAPON_NUCLEAR : WEAPON_KNIVES };
     // A fallen enemy's Orb (never a Shadow ally's nor a risen one's: they kept their name and side and took a new skin)
     let i = bots.findIndex((b) => !this.isBoss(b.player) && !b.player.isAlive && b.player.lives <= 0 && !this.allies.includes(b.player) && !this.risen.some((r) => r.p === b.player));
@@ -716,10 +774,12 @@ export class WavesRun {
     // They come in from the map's edges, never out of its middle
     p.edgeSpawn = true;
     // An elite, maybe (waves.ts): its traits on top of the wave's numbers (the nuke bot: none, its own mark)
-    const traits = nuke || at ? [] : rollElite(this.wave);
+    // (the Elite modifier: every one of them)
+    const traits = nuke || at || mini || kami ? [] : rollElite(this.wave, this.events?.mod === 'elite');
     const strength = eliteStrength(this.wave);
     p.badges = nuke ? ['nuke'] : traits;
     p.radius = 0.25;
+    p.wallRadius = 0;
     p.lifeMax = 1;
     p.pointScale = 1;
     p.countdown = 0;
@@ -740,6 +800,8 @@ export class WavesRun {
       p.radius = 0.33;
     }
     if (traits.includes('tank')) p.damageScale *= strength.tough;
+    // The Fast modifier: all of them quicker
+    if (this.events?.mod === 'fast') p.speedBoost *= WAVE_MODS.fast.speed;
     // (the Horde's Orbs are smaller)
     p.radius *= this.size;
     bots[i] = new BotController(p, traits.includes('sniper') ? 1 : this.spec.skill, loadout);
@@ -775,6 +837,43 @@ export class WavesRun {
       bots[i].huntBias = Infinity;
       this.nukers.push({ p, fuse: -1, beep: 0 });
     }
+    if (kami) {
+      // A kamikaze: no gun, quick and straight at the player, a grenade's blast when close (WAVE_MODS.kamikaze)
+      p.speedBoost = WAVE_MODS.kamikaze.speed;
+      p.teamTint = NUKE_TINT;
+      p.badges = ['kami'];
+      bots[i].rush = true;
+      bots[i].charge = this.ctx.me;
+      bots[i].huntBias = Infinity;
+      this.nukers.push({ p, fuse: -1, beep: 0, kami: true });
+    }
+    if (mini) {
+      // The mini-boss (MINI): big, much more life, harder hitting, one of the bosses' attacks
+      this.miniSlot = -1;
+      p.lifeMax = MINI.life;
+      p.pointScale = p.lifeMax;
+      p.damageBoost *= MINI.hit;
+      p.radius = MINI.radius * this.size;
+      p.wallRadius = 0.3 * this.size;
+      p.executable = false;
+      p.badges = ['mini'];
+      p.teamTint = ELITE.tint;
+      p.lifePackChance = 1;
+      p.weaponDropChance = 1;
+      bots[i].rush = true;
+      const marks = new VesuviusRenderer(this.ctx.scene);
+      const host: BossHost = {
+        game,
+        me: this.ctx.me,
+        scene: this.ctx.scene,
+        summon: (to) => this.spawnBot(undefined, to),
+        onLaunch: (to) => this.ctx.onBossLaunch?.(to),
+        onBeam: (to) => this.ctx.onBossBeam?.(to),
+      };
+      this.minis.push({ p, wave: this.wave, moves: new BossMoves(host, p, bots[i], [miniMove(this.wave)], 0, marks), marks });
+      track('wave_mini', { wave: this.wave, move: miniMove(this.wave) });
+      this.ctx.onWaveEvent?.('mini');
+    }
     if (!escort && !at) this.waveSpawns++;
     game.requestSpawn(p);
     if (!at) this.hordeSpawn(p);
@@ -786,7 +885,7 @@ export class WavesRun {
     }
     // The nuke bot: no gun at all, only the nuke on its Orb (Erick, 01/11/2026: its chain gun's recoil pushed it back;
     // its one aim is to follow the player and blow up)
-    if (nuke) p.weapon = null;
+    if (nuke || kami) p.weapon = null;
     return p;
   }
 
@@ -839,6 +938,11 @@ export class WavesRun {
         continue;
       }
       const pos = p.currentCF.position;
+      // A kamikaze (WAVE_MODS.kamikaze): armed closer, a short fuse, a grenade's blast
+      if (n.kami) {
+        this.updateKamikaze(n, k);
+        continue;
+      }
       if (n.fuse < 0) {
         if (!me.isAlive || pos.sub(me.currentCF.position).length() > N.arm) continue;
         if (game.map.rayTest(pos.clone(), me.currentCF.position.clone(), new Vec3())) continue;
@@ -871,6 +975,30 @@ export class WavesRun {
       game.radiusHit(at, N.radius, p.playerID, WEAPON_NUCLEAR, true, [p.playerID, me.playerID], share);
       this.remove(p);
     }
+  }
+
+  /** A kamikaze of the nuke bots' list (its index `k`): armed close to the player in sight, it goes off a moment later. */
+  private updateKamikaze(n: { p: Player; fuse: number; beep: number }, k: number): void {
+    const { game, me } = this.ctx;
+    const K = WAVE_MODS.kamikaze;
+    const p = n.p;
+    const pos = p.currentCF.position;
+    if (n.fuse < 0) {
+      if (!me.isAlive || pos.sub(me.currentCF.position).length() > K.arm) return;
+      if (game.map.rayTest(pos.clone(), me.currentCF.position.clone(), new Vec3())) return;
+      n.fuse = K.fuse;
+      p.knockScale = 0;
+    }
+    n.fuse -= TICK;
+    p.countdown = Math.max(0.01, n.fuse);
+    if (n.fuse > 0) return;
+    p.countdown = 0;
+    this.nukers.splice(k, 1);
+    const at = pos.clone();
+    game.explosion(at.clone(), new Vec3(0, 0, 1), K.radius, p.playerID);
+    // A grenade of its own, on whoever is in its reach (the player with his defence; the crates break)
+    game.radiusHit(at, K.radius, p.playerID, WEAPON_GRENADE, true, [p.playerID], 1);
+    this.remove(p);
   }
 
   /** One of the bosses' Orbs. */
@@ -1005,7 +1133,12 @@ export class WavesRun {
   /** Wave `n`'s numbers (waves.ts waveSpec); the Horde's: a swarm, HORDE.swarm.count times the enemies. */
   private specOf(n: number): WaveSpec {
     const spec = waveSpec(n);
-    return this.ctx.horde ? { ...spec, total: Math.round(spec.total * HORDE.swarm.count) } : spec;
+    if (this.ctx.horde) return { ...spec, total: Math.round(spec.total * HORDE.swarm.count) };
+    // The waves' modifiers: the Elite one brings fewer (every one an elite), the Snipers' keep away with their rifles
+    const mod = this.events?.mod;
+    if (mod === 'elite') return { ...spec, total: Math.max(1, Math.ceil(spec.total * WAVE_MODS.elite.share)) };
+    if (mod === 'snipers') return { ...spec, weapons: n >= 20 ? [WEAPON_SNIPER, WEAPON_PHOTON_RIFLE] : [WEAPON_SNIPER] };
+    return spec;
   }
 
   /** The Horde: a crate's kind as it comes (HORDE.crates); 0 elsewhere. */
@@ -1044,6 +1177,11 @@ export class WavesRun {
   onCrate(crateID: number, position: Vec3, broken: boolean): void {
     this.renderer.crateHit(crateID, position.x, position.y, broken);
     if (!broken || this.over) return;
+    // The challenge's golden crate (src/client/wavesEvents.ts)
+    if (this.events?.goal?.crate === crateID) {
+      this.events.onCrate(crateID);
+      return;
+    }
     // The Horde's better crates (HORDE.crates)
     const tier = this.crateTiers.get(crateID) ?? 0;
     if (tier) {
@@ -1761,6 +1899,7 @@ export class WavesRun {
   /** The run is over: the record and the Cores are saved (not for a tester's run: it counts for nothing). */
   private finish(): WavesEnd {
     this.over = true;
+    this.events?.stop();
     const kills = this.ctx.me.kills;
     const reached = Math.max(this.ctx.startWave, this.wave);
     if (this.ctx.horde) return this.finishHorde(reached, kills);
@@ -1772,8 +1911,8 @@ export class WavesRun {
     for (const [n, sec] of Object.entries(this.splits)) if (Number(n) <= wave + 1) splits[Number(n)] = sec;
     const isBest = !test && wave >= this.ctx.startWave && saveWavesRun(wave, kills, time, splits);
     const cores = test
-      ? { waves: 0, waveCores: 0, kills, killCores: 0, bosses: this.bosses, bossCores: 0, recordCores: 0, total: 0 }
-      : runCores(this.ctx.startWave, reached, kills, this.bosses, isBest);
+      ? { waves: 0, waveCores: 0, kills, killCores: 0, bosses: this.bosses, bossCores: 0, recordCores: 0, challengeCores: 0, total: 0 }
+      : runCores(this.ctx.startWave, reached, kills, this.bosses, isBest, this.events?.cores ?? 0);
     const before = this.record?.wave ?? 0;
     const startTime = this.ctx.startWave === 1 ? 0 : (this.record?.splits[this.ctx.startWave] ?? 0);
     const playTime = time === null ? 0 : Math.max(0, time - startTime - WAVES.deathPenalty * this.deathsBefore);
@@ -1817,7 +1956,7 @@ export class WavesRun {
       best: null,
       startWave: 1,
       recordBefore: 0,
-      cores: { waves: 0, waveCores: 0, kills, killCores: 0, bosses: this.bosses, bossCores: 0, recordCores: 0, total: 0 },
+      cores: { waves: 0, waveCores: 0, kills, killCores: 0, bosses: this.bosses, bossCores: 0, recordCores: 0, challengeCores: 0, total: 0 },
       progress: loadProgress(),
       unlocked: [],
       cards: this.cardList(),
@@ -1874,7 +2013,8 @@ export class WavesRun {
       horde: this.ctx.horde
         ? { level: this.level, energy: this.energy, need: energyToNext(this.level), essence: this.tested ? 0 : runEssence(Math.max(1, this.wave), me.kills, this.bosses, this.level, false).total }
         : null,
-      cores: this.script || this.ctx.horde ? 0 : runCores(this.ctx.startWave, Math.max(this.ctx.startWave, this.wave), me.kills, this.bosses, false).total,
+      cores: this.script || this.ctx.horde ? 0 : runCores(this.ctx.startWave, Math.max(this.ctx.startWave, this.wave), me.kills, this.bosses, false, this.events?.cores ?? 0).total,
+      events: this.events?.hud ?? null,
       over: this.over,
     };
   }
@@ -1899,11 +2039,19 @@ export class WavesRun {
     );
     // The nuke bots armed: their reach on the floor, pulsing faster as the fuse runs out
     this.renderer.nukeZones(
-      this.nukers.filter((n) => n.fuse >= 0 && n.p.isAlive).map((n) => ({ x: n.p.currentCF.position.x, y: n.p.currentCF.position.y, radius: WAVES.nuke.radius, k: 1 - n.fuse / WAVES.nuke.fuse })),
+      this.nukers
+        .filter((n) => n.fuse >= 0 && n.p.isAlive)
+        .map((n) => {
+          const r = n.kami ? WAVE_MODS.kamikaze.radius : WAVES.nuke.radius;
+          return { x: n.p.currentCF.position.x, y: n.p.currentCF.position.y, radius: r, k: 1 - n.fuse / (n.kami ? WAVE_MODS.kamikaze.fuse : WAVES.nuke.fuse) };
+        }),
       time,
     );
     // The bosses' attacks: their warnings on the floor
     for (const b of this.bossOrbs) b.moves?.render(time);
+    for (const m of this.minis) m.moves.render(time);
+    this.events?.render(time);
+    this.renderer.goalZone(this.events?.zone ?? null, time);
     // Enemies hit by the poison or ice shots: a ring under them
     const marks = this.reds()
       .filter((p) => p.isAlive && (p.poisonLeft > 0 || p.chillLeft > 0))
@@ -1919,6 +2067,14 @@ export class WavesRun {
     this.energyRenderer?.dispose();
     this.armsRenderer?.dispose();
     for (const b of this.bossOrbs) b.marks?.dispose();
+    for (const m of this.minis) m.marks.dispose();
+    this.events?.dispose();
+  }
+
+  /** A permanent power-up on the floor there (a mini-boss down, a challenge done); none when they are all at the limit. */
+  private dropPerm(x: number, y: number): void {
+    const kind = rollPerm(this.full);
+    if (kind) this.powers.push({ id: this.nextPowerID++, kind, x, y, age: 0, life: WAVES.powerOnFloor });
   }
 }
 

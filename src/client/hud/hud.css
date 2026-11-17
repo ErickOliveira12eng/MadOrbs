@@ -4744,3 +4744,55 @@
   height: 24px;
   color: #b77cff;
 }
+
+/* The waves between the bosses (src/client/wavesEvents.ts): a modifier's or a challenge's line under the header, the
+   Darkness modifier's shade, a mini-boss's and a kamikaze's marks */
+.h-wev {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  font: 800 15px var(--h-ui);
+  text-shadow: var(--h-shadow);
+}
+
+.h-wev b {
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.h-wev span {
+  opacity: 0.85;
+  font-weight: 700;
+}
+
+.h-wev.mod {
+  color: #ffb36b;
+}
+
+.h-wev.goal {
+  color: #ffd34d;
+}
+
+.h-wevico {
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
+}
+
+.h-dark {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.h-trait.mini {
+  color: #ff6b4e;
+  width: 15px;
+  height: 15px;
+}
+
+.h-trait.kami {
+  color: #ff8a1c;
+}

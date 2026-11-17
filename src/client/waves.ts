@@ -76,9 +76,8 @@ export const WAVES = {
   primary: WEAPON_SMG,
   /** Seconds before the player is back after a death (by itself: no click needed). */
   respawnSeconds: 5,
-  /** Seconds before the first wave, and between waves. */
+  /** Seconds before the first wave (the break after each one: the rhythm's, RHYTHM and breakAfter; it was 9 s). */
   firstBreak: 5,
-  breakSeconds: 9,
   /** Crates on the map: new ones at each break, one more now and then during a wave, at most so many. */
   crates: { perBreak: 3, every: 20, max: 6 },
   /** Seconds a power-up waits on the floor, and how long the timed ones last. */
@@ -177,6 +176,23 @@ export interface WaveSpec {
   hitBoost: number;
   /** The bots' weapons, one at random each. */
   weapons: number[];
+  /** The rhythm (RHYTHM): a peak wave, more enemies, a longer break after it. */
+  peak: boolean;
+}
+
+/**
+ * The rhythm of the waves (Erick, 16/11/2026: the nine waves before a boss were monotonous; "rhythm in all of them"):
+ * shorter, denser waves, and every third one (not a boss's) a peak with more enemies and a longer break after it to
+ * breathe. Enemies: `light` times the curve on the others, `peak` on the peaks (3.2 for every 3 against 3 before; before
+ * wave `early`, `peakEarly`: nobody new should die on the first ones); the clock `seconds` (it was 30 + n up to 60); the
+ * break after a wave (it was 9 s). The server's check of a run follows
+ * (src/server/wavesCheck.ts: waveSpec, breakAfter).
+ */
+export const RHYTHM = { every: 3, light: 0.9, peak: 1.4, peakEarly: 1.15, early: 10, seconds: { base: 30, step: 0.8, max: 54 }, rest: { light: 7, peak: 12 } };
+
+/** Seconds of the break after wave n (RHYTHM.rest; the first wave's own wait is WAVES.firstBreak). */
+export function breakAfter(n: number): number {
+  return waveSpec(n).peak ? RHYTHM.rest.peak : RHYTHM.rest.light;
 }
 
 /**
@@ -190,7 +206,7 @@ export interface WaveSpec {
  * unnoticed against the player's power-ups. The better weapons come a few waves later than they used to.
  * The first waves are easier still (EASE): nobody new should die on them.
  */
-export function waveSpec(n: number): WaveSpec {
+export function waveSpec(n: number, rhythm = true): WaveSpec {
   // 1 on wave 1, down to 0 on wave EASE.until
   const ease = Math.max(0, Math.min(1, (EASE.until - n) / (EASE.until - 1)));
   const boss = n % WAVES.bossEvery === 0;
@@ -201,19 +217,120 @@ export function waveSpec(n: number): WaveSpec {
   if (n >= 13) weapons.push(WEAPON_SNIPER);
   if (n >= 16) weapons.push(WEAPON_BAZOOKA);
   if (n >= 20) weapons.push(WEAPON_FLAME_THROWER, WEAPON_PHOTON_RIFLE);
-  const total = Math.round(2 + 0.9 * n + (n * n) / 80);
+  // The rhythm (RHYTHM; the Vesuvius's reinforcements go without it)
+  const peak = rhythm && !boss && n % RHYTHM.every === 0;
+  const curve = 2 + 0.9 * n + (n * n) / 80;
+  const total = Math.round(curve * (!rhythm || boss ? 1 : peak ? (n < RHYTHM.early ? RHYTHM.peakEarly : RHYTHM.peak) : RHYTHM.light));
+  const S = RHYTHM.seconds;
   return {
     n,
     boss,
+    peak,
     // A boss wave: fewer bots around the boss, until it's late enough (WAVES.bossWave)
     total: boss && n < WAVES.bossWave.fullFrom ? Math.ceil(total * WAVES.bossWave.share) : total,
     spawnGap: Math.max(0.25, 0.9 - n * 0.02),
-    seconds: Math.min(60, 30 + n),
+    seconds: rhythm ? Math.min(S.max, Math.round(S.base + S.step * n)) : Math.min(60, 30 + n),
     skill: 0.92 - 0.77 * Math.exp(-(n - 1) / 18),
     toughness: ((1 / (1 + 0.07 * (n - 1))) * (1 + (EASE.take - 1) * ease)) / (EASIER * earlyScale(n)),
     hitBoost: (1 + 0.04 * (n - 1)) * (1 - (1 - EASE.hit) * ease) * EASIER * earlyScale(n),
     weapons,
   };
+}
+
+// ------------------------------------------------------------------ what happens between the bosses
+
+/**
+ * The waves between the bosses (Erick, 16/11/2026: "when the boss comes it's more fun, the 10 waves up to it are a bit
+ * monotonous"). Each wave that isn't a boss's is one of these, or a plain one:
+ * - a mini-boss on waves 5, 15, 25... (MINI), from the start;
+ * - a modifier (WAVE_MODS) from wave `from`, more often as the waves go (`chance`, up to its top by `full`);
+ * - a challenge (GOALS) from wave GOALS.from, the waves left.
+ * Only in the waves (not the Horde, nor a tutorial). Their bonus Cores: WavesRun.challengeCores.
+ */
+export type WaveMod = 'fast' | 'elite' | 'snipers' | 'kamikaze' | 'bombard' | 'dark';
+export const WAVE_MOD_KINDS: readonly WaveMod[] = ['fast', 'elite', 'snipers', 'kamikaze', 'bombard', 'dark'];
+export const WAVE_MODS = {
+  from: 11,
+  full: 20,
+  chance: [0.3, 0.7] as const,
+  /** Cores for a modifier's wave gone by, on top of the wave's own: this share of them (waveCores). */
+  cores: 0.5,
+  /** Fast: every bot this much quicker. */
+  fast: { speed: 1.35 },
+  /** Elite: this share of the enemies, every one an elite (two traits from wave `double`). */
+  elite: { share: 0.5 },
+  /** Kamikazes: this share of the wave's bots, unarmed and quick, armed at `arm` cells from the player in sight, a grenade's blast after `fuse` seconds. */
+  kamikaze: { share: 0.4, speed: 1.5, arm: 1.4, fuse: 0.55, beep: 0.25, radius: 1.7 },
+  /** Bombardment: every `every` seconds, `n` missiles from the sky onto circles around the player (one on him), a boss's missiles at `share` of their blast. */
+  bombard: { every: 3.2, n: 3, share: 1.5 },
+  /** Darkness: the light around the player (stage pixels of the 900 tall HUD): clear within `clear`, black past `dark`. */
+  dark: { clear: 170, dark: 300 },
+};
+
+/** The modifier of wave n (none on a boss's, a mini-boss's, before WAVE_MODS.from), at random. */
+export function rollWaveMod(n: number): WaveMod | null {
+  const M = WAVE_MODS;
+  if (n < M.from || n % WAVES.bossEvery === 0 || isMiniWave(n)) return null;
+  const k = Math.min(1, (n - M.from) / Math.max(1, M.full - M.from));
+  if (Math.random() >= M.chance[0] + (M.chance[1] - M.chance[0]) * k) return null;
+  return WAVE_MOD_KINDS[Math.floor(Math.random() * WAVE_MOD_KINDS.length)];
+}
+
+/**
+ * The fewest enemies wave n can bring (the Elite modifier: fewer of them): the server's check of a run counts its
+ * least time with it (src/server/wavesCheck.ts).
+ */
+export function leastTotal(n: number): number {
+  const s = waveSpec(n);
+  return n >= WAVE_MODS.from && !s.boss && !isMiniWave(n) ? Math.max(1, Math.ceil(s.total * WAVE_MODS.elite.share)) : s.total;
+}
+
+/**
+ * The mini-boss of waves 5, 15, 25... (from the start): one of the wave's bots, big, with `life` lives of an ordinary
+ * enemy of it, hitting `hit` times as hard, and one of the bosses' attacks (`moves`, in turn: the Bull's charge on
+ * 5, the Gunner's missiles on 15...). Brought down: the wave's common cards
+ * at once (they came at its end before), a life pack and a permanent power-up.
+ */
+export const MINI = { every: 10, at: 5, life: 8, hit: 1.2, radius: 0.42, slot: 0.35 };
+export const MINI_MOVES: readonly BossMove[] = ['charge', 'missiles', 'fire', 'summon', 'beam'];
+
+export function isMiniWave(n: number): boolean {
+  return n % MINI.every === MINI.at;
+}
+
+/** The attack of wave n's mini-boss. */
+export function miniMove(n: number): BossMove {
+  return MINI_MOVES[Math.floor(n / MINI.every) % MINI_MOVES.length];
+}
+
+/**
+ * The challenges, from wave `from` (on the waves with no boss, mini-boss nor modifier, at `chance`): done, Cores
+ * (`cores` + `perWave` a wave) and a permanent power-up by the player.
+ * - gold: a golden crate somewhere in sight, broken before it goes (`seconds`); its life a few seconds of fire;
+ * - frenzy: so many of the wave down (`share` of it, at least `least`) within `seconds`;
+ * - zone: a golden circle on the floor, `hold` seconds inside it (all told) within `seconds`.
+ */
+export type GoalKind = 'gold' | 'frenzy' | 'zone';
+export const GOAL_KINDS: readonly GoalKind[] = ['gold', 'frenzy', 'zone'];
+export const GOALS = {
+  from: 6,
+  chance: 0.45,
+  cores: 10,
+  perWave: 1.2,
+  gold: { seconds: 15, life: 2.5, near: [3, 6] as const },
+  frenzy: { seconds: 22, share: 0.45, least: 6 },
+  zone: { seconds: 30, hold: 8, radius: 1.6, near: [3, 6] as const },
+};
+
+/** Wave n's challenge (none before GOALS.from, on a boss's or mini-boss's), at random; `mod`: the wave has a modifier. */
+export function rollGoal(n: number, mod: boolean): GoalKind | null {
+  if (n < GOALS.from || mod || n % WAVES.bossEvery === 0 || isMiniWave(n) || Math.random() >= GOALS.chance) return null;
+  return GOAL_KINDS[Math.floor(Math.random() * GOAL_KINDS.length)];
+}
+
+/** The Cores a challenge of wave n gives. */
+export function goalCores(n: number): number {
+  return Math.round(GOALS.cores + GOALS.perWave * n);
 }
 
 // ------------------------------------------------------------------ the bosses
@@ -414,8 +531,9 @@ export function recordWave(start: number, reached: number, bosses: number): numb
 }
 
 /** A bot's traits on wave n: none (most), one, or two later on. */
-export function rollElite(n: number): EliteKind[] {
-  if (Math.random() >= eliteShare(n)) return [];
+/** An elite's traits on wave n, maybe none (eliteShare); `always`: one at least (the Elite modifier, WAVE_MODS). */
+export function rollElite(n: number, always = false): EliteKind[] {
+  if (!always && Math.random() >= eliteShare(n)) return [];
   const pool = [...ELITE_KINDS];
   const pick = () => pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
   const out = [pick()];
