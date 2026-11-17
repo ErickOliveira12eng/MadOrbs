@@ -327,7 +327,6 @@ export class WavesRun {
         game: ctx.game,
         me: ctx.me,
         reds: () => this.reds(),
-        toughness: () => this.spec.toughness,
         onShot: (p1, p2) => ctx.onArmsShot?.(p1, p2),
         onRockets: (position) => ctx.onArmsRockets?.(position),
       });
@@ -994,6 +993,15 @@ export class WavesRun {
     }
   }
 
+  /**
+   * A life of an ordinary enemy of the wave, the unit of the damage counted in lives (the Bomb, the Silver Bullet, the
+   * shock wave, the kill blasts, the Orbital, the Phoenix): the Horde's swarm has less of it (HORDE.swarm.life), and those
+   * kill as many of them as they kill of the waves' enemies.
+   */
+  private get lifeUnit(): number {
+    return this.spec.toughness / (this.ctx.horde ? HORDE.swarm.life : 1);
+  }
+
   /** Wave `n`'s numbers (waves.ts waveSpec); the Horde's: a swarm, HORDE.swarm.count times the enemies. */
   private specOf(n: number): WaveSpec {
     const spec = waveSpec(n);
@@ -1480,7 +1488,7 @@ export class WavesRun {
     // An ordinary enemy of the wave drops (its toughness undone); the tanks and the boss lose a share. Half of the
     // damage bonuses and no critical hit, as the grenades (Erick, 02/11/2026: measured in the wave's lives it grows with
     // the wave already, and with all the bonuses it took down anything)
-    const { p1, p2 } = this.ctx.game.silverShot(me, origin, direction, SILVER_LIFE / this.spec.toughness, WAVES.grenadeBonus, false);
+    const { p1, p2 } = this.ctx.game.silverShot(me, origin, direction, SILVER_LIFE / this.lifeUnit, WAVES.grenadeBonus, false);
     this.ctx.onSilver(p1, p2);
   }
 
@@ -1647,7 +1655,7 @@ export class WavesRun {
       if (d >= SHOCK.radius + p.radius || game.map.rayTest(pos.clone(), p.currentCF.position.clone(), new Vec3())) continue;
       const away = new Vec3(p.currentCF.position.x - pos.x, p.currentCF.position.y - pos.y, 0);
       if (away.lengthSq() > 1e-6) p.currentCF.vel.addIn(away.normalizeIn().mul(SHOCK.push));
-      p.hitSV(WEAPON_NUCLEAR, me, (SHOCK.lives / this.spec.toughness) * (1 - d / (SHOCK.radius * 1.5)));
+      p.hitSV(WEAPON_NUCLEAR, me, (SHOCK.lives / this.lifeUnit) * (1 - d / (SHOCK.radius * 1.5)));
     }
     for (const c of [...game.crates]) {
       if (Math.hypot(c.position.x - pos.x, c.position.y - pos.y) < SHOCK.radius) game.hitCrate(c, 10, me);
@@ -1666,7 +1674,7 @@ export class WavesRun {
       if (!p.isAlive) continue;
       const d = Math.hypot(p.currentCF.position.x - pos.x, p.currentCF.position.y - pos.y);
       if (d >= radius || game.map.rayTest(pos.clone(), p.currentCF.position.clone(), new Vec3())) continue;
-      p.hitSV(WEAPON_COCKTAIL_MOLOTOV, me, lives / this.spec.toughness, WAVES.grenadeBonus, false);
+      p.hitSV(WEAPON_COCKTAIL_MOLOTOV, me, lives / this.lifeUnit, WAVES.grenadeBonus, false);
     }
     for (const c of [...game.crates]) {
       if (Math.hypot(c.position.x - pos.x, c.position.y - pos.y) < radius) game.hitCrate(c, 10, me);
@@ -1706,7 +1714,7 @@ export class WavesRun {
         const across = Math.abs(-dx * Math.sin(a) + dy * Math.cos(a));
         if (along < ORBITAL.from - p.radius || along > ORBITAL.length + p.radius || across > ORBITAL.width / 2 + p.radius) continue;
         this.orbitalHit.set(p, now + ORBITAL.gap);
-        p.hitSV(WEAPON_COCKTAIL_MOLOTOV, me, ORBITAL.lives / this.spec.toughness, WAVES.grenadeBonus, false);
+        p.hitSV(WEAPON_COCKTAIL_MOLOTOV, me, ORBITAL.lives / this.lifeUnit, WAVES.grenadeBonus, false);
         break;
       }
     }
@@ -1725,7 +1733,7 @@ export class WavesRun {
       if (!inSight && !this.ctx.onScreen(p.currentCF.position)) continue;
       // (half of the damage bonuses and no critical hit, as the grenades and the Silver bullet; not the shock wave's Q:
       // Erick, it may kill the tanks for now)
-      p.hitSV(WEAPON_NUCLEAR, me, lives / this.spec.toughness, WAVES.grenadeBonus, false);
+      p.hitSV(WEAPON_NUCLEAR, me, lives / this.lifeUnit, WAVES.grenadeBonus, false);
     }
     for (const c of [...game.crates]) {
       if (Math.hypot(c.position.x - pos.x, c.position.y - pos.y) < radius) game.hitCrate(c, 10, me);

@@ -1,14 +1,13 @@
 // The Horde's own cards (Erick, 15/11/2026: "things that fire by themselves from me, things turning around me"): what
 // they do every tick, driven by the WavesRun (src/client/wavesRun.ts) in the Horde. Blades turning around the player,
 // a ring of bullets now and then, a field burning around him, drones shooting the nearest enemy, homing rockets. Their
-// damage is in lives of an ordinary enemy of the wave with half the damage bonuses and no critical hit (HORDE_ARMS), as
-// the Orbital and the grenades: it grows with the wave. Drawn by src/client/render/hordeArmsRenderer.ts.
+// damage is a weapon's, with all of the player's damage bonuses and no critical hit (HORDE_ARMS): it grows with his
+// build, not with the wave. Drawn by src/client/render/hordeArmsRenderer.ts.
 import { PROJECTILE_ROCKET, TICK, WEAPON_BAZOOKA, WEAPON_KNIVES, WEAPON_PHOTON_RIFLE, WEAPON_SMG } from '../sim/constants';
 import type { Game } from '../sim/game';
 import type { Player } from '../sim/player';
 import type { Projectile } from '../sim/projectile';
 import { Vec3 } from '../sim/vec';
-import { WAVES } from './waves';
 import { CARD_LEVELS, HORDE_ARMS, type CardLevels } from './wavesCards';
 
 export interface ArmsHost {
@@ -16,8 +15,6 @@ export interface ArmsHost {
   me: Player;
   /** The enemies, standing or not. */
   reds(): Player[];
-  /** The wave's toughness (WaveSpec.toughness): a life of an ordinary enemy of it. */
-  toughness(): number;
   /** A shot of theirs (a drone's, the ring's), from `p1` to where it stopped. */
   onShot(p1: Vec3, p2: Vec3): void;
   /** Rockets left (their sound). */
@@ -75,7 +72,7 @@ export class HordeArms {
           if ((this.bladeHit.get(p) ?? -Infinity) > this.time) continue;
           if (Math.hypot(p.currentCF.position.x - x, p.currentCF.position.y - y) > p.radius + B.size) continue;
           this.bladeHit.set(p, this.time + B.gap);
-          this.hurt(p, B.lives, WEAPON_KNIVES);
+          this.hurt(p, B.damage, WEAPON_KNIVES);
         }
       }
     }
@@ -88,7 +85,7 @@ export class HordeArms {
       if (fighting && this.auraClock >= HORDE_ARMS.aura.gap) {
         this.auraClock = 0;
         for (const p of enemies) {
-          if (Math.hypot(p.currentCF.position.x - at.x, p.currentCF.position.y - at.y) <= reach + p.radius) this.hurt(p, HORDE_ARMS.aura.lives, WEAPON_PHOTON_RIFLE);
+          if (Math.hypot(p.currentCF.position.x - at.x, p.currentCF.position.y - at.y) <= reach + p.radius) this.hurt(p, HORDE_ARMS.aura.damage, WEAPON_PHOTON_RIFLE);
         }
       }
     }
@@ -103,7 +100,7 @@ export class HordeArms {
         const turn = Math.random() * Math.PI * 2;
         for (let k = 0; k < bullets; k++) {
           const a = turn + (k * Math.PI * 2) / bullets;
-          this.bullet(new Vec3(at.x, at.y, 0.25), new Vec3(Math.cos(a), Math.sin(a), 0), R.range, R.lives, enemies);
+          this.bullet(new Vec3(at.x, at.y, 0.25), new Vec3(Math.cos(a), Math.sin(a), 0), R.range, R.damage, enemies);
         }
       }
     }
@@ -122,7 +119,7 @@ export class HordeArms {
       const target = this.nearest(new Vec3(pos.x, pos.y, 0.25), enemies, D.range, 1)[0];
       if (!target) continue;
       this.droneClocks[k] = 0;
-      this.hurt(target, D.lives, WEAPON_SMG);
+      this.hurt(target, D.damage, WEAPON_SMG);
       this.host.onShot(pos, target.currentCF.position.clone());
     }
 
@@ -184,7 +181,7 @@ export class HordeArms {
   }
 
   /** A straight bullet from `p1` along `dir`: the walls stop it, it hits the first enemy on its way. */
-  private bullet(p1: Vec3, dir: Vec3, range: number, lives: number, enemies: Player[]): void {
+  private bullet(p1: Vec3, dir: Vec3, range: number, damage: number, enemies: Player[]): void {
     const end = p1.add(dir.mul(range));
     this.host.game.map.rayTest(p1.clone(), end, new Vec3());
     const length = Math.hypot(end.x - p1.x, end.y - p1.y);
@@ -199,7 +196,7 @@ export class HordeArms {
       best = along;
       hit = p;
     }
-    if (hit) this.hurt(hit, lives, WEAPON_SMG);
+    if (hit) this.hurt(hit, damage, WEAPON_SMG);
     this.host.onShot(p1, new Vec3(p1.x + dir.x * best, p1.y + dir.y * best, 0.25));
   }
 
@@ -218,7 +215,8 @@ export class HordeArms {
     return Math.hypot(p.currentCF.position.x - at.x, p.currentCF.position.y - at.y);
   }
 
-  private hurt(p: Player, lives: number, weaponID: number): void {
-    p.hitSV(weaponID, this.host.me, lives / this.host.toughness(), WAVES.grenadeBonus, false);
+  /** A hit of theirs: a weapon's damage, with all of the player's bonuses (no critical hit). */
+  private hurt(p: Player, damage: number, weaponID: number): void {
+    p.hitSV(weaponID, this.host.me, damage, 1, false);
   }
 }

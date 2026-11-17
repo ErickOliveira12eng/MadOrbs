@@ -221,12 +221,17 @@ export type CardLevels = Partial<Record<CardID, number>>;
  * - homing: every `every` s, small rockets at the nearest enemies in sight within `range`, turning toward them
  *   (`steer` of the way a tick), `share` of a bazooka rocket's blast.
  */
+// Their damage (16/11/2026, Erick: a friend reached wave 136 standing still, the cards killing everything): a weapon's
+// (bars of a plain Orb, the SMG's bullet is 0.1, ten a second), with all of the player's damage bonuses like his gun's,
+// and none of the wave's: the enemies get tougher every wave and the cards fall behind unless he builds his damage. It
+// was in lives of an ordinary enemy of the wave (always two blades to kill one, on any wave), and the swarm's enemies,
+// with less life, made that worse. The homing rockets are the bazooka's, `share` of its blast.
 export const HORDE_ARMS = {
-  blades: { lives: 0.5, gap: 0.45, turn: 230, radius: [0, 1.1, 1.2, 1.3, 1.4, 1.5], size: 0.28 },
-  nova: { lives: 0.45, every: 3, range: 6 },
-  aura: { lives: 0.18, gap: 0.5 },
-  drone: { lives: 0.45, gap: 0.7, range: 7, orbit: 0.9 },
-  homing: { every: 2.2, range: 9, share: 0.6, steer: 0.18 },
+  blades: { damage: 0.08, gap: 0.45, turn: 230, radius: [0, 1.1, 1.2, 1.3, 1.4, 1.5], size: 0.28 },
+  nova: { damage: 0.15, every: 3, range: 6 },
+  aura: { damage: 0.05, gap: 0.5 },
+  drone: { damage: 0.12, gap: 0.7, range: 7, orbit: 0.9 },
+  homing: { every: 2.2, range: 9, share: 0.4, steer: 0.18 },
 };
 
 /** The shot cards: more bullets, through and from one enemy to the next (CARD_GAP counts their levels). */
@@ -331,6 +336,11 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean, le
   if (mythics.length && !CARDS.some((c) => c.rarity === 'mythic' && (owned[c.id] ?? 0) > 0)) return mythics.map((c) => ({ id: c.id, up: 1 }));
   const mythic = (): CardID | null => (mythics.length ? mythics[Math.floor(Math.random() * mythics.length)].id : null);
   const ids = rollCards(n, owned, 3, commonOnly, horde);
+  // The Horde's level ups never bring the stat cards (16/11/2026: a level a wave or more, each one x1.12 on top of the
+  // last, and a full Workshop went past wave 270 with 595 cards; the waves give them twice every ten waves, the boss's
+  // growth): its bosses still do. Every other card at its top, a level up brings nothing.
+  const noStats = horde && levelUp;
+  if (!ids.length && noStats) return [];
   // Every other card at its top: the three stat cards (without end), one of them a mythic card if one is left
   if (!ids.length) {
     const stats: CardOffer[] = (Object.keys(STAT_CARDS) as StatCardID[]).map((id) => ({ id, up: 1 }));
@@ -392,6 +402,7 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean, le
   // The stat cards (STAT_CARDS): a new common card's place at STAT_CHANCE; the offer filled up to three with them
   const stats = (Object.keys(STAT_CARDS) as StatCardID[]).sort(() => Math.random() - 0.5);
   const nextStat = () => stats.find((id) => !offer.some((o) => o.id === id));
+  if (noStats) return offer;
   offer.forEach((o, i) => {
     if (i === slot || cardDef(o.id).rarity !== 'common' || level(o.id) > 0 || Math.random() >= STAT_CHANCE) return;
     const id = nextStat();
