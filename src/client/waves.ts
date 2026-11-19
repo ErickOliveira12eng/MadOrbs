@@ -760,17 +760,19 @@ export function saveWavesRun(wave: number, kills: number, time: number | null, s
  * leaves energy on the floor (`energy`: a plain one, an elite, a mini-boss, a boss; the bots a Summoner calls leave none),
  * the energy taken fills the level bar and each level up offers three cards (wavesCards.ts offerCards with `levelUp`).
  * They took the place of the common cards of waves 5, 15, 25... and the mini-boss's (the boss keeps its own offer). Erick
- * chose about the cards of before (~15 choices by wave 50 with the bosses'): `need` gives, taking all the energy, level 3
- * by wave 5, 5 by 10, 8 by 30, 11 by 50, 16 by 100, 21 by 150 (expectedLevel).
+ * wanted a few more cards than before all the way (the commons and the bosses gave two choices every ten waves: 10 by wave
+ * 50, 20 by 100, 40 by 200): `need` gives, taking all the energy (expectedLevel), level 5 by wave 10, 8 by 20, 14 by 50,
+ * 21 by 100, 28 by 150, 33 by 200, so with the bosses' 18 choices by wave 50, 30 by 100, 42 by 150, 52 by 200. (A first
+ * curve the same day, 4k + 1.5k³, gave 15 by 50 and stayed 5 ahead after it: a level every ten waves.)
  */
 export const LEVELS = {
   energy: { plain: 1, elite: 3, mini: 8, boss: 20 },
   /** The energy from level L to the next: wave 1's for the first, then `add` × k + `cube` × k³ more (k = L − 1). */
-  need: { add: 4, cube: 1.5 },
+  need: { add: 6, cube: 0.5 },
   /**
    * The rare and epic crates' chances here (the Horde's HORDE.crates: 18% and 6%; their life and rewards the same): each
    * gives up to a level and a half of energy, and at the Horde's chances a full Workshop's pilot (tools/waves-sim.ts) was
-   * on level 16 by wave 50, not 11.
+   * on level 16 by wave 50 with the first curve, not 11.
    */
   crates: { rare: 0.08, epic: 0.03 },
 } as const;
