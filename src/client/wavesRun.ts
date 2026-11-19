@@ -69,6 +69,11 @@ export interface WavesHud {
   cores: number;
   /** The energy and levels (the Horde's, and the Waves' since 18/11/2026): the level, the energy toward the next one and what it takes, the Horde's Essence; null in the tutorial. */
   horde: { level: number; energy: number; need: number; essence: number } | null;
+  /**
+   * The Horde's swarm (no names over its small enemies, HudLayer.updateTags). Not `horde`, which the Waves have too since
+   * 18/11/2026: reading it as the Horde left the Waves' enemies with empty name tags (Erick saw a bar over their life).
+   */
+  swarm: boolean;
   /** The waves between the bosses (src/client/wavesEvents.ts): the wave's modifier, its challenge; null elsewhere. */
   events: EventsHud | null;
   over: boolean;
@@ -2030,6 +2035,7 @@ export class WavesRun {
       record: this.script || this.ctx.horde ? null : (this.record?.wave ?? null),
       // How much tougher and harder hitting the wave's bots are than on wave 1
       scale: this.script ? { life: 1, hit: 1 } : { life: 1 / this.spec.toughness, hit: this.spec.hitBoost },
+      swarm: !!this.ctx.horde,
       horde: this.leveling
         ? { level: this.level, energy: this.energy, need: this.need(this.level), essence: this.tested || !this.ctx.horde ? 0 : runEssence(Math.max(1, this.wave), me.kills, this.bosses, this.level, false).total }
         : null,

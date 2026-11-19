@@ -1787,7 +1787,7 @@ export class HudLayer {
       if (!pt) continue;
       // The Horde's swarm (Erick, 16/11/2026): no names over the crowd, only an elite's mark, the nuke's fuse and the
       // bar of one hurt (the bosses keep theirs)
-      const swarm = !!f.waves?.horde && p.teamID === PLAYER_TEAM_RED && p.radius <= 0.3;
+      const swarm = !!f.waves?.swarm && p.teamID === PLAYER_TEAM_RED && p.radius <= 0.3;
       if (light) {
         const [sx, sy] = this.toStage(pt.x, pt.y);
         if (Math.hypot(sx - light[0], sy - light[1]) > WAVE_MODS.dark.dark) continue;
