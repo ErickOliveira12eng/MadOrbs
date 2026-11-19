@@ -6544,3 +6544,220 @@ input[type='range'] {
 .hd-side .wv-note {
   margin-top: 10px;
 }
+
+/* ------------------------------------------------------------------ the Steam start screen to try (?ui=steam)
+   src/menu/steamMenu.ts, mockup R1 (Erick, 18/11/2026): the Waves only, the menu down the left, your Orb in the
+   middle, the ranking on the right (Friends, Global, This week; only Global works on the web) with the player to
+   pass next. The official start screen never gets the .steam class. */
+
+.steam-only {
+  display: none;
+}
+
+#start.steam .steam-only {
+  display: inline;
+}
+
+#start.steam .not-steam,
+#start.steam .mode-cards,
+#start.steam .lobby-tiles,
+#start.steam #serverStatus,
+#start.steam .topbar .tagline,
+#start.steam .lr-tabs button[data-tab='online'],
+#start.steam .lr-tabs button[data-tab='vesuvius'] {
+  display: none;
+}
+
+#start.steam .lobby-grid {
+  grid-template-columns: 400px minmax(0, 1fr) 390px;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'menu hero side';
+  gap: 18px 26px;
+}
+
+#start.steam .lobby-grid > .message {
+  grid-area: hero;
+  align-self: end;
+  margin: 0 0 12px;
+}
+
+#start.steam .steam-menu {
+  grid-area: menu;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sm-tagline {
+  margin: 0 0 14px;
+  color: #c3cbe6;
+  font: 800 16px/1.35 var(--font-ui);
+}
+
+.sm-continue {
+  height: 84px;
+  margin-bottom: 10px;
+  padding: 0 22px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 0;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffd34d, #ff9c1f);
+  box-shadow: 0 6px 0 #b85e00, 0 16px 34px rgba(255, 150, 30, 0.35);
+  color: #2a1600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sm-continue:hover {
+  filter: brightness(1.06);
+}
+
+.sm-continue:active {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 #b85e00, 0 10px 24px rgba(255, 150, 30, 0.3);
+}
+
+.sm-continue .icon {
+  width: 28px;
+  height: 28px;
+  fill: currentColor;
+}
+
+.sm-cont-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sm-cont-text b {
+  font: 400 32px/1 var(--font-display);
+  letter-spacing: 1px;
+}
+
+.sm-cont-text small {
+  margin-top: 4px;
+  color: rgba(42, 22, 0, 0.82);
+  font: 800 13.5px var(--font-ui);
+}
+
+.sm-item {
+  height: 52px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 9, 26, 0.62);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sm-item[hidden] {
+  display: none;
+}
+
+.sm-item:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sm-item .icon {
+  width: 22px;
+  height: 22px;
+  color: #c3cbe6;
+}
+
+.sm-item b {
+  flex: 1;
+  font: 400 23px var(--font-display);
+  letter-spacing: 0.5px;
+}
+
+.sm-item small {
+  color: #a3add0;
+  font: 800 13px var(--font-ui);
+}
+
+.sm-item.hot {
+  border-color: rgba(255, 194, 58, 0.45);
+  background: rgba(255, 194, 58, 0.08);
+}
+
+.sm-item.hot .icon,
+.sm-item.hot small {
+  color: #ffc23a;
+}
+
+/* Your Orb bigger, the name under it */
+#start.steam .hero {
+  flex-direction: column;
+  gap: 10px;
+}
+
+#start.steam .hero .orb-row .orb-stage {
+  zoom: 1.05;
+}
+
+#start.steam .hero-id {
+  align-items: center;
+  min-width: 0;
+}
+
+#start.steam .hero .name-input {
+  text-align: center;
+}
+
+/* The ranking's tabs: Friends and This week only say when they come; Global (the Survival list) in the menu's gold */
+#start.steam .lr-tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+#start.steam .lr-tabs button.steam-only {
+  display: block;
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #7f89ad;
+  cursor: default;
+}
+
+#start.steam .lr-tabs button.steam-only:hover {
+  background: transparent;
+}
+
+#start.steam .lr-tabs button[data-tab='waves'] {
+  border-color: rgba(255, 194, 58, 0.5);
+  color: #ffd877;
+}
+
+#start.steam .lr-tabs button[data-tab='waves'][aria-selected='true'] {
+  border-color: #ffc23a;
+  background: linear-gradient(180deg, #ffd34d 0%, #ff9c1f 100%);
+  color: #2a1600;
+  text-shadow: none;
+}
+
+/* The one to pass next, under your numbers */
+.lr-rival {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 194, 58, 0.4);
+  background: rgba(255, 194, 58, 0.08);
+  color: var(--text);
+  font: 800 14px/1.35 var(--font-ui);
+}
+
+.lr-rival b {
+  color: #ffc23a;
+}
+
+/* One column (phones, narrow windows): the menu, your Orb, the ranking */
+#start.steam.narrow .lobby-grid {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: none;
+  grid-template-areas: 'menu' 'hero' 'side';
+}

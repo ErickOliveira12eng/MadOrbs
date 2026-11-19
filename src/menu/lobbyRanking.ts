@@ -51,6 +51,11 @@ export class LobbyRanking {
   private started = false;
   /** Who the lists were read for (a token refreshed on coming back to the tab is the same player: kept). */
   private reader = '';
+  /**
+   * The Steam start screen to try (src/menu/steamMenu.ts): the Survival list only (its tab reads "Global", beside the
+   * Friends and This week ones that only show there) and the player to pass next under "Your performance".
+   */
+  steam = false;
   /** What the list and the box show now: written again only when it changes (no flicker). */
   private shown = { list: '', perf: '' };
 
@@ -169,6 +174,7 @@ export class LobbyRanking {
   }
 
   private async render(): Promise<void> {
+    if (this.steam) this.tab = 'waves';
     const mode = this.mode;
     for (const b of $('lrTabs').querySelectorAll<HTMLElement>('[data-tab]')) b.setAttribute('aria-selected', String(b.dataset.tab === this.tab));
     $('lrSub').textContent = this.tab === 'online' ? `${modeName(mode as RoomMode)} · ${t(BY[mode])}` : t(BY[mode]);
@@ -222,8 +228,33 @@ export class LobbyRanking {
     }
     this.setList(html || `<li class="lr-note">${t('ranking.empty')}</li>`);
     this.renderPerf(mode, rows.find((r) => r.is_me) ?? null, total);
+    this.renderRival(mode, rows);
     // (again once "Your performance" under it changed: the column's room with it)
     this.fit();
+  }
+
+  /**
+   * The Steam screen: the one to pass next, the row just above the player's (the waves to go: to pass a record on the
+   * same wave, get there sooner); past the top rows, the waves to the last of them; first, hold on to it.
+   */
+  private renderRival(mode: RankingMode, rows: RankingRow[]): void {
+    const box = $('lrRival');
+    const me = this.steam && mode === 'waves' ? rows.find((r) => r.is_me) : undefined;
+    box.hidden = !me;
+    if (!me) return;
+    const above = rows.find((r) => r.rank === me.rank - 1);
+    const gap = (r: RankingRow) => Math.max(0, (r.stats.wave ?? 0) - (me.stats.wave ?? 0));
+    let text: string;
+    if (me.rank === 1) text = t('steam.first');
+    else if (above) {
+      const name = `<b>${esc(above.name || 'Orb')}</b>`;
+      const n = gap(above);
+      text = n === 0 ? t('steam.passTime', { name }) : t(n === 1 ? 'steam.passOne' : 'steam.pass', { name, n });
+    } else {
+      const last = rows.filter((r) => !r.is_me).pop();
+      text = last ? t('steam.top10', { n: Math.max(1, gap(last)) }) : t('steam.first');
+    }
+    box.innerHTML = text;
   }
 
   /** "Your performance": the place, the number, the top share; a guest is asked to sign in. */

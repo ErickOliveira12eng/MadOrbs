@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { modeName, modeShort, modeTagline } from '../client/modes';
 import { bestKills } from '../client/records';
 import { WAVES, bossKind, loadWavesRecord } from '../client/waves';
-import { affordable, balance, dailyState, loadProgress as loadWavesProgress } from '../client/wavesProgress';
+import { affordable, balance, dailyState, loadProgress as loadWavesProgress, saveProgress as saveWavesProgress } from '../client/wavesProgress';
 import { LANG_KEY, bigNum, lang, num, t, type Lang } from '../i18n';
 import { MAX_NAME_LENGTH, ROOM_MODES, cleanName, isReservedName, limitNameInput, type RoomMode, type RoomStatus } from '../net/protocol';
 import type { Account } from './account';
@@ -18,6 +18,7 @@ import { StatsModal } from './statsModal';
 import { AdblockModal } from './adblockModal';
 import { RankingModal } from './rankingModal';
 import { LobbyRanking } from './lobbyRanking';
+import { SteamMenu, steamUi } from './steamMenu';
 import { PcOnlyModal, sendLink, touchOnly } from './pcOnly';
 import { RoomModal, type PrivateRoomJoin } from './roomModal';
 import { isOldGeneratedName, randomGuestName } from './guestNames';
@@ -89,6 +90,8 @@ export class StartScreen {
   private readonly lobbyRanking: LobbyRanking;
   /** The ranking tab of the mode being played, for the way back (null: leave it as it is). */
   private playedTab: 'online' | 'waves' | 'vesuvius' | null = null;
+  /** The Steam start screen to try (?ui=steam, src/menu/steamMenu.ts); null on the official one. */
+  private steamMenu: SteamMenu | null = null;
   private readonly room: RoomModal;
   /** The account whose Orb was already brought into this page's settings. */
   private orbSyncedFor = '';
@@ -228,6 +231,28 @@ export class StartScreen {
       tutorial,
     );
     this.buildModes();
+    // The Steam start screen to try (?ui=steam, Erick, 18/11/2026): the Waves only, its menu calling these same actions
+    if (steamUi()) {
+      this.steamMenu = new SteamMenu({
+        play: (startWave) => {
+          const wp = loadWavesProgress();
+          if (wp.startWave !== startWave) saveWavesProgress({ ...wp, startWave });
+          void this.firstTime('waves').then((a) => {
+            if (a === 'tutorial') tutorial('waves');
+            else if (a === 'play' || a === 'none') {
+              this.play('offline', false);
+              this.playedTab = 'waves';
+              onWaves();
+            }
+          });
+        },
+        workshop: () => this.openWaves(),
+        orbs: () => this.picker.open(),
+        stats: () => $('btnStats').click(),
+        tutorial: () => this.training.open(),
+      });
+      this.lobbyRanking.steam = true;
+    }
     for (const id of ['orbButton', 'orbCustomize']) $(id).addEventListener('click', () => this.picker.open());
     $('orbPrev').addEventListener('click', () => this.cycleSkin(-1));
     $('orbNext').addEventListener('click', () => this.cycleSkin(1));
@@ -453,7 +478,8 @@ export class StartScreen {
     // Beside the name, the player's records: the waves' (the bigger brag, 07/11/2026) and the chosen mode's online one
     const chips: string[] = [];
     if (waves) chips.push(t('menu.wavesRecordChip', { n: `<b>${num(waves.wave)}</b>` }));
-    if (record > 0) chips.push(t('menu.recordChip', { mode: modeShort(mode), n: `<b>${num(record)}</b>` }));
+    // (the Steam screen to try is the Waves only: no online record)
+    if (record > 0 && !steamUi()) chips.push(t('menu.recordChip', { mode: modeShort(mode), n: `<b>${num(record)}</b>` }));
     $('heroChips').innerHTML = chips.map((c) => `<span class="hero-chip">${c}</span>`).join('');
 
     // The Survival card: the next boss the player meets (its picture, tools/make-menu-cards.mjs) and the Vesuvius once
@@ -476,6 +502,7 @@ export class StartScreen {
     badge.hidden = !daily && canBuy === 0;
     badge.classList.toggle('daily', daily);
     badge.textContent = daily ? t('menu.dailyReady') : t(canBuy === 1 ? 'menu.wavesCanBuyOne' : 'menu.wavesCanBuy', { n: canBuy });
+    this.steamMenu?.render();
   }
 
   /** The testers' "every style and crown open" (the account window), on an account the server allows. */
