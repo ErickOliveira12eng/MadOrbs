@@ -752,3 +752,47 @@ export function saveWavesRun(wave: number, kills: number, time: number | null, s
   storeWavesRecord(isBest ? run : { ...best!, splits: merged });
   return isBest;
 }
+
+// ------------------------------------------------------------------ energy and levels
+
+/**
+ * Energy and levels in the Waves (18/11/2026, Erick: the Horde's, src/client/horde.ts, here too): every enemy that falls
+ * leaves energy on the floor (`energy`: a plain one, an elite, a mini-boss, a boss; the bots a Summoner calls leave none),
+ * the energy taken fills the level bar and each level up offers three cards (wavesCards.ts offerCards with `levelUp`).
+ * They took the place of the common cards of waves 5, 15, 25... and the mini-boss's (the boss keeps its own offer). Erick
+ * chose about the cards of before (~15 choices by wave 50 with the bosses'): `need` gives, taking all the energy, level 3
+ * by wave 5, 5 by 10, 8 by 30, 11 by 50, 16 by 100, 21 by 150 (expectedLevel).
+ */
+export const LEVELS = {
+  energy: { plain: 1, elite: 3, mini: 8, boss: 20 },
+  /** The energy from level L to the next: wave 1's for the first, then `add` × k + `cube` × k³ more (k = L − 1). */
+  need: { add: 4, cube: 1.5 },
+  /**
+   * The rare and epic crates' chances here (the Horde's HORDE.crates: 18% and 6%; their life and rewards the same): each
+   * gives up to a level and a half of energy, and at the Horde's chances a full Workshop's pilot (tools/waves-sim.ts) was
+   * on level 16 by wave 50, not 11.
+   */
+  crates: { rare: 0.08, epic: 0.03 },
+} as const;
+
+/** The energy from level `level` to the next, in the Waves (LEVELS.need). */
+export function wavesEnergyToNext(level: number): number {
+  const k = level - 1;
+  return Math.round(waveSpec(1).total * LEVELS.energy.plain + LEVELS.need.add * k + LEVELS.need.cube * k ** 3);
+}
+
+/**
+ * The energy waves 1 to `wave` leave on the floor on the average (its enemies, the elites' share, the mini-boss and the
+ * boss), and the level all of it takes a run to.
+ */
+export function expectedLevel(wave: number): number {
+  const E = LEVELS.energy;
+  let level = 1;
+  let energy = 0;
+  for (let n = 1; n <= wave; n++) {
+    const spec = waveSpec(n);
+    energy += spec.total * (E.plain + (E.elite - E.plain) * eliteShare(n)) + (spec.boss ? E.boss : 0) + (isMiniWave(n) ? E.mini : 0);
+    while (energy >= wavesEnergyToNext(level)) energy -= wavesEnergyToNext(level++);
+  }
+  return level;
+}

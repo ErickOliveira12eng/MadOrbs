@@ -19,7 +19,7 @@ import { HordeArmsRenderer } from './render/hordeArmsRenderer';
 import type { CrateTier } from '../sim/crate';
 import { VesuviusRenderer } from './render/vesuviusRenderer';
 import { WaveEvents, type EventKey, type EventsHud } from './wavesEvents';
-import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, MINI, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, BOSSES, ELITE, WAVES, WAVE_MODS, breakAfter, isMiniWave, miniMove, bossCycle, bossKind, bossMoves, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type BossKind, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { BOMB, BOOSTS, ICE_MAX, ICE_SLOW, MINI, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, BOSSES, ELITE, LEVELS, WAVES, WAVE_MODS, breakAfter, expectedLevel, wavesEnergyToNext, isMiniWave, miniMove, bossCycle, bossKind, bossMoves, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type BossKind, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, REFLECT_TIME, ORBITAL, PHOENIX, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, statFactor, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, MAGNET, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, workshopFactor, loadProgress, runCores, saveBuild, waveCores, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
@@ -67,7 +67,7 @@ export interface WavesHud {
   scale: { life: number; hit: number };
   /** Cores earned so far (the waves survived, the kills, the bosses; a new record adds more at the end). */
   cores: number;
-  /** The Horde (src/client/horde.ts): the level, the energy toward the next one and what it takes; null elsewhere. */
+  /** The energy and levels (the Horde's, and the Waves' since 18/11/2026): the level, the energy toward the next one and what it takes, the Horde's Essence; null in the tutorial. */
   horde: { level: number; energy: number; need: number; essence: number } | null;
   /** The waves between the bosses (src/client/wavesEvents.ts): the wave's modifier, its challenge; null elsewhere. */
   events: EventsHud | null;
@@ -194,6 +194,8 @@ export interface WavesContext {
   tutorial?: boolean;
   /** The Horde (src/client/horde.ts): smaller Orbs, the energy on the floor and the levels; in test, it counts for nothing. */
   horde?: boolean;
+  /** Without the energy and levels: the Waves as before 18/11/2026, the common cards of waves 5, 15, 25... (tools/waves-sim.ts --old-cards, to compare). */
+  noLevels?: boolean;
   /** The Horde: a level up (the banner, the sound; its cards come with onCards). */
   onLevelUp?: (level: number) => void;
   /** The Horde: energy taken (its sound), and how much. */
@@ -304,10 +306,14 @@ export class WavesRun {
   private readonly scriptDrops = new Map<number, PowerKind>();
   private scriptTotal = 0;
   /**
-   * The Horde (src/client/horde.ts): the enemies' size (1 elsewhere), the energy on the floor and its drawing, the level, the energy toward the next one, the level ups waiting for their cards, the level
-   * of the offer on screen (0: not a level up's).
+   * The Horde (src/client/horde.ts): the enemies' size (1 elsewhere). The energy and levels (`leveling`: the Horde's and,
+   * since 18/11/2026, the Waves', waves.ts LEVELS; not the tutorial): the energy on the floor and its drawing, the level,
+   * the energy toward the next one, the level ups waiting for their cards, the level of the offer on screen (0: not a
+   * level up's), the bots a Summoner called (they leave no energy: a Summoner left standing can't be farmed).
    */
   private readonly size: number;
+  private readonly leveling: boolean;
+  private readonly summoned = new Set<number>();
   /** The Horde: the enemies' damage (HORDE.enemyHit; 1 elsewhere). */
   private readonly enemyHit: number;
   private energyFloor: FloorEnergy[] = [];
@@ -348,7 +354,8 @@ export class WavesRun {
     // The Horde: its own Essence and best (not the Waves' record, Cores, checkpoints nor report); the enemies smaller
     this.size = ctx.horde ? HORDE.enemyScale : 1;
     this.enemyHit = ctx.horde ? HORDE.enemyHit : 1;
-    if (ctx.horde) {
+    this.leveling = !ctx.tutorial && !ctx.noLevels;
+    if (this.leveling) {
       this.energyRenderer = new EnergyRenderer(ctx.scene);
       this.armsRenderer = new HordeArmsRenderer(ctx.scene);
       this.arms = new HordeArms({
@@ -358,8 +365,8 @@ export class WavesRun {
         onShot: (p1, p2) => ctx.onArmsShot?.(p1, p2),
         onRockets: (position) => ctx.onArmsRockets?.(position),
       });
-      ctx.me.spreadScale = HORDE.spread;
     }
+    if (ctx.horde) ctx.me.spreadScale = HORDE.spread;
     ctx.game.lifePackHeal = WAVES.lifePackHeal;
     // A run from a checkpoint: the wave before it counts as done, and a head start of power-ups
     this.wave = ctx.startWave - 1;
@@ -379,6 +386,9 @@ export class WavesRun {
         if (k) this.perms[k]++;
       }
     }
+    // The level a run that took all the energy would have by then (the next ones at their pace, not a flood of cards;
+    // the cards are the build's)
+    if (this.leveling && !ctx.horde && ctx.startWave > 1) this.level = expectedLevel(ctx.startWave - 1);
     // The player in the colours he chose, not the blue team's (Erick, 29/10/2026)
     ctx.me.ownColors = true;
     // The Workshop's recharging shield, full at the start
@@ -498,7 +508,7 @@ export class WavesRun {
       return true;
     });
 
-    if (this.ctx.horde) this.updateEnergy();
+    if (this.leveling) this.updateEnergy();
 
     // Power-ups: the timed ones run out; the player's boosts from them, the permanent levels, the Workshop and the cards
     for (const k of Object.keys(this.timers) as TimedPower[]) this.timers[k] = Math.max(0, this.timers[k] - TICK);
@@ -611,8 +621,8 @@ export class WavesRun {
    * time up), once; after the boss's if both come at the same moment (a late boss falling as the last enemy).
    */
   private commonCardsAfter(n: number): void {
-    // (the Horde: its cards come with the levels)
-    if (this.ctx.horde || n % COMMON_CARDS_EVERY !== 0 || n % 10 === 0 || this.commonCardsAt >= n) return;
+    // (the Horde, and the Waves since 18/11/2026: the cards come with the levels; the tutorial has none either)
+    if (this.leveling || n % COMMON_CARDS_EVERY !== 0 || n % 10 === 0 || this.commonCardsAt >= n) return;
     this.commonCardsAt = n;
     if (this.offer) this.owedCards = n;
     else this.offerCards(n);
@@ -749,6 +759,9 @@ export class WavesRun {
       p.teamID = PLAYER_TEAM_RED;
       i = bots.length;
     }
+    // (a Summoner's: no energy when it falls)
+    if (at) this.summoned.add(p.playerID);
+    else this.summoned.delete(p.playerID);
     // Hurt the moment it spawns (Erick, 26/10/2026; also a reused Orb)
     p.spawnImmune = false;
     p.skin = this.ctx.randomSkin();
@@ -1141,13 +1154,14 @@ export class WavesRun {
     return spec;
   }
 
-  /** The Horde: a crate's kind as it comes (HORDE.crates); 0 elsewhere. */
+  /** A crate's kind as it comes (HORDE.crates: the Horde's, and the Waves' since 18/11/2026); 0 in the tutorial. */
   private crateTier(): CrateTier {
-    if (!this.ctx.horde) return 0;
+    if (!this.leveling) return 0;
     const { rare, epic } = HORDE.crates;
+    const chance = this.ctx.horde ? { rare: rare.chance, epic: epic.chance } : LEVELS.crates;
     const r = Math.random();
-    if (this.wave >= epic.from && r < epic.chance) return 2;
-    return r < epic.chance + rare.chance ? 1 : 0;
+    if (this.wave >= epic.from && r < chance.epic) return 2;
+    return r < chance.epic + chance.rare ? 1 : 0;
   }
 
   /**
@@ -1155,7 +1169,7 @@ export class WavesRun {
    * epic one, an epic card to choose (or a bigger energy).
    */
   private crateReward(tier: CrateTier, position: Vec3): void {
-    const big = (share: number) => this.energyFloor.push({ x: position.x, y: position.y, value: Math.max(10, Math.round(energyToNext(this.level) * share)), age: 0 });
+    const big = (share: number) => this.energyFloor.push({ x: position.x, y: position.y, value: Math.max(this.ctx.horde ? 10 : 3, Math.round(this.need(this.level) * share)), age: 0 });
     let what: 'energy' | 'perms' | 'cards' = 'energy';
     if (tier === 2) {
       if (Math.random() < HORDE.crates.epic.cards && !this.offer) {
@@ -1478,9 +1492,9 @@ export class WavesRun {
   onEnemyDown(victimID: number, fromID: number, position: Vec3): void {
     const chained = this.blastKills.delete(victimID);
     const { game, me } = this.ctx;
-    // The Horde: whoever brought it down, an enemy leaves its energy there
+    // Whoever brought it down, an enemy leaves its energy there (not one a Summoner called)
     const fallen = game.players[victimID];
-    if (this.ctx.horde && !this.over && fallen?.teamID === PLAYER_TEAM_RED) this.dropEnergy(fallen, position);
+    if (this.leveling && !this.over && fallen?.teamID === PLAYER_TEAM_RED && !this.summoned.has(victimID)) this.dropEnergy(fallen, position);
     if (this.over || fromID !== me.playerID) return;
     const victim = game.players[victimID];
     if (!victim || victim.teamID !== PLAYER_TEAM_RED) return;
@@ -1504,10 +1518,11 @@ export class WavesRun {
 
   // ---------------------------------------------------------------- the Horde's energy and levels
 
-  /** A fallen enemy's energy (HORDE.energy) on the floor; with too much there already, into the nearest one. */
+  /** A fallen enemy's energy (HORDE.energy, LEVELS.energy) on the floor; with too much there already, into the nearest one. */
   private dropEnergy(victim: Player, at: Vec3): void {
-    const E = HORDE.energy;
-    const value = this.isBoss(victim) ? E.boss : victim.badges.some((b) => b !== 'nuke') ? E.elite : E.plain;
+    const E = this.ctx.horde ? HORDE.energy : LEVELS.energy;
+    const elite = victim.badges.some((b) => b !== 'nuke' && b !== 'mini');
+    const value = this.isBoss(victim) ? E.boss : !this.ctx.horde && victim.badges.includes('mini') ? LEVELS.energy.mini : elite ? E.elite : E.plain;
     if (this.energyFloor.length >= HORDE.floor.most) {
       let near = this.energyFloor[0];
       let best = Infinity;
@@ -1557,13 +1572,18 @@ export class WavesRun {
   /** Energy taken: the levels it fills, each one's cards after the one on screen. */
   private gainEnergy(n: number): void {
     this.energy += n;
-    while (this.energy >= energyToNext(this.level)) {
-      this.energy -= energyToNext(this.level);
+    while (this.energy >= this.need(this.level)) {
+      this.energy -= this.need(this.level);
       this.level++;
       this.levelsOwed++;
       this.ctx.onLevelUp?.(this.level);
     }
     this.levelCards();
+  }
+
+  /** The energy from `level` to the next: the Horde's curve or the Waves' (fewer enemies, fewer levels). */
+  private need(level: number): number {
+    return this.ctx.horde ? energyToNext(level) : wavesEnergyToNext(level);
   }
 
   /** The next level up's three cards, unless an offer is on screen (its pick brings them). */
@@ -2010,8 +2030,8 @@ export class WavesRun {
       record: this.script || this.ctx.horde ? null : (this.record?.wave ?? null),
       // How much tougher and harder hitting the wave's bots are than on wave 1
       scale: this.script ? { life: 1, hit: 1 } : { life: 1 / this.spec.toughness, hit: this.spec.hitBoost },
-      horde: this.ctx.horde
-        ? { level: this.level, energy: this.energy, need: energyToNext(this.level), essence: this.tested ? 0 : runEssence(Math.max(1, this.wave), me.kills, this.bosses, this.level, false).total }
+      horde: this.leveling
+        ? { level: this.level, energy: this.energy, need: this.need(this.level), essence: this.tested || !this.ctx.horde ? 0 : runEssence(Math.max(1, this.wave), me.kills, this.bosses, this.level, false).total }
         : null,
       cores: this.script || this.ctx.horde ? 0 : runCores(this.ctx.startWave, Math.max(this.ctx.startWave, this.wave), me.kills, this.bosses, false, this.events?.cores ?? 0).total,
       events: this.events?.hud ?? null,

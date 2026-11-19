@@ -4,8 +4,8 @@
 // Kept in this browser (madorbs.wavesProgress) and, signed in, in the account (waves_progress).
 import type { CrownTier } from '../sim/crowns';
 import { WEAPON_BAZOOKA, WEAPON_CHAIN_GUN, WEAPON_DUAL_MACHINE_GUN, WEAPON_FLAME_THROWER, WEAPON_SMG } from '../sim/constants';
-import { PERM_KINDS, waveSpec, type PermKind } from './waves';
-import { CARDS, COMMON_CARDS_EVERY, type CardID, type CardLevels } from './wavesCards';
+import { PERM_KINDS, expectedLevel, waveSpec, type PermKind } from './waves';
+import { CARDS, type CardID, type CardLevels } from './wavesCards';
 
 export type UpgradeID = 'life' | 'armor' | 'damage' | 'fire' | 'speed' | 'lives' | 'grenades' | 'luck' | 'drops' | 'breather' | 'secondWind' | 'cap' | 'dash' | 'barrier' | 'shock' | 'reroll' | 'magnet';
 
@@ -18,7 +18,7 @@ export interface Upgrade {
   costs: number[];
   /** Its kind, in the Workshop's list. */
   group: UpgradeGroup;
-  /** Only in the Horde's Workshop (src/client/hordeProgress.ts): the Waves' doesn't list it. */
+  /** Only in the Horde's Workshop (src/client/hordeProgress.ts): the Waves' doesn't list it (none since 18/11/2026). */
   horde?: boolean;
 }
 
@@ -41,8 +41,8 @@ export const UPGRADES: Upgrade[] = [
   { id: 'dash', costs: [120, 220, 350, 520, 750], group: 'abilities' },
   { id: 'barrier', costs: [250, 400, 600, 850, 1200], group: 'abilities' },
   { id: 'shock', costs: [200, 350, 550, 800, 1100], group: 'abilities' },
-  // The Horde's energy pulled from farther (Erick, 15/11/2026): MAGNET
-  { id: 'magnet', costs: [100, 180, 300, 450, 650], group: 'abilities', horde: true },
+  // The energy pulled from farther (Erick, 15/11/2026, the Horde's; the Waves' too since 18/11/2026): MAGNET
+  { id: 'magnet', costs: [100, 180, 300, 450, 650], group: 'abilities' },
   // The cards' reroll (Erick, 15/10/2026, after Vampire Survivors): 1 to 3 a run
   { id: 'reroll', costs: [250, 500, 900], group: 'cards' },
   { id: 'cap', costs: [150, 300, 500, 800, 1200, 1800, 2600, 3600], group: 'limits' },
@@ -52,7 +52,7 @@ export const UPGRADES: Upgrade[] = [
 export const WAVES_UPGRADES = UPGRADES.filter((u) => !u.horde);
 
 /**
- * The Horde's Magnetism (the `magnet` upgrade): from how far, in cells from the player's centre, the energy on the floor
+ * The Magnetism (the `magnet` upgrade, the Horde's and the Waves'): from how far, in cells from the player's centre, the energy on the floor
  * flies to him, by level (0: walked over).
  */
 export const MAGNET = [0, 1.2, 1.8, 2.4, 3, 3.6];
@@ -328,15 +328,15 @@ export function cleanBuilds(raw: unknown): Record<number, CheckpointBuild> {
 
 /** A run beat checkpoint wave `wave` with this build: kept here (the account gets it from the caller). */
 /**
- * The most card levels a run can hold as wave `wave` begins: a choice after each boss before it and after each wave
- * 5, 15, 25... before it, two levels at most each (an offer's "+2").
+ * The most card levels a run can hold as wave `wave` begins: a choice after each boss before it, each level up and an
+ * epic crate's, two levels at most each (an offer's "+2").
  */
 export function maxCardLevels(wave: number): number {
   let picks = 0;
-  for (let w = 1; w < wave; w++) {
-    if (waveSpec(w).boss) picks++;
-    if (w % COMMON_CARDS_EVERY === 0 && w % 10 !== 0) picks++;
-  }
+  for (let w = 1; w < wave; w++) if (waveSpec(w).boss) picks++;
+  // The level ups (since 18/11/2026: the common cards of waves 5, 15, 25... before) with all the energy taken, and an epic
+  // crate's offer every ten waves
+  picks += expectedLevel(wave - 1) - 1 + Math.floor(wave / 10);
   return 2 * picks;
 }
 

@@ -24,9 +24,16 @@ export interface CardDef {
   from?: number;
   /** A stat card (STAT_CARDS): no top level, offered by chance in any offer and always once the others are all taken. */
   stat?: boolean;
-  /** Only in the Horde (src/client/hordeArms.ts): the Waves never offer it. */
+  /** A Horde card (src/client/hordeArms.ts): the Waves offer it only from wave `waves` (never without it). */
   horde?: boolean;
+  waves?: number;
 }
+
+/**
+ * The card can come in this mode on wave n: a Horde card in the Horde, and in the Waves only from its `waves` wave
+ * (Erick, 18/11/2026: the Ring of Bullets from the start, the Orbital Blades after wave 100).
+ */
+const inMode = (c: CardDef, n: number, horde: boolean): boolean => !c.horde || horde || (c.waves !== undefined && n >= c.waves);
 
 export const CARDS: CardDef[] = [
   { id: 'double', rarity: 'common', max: 5 },
@@ -49,8 +56,8 @@ export const CARDS: CardDef[] = [
   { id: 'phoenix', rarity: 'mythic', max: 3, from: 100 },
   { id: 'orbital', rarity: 'mythic', max: 3, from: 100 },
   // The Horde's own (Erick, 15/11/2026: things that fire by themselves, things turning around him)
-  { id: 'blades', rarity: 'common', max: 5, horde: true },
-  { id: 'nova', rarity: 'common', max: 5, horde: true },
+  { id: 'blades', rarity: 'common', max: 5, horde: true, waves: 101 },
+  { id: 'nova', rarity: 'common', max: 5, horde: true, waves: 1 },
   { id: 'aura', rarity: 'common', max: 5, horde: true },
   { id: 'drone', rarity: 'epic', max: 3, horde: true },
   { id: 'homing', rarity: 'epic', max: 3, horde: true },
@@ -283,7 +290,7 @@ export function cardValue(id: CardID, level: number): string {
  * Fewer when fewer are left.
  */
 export function rollCards(n: number, owned: CardLevels, count = 3, commonOnly = false, horde = false): CardID[] {
-  const pool = CARDS.filter((c) => !c.stat && c.rarity !== 'mythic' && (!c.horde || horde) && (owned[c.id] ?? 0) < c.max && n >= (c.from ?? 0) && (!commonOnly || c.rarity === 'common'));
+  const pool = CARDS.filter((c) => !c.stat && c.rarity !== 'mythic' && inMode(c, n, horde) && (owned[c.id] ?? 0) < c.max && n >= (c.from ?? 0) && (!commonOnly || c.rarity === 'common'));
   const out: CardID[] = [];
   while (out.length < count && pool.length) {
     let r = Math.random() * pool.reduce((s, c) => s + RARITY_WEIGHT[c.rarity], 0);
@@ -315,16 +322,16 @@ export const DOUBLE_CHANCE = 0.2;
  * (never of a rarer card); that one sometimes climbs two levels at once (DOUBLE_CHANCE), and always when a new
  * epic or legendary is offered beside it: a level 1 of the rare card, or two levels of yours. The boss's offer
  * (`commonOnly` false; Erick, 15/10/2026) always has a card of yours two levels up (an epic one too) and an epic
- * or legendary card besides it (the legendaries from their wave). A Horde level up (`levelUp`, src/client/horde.ts:
- * many more of them) is every rarity by the weights, a card of yours two levels up only by chance, no rare card
+ * or legendary card besides it (the legendaries from their wave). A level up (`levelUp`: the Horde's, src/client/horde.ts,
+ * and the Waves', waves.ts LEVELS) is every rarity by the weights, a card of yours two levels up only by chance, no rare card
  * sure to come and no mythic one (those stay the boss's).
  */
 export function offerCards(n: number, owned: CardLevels, commonOnly: boolean, levelUp = false, opts: { horde?: boolean; crate?: boolean } = {}): CardOffer[] {
   const horde = !!opts.horde;
-  // The Horde's epic crate (src/client/wavesRun.ts): three epic cards at once, new ones or a level of one of yours; the
+  // The epic crate (src/client/wavesRun.ts, the Horde's and the Waves'): three epic cards at once, new ones or a level of one of yours; the
   // stat cards fill in when fewer are left
   if (opts.crate) {
-    const epics = CARDS.filter((c) => c.rarity === 'epic' && (!c.horde || horde) && (owned[c.id] ?? 0) < c.max)
+    const epics = CARDS.filter((c) => c.rarity === 'epic' && inMode(c, n, horde) && (owned[c.id] ?? 0) < c.max)
       .sort(() => Math.random() - 0.5)
       .slice(0, 3)
       .map((c): CardOffer => ({ id: c.id, up: 1 }));
@@ -345,7 +352,7 @@ export function offerCards(n: number, owned: CardLevels, commonOnly: boolean, le
   }
   const level = (id: CardID) => owned[id] ?? 0;
   const left = (id: CardID) => cardDef(id).max - level(id);
-  const open = (c: CardDef) => left(c.id) > 0 && n >= (c.from ?? 0) && (!c.horde || horde);
+  const open = (c: CardDef) => left(c.id) > 0 && n >= (c.from ?? 0) && inMode(c, n, horde);
   const offer: CardOffer[] = ids.map((id) => ({ id, up: 1 }));
   const has = (id: CardID) => offer.some((o) => o.id === id);
   // Where a card goes in: a new common one's place (the last), else the last card; never `keep`'s
