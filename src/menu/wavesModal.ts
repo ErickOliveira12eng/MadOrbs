@@ -6,7 +6,7 @@
 // the milestones' track. Since 15/11/2026 also the Horde's tab (src/client/hordeProgress.ts): the same upgrades bought
 // with its own Essence, its best and PLAY on the right.
 import { prizeArt, prizeName, prizeText, weaponLook } from '../client/wavesPrize';
-import { loadWavesRecord, WAVES } from '../client/waves';
+import { bossKind, loadWavesRecord, WAVES } from '../client/waves';
 import { wavesPower } from '../client/wavesPower';
 import {
   BREATHER,
@@ -104,7 +104,8 @@ const LATER_LEVELS = 3;
  * WavesModal.fit: the window's full width (its three columns), the scale it may shrink to, and the screen
  * width below which it is a phone's single column instead.
  */
-const FIT_WIDTH = 1200;
+const FIT_FULL_WIDTH = 1200;
+const FIT_RUN_WIDTH = 620;
 const FIT_MIN = 0.6;
 const FIT_MIN_WIDTH = 700;
 
@@ -310,6 +311,21 @@ export class WavesModal {
     return !this.root.hidden;
   }
 
+  /**
+   * The Steam start screen to try (src/menu/steamMenu.ts, Erick, 18/11/2026): the window in two halves. 'shop' is the
+   * Workshop alone (the wave, the weapon and Play are the menu's Continue and New run there); 'run' is the run's choice
+   * alone, narrower (the wave among the checkpoints, the weapon, the boss of that stretch, Play). The Waves only.
+   */
+  private steamView: 'shop' | 'run' | null = null;
+
+  openSteam(view: 'shop' | 'run'): void {
+    this.steamView = view;
+    const card = this.root.querySelector<HTMLElement>('.waves-modal')!;
+    card.classList.toggle('steam-shop', view === 'shop');
+    card.classList.toggle('steam-run', view === 'run');
+    this.open('waves');
+  }
+
   /** Opens on the Waves' Workshop, or on the Vesuvius or the Horde (back from a run there that asked for its Workshop). */
   open(mode: Mode = 'waves'): void {
     // The run starts on the highest checkpoint open, whatever was chosen last time (Erick, 04/11/2026); changed here, it
@@ -341,6 +357,10 @@ export class WavesModal {
 
   close(): void {
     this.root.hidden = true;
+    if (this.steamView) {
+      this.steamView = null;
+      this.root.querySelector('.waves-modal')!.classList.remove('steam-shop', 'steam-run');
+    }
   }
 
   private choose(change: Partial<WavesProgress>): void {
@@ -478,7 +498,7 @@ export class WavesModal {
     $('vsObsidian').hidden = !ves || !open;
     $('wvVesuvius').hidden = !ves;
     $('wvKicker').textContent = t(ves ? 'vesuvius.kicker' : horde ? 'horde.name' : 'menu.waves');
-    $('wvHeading').textContent = t(ves ? 'vesuvius.name' : 'workshop.title');
+    $('wvHeading').textContent = t(ves ? 'vesuvius.name' : this.steamView === 'run' ? 'steam.newRun' : 'workshop.title');
     if (ves) this.renderVesuvius(record);
   }
 
@@ -556,6 +576,11 @@ export class WavesModal {
       `<div class="wv-facts"><div><small>${t('workshop.timeShort')}</small><b>${time}</b></div><div><small>${t('workshop.permsShort')}</small><b class="gain">${perms}</b></div><div><small>${t('workshop.cardsShort')}</small><b class="gain">${cards}</b></div></div>` +
       `<div class="wv-cps">${dots}</div>`;
     const about = startWave === 1 ? '' : ` ${t(build ? 'workshop.buildNote' : 'workshop.noBuild', { n: startWave })} ${t('workshop.skipped')}`;
+    // The boss of the stretch it begins (the Steam screen's run choice shows its picture): the checkpoint's own, played
+    // again, or the first one's
+    const bossWave = Math.max(WAVES.bossEvery, Math.ceil(startWave / WAVES.bossEvery) * WAVES.bossEvery);
+    const kind = bossKind(bossWave);
+    $('wvBoss').innerHTML = `<img src="${versioned(`/menu/card-waves-${kind}.webp`)}" alt="" /><span>${t('lobby.nextBoss', { name: t(`boss.${kind}`), n: num(bossWave) })}</span>`;
     $('wvStartNote').textContent = (open.length > 1 ? t('workshop.nextGoal', { n: next }) : t('workshop.startLocked')) + about;
   }
 
@@ -570,6 +595,8 @@ export class WavesModal {
     card.style.maxHeight = '';
     card.style.width = '';
     if (this.root.hidden || window.innerWidth < FIT_MIN_WIDTH) return;
+    // (the Steam screen's run choice is the narrow half)
+    const FIT_WIDTH = this.steamView === 'run' ? FIT_RUN_WIDTH : FIT_FULL_WIDTH;
     const pad = getComputedStyle(this.root);
     const roomW = window.innerWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
     const roomH = window.innerHeight - parseFloat(pad.paddingTop) - parseFloat(pad.paddingBottom);

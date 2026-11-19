@@ -53,7 +53,7 @@ export class LobbyRanking {
   private reader = '';
   /**
    * The Steam start screen to try (src/menu/steamMenu.ts): the Survival list only (its tab reads "Global", beside the
-   * Friends and This week ones that only show there) and the player to pass next under "Your performance".
+   * Friends one that only shows there) and the player to pass next under "Your performance".
    */
   steam = false;
   /** What the list and the box show now: written again only when it changes (no flicker). */

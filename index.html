@@ -116,12 +116,13 @@
           <!-- The Steam start screen to try (?ui=steam, src/menu/steamMenu.ts; mockup R1, chosen by Erick on 18/11/2026):
                the Waves only, a menu down the left; the official screen doesn't show it -->
           <nav id="steamMenu" class="steam-menu" hidden data-i18n-attr="aria-label=steam.menu" aria-label="Main menu">
+            <img class="sm-logo" src="/brand/logo-wide.webp?v=1" alt="Mad Orbs" width="469" height="180" />
             <p class="sm-tagline" data-i18n="steam.tagline">Survive the waves. Grow stronger with every run.</p>
             <button id="smContinue" class="sm-continue" type="button">
               <span data-icon="play"></span>
               <span class="sm-cont-text"><b id="smContinueLabel" data-i18n="steam.continue">CONTINUE</b><small id="smContinueSub"></small></span>
             </button>
-            <button id="smNew" class="sm-item" type="button"><span data-icon="sparkles"></span><b data-i18n="steam.newRun">New run</b><small data-i18n="steam.fromOne">from wave 1</small></button>
+            <button id="smNew" class="sm-item" type="button"><span data-icon="sparkles"></span><b data-i18n="steam.newRun">New run</b><small data-i18n="steam.newRunHint">pick the wave and the weapon</small></button>
             <button id="smShop" class="sm-item hot" type="button"><span data-icon="wrench"></span><b data-i18n="workshop.title">Workshop</b><small id="smShopHint"></small></button>
             <button id="smOrbs" class="sm-item" type="button"><span data-icon="orbs"></span><b data-i18n="steam.collection">Collection</b><small id="smOrbsHint"></small></button>
             <button id="smStats" class="sm-item" type="button"><span data-icon="trophy"></span><b data-i18n="account.stats">Stats</b><small></small></button>
@@ -199,7 +200,6 @@
                 <button type="button" role="tab" data-tab="online" aria-selected="false" data-i18n="lobby.multiplayer">Multiplayer</button>
                 <button type="button" role="tab" data-tab="waves" aria-selected="true"><span class="not-steam" data-i18n="lobby.survival">Survival</span><span class="steam-only" data-i18n="steam.global">Global</span></button>
                 <button type="button" role="tab" data-tab="vesuvius" aria-selected="false" data-i18n="vesuvius.name">Vesuvius</button>
-                <button type="button" role="tab" class="steam-only" aria-disabled="true" data-i18n="steam.week" data-i18n-attr="title=steam.soon" title="Coming soon">This week</button>
               </div>
               <p id="lrSub" class="lr-sub"></p>
               <ol id="lrList" class="lr-list"></ol>
@@ -577,6 +577,8 @@
           </section>
           <section id="wvDetail" class="wv-detail" aria-live="polite"></section>
           <aside class="wv-side">
+            <!-- The boss of the stretch the run begins (only the Steam screen's run choice shows it, src/menu/steamMenu.ts) -->
+            <div id="wvBoss" class="wv-boss"></div>
             <div class="wv-box">
               <h3 data-i18n="workshop.startWave">Start on wave</h3>
               <div id="wvStarts" class="wv-starts"></div>

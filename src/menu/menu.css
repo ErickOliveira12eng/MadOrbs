@@ -6547,8 +6547,7 @@ input[type='range'] {
 
 /* ------------------------------------------------------------------ the Steam start screen to try (?ui=steam)
    src/menu/steamMenu.ts, mockup R1 (Erick, 18/11/2026): the Waves only, the menu down the left, your Orb in the
-   middle, the ranking on the right (Friends, Global, This week; only Global works on the web) with the player to
-   pass next. The official start screen never gets the .steam class. */
+   middle, the ranking on the right (Friends and Global; only Global works on the web) with the player to pass next. The official start screen never gets the .steam class. */
 
 .steam-only {
   display: none;
@@ -6587,6 +6586,19 @@ input[type='range'] {
   flex-direction: column;
   justify-content: center;
   gap: 6px;
+}
+
+/* The logo big, over the menu (Erick: small and hidden in the corner); the top bar's small one gives way (its place
+   kept: the buttons stay on the right) */
+#start.steam .topbar .brand {
+  visibility: hidden;
+}
+
+.sm-logo {
+  width: 380px;
+  height: auto;
+  margin: 0 0 4px;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.6));
 }
 
 .sm-tagline {
@@ -6712,9 +6724,9 @@ input[type='range'] {
   text-align: center;
 }
 
-/* The ranking's tabs: Friends and This week only say when they come; Global (the Survival list) in the menu's gold */
+/* The ranking's tabs: Friends only says when it comes; Global (the Survival list) in the menu's gold */
 #start.steam .lr-tabs {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 #start.steam .lr-tabs button.steam-only {
@@ -6760,4 +6772,79 @@ input[type='range'] {
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: none;
   grid-template-areas: 'menu' 'hero' 'side';
+}
+
+/* The Workshop's window on the Steam screen (WavesModal.openSteam): the shop half alone (the wave, the weapon and Play
+   are the menu's), or the run's choice alone, narrow, with the boss of the stretch it begins; the Waves only */
+.wv-boss {
+  display: none;
+}
+
+.waves-modal.steam-shop #wvModes,
+.waves-modal.steam-run #wvModes,
+.waves-modal.steam-shop .wv-side > .wv-box,
+.waves-modal.steam-shop #wvPlay,
+.waves-modal.steam-run .wv-list,
+.waves-modal.steam-run .wv-detail,
+.waves-modal.steam-run .wv-milestones,
+.waves-modal.steam-run #wvDaily,
+.waves-modal.steam-run .wv-guide,
+.waves-modal.steam-run #wvPower,
+.waves-modal.steam-run #wvCores {
+  display: none;
+}
+
+/* (the shop: the list and the upgrade chosen, today's reward under it) */
+.waves-modal.steam-shop .wv-body {
+  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-areas: 'list detail' 'list side';
+}
+
+.waves-modal.steam-shop .wv-list {
+  grid-area: list;
+}
+
+.waves-modal.steam-shop .wv-detail {
+  grid-area: detail;
+}
+
+.waves-modal.steam-shop .wv-side {
+  grid-area: side;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.waves-modal.steam-run {
+  width: min(620px, 100%);
+}
+
+.waves-modal.steam-run .wv-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.waves-modal.steam-run .wv-boss {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 90, 90, 0.5);
+}
+
+.wv-boss img {
+  display: block;
+  width: 100%;
+  height: 210px;
+  object-fit: cover;
+}
+
+.wv-boss span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 26px 14px 10px;
+  background: linear-gradient(180deg, rgba(8, 9, 26, 0), rgba(8, 9, 26, 0.92));
+  color: #ffd0d0;
+  font: 800 15px var(--font-ui);
 }

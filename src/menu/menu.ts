@@ -246,7 +246,8 @@ export class StartScreen {
             }
           });
         },
-        workshop: () => this.openWaves(),
+        newRun: () => this.waves.openSteam('run'),
+        workshop: () => this.waves.openSteam('shop'),
         orbs: () => this.picker.open(),
         stats: () => $('btnStats').click(),
         tutorial: () => this.training.open(),
@@ -518,7 +519,9 @@ export class StartScreen {
   /** The waves' Workshop (its card, or back from a run that asked for it): the ranking beside it on the Survival tab. */
   openWaves(mode: 'waves' | 'vesuvius' | 'horde' = 'waves'): void {
     this.lobbyRanking.showTab(mode === 'horde' ? 'waves' : mode);
-    this.waves.open(mode);
+    // (the Steam screen to try: its Workshop, the shop half)
+    if (this.steamMenu && mode === 'waves') this.waves.openSteam('shop');
+    else this.waves.open(mode);
   }
 
   private setName(name: string): void {
