@@ -75,7 +75,7 @@ export const en = {
   'home.newsTitle': "What's new",
   'home.news104Date': 'November 20, 2026',
   'home.news104Title': 'Waves: the metal crate and the magnet',
-  'home.news104': "From wave 10 a metal crate may show up: much tougher, it gives a boss's choice of cards. The golden zone of the challenges now also leaves a golden energy, and from wave 30 every challenge done leaves a magnet: take it and all the energy on the map comes to you. The Shadow Ally is a little weaker.",
+  'home.news104': "From wave 10 a metal crate may show up: much tougher, it gives a boss's choice of cards. The golden zone of the challenges now also leaves a golden energy, and from wave 30 the crates may give a magnet: take it and all the energy on the map comes to you. The Shadow Ally is a little weaker.",
   'home.news103Date': 'November 18, 2026',
   'home.news103Title': 'Waves: energy and levels',
   'home.news103': "As in the Horde: every enemy that falls leaves energy on the floor, and each level it fills brings 3 cards, fast at first and slower later. They take the place of the common cards of waves 5, 15, 25... and the mini-boss's; the boss keeps its own choice. With them came the Magnetism in the Workshop, the rare and epic crates, the Bullet Ring and, after wave 100, the Orbiting Blades.",

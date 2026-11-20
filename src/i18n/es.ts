@@ -73,7 +73,7 @@ export const es: Record<Key, string> = {
   'home.newsTitle': 'Novedades',
   'home.news104Date': '20 de noviembre de 2026',
   'home.news104Title': 'Oleadas: la caja de metal y el imán',
-  'home.news104': 'Desde la oleada 10 puede aparecer una caja de metal: mucho más resistente, da una elección de cartas de jefe. La zona dorada de los desafíos ahora también deja una energía dorada, y desde la oleada 30 cada desafío cumplido deja un imán: tómalo y toda la energía del mapa viene a ti. La Sombra Aliada es un poco más débil.',
+  'home.news104': 'Desde la oleada 10 puede aparecer una caja de metal: mucho más resistente, da una elección de cartas de jefe. La zona dorada de los desafíos ahora también deja una energía dorada, y desde la oleada 30 las cajas pueden dar un imán: tómalo y toda la energía del mapa viene a ti. La Sombra Aliada es un poco más débil.',
   'home.news103Date': '18 de noviembre de 2026',
   'home.news103Title': 'Oleadas: energía y niveles',
   'home.news103': 'Como en la Horda: cada enemigo que cae deja energía en el suelo, y cada nivel que llena trae 3 cartas, rápido al principio y más despacio después. Reemplazan las cartas comunes de las oleadas 5, 15, 25... y las del minijefe; el jefe mantiene su elección. Llegaron con ellas el Magnetismo en el Taller, las cajas raras y épicas, el Anillo de Balas y, después de la oleada 100, las Cuchillas Orbitales.',

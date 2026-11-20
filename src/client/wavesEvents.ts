@@ -25,8 +25,6 @@ export interface EventsHost {
   dropPerm(x: number, y: number): void;
   /** The zone held: a golden energy there. */
   goldEnergy(x: number, y: number): void;
-  /** A magnet there (a challenge done from GOALS.magnetFrom). */
-  dropMagnet(x: number, y: number): void;
   /** Banners: what the wave brings, a challenge done or lost. */
   announce(key: EventKey, params?: Record<string, number>): void;
   /** A rocket leaves (its sound). */
@@ -160,7 +158,6 @@ export class WaveEvents {
       const at = this.host.me.currentCF.position;
       this.host.dropPerm(at.x, at.y);
       if (g.zone) this.host.goldEnergy(g.zone.x, g.zone.y);
-      if (g.wave >= GOALS.magnetFrom) this.host.dropMagnet(at.x + 0.5, at.y);
       this.host.announce('goal.done', { n });
     } else this.host.announce('goal.fail');
   }

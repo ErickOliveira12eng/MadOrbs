@@ -73,7 +73,7 @@ export const pt: Record<Key, string> = {
   'home.newsTitle': 'Novidades',
   'home.news104Date': '20 de novembro de 2026',
   'home.news104Title': 'Ondas: caixa de metal e ímã',
-  'home.news104': 'Da onda 10 em diante pode aparecer uma caixa de metal: bem mais resistente, ela dá uma escolha de cartas de chefão. A zona dourada dos desafios agora deixa também uma energia dourada, e da onda 30 em diante todo desafio cumprido deixa um ímã: pegue e toda a energia do mapa vem até você. A Sombra Aliada ficou um pouco mais fraca.',
+  'home.news104': 'Da onda 10 em diante pode aparecer uma caixa de metal: bem mais resistente, ela dá uma escolha de cartas de chefão. A zona dourada dos desafios agora deixa também uma energia dourada, e da onda 30 em diante as caixas podem dar um ímã: pegue e toda a energia do mapa vem até você. A Sombra Aliada ficou um pouco mais fraca.',
   'home.news103Date': '18 de novembro de 2026',
   'home.news103Title': 'Ondas: energia e níveis',
   'home.news103': 'Como na Horda: todo inimigo que cai deixa energia no chão, e cada nível que ela enche traz 3 cartas, rápido no começo e mais devagar depois. Elas tomam o lugar das cartas comuns das ondas 5, 15, 25... e do minichefe; o chefão continua com a escolha dele. Vieram junto o Magnetismo na Oficina, as caixas raras e épicas, o Anel de Balas e, depois da onda 100, as Lâminas Orbitais.',

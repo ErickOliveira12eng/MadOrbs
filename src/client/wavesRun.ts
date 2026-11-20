@@ -22,7 +22,7 @@ import type { CrateTier } from '../sim/crate';
 export type CrateCards = false | 'epic' | 'metal';
 import { VesuviusRenderer } from './render/vesuviusRenderer';
 import { WaveEvents, type EventKey, type EventsHud } from './wavesEvents';
-import { GOALS, BOMB, BOOSTS, ICE_MAX, ICE_SLOW, MINI, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, BOSSES, ELITE, LEVELS, WAVES, WAVE_MODS, breakAfter, expectedLevel, wavesEnergyToNext, isMiniWave, miniMove, bossCycle, bossKind, bossMoves, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type BossKind, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { GOALS, MAGNET_FROM, BOMB, BOOSTS, ICE_MAX, ICE_SLOW, MINI, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, BOSSES, ELITE, LEVELS, WAVES, WAVE_MODS, breakAfter, expectedLevel, wavesEnergyToNext, isMiniWave, miniMove, bossCycle, bossKind, bossMoves, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type BossKind, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, REFLECT_TIME, ORBITAL, PHOENIX, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, statFactor, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, MAGNET, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, workshopFactor, loadProgress, runCores, saveBuild, waveCores, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
@@ -356,7 +356,6 @@ export class WavesRun {
         goldEnergy: (x, y) => {
           if (this.leveling) this.energyFloor.push({ x, y, value: Math.max(10, Math.round(this.need(this.level) * GOALS.zone.energy)), age: 0 });
         },
-        dropMagnet: (x, y) => this.powers.push({ id: this.nextPowerID++, kind: 'magnet', x, y, age: 0, life: WAVES.powerOnFloor }),
         announce: (key, params) => {
           if (key === 'goal.done' || key === 'goal.fail') track('wave_goal', { wave: this.wave, done: key === 'goal.done' });
           ctx.onWaveEvent?.(key, params);
@@ -1232,7 +1231,7 @@ export class WavesRun {
     const { below, most } = WAVES.lowLife;
     const hurt = me.isAlive && me.life < below ? 1 - Math.max(0, me.life) / below : 0;
     // (the tutorial's crates drop what its script says)
-    let kind = this.scriptDrops.get(crateID) ?? rollPower(this.full, 1 + (most - 1) * hurt, this.livesFull);
+    let kind = this.scriptDrops.get(crateID) ?? rollPower(this.full, 1 + (most - 1) * hurt, this.livesFull, this.leveling && !this.ctx.horde && this.wave >= MAGNET_FROM);
     // The Workshop's crate luck: a better chance of a permanent one (not one at its limit; not the life a hurt player got)
     if (!this.script && !POWERS[kind].perm && !(kind === 'life' && hurt > 0) && Math.random() < UPGRADE_STEP.luck * this.ctx.levels.luck) kind = rollPerm(this.full) ?? kind;
     if (kind === 'weapon') {

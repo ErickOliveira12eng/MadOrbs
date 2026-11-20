@@ -321,8 +321,6 @@ export const GOALS = {
   frenzy: { seconds: 22, share: 0.45, least: 6 },
   // (`energy`: held, the zone also leaves a golden energy of that share of a level, 10 at least: Erick, 20/11/2026)
   zone: { seconds: 30, hold: 8, radius: 1.6, near: [3, 6] as const, energy: 0.5 },
-  /** From this wave a challenge done also drops a magnet: taken, every energy on the map flies to the player (Erick, 20/11/2026). */
-  magnetFrom: 30,
 };
 
 /** Wave n's challenge (none before GOALS.from, on a boss's or mini-boss's), at random; `mod`: the wave has a modifier. */
@@ -583,8 +581,8 @@ export const POWERS: Record<PowerKind, { weight: number; timed: boolean; perm: b
   fury: { weight: 2, timed: true, perm: false, color: '#ff4d5e' },
   extraLife: { weight: 3, timed: false, perm: false, color: '#ff7ab8' },
   bomb: { weight: 3, timed: false, perm: false, color: '#5a5f78' },
-  // (never from a crate: the challenges' from GOALS.magnetFrom)
-  magnet: { weight: 0, timed: false, perm: false, color: '#d6336c' },
+  // (the Waves' crates only, from MAGNET_FROM; as often as the bomb)
+  magnet: { weight: 3, timed: false, perm: false, color: '#d6336c' },
   permFire: { weight: 7, timed: false, perm: true, color: '#e8b400' },
   permDamage: { weight: 7, timed: false, perm: true, color: '#e8402f' },
   permArmor: { weight: 7, timed: false, perm: true, color: '#7b61ff' },
@@ -641,9 +639,15 @@ export function rollPerm(full: (k: PermKind) => boolean = () => false): PermKind
 }
 
 /** A crate's power-up, by the weights, leaving out the permanent ones at their limit (`full`). */
-export function rollPower(full: (k: PermKind) => boolean = () => false, lifeWeight = 1, livesFull = false): PowerKind {
-  // (no extra life with the lives at WAVES.maxLives)
-  const kinds = (Object.keys(POWERS) as PowerKind[]).filter((k) => (!POWERS[k].perm || !full(k as PermKind)) && !(k === 'extraLife' && livesFull));
+/**
+ * From this wave the Waves' crates may drop a magnet: taken, every energy on the map flies to the player (Erick,
+ * 20/11/2026: a crate's drop, not every challenge's).
+ */
+export const MAGNET_FROM = 30;
+
+export function rollPower(full: (k: PermKind) => boolean = () => false, lifeWeight = 1, livesFull = false, magnet = false): PowerKind {
+  // (no extra life with the lives at WAVES.maxLives; the magnet only where `magnet` says: the Waves from MAGNET_FROM)
+  const kinds = (Object.keys(POWERS) as PowerKind[]).filter((k) => (!POWERS[k].perm || !full(k as PermKind)) && !(k === 'extraLife' && livesFull) && (k !== 'magnet' || magnet));
   // (`lifeWeight`: times the life power-up's weight, a hurt player: WAVES.lowLife)
   const weight = (k: PowerKind) => POWERS[k].weight * (k === 'life' ? lifeWeight : 1);
   let r = Math.random() * kinds.reduce((s, k) => s + weight(k), 0);
