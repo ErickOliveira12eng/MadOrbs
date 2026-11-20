@@ -11,6 +11,7 @@ import type { Account, RankingMode, RankingRow } from './account';
 import { icon, type IconName } from './icons';
 import type { OrbStudio } from './orbStudio';
 import { skinInfo } from './settings';
+import { steamUi } from './steamMenu';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -135,7 +136,16 @@ export class RankingModal {
       if (e.key === 'Escape' && this.isOpen) this.close();
     });
     const tabs = $('rankingModes');
-    for (const mode of MODES) {
+    // (the Steam screen, ?ui=steam: only the modes that build has, the Waves; one tab is no tabs)
+    const modes = steamUi() ? (['waves'] as RankingMode[]) : MODES;
+    if (steamUi()) {
+      this.mode = 'waves';
+      tabs.hidden = true;
+      const sub = this.root.querySelector<HTMLElement>('.modal-sub')!;
+      sub.removeAttribute('data-i18n');
+      sub.textContent = t('ranking.subSteam');
+    }
+    for (const mode of modes) {
       const b = document.createElement('button');
       b.type = 'button';
       b.dataset.mode = mode;
@@ -168,7 +178,7 @@ export class RankingModal {
 
   /** `mode`: on that tab (the start screen's ranking column). */
   open(mode?: RankingMode): void {
-    if (mode) this.mode = mode;
+    if (mode && !steamUi()) this.mode = mode;
     this.root.hidden = false;
     void this.render();
   }

@@ -6806,7 +6806,7 @@ input[type='range'] {
 /* (the shop, Erick, 20/11/2026: every upgrade at once in cards, by kind; the upgrade chosen beside them with its chart and
    the Power before and after; today's reward under it; the milestones under all, scrolling sideways) */
 .waves-modal.steam-shop {
-  width: min(1460px, 100%);
+  width: min(1800px, 100%);
 }
 
 .waves-modal.steam-shop #wvTabs,
@@ -6814,10 +6814,29 @@ input[type='range'] {
   display: none;
 }
 
-.waves-modal.steam-shop .wv-body {
-  grid-template-columns: minmax(0, 1fr) 400px;
-  grid-template-areas: 'list detail' 'list side';
+/* (the window itself is the grid, the body's parts in it: the milestones under the cards only, beside the detail, so the
+   window is lower and scales down less) */
+.waves-modal.steam-shop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  grid-template-areas: 'head head' 'list detail' 'ms detail' 'ms side';
+  align-content: start;
   align-items: start;
+  gap: 16px;
+}
+
+.waves-modal.steam-shop .modal-head {
+  grid-area: head;
+}
+
+.waves-modal.steam-shop .wv-body {
+  display: contents;
+}
+
+.waves-modal.steam-shop .wv-milestones {
+  grid-area: ms;
+  min-width: 0;
+  margin-top: 0;
 }
 
 .waves-modal.steam-shop .wv-list {
@@ -6987,13 +7006,14 @@ input[type='range'] {
 }
 
 .wv-card .wv-pips {
-  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
 }
 
+/* (the levels span the card's width, Erick, 20/11/2026) */
 .wv-card .wv-pips i {
-  width: 13px;
+  flex: 1;
+  min-width: 0;
   height: 5px;
   border-radius: 3px;
 }
@@ -7191,9 +7211,9 @@ input[type='range'] {
 
 /* (phones: one column; the cards two by two) */
 @media (max-width: 699px) {
-  .waves-modal.steam-shop .wv-body {
+  .waves-modal.steam-shop {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'list' 'detail' 'side';
+    grid-template-areas: 'head' 'list' 'detail' 'side' 'ms';
   }
 
   .wv-cols,

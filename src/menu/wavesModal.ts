@@ -146,6 +146,8 @@ const FIT_FULL_WIDTH = 1200;
 const FIT_RUN_WIDTH = 620;
 /** The Steam screen's Workshop (openSteam('shop')): every upgrade at once, in cards, and the chosen one beside them. */
 const FIT_SHOP_WIDTH = 1460;
+/** The Steam shop takes the screen's width up to this (Erick, 20/11/2026: at 1460 it felt cramped). */
+const SHOP_MAX_WIDTH = 1800;
 const FIT_MIN = 0.6;
 const FIT_MIN_WIDTH = 700;
 
@@ -674,11 +676,13 @@ export class WavesModal {
       card.style.width = '';
       return;
     }
+    // (scaled down for the height, the shop still spans the screen's width: wider cards, not empty sides)
+    const maxW = this.steamView === 'shop' ? SHOP_MAX_WIDTH : FIT_WIDTH;
     let zoom = Math.max(FIT_MIN, k);
     const apply = () => {
       card.style.zoom = String(zoom);
       card.style.maxHeight = `${roomH / zoom}px`;
-      card.style.width = `${Math.min(FIT_WIDTH, roomW / zoom)}px`;
+      card.style.width = `${Math.min(maxW, roomW / zoom)}px`;
     };
     apply();
     // (the scaled layout can come out a few pixels taller than measured, and a scrollbar showed for nothing: a little

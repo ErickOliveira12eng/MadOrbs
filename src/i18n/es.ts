@@ -473,6 +473,7 @@ export const es: Record<Key, string> = {
   'lobby.perfNone.campaign': 'Supera una fase de la campaña para entrar en este ranking.',
   'lobby.perfNone.vesuvius': 'Vence al Vesubio (después de la oleada 100 de las Oleadas) para entrar en este ranking.',
   'ranking.sub': 'Los mejores jugadores con cuenta, modo por modo.',
+  'ranking.subSteam': 'Los jugadores con cuenta que llegaron más lejos en las Oleadas.',
   'ranking.player': 'Jugador',
   'ranking.levels': 'Niveles',
   'ranking.reachTime': 'Tiempo',

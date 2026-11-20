@@ -473,6 +473,7 @@ export const pt: Record<Key, string> = {
   'lobby.perfNone.campaign': 'Vença uma fase da campanha para entrar neste ranking.',
   'lobby.perfNone.vesuvius': 'Vença o Vesúvio (depois da onda 100 das Ondas) para entrar neste ranking.',
   'ranking.sub': 'Os melhores jogadores com conta, modo a modo.',
+  'ranking.subSteam': 'Os jogadores com conta que foram mais longe nas Ondas.',
   'ranking.player': 'Jogador',
   'ranking.levels': 'Fases',
   'ranking.reachTime': 'Tempo',

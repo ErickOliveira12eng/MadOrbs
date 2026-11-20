@@ -476,6 +476,7 @@ export const en = {
   'lobby.perfNone.campaign': 'Win a campaign level to get into this ranking.',
   'lobby.perfNone.vesuvius': 'Beat the Vesuvius (past wave 100 of the Waves) to get into this ranking.',
   'ranking.sub': 'The best players with an account, mode by mode.',
+  'ranking.subSteam': 'The players with an account who went furthest in the Waves.',
   'ranking.player': 'Player',
   'ranking.levels': 'Levels',
   'ranking.reachTime': 'Time',
