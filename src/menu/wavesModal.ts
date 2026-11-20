@@ -674,10 +674,19 @@ export class WavesModal {
       card.style.width = '';
       return;
     }
-    const zoom = Math.max(FIT_MIN, k);
-    card.style.zoom = String(zoom);
-    card.style.maxHeight = `${roomH / zoom}px`;
-    card.style.width = `${Math.min(FIT_WIDTH, roomW / zoom)}px`;
+    let zoom = Math.max(FIT_MIN, k);
+    const apply = () => {
+      card.style.zoom = String(zoom);
+      card.style.maxHeight = `${roomH / zoom}px`;
+      card.style.width = `${Math.min(FIT_WIDTH, roomW / zoom)}px`;
+    };
+    apply();
+    // (the scaled layout can come out a few pixels taller than measured, and a scrollbar showed for nothing: a little
+    // smaller until it fits)
+    for (let i = 0; i < 4 && zoom > FIT_MIN && card.scrollHeight > card.clientHeight + 1; i++) {
+      zoom = Math.max(FIT_MIN, Math.min(zoom - 0.005, roomH / (card.scrollHeight + 2)));
+      apply();
+    }
   }
 
   /** The list: the tab's upgrades by kind, each with its level and the price of the next one. */
