@@ -250,7 +250,8 @@ export class StartScreen {
         workshop: () => this.waves.openSteam('shop'),
         orbs: () => this.picker.open(),
         stats: () => $('btnStats').click(),
-        tutorial: () => this.training.open(),
+        // (the Waves only: its tutorial, no training window with the online modes)
+        tutorial: () => tutorial('waves'),
       });
       this.lobbyRanking.steam = true;
     }

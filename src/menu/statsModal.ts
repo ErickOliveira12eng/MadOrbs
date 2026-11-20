@@ -1,9 +1,14 @@
 // The stats window (the start screen's "Stats" button): the account's online stats per game mode
 // (win rate, K/D, kills per match, the record...), or, signed out, an invitation to sign in.
 import { modeShort } from '../client/modes';
+import { loadWavesRecord } from '../client/waves';
+import { bestWavesPower } from '../client/wavesPower';
+import { loadProgress } from '../client/wavesProgress';
 import { bigNum, num, t } from '../i18n';
 import { ROOM_MODES, type RoomMode } from '../net/protocol';
 import { NO_STATS, type Account, type ModeStats } from './account';
+import { SKIN_ORDER, availableSkins } from './settings';
+import { steamUi } from './steamMenu';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -57,10 +62,47 @@ export class StatsModal {
   }
 
   private render(): void {
+    if (steamUi()) {
+      this.renderSteam();
+      return;
+    }
     const signedIn = this.account.signedIn;
     $('statsOut').hidden = signedIn;
     $('statsIn').hidden = !signedIn;
     if (signedIn) this.renderStats();
+  }
+
+  /**
+   * The Steam screen's stats (?ui=steam, Erick, 20/11/2026: the Waves only): the best run, its time and the checkpoints'
+   * best times, then the Workshop's numbers; signed out too, from this browser (the account's record when signed in).
+   */
+  private renderSteam(): void {
+    $('statsOut').hidden = true;
+    $('statsIn').hidden = false;
+    $('statsModes').hidden = true;
+    const note = this.root.querySelector<HTMLElement>('.account-note')!;
+    note.removeAttribute('data-i18n');
+    note.textContent = t('steam.statsLocal');
+    note.hidden = this.account.signedIn;
+    const w = this.account.waves ?? loadWavesRecord();
+    const p = loadProgress();
+    const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec) % 60).padStart(2, '0')}`;
+    const splits = w ? Object.entries(w.splits).map(([n, sec]) => [Number(n), sec] as const).sort((a, b) => a[0] - b[0]) : [];
+    const best = w
+      ? `<div class="stats-waves"><div class="sw-top"><span>${t('menu.waves')}</span><b>${t('ranking.bestWave', { n: w.wave })}</b>` +
+        `<small>${w.time !== null ? t('stats.wavesReached', { n: w.wave, time: clock(w.time) }) : t('stats.wavesNoTime')}</small></div>` +
+        (splits.length
+          ? `<div class="sw-splits"><em>${t('stats.wavesSplits')}</em>${splits.map(([n, sec]) => `<i>${t('stats.wavesSplit', { n, time: clock(sec) })}</i>`).join('')}</div>`
+          : '') +
+        `</div>`
+      : `<p class="stats-empty">${t('steam.statsNone')}</p>`;
+    const tile = (value: string, key: Parameters<typeof t>[0], cls = '') => `<div${cls ? ` class="${cls}"` : ''}><b>${value}</b><span>${t(key)}</span></div>`;
+    const levels = Object.values(p.levels).reduce((a, b) => a + b, 0);
+    const tiles =
+      `<div class="stats-tiles">${tile(bigNum(w?.kills ?? 0), 'steam.statsRunKills')}${tile(bigNum(p.earned), 'steam.statsCores')}` +
+      `${tile(bigNum(levels), 'steam.statsLevels')}${tile(bigNum(bestWavesPower(p.levels, w?.wave ?? 0).power), 'steam.statsPower', 'record')}` +
+      `${tile(`${availableSkins().length}/${SKIN_ORDER.length}`, 'steam.statsOrbs')}</div>`;
+    $('statsBody').innerHTML = best + tiles;
   }
 
   /** "All" and one button per game mode above the stats. */

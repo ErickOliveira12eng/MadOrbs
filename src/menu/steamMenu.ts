@@ -33,6 +33,19 @@ export interface SteamMenuActions {
 export class SteamMenu {
   constructor(actions: SteamMenuActions) {
     $('start').classList.add('steam');
+    // (the windows and the page around the lobby: the online modes' and the web's parts hidden, .not-steam)
+    document.documentElement.classList.add('steam-ui');
+    // The Controls in the Waves' words: Tab shows your stats, Esc pauses, the dash and the shock are the Workshop's
+    for (const [key, steam] of [
+      ['controls.scores', 'steam.ctlStats'],
+      ['controls.menu', 'steam.ctlPause'],
+      ['controls.dash', 'steam.ctlDash'],
+      ['controls.shock', 'steam.ctlShock'],
+    ] as const)
+      for (const el of document.querySelectorAll<HTMLElement>(`#controlsModal [data-i18n="${key}"]`)) {
+        el.dataset.i18n = steam;
+        el.textContent = t(steam);
+      }
     $('steamMenu').hidden = false;
     $('smContinue').addEventListener('click', () => actions.play(this.continueWave()));
     $('smNew').addEventListener('click', () => actions.newRun());

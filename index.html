@@ -214,15 +214,15 @@
       </main>
 
       <footer class="footer">
-        <a href="#about" data-i18n="footer.about">About the game</a>
-        <a data-i18n-attr="href=link.howToPlay" href="/how-to-play" target="_blank" rel="noopener" data-i18n="footer.howToPlay">How to play</a>
+        <a class="not-steam" href="#about" data-i18n="footer.about">About the game</a>
+        <a class="not-steam" data-i18n-attr="href=link.howToPlay" href="/how-to-play" target="_blank" rel="noopener" data-i18n="footer.howToPlay">How to play</a>
         <a id="btnControls" href="#" role="button" data-i18n="menu.controls">Controls</a>
-        <a data-i18n-attr="href=link.weapons" href="/weapons" target="_blank" rel="noopener" data-i18n="footer.weapons">Weapons</a>
-        <a data-i18n-attr="href=link.modes" href="/modes" target="_blank" rel="noopener" data-i18n="footer.modes">Game modes</a>
-        <a data-i18n-attr="href=link.about" href="/about" target="_blank" rel="noopener" data-i18n="footer.project">About the project</a>
+        <a class="not-steam" data-i18n-attr="href=link.weapons" href="/weapons" target="_blank" rel="noopener" data-i18n="footer.weapons">Weapons</a>
+        <a class="not-steam" data-i18n-attr="href=link.modes" href="/modes" target="_blank" rel="noopener" data-i18n="footer.modes">Game modes</a>
+        <a class="not-steam" data-i18n-attr="href=link.about" href="/about" target="_blank" rel="noopener" data-i18n="footer.project">About the project</a>
         <a data-i18n-attr="href=link.privacy" href="/privacy" target="_blank" rel="noopener" data-i18n="footer.privacy">Privacy</a>
         <a data-i18n-attr="href=link.terms" href="/terms" target="_blank" rel="noopener" data-i18n="footer.terms">Terms of use</a>
-        <a href="#" data-cookie-settings data-i18n="footer.cookies">Cookies</a>
+        <a class="not-steam" href="#" data-cookie-settings data-i18n="footer.cookies">Cookies</a>
         <!-- The profiles (src/menu/social.ts has the same list) -->
         <span class="footer-social">
           <a href="https://www.tiktok.com/@madorbs" target="_blank" rel="noopener me" title="TikTok @madorbs" aria-label="TikTok @madorbs"><span data-icon="tiktok"></span></a>
@@ -234,7 +234,7 @@
       <!-- Below the lobby, seen only when scrolling (the lobby keeps the whole first screen): about the game, how
            to play, the modes, what's new, questions and the guides, for people who want to know more and for search
            engines. Plain text in the page, translated like the rest (data-i18n). -->
-      <section id="about" class="home-info" aria-labelledby="aboutTitle">
+      <section id="about" class="home-info not-steam" aria-labelledby="aboutTitle">
         <div class="info-wrap">
           <section class="info-block">
             <h2 id="aboutTitle" data-i18n="home.aboutTitle">About Mad Orbs</h2>
@@ -482,11 +482,11 @@
           <div class="ctrl"><span class="keys"><kbd>Shift</kbd></span><span data-i18n="controls.dash">dash (Waves, from the Workshop)</span></div>
           <div class="ctrl"><span class="keys"><kbd>Q</kbd></span><span data-i18n="controls.shock">shock wave (Waves, from the Workshop)</span></div>
           <div class="ctrl"><span class="keys"><kbd>Tab</kbd></span><span data-i18n="controls.scores">scoreboard</span></div>
-          <div class="ctrl"><span class="keys"><kbd>T</kbd></span><span data-i18n="controls.chat">chat</span></div>
+          <div class="ctrl not-steam"><span class="keys"><kbd>T</kbd></span><span data-i18n="controls.chat">chat</span></div>
           <div class="ctrl"><span class="keys"><kbd>M</kbd></span><span data-i18n="controls.music">music</span></div>
           <div class="ctrl"><span class="keys"><kbd>Esc</kbd></span><span data-i18n="controls.menu">weapons and options</span></div>
         </section>
-        <p class="guide-links">
+        <p class="guide-links not-steam">
           <span data-i18n="footer.guides">Guides:</span>
           <a data-i18n-attr="href=link.howToPlay" href="/how-to-play" target="_blank" rel="noopener" data-i18n="footer.howToPlay">How to play</a> ·
           <a data-i18n-attr="href=link.weapons" href="/weapons" target="_blank" rel="noopener" data-i18n="footer.weapons">Weapons</a> ·

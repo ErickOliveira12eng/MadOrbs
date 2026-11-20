@@ -6562,6 +6562,15 @@ input[type='range'] {
   display: none;
 }
 
+/* (the Steam screen's windows and page too: what only the web or the online modes have, Erick, 20/11/2026) */
+html.steam-ui .not-steam {
+  display: none !important;
+}
+
+html.steam-ui .stats-tiles span {
+  text-align: center;
+}
+
 #start.steam .steam-only {
   display: inline;
 }
