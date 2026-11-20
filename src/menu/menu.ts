@@ -261,6 +261,12 @@ export class StartScreen {
     $('training').addEventListener('click', () => this.training.open());
     $<HTMLFormElement>('startForm').addEventListener('submit', (e) => {
       e.preventDefault();
+      // The Steam screen has no online match: Enter in the name only finishes typing it (Erick, 20/11/2026: it put him in
+      // a deathmatch room with bots)
+      if (steamUi()) {
+        (document.activeElement as HTMLElement | null)?.blur();
+        return;
+      }
       // The first time: the shooting range's tutorial, or the match
       void this.firstTime('pvp').then((a) => {
         if (a === 'tutorial') tutorial('pvp');
