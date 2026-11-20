@@ -8,7 +8,7 @@
 // CSS under #start.steam in menu.css), its buttons calling the lobby's own actions (src/menu/menu.ts).
 import { loadWavesRecord } from '../client/waves';
 import { weaponLook } from '../client/wavesPrize';
-import { affordable, checkpoints, dailyState, loadProgress, startWeapons } from '../client/wavesProgress';
+import { affordable, checkpoints, loadProgress, startWeapons } from '../client/wavesProgress';
 import { t } from '../i18n';
 import { SKIN_ORDER, availableSkins } from './settings';
 import { WavesModal } from './wavesModal';
@@ -72,9 +72,9 @@ export class SteamMenu {
     $('smContinueSub').textContent = wave > 1 ? t('steam.continueWeapon', { n: wave, weapon: weaponLook(WavesModal.startChoice().startWeapon).name }) : t('steam.fromOne');
     // (New run: something to choose, a checkpoint past wave 1 or a second weapon)
     $('smNew').hidden = wave <= 1 && startWeapons(record).length <= 1;
-    // The Workshop: today's reward waiting first, else how many upgrades the Cores pay for
+    // The Workshop: how many upgrades the Cores pay for (no daily reward on Steam: Erick, 20/11/2026)
     const canBuy = affordable(p);
-    $('smShopHint').textContent = dailyState(p).ready ? t('menu.dailyReady') : canBuy > 0 ? t(canBuy === 1 ? 'menu.wavesCanBuyOne' : 'menu.wavesCanBuy', { n: canBuy }) : '';
+    $('smShopHint').textContent = canBuy > 0 ? t(canBuy === 1 ? 'menu.wavesCanBuyOne' : 'menu.wavesCanBuy', { n: canBuy }) : '';
     $('smOrbsHint').textContent = t('steam.collectionHint', { n: availableSkins().length, m: SKIN_ORDER.length });
   }
 }

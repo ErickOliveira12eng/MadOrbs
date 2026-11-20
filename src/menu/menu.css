@@ -6845,8 +6845,8 @@ html.steam-ui .stats-tiles span {
 .waves-modal.steam-shop {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 420px;
-  /* (today's reward under the milestones, Continue under the detail: the two columns end together) */
-  grid-template-areas: 'head head' 'list detail' 'ms detail' 'daily play';
+  /* (Continue under the detail, beside the milestones; no daily reward on Steam: Erick, 20/11/2026) */
+  grid-template-areas: 'head head' 'list detail' 'ms detail' 'ms play';
   align-content: start;
   align-items: start;
   gap: 16px;
@@ -7240,7 +7240,7 @@ html.steam-ui .stats-tiles span {
 @media (max-width: 699px) {
   .waves-modal.steam-shop {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'head' 'list' 'detail' 'play' 'daily' 'ms';
+    grid-template-areas: 'head' 'list' 'detail' 'play' 'ms';
   }
 
   .wv-cols,
@@ -7258,8 +7258,7 @@ html.steam-ui .stats-tiles span {
 }
 
 .waves-modal.steam-shop #wvDaily {
-  grid-area: daily;
-  align-self: stretch;
+  display: none;
 }
 
 .waves-modal.steam-shop #wvPlay {
