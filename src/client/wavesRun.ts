@@ -1141,8 +1141,9 @@ export class WavesRun {
         if (!game.crates.every((c) => far(c.position.x, c.position.y, 2.5))) continue;
         if (!game.players.every((p) => !p || !p.isAlive || far(p.currentCF.position.x, p.currentCF.position.y, 1))) continue;
         const tier = this.crateTier();
-        const life = tier === 4 ? LEVELS.metal.life : tier === 2 ? HORDE.crates.epic.life : HORDE.crates.rare.life;
-        const crate = game.addCrate(cx, cy, tier, tier ? life * Math.max(1, me.damageBoost) : undefined);
+        // (every kind's life grows with the player's damage bonus: late on, a plain one took a single bullet)
+        const life = tier === 4 ? LEVELS.metal.life : tier === 2 ? HORDE.crates.epic.life : tier === 1 ? HORDE.crates.rare.life : WAVES.crates.life;
+        const crate = game.addCrate(cx, cy, tier, life * Math.max(1, me.damageBoost));
         if (tier) this.crateTiers.set(crate.id, tier);
         break;
       }

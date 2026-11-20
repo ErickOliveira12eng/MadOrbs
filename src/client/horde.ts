@@ -42,8 +42,9 @@ export const HORDE = {
    * level) or two of the crates' permanent upgrades; an epic one an epic card to choose (`epic.cards`) or a bigger energy.
    */
   crates: {
-    rare: { chance: 0.18, life: 2, energy: 0.6 },
-    epic: { chance: 0.06, from: 3, life: 4, energy: 1.5, cards: 0.6 },
+    // (life 2 and 4 until 20/11/2026, Erick: the crates far too weak)
+    rare: { chance: 0.18, life: 6, energy: 0.6 },
+    epic: { chance: 0.06, from: 3, life: 12, energy: 1.5, cards: 0.6 },
   },
   /** The energy a fallen enemy leaves: a plain one, an elite (Player.badges), a boss (it also gives the boss's cards). */
   energy: { plain: 1, elite: 3, boss: 60 },

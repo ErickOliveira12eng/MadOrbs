@@ -79,7 +79,9 @@ export const WAVES = {
   /** Seconds before the first wave (the break after each one: the rhythm's, RHYTHM and breakAfter; it was 9 s). */
   firstBreak: 5,
   /** Crates on the map: new ones at each break, one more now and then during a wave, at most so many. */
-  crates: { perBreak: 3, every: 20, max: 6 },
+  // (`life`: a plain crate's, in weapon damage times the player's damage bonus; the sim's CRATE_LIFE 0.6, fixed, until
+  // 20/11/2026, Erick: far too weak)
+  crates: { perBreak: 3, every: 20, max: 6, life: 1.5 },
   /** Seconds a power-up waits on the floor, and how long the timed ones last. */
   powerOnFloor: 30,
   powerSeconds: 15,
@@ -317,7 +319,8 @@ export const GOALS = {
   chance: 0.45,
   cores: 10,
   perWave: 1.2,
-  gold: { seconds: 15, life: 2.5, near: [3, 6] as const },
+  // (life 2.5 until 20/11/2026, Erick: the crates far too weak)
+  gold: { seconds: 15, life: 6, near: [3, 6] as const },
   frenzy: { seconds: 22, share: 0.45, least: 6 },
   // (`energy`: held, the zone also leaves a golden energy of that share of a level, 10 at least: Erick, 20/11/2026)
   zone: { seconds: 30, hold: 8, radius: 1.6, near: [3, 6] as const, energy: 0.5 },
@@ -787,10 +790,11 @@ export const LEVELS = {
   crates: { rare: 0.08, epic: 0.03 },
   /**
    * The metal crate (Erick, 20/11/2026): from wave `from`, a crate at `chance` (one on the floor at most), with `life` in
-   * SMG bullets' tenths times the player's damage bonus (the epic's is 4): it breaks slowly, and gives a boss's choice of
+   * SMG bullets' tenths times the player's damage bonus (the epic's is 12): it breaks slowly, and gives a boss's choice of
    * cards (one of yours two levels up, an epic or legendary).
    */
-  metal: { chance: 0.03, from: 10, life: 12 },
+  // (12 until 20/11/2026, Erick: the crates far too weak)
+  metal: { chance: 0.03, from: 10, life: 40 },
 } as const;
 
 /** The energy from level `level` to the next, in the Waves (LEVELS.need). */
