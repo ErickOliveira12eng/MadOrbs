@@ -683,8 +683,9 @@ export class WavesModal {
     apply();
     // (the scaled layout can come out a few pixels taller than measured, and a scrollbar showed for nothing: a little
     // smaller until it fits)
-    for (let i = 0; i < 4 && zoom > FIT_MIN && card.scrollHeight > card.clientHeight + 1; i++) {
-      zoom = Math.max(FIT_MIN, Math.min(zoom - 0.005, roomH / (card.scrollHeight + 2)));
+    // (even 1 px over shows a scrollbar)
+    for (let i = 0; i < 6 && zoom > FIT_MIN && card.scrollHeight > card.clientHeight; i++) {
+      zoom = Math.max(FIT_MIN, Math.min(zoom - 0.004, roomH / (card.scrollHeight + 3)));
       apply();
     }
   }
