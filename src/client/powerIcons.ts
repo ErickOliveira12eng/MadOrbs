@@ -171,6 +171,20 @@ function symbol(g: CanvasRenderingContext2D, kind: PowerKind): void {
       g.arc(64, 64, 9, 0, Math.PI * 2);
       g.fill();
       break;
+    case 'magnet':
+      // A horseshoe magnet, its poles white-tipped
+      g.lineWidth = 22;
+      g.lineCap = 'butt';
+      g.beginPath();
+      g.arc(64, 60, 26, Math.PI, 0, false);
+      g.stroke();
+      g.fillRect(27, 58, 22, 20);
+      g.fillRect(79, 58, 22, 20);
+      g.fillStyle = '#ffd6e0';
+      g.fillRect(27, 80, 22, 16);
+      g.fillRect(79, 80, 22, 16);
+      g.lineCap = 'round';
+      break;
     case 'bomb':
       g.beginPath();
       g.arc(58, 74, 28, 0, Math.PI * 2);

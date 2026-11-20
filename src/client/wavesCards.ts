@@ -129,7 +129,8 @@ export const CARD_LEVELS: Record<CardID, number[]> = {
   missiles: [0, 3, 5, 7],
   // The share of the player's bonuses the one ally takes (01/11/2026, Erick: one ally, the level raises its share;
   // until then 1, 2 and 3 allies with half of them each)
-  shadow: [0, 0.5, 0.75, 1],
+  // (50%, 75% and 100% until 20/11/2026, Erick: too strong)
+  shadow: [0, 0.4, 0.6, 0.8],
   // (2, 3 and 4 s until 19/10/2026: Erick, too weak, a crowd's worth of shots got through the rest of the time)
   // (the share of the enemies' damage its shield stops; it stands REFLECT_TIME)
   reflect: [0, 0.5, 0.75, 1],

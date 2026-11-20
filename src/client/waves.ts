@@ -319,7 +319,10 @@ export const GOALS = {
   perWave: 1.2,
   gold: { seconds: 15, life: 2.5, near: [3, 6] as const },
   frenzy: { seconds: 22, share: 0.45, least: 6 },
-  zone: { seconds: 30, hold: 8, radius: 1.6, near: [3, 6] as const },
+  // (`energy`: held, the zone also leaves a golden energy of that share of a level, 10 at least: Erick, 20/11/2026)
+  zone: { seconds: 30, hold: 8, radius: 1.6, near: [3, 6] as const, energy: 0.5 },
+  /** From this wave a challenge done also drops a magnet: taken, every energy on the map flies to the player (Erick, 20/11/2026). */
+  magnetFrom: 30,
 };
 
 /** Wave n's challenge (none before GOALS.from, on a boss's or mini-boss's), at random; `mod`: the wave has a modifier. */
@@ -557,6 +560,7 @@ export type PowerKind =
   | 'fury'
   | 'extraLife'
   | 'bomb'
+  | 'magnet'
   | 'permFire'
   | 'permDamage'
   | 'permArmor'
@@ -579,6 +583,8 @@ export const POWERS: Record<PowerKind, { weight: number; timed: boolean; perm: b
   fury: { weight: 2, timed: true, perm: false, color: '#ff4d5e' },
   extraLife: { weight: 3, timed: false, perm: false, color: '#ff7ab8' },
   bomb: { weight: 3, timed: false, perm: false, color: '#5a5f78' },
+  // (never from a crate: the challenges' from GOALS.magnetFrom)
+  magnet: { weight: 0, timed: false, perm: false, color: '#d6336c' },
   permFire: { weight: 7, timed: false, perm: true, color: '#e8b400' },
   permDamage: { weight: 7, timed: false, perm: true, color: '#e8402f' },
   permArmor: { weight: 7, timed: false, perm: true, color: '#7b61ff' },
@@ -775,6 +781,12 @@ export const LEVELS = {
    * on level 16 by wave 50 with the first curve, not 11.
    */
   crates: { rare: 0.08, epic: 0.03 },
+  /**
+   * The metal crate (Erick, 20/11/2026): from wave `from`, a crate at `chance` (one on the floor at most), with `life` in
+   * SMG bullets' tenths times the player's damage bonus (the epic's is 4): it breaks slowly, and gives a boss's choice of
+   * cards (one of yours two levels up, an epic or legendary).
+   */
+  metal: { chance: 0.03, from: 10, life: 12 },
 } as const;
 
 /** The energy from level `level` to the next, in the Waves (LEVELS.need). */

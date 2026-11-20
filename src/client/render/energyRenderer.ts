@@ -8,6 +8,8 @@ export interface FloorEnergy {
   x: number;
   y: number;
   value: number;
+  /** A magnet was taken: it flies to the player from wherever it is. */
+  pulled?: boolean;
   /** Seconds since it fell (its bob and turn start apart from the others'). */
   age: number;
 }

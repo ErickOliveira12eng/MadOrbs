@@ -9,8 +9,8 @@ export const CRATE_LIFE = 0.6;
 export const CRATE_RADIUS = 0.32;
 
 /** A crate's kind: the plain wooden one, and the Horde's better ones (src/client/wavesRun.ts: a blue rare, a purple epic). */
-/** 0 the plain one; the Horde's rare (1) and epic (2); the waves' golden challenge crate (3). */
-export type CrateTier = 0 | 1 | 2 | 3;
+/** 0 the plain one; the Horde's rare (1) and epic (2); the waves' golden challenge crate (3); the waves' metal one (4). */
+export type CrateTier = 0 | 1 | 2 | 3 | 4;
 
 export class Crate {
   life: number;

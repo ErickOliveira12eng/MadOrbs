@@ -504,7 +504,11 @@ export class WavesModal {
     this.renderWeapon(record, startWeapon);
     this.renderTrack();
     this.renderDaily(p);
-    $('wvPlay').innerHTML = `${icon('play', 22)}${horde ? t('horde.play') : t('workshop.play', { n: startWave })}`;
+    $('wvPlay').innerHTML =
+      this.steamView === 'shop'
+        ? // The Steam shop: the menu's Continue, the highest checkpoint with the last weapon (Erick, 20/11/2026)
+          `${icon('play', 22)}<span class="wv-cont">${t(startWave > 1 ? 'steam.continue' : 'steam.play')}<small>${startWave > 1 ? t('steam.continueWeapon', { n: startWave, weapon: weaponLook(startWeapon).name }) : t('steam.fromOne')}</small></span>`
+        : `${icon('play', 22)}${horde ? t('horde.play') : t('workshop.play', { n: startWave })}`;
     // The Horde's side: its best wave and level, its runs
     if (h) {
       $('hdRecord').innerHTML =

@@ -682,13 +682,15 @@ export class HudLayer {
               : '')) +
         `</div>`;
     let side = timeBox;
-    // One prize: a card; several (a first long run): small chips, two a row, so the panel stays on screen
+    // One prize: a card; several (a first long run): small chips in a band under both columns, as many a row as fit
+    // (Erick, 20/11/2026: two a row in the right column, a long run's made the panel far too tall)
+    let band = '';
     if (e.unlocked.length === 1) {
       const m = e.unlocked[0];
       side += `<div class="wu-got">${prizeArt(m)}<span><small>${t('wend.unlocked')}</small><b>${'skin' in m ? orbName(m.skin) : prizeText(m)}</b><em>${t('wend.atWave', { n: m.wave })}</em></span></div>`;
     } else if (e.unlocked.length > 1)
-      side +=
-        `<div class="wu-gots"><small>${t('wend.unlocked')}</small><div>` +
+      band =
+        `<div class="wu-gots wide"><small>${t('wend.unlocked')} · ${e.unlocked.length}</small><div>` +
         e.unlocked
           .map((m) => `<span class="wu-chip">${prizeArt(m)}<span><b>${'skin' in m ? orbName(m.skin) : prizeName(m)}</b><em>${t('workshop.atWave', { n: m.wave })}</em></span></span>`)
           .join('') +
@@ -714,8 +716,9 @@ export class HudLayer {
       `<button type="button" class="shop" data-a="shop"><span class="h-key">W</span>${t('waves.shop')}</button>` +
       `<button type="button" class="primary" data-a="retry" disabled><span class="h-key">Enter</span>${t('waves.retry')}${wait}</button>`;
     this.openEndPanel(
-      `<div class="t lost">${t('waves.over')}</div><div class="lvl">${t('waves.reached', { n: e.wave })}</div>${head}` +
-        `<div class="wend-split"><div class="wu-side">${cores}${checkpoint}</div><div class="wu-side">${side}</div></div><div class="btns">${buttons}</div>`,
+      // (no "you reached wave n" line: the big wave number under it says it; Erick, 20/11/2026: the panel was too tall)
+      `<div class="t lost">${t('waves.over')}</div>${head}` +
+        `<div class="wend-split"><div class="wu-side">${cores}${checkpoint}</div><div class="wu-side">${side}</div></div>${band}<div class="btns">${buttons}</div>`,
       'retry',
       (a) => e.onAction(a === 'menu' ? 'menu' : a === 'shop' ? 'shop' : a === 'signin' ? 'signin' : 'retry'),
       { KeyW: 'shop' },
@@ -835,7 +838,7 @@ export class HudLayer {
    * middle of the screen, the game stopped, the banner under them and the system's cursor. A click or the
    * keys 1, 2, 3 take one (after a moment: the shot that killed the boss must not pick a card by itself).
    */
-  showCards(offer: { id: CardID; level: number; up: number }[], onPick: (i: number) => void, wave?: number, reroll?: { left: number; onReroll: () => void }, levelUp?: number, crate?: boolean): void {
+  showCards(offer: { id: CardID; level: number; up: number }[], onPick: (i: number) => void, wave?: number, reroll?: { left: number; onReroll: () => void }, levelUp?: number, crate?: 'epic' | 'metal'): void {
     const cards = offer
       .map(({ id, level, up }, i) => {
         const def = cardDef(id);
@@ -855,8 +858,8 @@ export class HudLayer {
       .join('');
     // (the Horde: a level up's cards)
     // (the Horde: a level up's cards; an epic crate's)
-    const sub = crate ? t('horde.crateCards') : levelUp ? t('horde.levelSub') : wave === undefined ? t('cards.sub') : t('cards.subWave', { n: wave });
-    const title = crate ? t('horde.crateEpic') : levelUp ? t('horde.levelUp', { n: levelUp }) : t('cards.title');
+    const sub = crate === 'metal' ? t('waves.metalCards') : crate ? t('horde.crateCards') : levelUp ? t('horde.levelSub') : wave === undefined ? t('cards.sub') : t('cards.subWave', { n: wave });
+    const title = crate === 'metal' ? t('waves.metalCrate') : crate ? t('horde.crateEpic') : levelUp ? t('horde.levelUp', { n: levelUp }) : t('cards.title');
     // The Workshop's Reroll cards: three others (R)
     const swapButton = reroll
       ? `<button type="button" class="h-reroll" data-reroll${reroll.left > 0 ? '' : ' disabled'}><span>${t('cards.reroll', { n: reroll.left })}</span><span class="h-key">R</span></button>`

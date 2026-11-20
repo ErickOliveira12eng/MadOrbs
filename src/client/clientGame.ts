@@ -525,6 +525,8 @@ export class ClientGame {
         if (key === 'goal.done') audio.play(this.sounds.lifePack, 220);
       },
       onCrateReward: (tier, what) => {
+        // (the metal crate's choice of cards says it itself)
+        if (tier === 4) return void audio.play(this.sounds.lifePack, 200);
         const look = tier === 2 ? banner('#f4e3ff', '#b05cff') : banner('#e3f2ff', '#3f9bff');
         // (an epic card offer says it itself)
         if (what !== 'cards') this.hud.announceText(t(tier === 2 ? 'horde.crateEpic' : 'horde.crateRare'), t(what === 'perms' ? 'horde.cratePerms' : 'horde.crateEnergy'), look, 2);

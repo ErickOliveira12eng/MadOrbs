@@ -5899,6 +5899,24 @@ input[type='range'] {
   fill: currentColor;
 }
 
+/* (the Steam shop's Play is the menu's Continue: the wave and the weapon under it, Erick, 20/11/2026) */
+.wv-play .wv-cont {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+}
+
+.wv-play .wv-cont small {
+  margin-top: 3px;
+  font: 800 13px var(--font-ui);
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.8;
+}
+
+
+
 /* Where the progress is kept */
 .wv-save {
   display: flex;
@@ -6801,7 +6819,6 @@ html.steam-ui .stats-tiles span {
 .waves-modal.steam-shop #wvModes,
 .waves-modal.steam-run #wvModes,
 .waves-modal.steam-shop .wv-side > .wv-box,
-.waves-modal.steam-shop #wvPlay,
 .waves-modal.steam-run .wv-list,
 .waves-modal.steam-run .wv-detail,
 .waves-modal.steam-run .wv-milestones,
@@ -6828,7 +6845,8 @@ html.steam-ui .stats-tiles span {
 .waves-modal.steam-shop {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 420px;
-  grid-template-areas: 'head head' 'list detail' 'ms detail' 'ms side';
+  /* (today's reward under the milestones, Continue under the detail: the two columns end together) */
+  grid-template-areas: 'head head' 'list detail' 'ms detail' 'daily play';
   align-content: start;
   align-items: start;
   gap: 16px;
@@ -7222,7 +7240,7 @@ html.steam-ui .stats-tiles span {
 @media (max-width: 699px) {
   .waves-modal.steam-shop {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'head' 'list' 'detail' 'side' 'ms';
+    grid-template-areas: 'head' 'list' 'detail' 'play' 'daily' 'ms';
   }
 
   .wv-cols,
@@ -7236,10 +7254,19 @@ html.steam-ui .stats-tiles span {
 }
 
 .waves-modal.steam-shop .wv-side {
-  grid-area: side;
-  padding: 0;
-  border: 0;
-  background: none;
+  display: contents;
+}
+
+.waves-modal.steam-shop #wvDaily {
+  grid-area: daily;
+  align-self: stretch;
+}
+
+.waves-modal.steam-shop #wvPlay {
+  grid-area: play;
+  align-self: stretch;
+  height: auto;
+  min-height: 58px;
 }
 
 .waves-modal.steam-run {

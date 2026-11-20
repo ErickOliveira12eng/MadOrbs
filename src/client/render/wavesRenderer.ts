@@ -59,6 +59,8 @@ const CRATE_LOOK = [
   { planks: ['#6a2fa0', '#7f3fbf'], base: '#64309a', frame: '#2f1250', corner: '#ffd56a', rivet: '#b98a2a', glow: 0xb05cff, bar: 0xd08bff },
   // (the waves' golden challenge crate, src/client/wavesEvents.ts)
   { planks: ['#c8961e', '#e0b02c'], base: '#c99a22', frame: '#6e4a08', corner: '#fff3c4', rivet: '#9a6c10', glow: 0xffc21a, bar: 0xffd34d },
+  // (the waves' metal crate, LEVELS.metal: steel plates, drawn on their own in crateTexture)
+  { planks: ['#8b94a3', '#9aa3b2'], base: '#848d9c', frame: '#3b424e', corner: '#d9e0ea', rivet: '#e8edf4', glow: 0xb9c8e0, bar: 0xe1e8f2 },
 ];
 
 /** The crate's sides: planks with dark seams, a darker frame and metal corners. */
@@ -69,6 +71,13 @@ function crateTexture(tier: CrateTier = 0): THREE.CanvasTexture {
   // A canvas in memory: a GPU canvas is wiped when the browser resets the GPU (a long pause), and three.js then
   // uploads the texture again from it (black crates)
   const g = c.getContext('2d', { willReadFrequently: true })!;
+  if (tier === 4) {
+    metalTexture(g);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.NoColorSpace;
+    tex.anisotropy = 4;
+    return tex;
+  }
   g.fillStyle = look.base;
   g.fillRect(0, 0, 128, 128);
   for (let i = 0; i < 4; i++) {
@@ -96,6 +105,55 @@ function crateTexture(tier: CrateTier = 0): THREE.CanvasTexture {
   tex.colorSpace = THREE.NoColorSpace;
   tex.anisotropy = 4;
   return tex;
+}
+
+/** The metal crate's sides: brushed steel, a thick frame with rivets, a riveted X brace. */
+function metalTexture(g: CanvasRenderingContext2D): void {
+  const look = CRATE_LOOK[4];
+  const steel = g.createLinearGradient(0, 0, 128, 128);
+  steel.addColorStop(0, '#a7b0be');
+  steel.addColorStop(0.5, '#7d8696');
+  steel.addColorStop(1, '#9aa3b2');
+  g.fillStyle = steel;
+  g.fillRect(0, 0, 128, 128);
+  // Brushed lines
+  for (let i = 0; i < 60; i++) {
+    g.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,0.12)' : 'rgba(20,24,32,0.12)';
+    g.fillRect(0, Math.random() * 128, 128, 1);
+  }
+  // The frame and the X brace
+  g.strokeStyle = look.frame;
+  g.lineWidth = 14;
+  g.strokeRect(7, 7, 114, 114);
+  g.lineWidth = 10;
+  g.beginPath();
+  g.moveTo(14, 14);
+  g.lineTo(114, 114);
+  g.moveTo(114, 14);
+  g.lineTo(14, 114);
+  g.stroke();
+  // A light edge on the frame
+  g.strokeStyle = 'rgba(255,255,255,0.25)';
+  g.lineWidth = 2;
+  g.strokeRect(1, 1, 126, 126);
+  // Rivets along the frame and in the middle
+  const rivet = (x: number, y: number) => {
+    g.fillStyle = 'rgba(0,0,0,0.45)';
+    g.beginPath();
+    g.arc(x + 1, y + 1, 3.6, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = look.rivet;
+    g.beginPath();
+    g.arc(x, y, 3.2, 0, Math.PI * 2);
+    g.fill();
+  };
+  for (const p of [7, 36, 64, 92, 121]) {
+    rivet(p, 7);
+    rivet(p, 121);
+    rivet(7, p);
+    rivet(121, p);
+  }
+  rivet(64, 64);
 }
 
 interface CrateView {
@@ -139,7 +197,7 @@ const MAX_BLASTS = 12;
 export class WavesRenderer {
   private readonly root = new THREE.Group();
   private readonly crateGeometry = new THREE.BoxGeometry(CRATE_SIZE, CRATE_SIZE, CRATE_HEIGHT);
-  private readonly crateTextures = [crateTexture(0), crateTexture(1), crateTexture(2), crateTexture(3)];
+  private readonly crateTextures = [crateTexture(0), crateTexture(1), crateTexture(2), crateTexture(3), crateTexture(4)];
   private readonly crateGlowGeometry = new THREE.CircleGeometry(0.62, 32);
   private readonly barGeometry = new THREE.PlaneGeometry(1, 1).translate(0.5, 0, 0);
   private readonly barBack = new THREE.MeshBasicMaterial({ color: 0x0a0a12, transparent: true, opacity: 0.75, depthWrite: false });

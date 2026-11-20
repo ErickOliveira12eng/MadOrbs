@@ -4040,6 +4040,50 @@
   margin-top: 6px;
 }
 
+/* (several prizes: a band under both columns, as many a row as fit) */
+.wu-gots.wide {
+  margin-top: 12px;
+  text-align: left;
+}
+
+.wu-gots.wide > div {
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+}
+
+/* (each a small tile: the picture over its name and wave) */
+.wu-gots.wide .wu-chip {
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 3px;
+  padding: 7px 4px 6px;
+  text-align: center;
+}
+
+.wu-gots.wide .wu-chip > span {
+  align-items: center;
+  width: 100%;
+}
+
+.wu-gots.wide .wu-chip b {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  font-size: 12.5px;
+  line-height: 1.1;
+}
+
+.wu-gots.wide .wu-chip img.o,
+.wu-gots.wide .wu-chip img.c {
+  width: 34px;
+  height: 34px;
+}
+
+.wu-gots.wide .wu-chip img.w {
+  width: 46px;
+  height: 34px;
+}
+
 .wu-chip {
   display: flex;
   align-items: center;
