@@ -333,6 +333,30 @@ class AudioSystem {
     return src;
   }
 
+  /**
+   * A softened 2D sound (the energy pickups: Erick, 20/11/2026, too bright and too loud): at `rate`, its highs cut above
+   * `lowpass` Hz and faded in over `attack` seconds (no click at its start).
+   */
+  playSoft(sound: SoundHandle | null | undefined, volume: number, rate: number, lowpass: number, attack = 0.012): AudioBufferSourceNode | null {
+    if (!this.ctx || !sound?.buffer) return null;
+    const src = this.ctx.createBufferSource();
+    src.buffer = sound.buffer;
+    src.playbackRate.value = rate;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = lowpass;
+    filter.Q.value = 0.5;
+    const g = this.ctx.createGain();
+    const v = Math.max(0, Math.min(255, volume)) / 255;
+    const now = this.ctx.currentTime;
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(v, now + attack);
+    src.connect(filter).connect(g).connect(this.bus('sfx'));
+    src.start();
+    this.addVoice(sound, src, g);
+    return src;
+  }
+
   /** 3D sound (dksPlay3DSound(sound, channel, range, position, volume)). `vary`: its pitch moved by up to this share (SOUND_VARY). */
   play3D(
     sound: SoundHandle | null | undefined,

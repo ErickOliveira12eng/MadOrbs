@@ -114,7 +114,9 @@ const Z_AXIS = new Vec3(0, 0, 1);
  * The Horde energy sound (the life pack's, sped up: Erick, 15/11/2026): `rate` its speed, a semitone up each pickup in a row,
  * up to `top`; back down after `reset` s; `big` the speed for a big one (a boss's, merged ones); at most `most` a second.
  */
-const ENERGY_RUN = { rate: 1.8, big: 1.3, top: 7, reset: 0.6, most: 25 };
+// (20/11/2026, Erick: irritating; softer and lower: slower and lower-pitched, a smaller climb, its highs cut, fewer a
+// second, quieter: rate 1.8, top 7, most 25 and volume 170 before)
+const ENERGY_RUN = { rate: 1.4, big: 1.1, top: 4, reset: 0.6, most: 14, volume: 95, lowpass: 2600 };
 
 export interface ClientGameOptions {
   playerName: string;
@@ -782,8 +784,7 @@ export class ClientGame {
     this.energyRun.at = now;
     const rate = value >= 10 ? ENERGY_RUN.big : ENERGY_RUN.rate * Math.pow(2, Math.min(ENERGY_RUN.top, this.energyRun.step) / 12);
     this.energyRun.step++;
-    const src = audio.play(this.sounds.lifePack, 170);
-    if (src) src.playbackRate.value = rate;
+    audio.playSoft(this.sounds.lifePack, ENERGY_RUN.volume, rate, ENERGY_RUN.lowpass);
   }
 
   private endWaves(end: WavesEnd): void {
