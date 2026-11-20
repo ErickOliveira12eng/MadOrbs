@@ -6312,10 +6312,19 @@ input[type='range'] {
 
 .wv-track {
   flex: 1;
+  min-width: 0;
+}
+
+/* (the strip inside: the Steam Workshop's is wider than the window and scrolls) */
+.wv-track-in {
   position: relative;
   display: flex;
   justify-content: space-between;
-  min-width: 0;
+}
+
+/* Each prize's name under its wave: the Steam Workshop's only */
+.wv-node .nm {
+  display: none;
 }
 
 .wv-rail {
@@ -6794,14 +6803,403 @@ input[type='range'] {
   display: none;
 }
 
-/* (the shop: the list and the upgrade chosen, today's reward under it) */
+/* (the shop, Erick, 20/11/2026: every upgrade at once in cards, by kind; the upgrade chosen beside them with its chart and
+   the Power before and after; today's reward under it; the milestones under all, scrolling sideways) */
+.waves-modal.steam-shop {
+  width: min(1460px, 100%);
+}
+
+.waves-modal.steam-shop #wvTabs,
+.waves-modal.steam-shop #wvSave {
+  display: none;
+}
+
 .waves-modal.steam-shop .wv-body {
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 400px;
   grid-template-areas: 'list detail' 'list side';
+  align-items: start;
 }
 
 .waves-modal.steam-shop .wv-list {
   grid-area: list;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.wv-filters {
+  display: none;
+}
+
+.waves-modal.steam-shop .wv-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wv-filters button {
+  height: 34px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(8, 9, 26, 0.6);
+  color: #cfd6f2;
+  font: 800 13.5px var(--font-ui);
+  cursor: pointer;
+}
+
+.wv-filters button:hover {
+  border-color: rgba(127, 245, 230, 0.5);
+}
+
+.wv-filters button.on {
+  border-color: #3ee6c8;
+  background: rgba(62, 230, 200, 0.14);
+  color: #b9fff1;
+}
+
+/* The cards: a column a kind (the cards' and the limits' share the last), or one list by price */
+.wv-cols,
+.wv-flat {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.wv-col {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.waves-modal .wv-ghead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 2px;
+  color: var(--tone-text);
+  font: 900 11.5px var(--font-ui);
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+
+.waves-modal .wv-col .wv-ghead:not(:first-child) {
+  margin-top: 8px;
+}
+
+.wv-ghead span {
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
+.wv-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 11px 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.wv-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--tone), 0.55);
+}
+
+.wv-card:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.wv-card.on {
+  border-color: var(--tone-text);
+  background: rgba(var(--tone), 0.13);
+  box-shadow: 0 0 0 3px rgba(var(--tone), 0.18), 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.wv-card.off:not(.on) {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.wv-card.off .wv-ico {
+  opacity: 0.6;
+}
+
+.wv-card.maxed:not(.on) {
+  border-color: rgba(255, 194, 58, 0.35);
+}
+
+.wv-card.bought {
+  animation: wv-bought 0.6s ease-out;
+}
+
+.wv-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.wv-card .wv-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.wv-card .wv-price {
+  min-width: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(127, 245, 230, 0.12);
+}
+
+.wv-card .wv-price.off {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.wv-card .wv-price.max {
+  background: rgba(255, 194, 58, 0.12);
+}
+
+.wv-card-name {
+  font: 800 15px/1.15 var(--font-ui);
+}
+
+.wv-card-val {
+  overflow: hidden;
+  color: var(--muted);
+  font: 800 12.5px var(--font-ui);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wv-card-val b {
+  color: var(--tone-text);
+}
+
+.wv-card .wv-pips {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.wv-card .wv-pips i {
+  width: 13px;
+  height: 5px;
+  border-radius: 3px;
+}
+
+.wv-none {
+  margin: 24px 4px;
+  color: var(--muted);
+  font: 800 15px var(--font-ui);
+}
+
+/* The upgrade chosen: its levels as a chart (the bought filled, the next outlined, the Mastery's dashed) */
+.wv-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px 10px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.wv-chart h5 {
+  margin: 0;
+  color: var(--muted);
+  font: 900 11px var(--font-ui);
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+
+.wv-chart-bars {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  height: 132px;
+}
+
+.wv-bar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.wv-bar small {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--muted);
+  font: 800 10.5px var(--font-ui);
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.wv-bar i {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 6px 6px 3px 3px;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.wv-bar.on i {
+  background: var(--tone-text);
+}
+
+.wv-bar.m i {
+  border: 1.5px dashed rgba(169, 184, 255, 0.6);
+  background: rgba(169, 184, 255, 0.08);
+}
+
+.wv-bar.m.on i {
+  border-style: solid;
+  background: rgba(169, 184, 255, 0.55);
+}
+
+.wv-bar.next i {
+  background: rgba(var(--tone), 0.28);
+  box-shadow: inset 0 0 0 2px var(--tone-text);
+}
+
+.wv-bar.m.next i {
+  border-color: var(--tone-text);
+}
+
+.wv-bar b {
+  color: var(--muted);
+  font: 900 11.5px var(--font-ui);
+}
+
+.wv-bar.next small,
+.wv-bar.next b,
+.wv-bar.on small {
+  color: var(--tone-text);
+}
+
+.wv-bar.m b {
+  color: #a9b8ff;
+}
+
+/* The Power as it is and as it will be with the next level */
+.wv-powerrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 9px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 194, 58, 0.4);
+  background: rgba(255, 194, 58, 0.08);
+  color: #ffd98a;
+  font: 800 14px var(--font-ui);
+}
+
+.wv-powerrow .icon {
+  color: #ffc23a;
+}
+
+.wv-powerrow b {
+  color: #fff;
+  font: 400 24px/1 var(--font-display);
+}
+
+.wv-powerrow b.to {
+  color: #ffc23a;
+}
+
+.wv-powerrow small {
+  color: #ffc23a;
+  font: 900 13px var(--font-ui);
+}
+
+/* The milestones: wider than the window, scrolling sideways (the wheel too: WavesModal), each prize named */
+.waves-modal.steam-shop .wv-track {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+
+/* (an edge with more past it fades out: WavesModal.trackFades) */
+.waves-modal.steam-shop .wv-track.fade-l {
+  mask-image: linear-gradient(90deg, transparent, #000 48px);
+}
+
+.waves-modal.steam-shop .wv-track.fade-r {
+  mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
+}
+
+.waves-modal.steam-shop .wv-track.fade-l.fade-r {
+  mask-image: linear-gradient(90deg, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+}
+
+.waves-modal.steam-shop .wv-track::-webkit-scrollbar {
+  height: 8px;
+}
+
+.waves-modal.steam-shop .wv-track::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.waves-modal.steam-shop .wv-track-in {
+  width: max-content;
+  min-width: 100%;
+  justify-content: flex-start;
+  gap: 4px;
+}
+
+.waves-modal.steam-shop .wv-node {
+  width: 96px;
+}
+
+.waves-modal.steam-shop .wv-rail {
+  left: 48px;
+  right: 48px;
+}
+
+.waves-modal.steam-shop .wv-node .nm {
+  display: block;
+  max-width: 92px;
+  color: #7f89ad;
+  font: 800 11px/1.2 var(--font-ui);
+  text-align: center;
+}
+
+.waves-modal.steam-shop .wv-node.got .nm {
+  color: #c9d1ef;
+}
+
+.waves-modal.steam-shop .wv-node.next .nm {
+  color: #ffd98a;
+}
+
+/* (phones: one column; the cards two by two) */
+@media (max-width: 699px) {
+  .waves-modal.steam-shop .wv-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'list' 'detail' 'side';
+  }
+
+  .wv-cols,
+  .wv-flat {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .waves-modal.steam-shop .wv-detail {

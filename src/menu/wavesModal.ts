@@ -97,6 +97,44 @@ const GROUPS: { id: UpgradeGroup; tab: Tab }[] = [
 type Tab = 'stats' | 'skills';
 const tabOf = (u: Upgrade): Tab => GROUPS.find((g) => g.id === u.group)!.tab;
 
+/**
+ * The Steam screen's Workshop (Erick, 20/11/2026: the cards of the "Oficina 1" mockup, with the "3"'s Power before and
+ * after): every upgrade at once in columns by kind, the cards' and the limits' together in the last one. Its filters:
+ * all by kind, or one list of those the Cores pay for, or of all of them, the cheapest first.
+ */
+const SHOP_COLUMNS: UpgradeGroup[][] = [['attack'], ['defense'], ['survival'], ['abilities'], ['cards', 'limits']];
+type Filter = 'all' | 'afford' | 'cheap';
+
+/**
+ * How much an upgrade gives at a level, as a number that grows with it: the height of its bar in the Steam Workshop's
+ * progression chart (the counts by their level; a cooldown by how often it comes back).
+ */
+function upgradeAmount(id: UpgradeID, level: number): number {
+  switch (id) {
+    case 'life':
+    case 'damage':
+    case 'fire':
+      return workshopFactor(id, level) - 1;
+    case 'armor':
+      return 1 - workshopFactor('armor', level);
+    case 'speed':
+    case 'luck':
+      return UPGRADE_STEP[id] * level;
+    case 'breather':
+      return BREATHER[level];
+    case 'barrier':
+      return BARRIER_SIZE[level];
+    case 'magnet':
+      return MAGNET[level];
+    case 'dash':
+      return level ? 1 / DASH_COOLDOWN[level] : 0;
+    case 'shock':
+      return level ? 1 / SHOCK_COOLDOWN[level] : 0;
+    default:
+      return level;
+  }
+}
+
 /** How many later levels the detail lists under the next one. */
 const LATER_LEVELS = 3;
 
@@ -106,6 +144,8 @@ const LATER_LEVELS = 3;
  */
 const FIT_FULL_WIDTH = 1200;
 const FIT_RUN_WIDTH = 620;
+/** The Steam screen's Workshop (openSteam('shop')): every upgrade at once, in cards, and the chosen one beside them. */
+const FIT_SHOP_WIDTH = 1460;
 const FIT_MIN = 0.6;
 const FIT_MIN_WIDTH = 700;
 
@@ -164,6 +204,10 @@ export class WavesModal {
   private tab: Tab = 'stats';
   /** The upgrade shown in detail (null: the first one worth buying, when the window opens). */
   private selected: UpgradeID | null = null;
+  /** The Steam Workshop's filter over its cards. */
+  private filter: Filter = 'all';
+  /** The Steam Workshop's milestones scroll to the next one, once each time the window opens. */
+  private trackToNext = false;
   /** The weapon the picker shows, maybe a locked one (null: the run's starting weapon). */
   private weaponView: number | null = null;
   /** The exclusive Orbs' pictures in the player's colours, drawn once each. */
@@ -214,6 +258,24 @@ export class WavesModal {
       this.selected = b.dataset.pick as UpgradeID;
       this.render();
     });
+    $('wvFilters').addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('[data-filter]');
+      if (!b) return;
+      this.filter = b.dataset.filter as Filter;
+      this.render();
+    });
+    // The Steam Workshop's milestones scroll sideways: the wheel turns them too
+    $('wvTrack').addEventListener(
+      'wheel',
+      (e) => {
+        const track = e.currentTarget as HTMLElement;
+        if (track.scrollWidth <= track.clientWidth + 1 || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+        track.scrollLeft += e.deltaY;
+        e.preventDefault();
+      },
+      { passive: false },
+    );
+    $('wvTrack').addEventListener('scroll', () => this.trackFades(), { passive: true });
     $('wvDetail').addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-buy]');
       if (!b || b.disabled) return;
@@ -337,6 +399,8 @@ export class WavesModal {
     this.root.hidden = false;
     this.selected = null;
     this.weaponView = null;
+    this.filter = 'all';
+    this.trackToNext = true;
     this.mode = mode;
     this.forge.reset();
     // (the Vesuvius's tab shows whether it is open)
@@ -452,6 +516,8 @@ export class WavesModal {
       ? `<span class="ok">${icon('check', 14)}${t(horde ? 'horde.savedAccount' : 'workshop.savedAccount')}</span>`
       : `<span title="${t(horde ? 'horde.savedLocal' : 'workshop.savedLocal')}">${t('workshop.savedLocalShort')}</span><button type="button" class="wv-signin">${icon('user', 14)}${t('account.signIn')}</button>`;
     this.fit();
+    this.scrollTrack();
+    this.trackFades();
   }
 
   /** Asks the server about the Vesuvius for this account and the test switch, a minute's answer kept. */
@@ -596,7 +662,7 @@ export class WavesModal {
     card.style.width = '';
     if (this.root.hidden || window.innerWidth < FIT_MIN_WIDTH) return;
     // (the Steam screen's run choice is the narrow half)
-    const FIT_WIDTH = this.steamView === 'run' ? FIT_RUN_WIDTH : FIT_FULL_WIDTH;
+    const FIT_WIDTH = this.steamView === 'run' ? FIT_RUN_WIDTH : this.steamView === 'shop' ? FIT_SHOP_WIDTH : FIT_FULL_WIDTH;
     const pad = getComputedStyle(this.root);
     const roomW = window.innerWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
     const roomH = window.innerHeight - parseFloat(pad.paddingTop) - parseFloat(pad.paddingBottom);
@@ -616,6 +682,10 @@ export class WavesModal {
 
   /** The list: the tab's upgrades by kind, each with its level and the price of the next one. */
   private renderList(levels: Levels, cash: number): void {
+    if (this.steamView === 'shop') {
+      this.renderCards(levels, cash);
+      return;
+    }
     const affordable = (tab: Tab) => this.upgrades().filter((u) => tabOf(u) === tab && (nextCost(u, levels) ?? Infinity) <= cash).length;
     for (const b of $('wvTabs').querySelectorAll<HTMLElement>('[data-tab]')) {
       const tab = b.dataset.tab as Tab;
@@ -651,6 +721,73 @@ export class WavesModal {
       `<span class="wv-ico">${icon(UPGRADE_ICON[u.id], 16)}</span><span class="wv-name">${t(`up.${u.id}`)}</span>` +
       `<span class="wv-pips">${pips}</span>${price}</button>`
     );
+  }
+
+  /** The Steam Workshop: the filters and every upgrade in a card (by kind, or one list by price). */
+  private renderCards(levels: Levels, cash: number): void {
+    const all = this.upgrades();
+    const cost = (u: Upgrade) => nextCost(u, levels) ?? Infinity;
+    if (!this.selected || !all.some((u) => u.id === this.selected)) this.selected = (all.find((u) => cost(u) <= cash) ?? all[0]).id;
+    const afford = all.filter((u) => cost(u) <= cash).length;
+    const chip = (f: Filter, label: string) => `<button type="button" class="${this.filter === f ? 'on' : ''}" data-filter="${f}" aria-pressed="${this.filter === f}">${label}</button>`;
+    $('wvFilters').innerHTML =
+      chip('all', `${t('workshop.filterAll')} · ${all.length}`) + chip('afford', `${t('workshop.filterAfford')} · ${afford}`) + chip('cheap', t('workshop.filterCheap'));
+    if (this.filter === 'all') {
+      $('wvUpgrades').innerHTML =
+        '<div class="wv-cols">' +
+        SHOP_COLUMNS.map(
+          (col) =>
+            '<div class="wv-col">' +
+            col
+              .map((g) => {
+                const us = all.filter((u) => u.group === g);
+                if (!us.length) return '';
+                return `<h3 class="wv-ghead ${g}">${t(`workshop.group.${g}`)}<span>${us.length}</span></h3>` + us.map((u) => this.card(u, levels, cash)).join('');
+              })
+              .join('') +
+            '</div>',
+        ).join('') +
+        '</div>';
+      return;
+    }
+    // One list by price, the maxed ones last (the sort keeps the kinds' order between equal prices)
+    const list = all.filter((u) => this.filter === 'cheap' || cost(u) <= cash).sort((a, b) => Math.min(cost(a), 1e12) - Math.min(cost(b), 1e12));
+    $('wvUpgrades').innerHTML = list.length
+      ? `<div class="wv-flat">${list.map((u) => this.card(u, levels, cash)).join('')}</div>`
+      : `<p class="wv-none">${t('workshop.filterNone')}</p>`;
+  }
+
+  /** One upgrade's card: its icon and the next level's price, its name, what it gives now and next, its levels. */
+  private card(u: Upgrade, levels: Levels, cash: number): string {
+    const level = levels[u.id];
+    const top = u.costs.length;
+    const cost = nextCost(u, levels);
+    const off = cost !== null && cost > cash;
+    const pips = u.costs.map((_, i) => `<i class="${i < level ? 'on' : ''}"></i>`).join('') + (level > top ? `<span class="wv-lvtext wv-mastery">+${level - top}</span>` : '');
+    const price = cost === null ? `<span class="wv-price max">${t('workshop.max')}</span>` : `<span class="wv-price${off ? ' off' : ''}">${this.cur(12)}${bigNum(cost)}</span>`;
+    const value = cost === null ? `<b>${upgradeValue(u.id, level)}</b>` : `${upgradeValue(u.id, level)} → <b>${upgradeValue(u.id, level + 1)}</b>`;
+    return (
+      `<button type="button" class="wv-card ${u.group}${u.id === this.selected ? ' on' : ''}${off ? ' off' : ''}${cost === null ? ' maxed' : ''}" data-pick="${u.id}" title="${t(`up.${u.id}.desc`)}">` +
+      `<span class="wv-card-top"><span class="wv-ico">${icon(UPGRADE_ICON[u.id], 19)}</span>${price}</span>` +
+      `<span class="wv-card-name">${t(`up.${u.id}`)}</span><span class="wv-card-val">${value}</span><span class="wv-pips">${pips}</span></button>`
+    );
+  }
+
+  /** The Steam Workshop's milestones, once each time the window opens: the next one in the middle of the strip. */
+  private scrollTrack(): void {
+    if (this.steamView !== 'shop' || !this.trackToNext) return;
+    this.trackToNext = false;
+    const track = $('wvTrack');
+    const got = track.querySelectorAll<HTMLElement>('.wv-node.got');
+    const node = track.querySelector<HTMLElement>('.wv-node.next') ?? got[got.length - 1];
+    if (node) track.scrollLeft = Math.max(0, node.offsetLeft + node.offsetWidth / 2 - track.clientWidth / 2);
+  }
+
+  /** The milestones fade out at an edge with more of them past it (the Steam Workshop's strip scrolls). */
+  private trackFades(): void {
+    const track = $('wvTrack');
+    track.classList.toggle('fade-l', track.scrollLeft > 2);
+    track.classList.toggle('fade-r', track.scrollLeft < track.scrollWidth - track.clientWidth - 2);
   }
 
   /** The Power now, with the starting weapon chosen. */
@@ -692,13 +829,22 @@ export class WavesModal {
       const short = cost > cash;
       // What its next level adds to the Power
       const weapon = this.powerWeapon();
-      const gain = wavesPower({ ...levels, [u.id]: level + 1 }, weapon).power - wavesPower(levels, weapon).power;
+      const powerNow = wavesPower(levels, weapon).power;
+      const gain = wavesPower({ ...levels, [u.id]: level + 1 }, weapon).power - powerNow;
+      // The Steam screen: the levels as a chart, and the Power as it is and as it will be (the "ficha" mockup's)
+      const extra =
+        this.steamView === 'shop'
+          ? this.chart(u, level) +
+            (gain > 0
+              ? `<div class="wv-powerrow">${icon('zap', 18)}<span>${t('workshop.power')}</span><b>${bigNum(powerNow)}</b>${icon('chevronRight', 18)}<b class="to">${bigNum(powerNow + gain)}</b><small>+${bigNum(gain)}</small></div>`
+              : '')
+          : (gain > 0 ? `<div class="wv-gain">${icon('zap', 15)}${t('workshop.powerGain', { n: bigNum(gain) })}</div>` : '') +
+            (later.length ? `<ul class="wv-later">${later.join('')}</ul>` : '');
       body =
         `<div class="wv-compare"><div class="wv-now"><small>${t('workshop.now')}</small><b>${upgradeValue(u.id, level)}</b></div>` +
         `<span class="wv-to" aria-hidden="true">${icon('chevronRight', 30)}</span>` +
         `<div class="wv-now on"><small>${name(level + 1)}</small><b>${upgradeValue(u.id, level + 1)}</b></div></div>` +
-        (gain > 0 ? `<div class="wv-gain">${icon('zap', 15)}${t('workshop.powerGain', { n: bigNum(gain) })}</div>` : '') +
-        (later.length ? `<ul class="wv-later">${later.join('')}</ul>` : '') +
+        extra +
         `<div class="wv-buyzone"><button type="button" class="wv-buy" data-buy="${u.id}"${short ? ' disabled' : ''}>` +
         `${level + 1 > top ? t('workshop.masteryTo', { n: level + 1 - top }) : t('workshop.upgradeTo', { n: level + 1 })}<span class="wv-cost">${this.cur(15)}${bigNum(cost)}</span></button>` +
         `<small class="${short ? 'short' : ''}">${short ? t(horde ? 'horde.need' : 'workshop.need', { n: bigNum(cost - cash) }) : t(horde ? 'horde.left' : 'workshop.left', { n: bigNum(cash - cost) })}</small></div>`;
@@ -710,6 +856,29 @@ export class WavesModal {
       `<div class="wv-level"><span>${level > top ? t('workshop.mastery', { n: level - top }) : t('workshop.level', { n: level, max: top })}</span><span class="wv-bars">${bars}</span></div>` +
       (max > top && level >= top - 1 ? `<p class="wv-mhint">${t('workshop.masteryHint')}</p>` : '') +
       body;
+  }
+
+  /**
+   * The Steam Workshop's progression chart: a bar a level, its value over it (the levels bought filled, the next one
+   * outlined), and for the upgrades without end three Mastery levels after the top, from the one reached.
+   */
+  private chart(u: Upgrade, level: number): string {
+    const top = u.costs.length;
+    const mastery = topLevel(u) > top;
+    const shown: number[] = [];
+    for (let l = 1; l <= top; l++) shown.push(l);
+    const from = Math.max(top + 1, level);
+    if (mastery) for (let l = from; l < from + 3; l++) shown.push(l);
+    const amounts = shown.map((l) => upgradeAmount(u.id, l));
+    const most = Math.max(...amounts, 1e-9);
+    const bars = shown
+      .map((l, k) => {
+        const state = l <= level ? ' on' : l === level + 1 ? ' next' : '';
+        const h = Math.round(8 + (amounts[k] / most) * 62);
+        return `<span class="wv-bar${state}${l > top ? ' m' : ''}"><small>${upgradeValue(u.id, l)}</small><i style="height:${h}%"></i><b>${l > top ? `M${l - top}` : l}</b></span>`;
+      })
+      .join('');
+    return `<div class="wv-chart"><h5>${t(mastery ? 'workshop.progressionMastery' : 'workshop.progression')}</h5><div class="wv-chart-bars">${bars}</div></div>`;
   }
 
   /**
@@ -777,13 +946,15 @@ export class WavesModal {
         : i === 0
           ? 0
           : (i - 1 + (record - MILESTONES[i - 1].wave) / (MILESTONES[i].wave - MILESTONES[i - 1].wave)) / (MILESTONES.length - 1);
+    // (an inner strip: the Steam Workshop's scrolls sideways, each prize named under its wave)
     $('wvTrack').innerHTML =
-      `<span class="wv-rail"><i style="width:${Math.round(fill * 100)}%"></i></span>` +
+      `<div class="wv-track-in"><span class="wv-rail"><i style="width:${Math.round(fill * 100)}%"></i></span>` +
       MILESTONES.map((m) => {
         const got = record >= m.wave;
         const pic = 'skin' in m ? this.orbPics.get(`${m.skin}|${colours.redDecal}|${colours.greenDecal}|${colours.blueDecal}`) : undefined;
         const art = 'skin' in m && !pic ? '<i class="o"></i>' : prizeArt(m, pic);
-        return `<span class="wv-node${got ? ' got' : ''}${m === next ? ' next' : ''}" title="${prizeText(m)}"><span class="dot">${art}</span><b>${m.wave}</b></span>`;
-      }).join('');
+        return `<span class="wv-node${got ? ' got' : ''}${m === next ? ' next' : ''}" title="${prizeText(m)}"><span class="dot">${art}</span><b>${m.wave}</b><small class="nm">${prizeName(m)}</small></span>`;
+      }).join('') +
+      '</div>';
   }
 }
