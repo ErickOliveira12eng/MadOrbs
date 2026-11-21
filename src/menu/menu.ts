@@ -10,7 +10,7 @@ import { modeName, modeShort, modeTagline } from '../client/modes';
 import { bestKills } from '../client/records';
 import { WAVES, bossKind, loadWavesRecord } from '../client/waves';
 import { affordable, balance, dailyState, loadProgress as loadWavesProgress, saveProgress as saveWavesProgress } from '../client/wavesProgress';
-import { LANG_KEY, bigNum, lang, num, t, type Lang } from '../i18n';
+import { LANG_KEY, bigNum, homePath, lang, num, t, type Lang } from '../i18n';
 import { MAX_NAME_LENGTH, ROOM_MODES, cleanName, isReservedName, limitNameInput, type RoomMode, type RoomStatus } from '../net/protocol';
 import type { Account } from './account';
 import { AccountModal, debugUnlockOn } from './accountModal';
@@ -330,6 +330,8 @@ export class StartScreen {
     for (const a of menu.querySelectorAll<HTMLAnchorElement>('a[data-lang]')) {
       const l = a.dataset.lang as Lang;
       if (l === lang()) a.setAttribute('aria-current', 'true');
+      // The address's query goes along (the Steam screen, ?ui=steam: Erick, 20/11/2026, the language dropped it)
+      if (location.search) a.href = homePath(l) + location.search;
       a.addEventListener('click', () => {
         if (l !== lang()) track('language_change', { from: lang(), to: l });
         try {
