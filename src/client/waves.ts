@@ -138,6 +138,14 @@ export const WAVES = {
 };
 
 /**
+ * The chasers (the nuke bots before they arm, the Kamikazes) follow a share of the player's speed bonus (Erick,
+ * 20/11/2026: with every speed bonus, nothing ever caught him; subtly, so a faster player still feels faster): at
+ * `share` 0.5, against the fastest player (x2) the nuke bot goes 2.7 and not 1.8, a kamikaze 2.25 and not 1.5; they
+ * still gain on him, but at a third of the rate (a nuke bot) or half (a kamikaze) of an unboosted player's.
+ */
+export const CHASE_FOLLOW = 0.5;
+
+/**
  * The first waves, easier (Erick, 15/10/2026: everybody who starts playing should get through them): on wave 1 the
  * bots hit half as hard (hit) and take 20% more damage (take), back to the curve step by step by wave `until`
  * (wave 2: x0.63 and x1.15, 3: x0.75 and x1.1, 4: x0.88 and x1.05); from there on nothing changes.

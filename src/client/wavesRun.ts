@@ -22,7 +22,7 @@ import type { CrateTier } from '../sim/crate';
 export type CrateCards = false | 'epic' | 'metal';
 import { VesuviusRenderer } from './render/vesuviusRenderer';
 import { WaveEvents, type EventKey, type EventsHud } from './wavesEvents';
-import { GOALS, MAGNET_FROM, BOMB, BOOSTS, ICE_MAX, ICE_SLOW, MINI, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, BOSSES, ELITE, LEVELS, WAVES, WAVE_MODS, breakAfter, expectedLevel, wavesEnergyToNext, isMiniWave, miniMove, bossCycle, bossKind, bossMoves, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type BossKind, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
+import { CHASE_FOLLOW, GOALS, MAGNET_FROM, BOMB, BOOSTS, ICE_MAX, ICE_SLOW, MINI, PERM_KINDS, PERM_SPEED_STEP, PERM_STEP, POISON_DPS, POWERS, POWER_WEAPONS, BOSSES, ELITE, LEVELS, WAVES, WAVE_MODS, breakAfter, expectedLevel, wavesEnergyToNext, isMiniWave, miniMove, bossCycle, bossKind, bossMoves, bossStrength, eliteStrength, loadWavesRecord, rollElite, rollPerm, rollPower, nukeBots, recordWave, saveWavesRun, waveSpec, type BossKind, type PermKind, type PowerKind, type WaveSpec, type WavesRecord } from './waves';
 import { BLAST_RADIUS, CARDS, CARD_LEVELS, MISSILE_EVERY, MISSILE_GAP, MISSILE_RANGE, NECRO_GAP, NECRO_MAX, NECRO_TIME, REFLECT_EVERY, REFLECT_TIME, ORBITAL, PHOENIX, SHADOW_ALLY, SHADOW_TINT, SILVER_LIFE, UNDEAD_TINT, COMMON_CARDS_EVERY, BERSERK_BELOW, CARD_GAP, SHOT_CARDS, cardDef, statFactor, offerCards as dealCards, type CardID, type CardLevels, type CardOffer } from './wavesCards';
 import { BARRIER_SIZE, BREATHER, CHECKPOINT, DASH_COOLDOWN, MILESTONES, PERM_CAP_BASE, PERM_CAP_STEP, SHOCK, SHOCK_COOLDOWN, MAGNET, UPGRADES, UPGRADE_STEP, addCores, buildCards, headStartPowers, workshopFactor, loadProgress, runCores, saveBuild, waveCores, type CheckpointBuild, type UpgradeID, type Levels, type Milestone, type RunCores, type WavesProgress } from './wavesProgress';
 
@@ -965,6 +965,9 @@ export class WavesRun {
         continue;
       }
       const pos = p.currentCF.position;
+      // Chasing (not armed yet): a share of the player's speed bonus on top of its own (CHASE_FOLLOW)
+      const follow = 1 + CHASE_FOLLOW * Math.max(0, me.speedBoost - 1);
+      if (n.fuse < 0) p.speedBoost = (n.kami ? WAVE_MODS.kamikaze.speed : N.speed) * follow;
       // A kamikaze (WAVE_MODS.kamikaze): armed closer, a short fuse, a grenade's blast
       if (n.kami) {
         this.updateKamikaze(n, k);
