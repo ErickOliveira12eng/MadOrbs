@@ -40,7 +40,7 @@ export const isRoomCode = (s: unknown): s is string => typeof s === 'string' && 
 /** WebSocket path of a private room. */
 export const privateRoomPath = (code: string): string => `${WS_PATH}/room/${code}`;
 /** The page that joins a private room (the invitation link), in a language folder or at the root. */
-export const ROOM_LINK_RE = /^\/(?:(pt|es|fr|de)\/)?r\/([A-Za-z0-9]{4,12})\/?$/;
+export const ROOM_LINK_RE = /^\/(?:(pt|es|fr|de|it)\/)?r\/([A-Za-z0-9]{4,12})\/?$/;
 
 /** What a private room can be set to (the choices of the start screen's window). */
 export const PRIVATE_CHOICES = {

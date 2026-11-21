@@ -1,5 +1,5 @@
-// The game's languages: English (the default, the page at /), Portuguese (/pt/), Spanish (/es/), French (/fr/) and
-// German (/de/).
+// The game's languages: English (the default, the page at /), Portuguese (/pt/), Spanish (/es/), French (/fr/),
+// German (/de/) and Italian (/it/).
 // A page's language comes from its address. At / a small script in index.html first sends the
 // visitors whose earlier choice (the language button) or browser speaks another one to that version.
 //
@@ -13,20 +13,21 @@ import { en, type Key } from './en';
 import { es } from './es';
 import { de } from './de';
 import { fr } from './fr';
+import { it } from './it';
 import { pt } from './pt';
 
 export type { Key };
-export type Lang = 'en' | 'pt' | 'es' | 'fr' | 'de';
-export const LANGS: readonly Lang[] = ['en', 'pt', 'es', 'fr', 'de'];
+export type Lang = 'en' | 'pt' | 'es' | 'fr' | 'de' | 'it';
+export const LANGS: readonly Lang[] = ['en', 'pt', 'es', 'fr', 'de', 'it'];
 /** The languages the guide pages (content/pages, tools/make-pages.ts) are written in; the others link to English ones. */
 export type PageLang = 'en' | 'pt' | 'es';
 export const PAGE_LANGS: readonly PageLang[] = ['en', 'pt', 'es'];
 /** Each language in itself, for the language menu. */
-export const LANG_NAMES: Record<Lang, string> = { en: 'English', pt: 'Português', es: 'Español', fr: 'Français', de: 'Deutsch' };
+export const LANG_NAMES: Record<Lang, string> = { en: 'English', pt: 'Português', es: 'Español', fr: 'Français', de: 'Deutsch', it: 'Italiano' };
 /** localStorage: the language picked with the language button (read by the script in index.html). */
 export const LANG_KEY = 'madorbs.lang';
 
-const DICTS: Record<Lang, Partial<Record<Key, string>>> = { en, pt, es, fr, de };
+const DICTS: Record<Lang, Partial<Record<Key, string>>> = { en, pt, es, fr, de, it };
 
 /** The language of an address: /pt/..., /es/..., /fr/..., English otherwise. */
 export function langOfPath(path: string): Lang {
