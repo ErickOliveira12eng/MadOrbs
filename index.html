@@ -6,7 +6,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- Cookie banner (public/consent.js): outside Europe statistics and ads run until refused; in Europe only after the visitor agrees -->
-    <script src="/consent.js?v=6" defer></script>
+    <script src="/consent.js?v=7" defer></script>
     <script>
       // At "/" (and at a private room's invitation, "/r/<code>"), visitors who picked Portuguese or
       // Spanish before (the language button), or whose browser asks for it first, go to that version
@@ -22,13 +22,13 @@
           var asked = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];
           for (var i = 0; i < asked.length; i++) {
             var base = String(asked[i]).slice(0, 2).toLowerCase();
-            if (base === 'en' || base === 'pt' || base === 'es') {
+            if (base === 'en' || base === 'pt' || base === 'es' || base === 'fr') {
               l = base;
               break;
             }
           }
         }
-        if (l === 'pt' || l === 'es') location.replace('/' + l + (invite ? location.pathname : '/') + location.search + location.hash);
+        if (l === 'pt' || l === 'es' || l === 'fr') location.replace('/' + l + (invite ? location.pathname : '/') + location.search + location.hash);
       })();
     </script>
     <title data-i18n="meta.title">Mad Orbs: free online shooter in your browser</title>
@@ -37,6 +37,7 @@
     <link rel="alternate" hreflang="en" href="https://madorbs.com/" />
     <link rel="alternate" hreflang="pt" href="https://madorbs.com/pt/" />
     <link rel="alternate" hreflang="es" href="https://madorbs.com/es/" />
+    <link rel="alternate" hreflang="fr" href="https://madorbs.com/fr/" />
     <link rel="alternate" hreflang="x-default" href="https://madorbs.com/" />
     <meta name="theme-color" content="#0b1020" />
     <meta property="og:type" content="website" />
@@ -102,6 +103,7 @@
         <a href="/" hreflang="en" lang="en" data-lang="en">English</a>
         <a href="/pt/" hreflang="pt" lang="pt-BR" data-lang="pt">Português</a>
         <a href="/es/" hreflang="es" lang="es" data-lang="es">Español</a>
+        <a href="/fr/" hreflang="fr" lang="fr" data-lang="fr">Français</a>
       </nav>
 
       <main class="lobby">
@@ -270,6 +272,7 @@
             <section class="info-block">
               <h2 data-i18n="home.newsTitle">What's new</h2>
               <ul class="info-news">
+                <li><time datetime="2026-11-20" data-i18n="home.news105Date">November 20, 2026</time><b data-i18n="home.news105Title">The game in French</b><span data-i18n="home.news105">The start screen, the Workshop and the matches now in French too: pick it with the language button at the top of the screen.</span></li>
                 <li><time datetime="2026-11-20" data-i18n="home.news104Date">November 20, 2026</time><b data-i18n="home.news104Title">Waves: the metal crate and the magnet</b><span data-i18n="home.news104">From wave 10 a metal crate may show up: much tougher, it gives a boss&#39;s choice of cards. The golden zone of the challenges now also leaves a golden energy, and from wave 30 the crates may give a magnet: take it and all the energy on the map comes to you. The Shadow Ally is a little weaker.</span></li>
                 <li><time datetime="2026-11-18" data-i18n="home.news103Date">November 18, 2026</time><b data-i18n="home.news103Title">Waves: energy and levels</b><span data-i18n="home.news103">As in the Horde: every enemy that falls leaves energy on the floor, and each level it fills brings 3 cards, fast at first and slower later. They take the place of the common cards of waves 5, 15, 25... and the mini-boss's; the boss keeps its own choice. With them came the Magnetism in the Workshop, the rare and epic crates, the Bullet Ring and, after wave 100, the Orbiting Blades.</span></li>
                 <li><time datetime="2026-11-16" data-i18n="home.news102Date">November 16, 2026</time><b data-i18n="home.news102Title">Waves: mini-bosses, special waves and challenges</b><span data-i18n="home.news102">The waves between the bosses have more going on: a mini-boss on waves 5, 15, 25... with one of the bosses&#39; attacks; from wave 11, special waves (Fast, Elite, Snipers, Kamikazes, Bombardment, Darkness); from wave 6, challenges (a golden crate, a frenzy of kills, a zone to hold) worth Cores and an upgrade. And a new rhythm: shorter waves, with a bigger one every third. In the Horde, a new look for the map and a slower climb of levels later on.</span></li>
