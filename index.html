@@ -6,14 +6,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- Cookie banner (public/consent.js): outside Europe statistics and ads run until refused; in Europe only after the visitor agrees -->
-    <script src="/consent.js?v=9" defer></script>
+    <script src="/consent.js?v=10" defer></script>
     <script>
-      // At "/" (and at a private room's invitation, "/r/<code>"), visitors who picked Portuguese or
-      // Spanish before (the language button), or whose browser asks for it first, go to that version
-      // before anything shows
+      // At "/" (and at a private room's invitation, "/r/<code>"), visitors who picked another language
+      // before (the language button), or whose browser asks for one first, go to that version before
+      // anything shows (src/i18n LANGS: the same list)
       (function () {
         var invite = /^\/r\/[A-Za-z0-9]+\/?$/.test(location.pathname);
         if (location.pathname !== '/' && !invite) return;
+        var LANGS = ['en', 'pt', 'pt-pt', 'es', 'es-es', 'fr', 'de', 'it', 'pl', 'tr', 'ru', 'uk', 'ja', 'ko', 'zh', 'zh-tw'];
         var l = null;
         try {
           l = localStorage.getItem('madorbs.lang');
@@ -21,14 +22,16 @@
         if (!l) {
           var asked = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];
           for (var i = 0; i < asked.length; i++) {
-            var base = String(asked[i]).slice(0, 2).toLowerCase();
-            if (base === 'en' || base === 'pt' || base === 'es' || base === 'fr' || base === 'de' || base === 'it') {
-              l = base;
-              break;
-            }
+            var tag = String(asked[i]).toLowerCase();
+            var base = tag.slice(0, 2);
+            // (Chinese: Taiwan, Hong Kong, Macau and "Hant" read the traditional one; Portugal's and Spain's their own)
+            if (base === 'zh') l = /^zh-(tw|hk|mo|hant)/.test(tag) ? 'zh-tw' : 'zh';
+            else if (tag === 'pt-pt' || tag === 'es-es') l = tag;
+            else if (LANGS.indexOf(base) >= 0) l = base;
+            if (l) break;
           }
         }
-        if (l === 'pt' || l === 'es' || l === 'fr' || l === 'de' || l === 'it') location.replace('/' + l + (invite ? location.pathname : '/') + location.search + location.hash);
+        if (l && l !== 'en' && LANGS.indexOf(l) >= 0) location.replace('/' + l + (invite ? location.pathname : '/') + location.search + location.hash);
       })();
     </script>
     <title data-i18n="meta.title">Mad Orbs: free online shooter in your browser</title>
@@ -40,6 +43,16 @@
     <link rel="alternate" hreflang="fr" href="https://madorbs.com/fr/" />
     <link rel="alternate" hreflang="de" href="https://madorbs.com/de/" />
     <link rel="alternate" hreflang="it" href="https://madorbs.com/it/" />
+    <link rel="alternate" hreflang="pt-PT" href="https://madorbs.com/pt-pt/" />
+    <link rel="alternate" hreflang="es-ES" href="https://madorbs.com/es-es/" />
+    <link rel="alternate" hreflang="pl" href="https://madorbs.com/pl/" />
+    <link rel="alternate" hreflang="tr" href="https://madorbs.com/tr/" />
+    <link rel="alternate" hreflang="ru" href="https://madorbs.com/ru/" />
+    <link rel="alternate" hreflang="uk" href="https://madorbs.com/uk/" />
+    <link rel="alternate" hreflang="ja" href="https://madorbs.com/ja/" />
+    <link rel="alternate" hreflang="ko" href="https://madorbs.com/ko/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://madorbs.com/zh/" />
+    <link rel="alternate" hreflang="zh-Hant" href="https://madorbs.com/zh-tw/" />
     <link rel="alternate" hreflang="x-default" href="https://madorbs.com/" />
     <meta name="theme-color" content="#0b1020" />
     <meta property="og:type" content="website" />
@@ -103,11 +116,21 @@
       </header>
       <nav id="langMenu" class="popover lang-menu" hidden data-i18n-attr="aria-label=menu.language" aria-label="Language">
         <a href="/" hreflang="en" lang="en" data-lang="en">English</a>
-        <a href="/pt/" hreflang="pt" lang="pt-BR" data-lang="pt">Português</a>
-        <a href="/es/" hreflang="es" lang="es" data-lang="es">Español</a>
+        <a href="/pt/" hreflang="pt" lang="pt-BR" data-lang="pt">Português (Brasil)</a>
+        <a href="/pt-pt/" hreflang="pt-PT" lang="pt-PT" data-lang="pt-pt">Português (Portugal)</a>
+        <a href="/es/" hreflang="es" lang="es" data-lang="es">Español (Latinoamérica)</a>
+        <a href="/es-es/" hreflang="es-ES" lang="es-ES" data-lang="es-es">Español (España)</a>
         <a href="/fr/" hreflang="fr" lang="fr" data-lang="fr">Français</a>
         <a href="/de/" hreflang="de" lang="de" data-lang="de">Deutsch</a>
         <a href="/it/" hreflang="it" lang="it" data-lang="it">Italiano</a>
+        <a href="/pl/" hreflang="pl" lang="pl" data-lang="pl">Polski</a>
+        <a href="/tr/" hreflang="tr" lang="tr" data-lang="tr">Türkçe</a>
+        <a href="/ru/" hreflang="ru" lang="ru" data-lang="ru">Русский</a>
+        <a href="/uk/" hreflang="uk" lang="uk" data-lang="uk">Українська</a>
+        <a href="/ja/" hreflang="ja" lang="ja" data-lang="ja">日本語</a>
+        <a href="/ko/" hreflang="ko" lang="ko" data-lang="ko">한국어</a>
+        <a href="/zh/" hreflang="zh-Hans" lang="zh-CN" data-lang="zh">简体中文</a>
+        <a href="/zh-tw/" hreflang="zh-Hant" lang="zh-TW" data-lang="zh-tw">繁體中文</a>
       </nav>
 
       <main class="lobby">
@@ -276,6 +299,7 @@
             <section class="info-block">
               <h2 data-i18n="home.newsTitle">What's new</h2>
               <ul class="info-news">
+                <li><time datetime="2026-11-21" data-i18n="home.news106Date">November 21, 2026</time><b data-i18n="home.news106Title">The game in 16 languages</b><span data-i18n="home.news106">Besides English, Portuguese, Spanish, French, German and Italian, the start screen, the Workshop and the matches now also speak Polish, Turkish, Russian, Ukrainian, Japanese, Korean, Simplified and Traditional Chinese, and the Portuguese of Portugal and the Spanish of Spain.</span></li>
                 <li><time datetime="2026-11-20" data-i18n="home.news105Date">November 20, 2026</time><b data-i18n="home.news105Title">The game in French, German and Italian</b><span data-i18n="home.news105">The start screen, the Workshop and the matches now in French, German and Italian too: pick one with the language button at the top of the screen.</span></li>
                 <li><time datetime="2026-11-20" data-i18n="home.news104Date">November 20, 2026</time><b data-i18n="home.news104Title">Waves: the metal crate and the magnet</b><span data-i18n="home.news104">From wave 10 a metal crate may show up: much tougher, it gives a boss&#39;s choice of cards. The golden zone of the challenges now also leaves a golden energy, and from wave 30 the crates may give a magnet: take it and all the energy on the map comes to you. The Shadow Ally is a little weaker.</span></li>
                 <li><time datetime="2026-11-18" data-i18n="home.news103Date">November 18, 2026</time><b data-i18n="home.news103Title">Waves: energy and levels</b><span data-i18n="home.news103">As in the Horde: every enemy that falls leaves energy on the floor, and each level it fills brings 3 cards, fast at first and slower later. They take the place of the common cards of waves 5, 15, 25... and the mini-boss's; the boss keeps its own choice. With them came the Magnetism in the Workshop, the rare and epic crates, the Bullet Ring and, after wave 100, the Orbiting Blades.</span></li>

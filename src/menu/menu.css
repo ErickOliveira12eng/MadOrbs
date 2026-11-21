@@ -16,8 +16,66 @@
   --gold-1: #ffe066;
   --gold-2: #ff9f1c;
   --danger: #ff6b6b;
-  --font-display: 'Lilita One', 'Trebuchet MS', sans-serif;
+  /* (Rubik: the Cyrillic titles, Russian and Ukrainian, Lilita One having none; Chinese, Japanese and Korean fall back on
+     the system's fonts, picked by the page's lang) */
+  --font-display: 'Lilita One', 'Rubik', 'Trebuchet MS', sans-serif;
   --font-ui: 'Nunito Variable', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* Japanese, Korean and Chinese titles. Lilita One has one weight and no CJK, so the titles fell on the system's regular
+   face, thin, and the letter-spacing made for Latin capitals spread the characters apart. A bold local face for each
+   script (Windows, then macOS, then Linux's Noto), only for the CJK characters: Lilita still draws the Latin and the
+   digits. The HUD's titles use the same (--h-display). */
+@font-face {
+  font-family: 'MO Display JA';
+  font-weight: 100 900;
+  src: local('Yu Gothic Bold'), local('YuGothic-Bold'), local('Meiryo Bold'), local('Meiryo-Bold'),
+    local('Hiragino Sans W7'), local('HiraginoSans-W7'), local('Noto Sans CJK JP Bold'), local('NotoSansCJKjp-Bold');
+  unicode-range: U+2E80-9FFF, U+AC00-D7AF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
+}
+@font-face {
+  font-family: 'MO Display KO';
+  font-weight: 100 900;
+  src: local('Malgun Gothic Bold'), local('MalgunGothicBold'), local('Apple SD Gothic Neo Bold'),
+    local('AppleSDGothicNeo-Bold'), local('Noto Sans CJK KR Bold'), local('NotoSansCJKkr-Bold');
+  unicode-range: U+2E80-9FFF, U+AC00-D7AF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
+}
+@font-face {
+  font-family: 'MO Display SC';
+  font-weight: 100 900;
+  src: local('Microsoft YaHei Bold'), local('MicrosoftYaHei-Bold'), local('PingFang SC Semibold'),
+    local('PingFangSC-Semibold'), local('Noto Sans CJK SC Bold'), local('NotoSansCJKsc-Bold');
+  unicode-range: U+2E80-9FFF, U+AC00-D7AF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
+}
+@font-face {
+  font-family: 'MO Display TC';
+  font-weight: 100 900;
+  src: local('Microsoft JhengHei Bold'), local('MicrosoftJhengHeiBold'), local('PingFang TC Semibold'),
+    local('PingFangTC-Semibold'), local('Noto Sans CJK TC Bold'), local('NotoSansCJKtc-Bold');
+  unicode-range: U+2E80-9FFF, U+AC00-D7AF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
+}
+:root:lang(ja),
+:root:lang(ja) .mo-hud {
+  --font-display: 'Lilita One', 'MO Display JA', 'Trebuchet MS', sans-serif;
+  --h-display: 'Lilita One', 'MO Display JA', 'Trebuchet MS', sans-serif;
+}
+:root:lang(ko),
+:root:lang(ko) .mo-hud {
+  --font-display: 'Lilita One', 'MO Display KO', 'Trebuchet MS', sans-serif;
+  --h-display: 'Lilita One', 'MO Display KO', 'Trebuchet MS', sans-serif;
+}
+:root:lang(zh),
+:root:lang(zh) .mo-hud {
+  --font-display: 'Lilita One', 'MO Display SC', 'Trebuchet MS', sans-serif;
+  --h-display: 'Lilita One', 'MO Display SC', 'Trebuchet MS', sans-serif;
+}
+:root:lang(zh-TW),
+:root:lang(zh-TW) .mo-hud {
+  --font-display: 'Lilita One', 'MO Display TC', 'Trebuchet MS', sans-serif;
+  --h-display: 'Lilita One', 'MO Display TC', 'Trebuchet MS', sans-serif;
+}
+:root:is(:lang(ja), :lang(ko), :lang(zh)) body * {
+  letter-spacing: normal !important;
 }
 
 .screen,
@@ -215,8 +273,12 @@
   letter-spacing: 0.04em;
 }
 
+/* (16 languages since 21/11/2026: two columns) */
 .popover.lang-menu {
-  width: 190px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 420px;
+  max-width: calc(100vw - 24px);
   padding: 6px;
   gap: 2px;
 }

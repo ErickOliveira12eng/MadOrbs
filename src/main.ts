@@ -1,5 +1,8 @@
 // Entry point: the start screen, then the online game on this server or the offline training.
 import '@fontsource/lilita-one/400.css';
+// (the titles' Cyrillic letters, Russian and Ukrainian: Lilita One has none; only those letters' files, loaded when used)
+import '@fontsource/rubik/cyrillic-800.css';
+import '@fontsource/rubik/cyrillic-ext-800.css';
 import '@fontsource-variable/nunito';
 import './menu/menu.css';
 import { audio } from './client/audio/audio';
