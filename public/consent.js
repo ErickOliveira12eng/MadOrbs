@@ -94,9 +94,29 @@
       notice: "Mad Orbs utilise des cookies pour les statistiques d'utilisation (Google Analytics) et pour la publicité (Google AdSense), qui gardent le jeu gratuit. Vous pouvez les refuser ou choisir lesquels, maintenant ou plus tard avec le lien Cookies en bas de la page.",
       acceptNotice: "J'ai compris",
     },
+    // (the German page has no privacy page of its own: the English one)
+    de: {
+      title: 'Cookies',
+      body: 'Mad Orbs verwendet Cookies nur mit deiner Zustimmung: für Nutzungsstatistiken (Google Analytics) und für Werbung (Google AdSense). Das Spiel funktioniert so oder so.',
+      privacy: 'Datenschutzerklärung',
+      privacyUrl: '/privacy',
+      accept: 'Akzeptieren',
+      reject: 'Ablehnen',
+      customize: 'Anpassen',
+      save: 'Auswahl speichern',
+      necessary: 'Notwendig',
+      necessaryText: 'Deine Einstellungen, deine Anmeldung und diese Auswahl, in deinem Browser gespeichert. Immer aktiv.',
+      analytics: 'Nutzungsstatistiken',
+      analyticsText: 'Google Analytics: wie viele Leute die Seite besuchen und wie sie genutzt wird.',
+      ads: 'Werbung',
+      adsText: 'Google AdSense: Werbung, die das Spiel kostenlos hält, möglicherweise nach deinen Interessen.',
+      always: 'Immer aktiv',
+      notice: 'Mad Orbs verwendet Cookies für Nutzungsstatistiken (Google Analytics) und für Werbung (Google AdSense), die das Spiel kostenlos hält. Du kannst sie ablehnen oder auswählen, jetzt oder später über den Link Cookies unten auf der Seite.',
+      acceptNotice: 'Verstanden',
+    },
   };
-  // The language of the address (/pt/..., /es/..., /fr/..., English elsewhere), like src/i18n langOfPath
-  var pathLang = /^\/(pt|es|fr)(\/|$)/.exec(location.pathname);
+  // The language of the address (/pt/..., /es/..., /fr/..., /de/..., English elsewhere), like src/i18n langOfPath
+  var pathLang = /^\/(pt|es|fr|de)(\/|$)/.exec(location.pathname);
   var T = TEXTS[pathLang ? pathLang[1] : 'en'];
 
   // ------------------------------------------------------------ where: opt-in in Europe only

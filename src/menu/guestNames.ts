@@ -27,6 +27,12 @@ const WORDS: Record<Lang, readonly string[]> = {
     'Parachutiste', 'Fusilier', 'Combattant', 'Vétéran', 'Patrouilleur', 'Gladiateur', 'Tank', 'Canon',
     'Bazooka', 'Tranchée', 'Embuscade', 'Blindé', 'Missile', 'Bombardier', 'Espion', 'Commandant',
   ],
+  de: [
+    'Soldat', 'Feldwebel', 'Gefreiter', 'Rekrut', 'Schütze', 'Kommando', 'Leutnant', 'Hauptmann',
+    'Major', 'Oberst', 'Kanonier', 'Grenadier', 'Späher', 'Wache', 'Krieger', 'Söldner',
+    'Fallschirmjäger', 'Füsilier', 'Kämpfer', 'Veteran', 'Patrouille', 'Gladiator', 'Panzer', 'Kanone',
+    'Bazooka', 'Graben', 'Hinterhalt', 'Rakete', 'Bomber', 'Spion', 'Kommandant', 'Jäger',
+  ],
 };
 
 export function randomGuestName(): string {
